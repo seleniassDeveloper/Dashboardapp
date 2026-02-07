@@ -1,0 +1,64 @@
+.brandHeader {
+  width: 100vw;
+}
+
+/* Imagen fija */
+.brandHeader__image {
+  height: 150px;
+  width: 100%;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* Barra debajo de la imagen */
+.brandHeader__bar {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+}
+
+.brandHeader__title {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Inter", "Segoe UI",
+    Roboto, Arial;
+}
+
+/* Botón editar */
+.brandHeader__btn {
+  background-color: transparent!important;
+  color: #111!important;
+  margin-left: auto;
+  border: 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.brandHeader__btn:hover {
+  border: #7f7f8060 1px solid;
+  background-color: #eee!important;
+}
+
+/* Modo oscuro/claro solo para el header */
+.brandHeader--dark .brandHeader__bar {
+  background: #0f0f10;
+}
+.brandHeader--dark .brandHeader__btn {
+  background: #1f1f22;
+  color: #fff;
+}
+
+.brandHeader--light .brandHeader__bar {
+  background: #ffffff;
+  border-bottom: 1px solid #eee;
+}
+.brandHeader--light .brandHeader__btn {
+  background: #111;
+  color: #fff;
+}
