@@ -22,7 +22,7 @@
 
 .brandHeader__title {
   margin: 0;
-  font-size: 26px;
+  font-size: 40px;
   font-weight: 700;
   letter-spacing: -0.02em;
   font-family: ui-sans-serif, system-ui, -apple-system, "Inter", "Segoe UI",
@@ -41,7 +41,7 @@
 }
 
 .brandHeader__btn:hover {
-  border: #7f7f8060 1px solid;
+  border: #7f7f80 1px solid;
   background-color: #eee!important;
 }
 
