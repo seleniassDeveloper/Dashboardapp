@@ -1,37 +1,37 @@
-import { prisma } from "../prisma.js";
+import prisma from "../prisma.js";
 
-export async function listClients(req, res, next) {
+export async function getClients(req, res) {
   try {
     const data = await prisma.client.findMany({
       orderBy: { createdAt: "desc" },
     });
-    res.json({ ok: true, data });
-  } catch (err) {
-    next(err);
+    res.json(data);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Error obteniendo clientes" });
   }
 }
 
-export async function createClient(req, res, next) {
+export async function createClient(req, res) {
   try {
-    const { fullName, phone, email, notes } = req.body;
+    const { fullName, email, phone, notes } = req.body;
 
-    if (!fullName || fullName.trim().length < 2) {
-      return res
-        .status(400)
-        .json({ ok: false, error: "fullName is required (min 2 chars)" });
+    if (!fullName || !String(fullName).trim()) {
+      return res.status(400).json({ error: "fullName es obligatorio" });
     }
 
     const created = await prisma.client.create({
       data: {
-        fullName: fullName.trim(),
-        phone: phone?.trim() || null,
-        email: email?.trim() || null,
-        notes: notes?.trim() || null,
+        fullName: String(fullName).trim(),
+        email: email ? String(email).trim() : null,
+        phone: phone ? String(phone).trim() : null,
+        notes: notes ? String(notes).trim() : null,
       },
     });
 
-    res.status(201).json({ ok: true, data: created });
-  } catch (err) {
-    next(err);
+    res.status(201).json(created);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Error creando cliente" });
   }
 }
