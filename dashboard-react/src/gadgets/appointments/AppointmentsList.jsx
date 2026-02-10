@@ -8,17 +8,20 @@ const API = "http://localhost:3001/api";
 
 export default function AppointmentsList() {
   const [appointments, setAppointments] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [showModal, setShowModal] = useState(false);
 
-  async function fetchAppointments() {
+  const [showModal, setShowModal] = useState(false);
+  const [editingAppt, setEditingAppt] = useState(null);
+
+  async function fetchAppointments(signal) {
     try {
       setError("");
       setLoading(true);
-      const res = await axios.get(`${API}/appointments`);
+      const res = await axios.get(`${API}/appointments`, { signal });
       setAppointments(res.data || []);
     } catch (e) {
+      if (e.name === "CanceledError") return;
       console.error(e);
       setError("No se pudieron cargar las citas.");
     } finally {
@@ -27,8 +30,41 @@ export default function AppointmentsList() {
   }
 
   useEffect(() => {
-    fetchAppointments();
+    const controller = new AbortController();
+    fetchAppointments(controller.signal);
+    return () => controller.abort();
   }, []);
+
+  function openCreate() {
+    setEditingAppt(null);
+    setShowModal(true);
+  }
+
+  function openEdit(appt) {
+    setEditingAppt(appt);
+    setShowModal(true);
+  }
+
+  async function handleDelete(id) {
+    const ok = window.confirm("¿Seguro que quieres eliminar esta cita?");
+    if (!ok) return;
+
+    try {
+      setError("");
+      setAppointments((prev) => prev.filter((a) => a.id !== id));
+      await axios.delete(`${API}/appointments/${id}`);
+    } catch (e) {
+      console.error(e);
+      setError(e?.response?.data?.error || "No se pudo eliminar la cita.");
+      fetchAppointments();
+    }
+  }
+
+  function handleSaved() {
+    setShowModal(false);
+    setEditingAppt(null);
+    fetchAppointments();
+  }
 
   return (
     <>
@@ -42,7 +78,7 @@ export default function AppointmentsList() {
               </Card.Text>
             </div>
 
-            <Button variant="dark" onClick={() => setShowModal(true)}>
+            <Button variant="dark" onClick={openCreate}>
               + Nueva cita
             </Button>
           </Stack>
@@ -60,7 +96,12 @@ export default function AppointmentsList() {
             ) : (
               <ListGroup>
                 {appointments.map((appt) => (
-                  <AppointmentItem key={appt.id} appt={appt} />
+                  <AppointmentItem
+                    key={appt.id}
+                    appt={appt}
+                    onEdit={() => openEdit(appt)}
+                    onDelete={() => handleDelete(appt.id)}
+                  />
                 ))}
               </ListGroup>
             )}
@@ -70,11 +111,13 @@ export default function AppointmentsList() {
 
       <AppointmentModal
         show={showModal}
-        onHide={() => setShowModal(false)}
-        onCreated={() => {
+        onHide={() => {
           setShowModal(false);
-          fetchAppointments();
+          setEditingAppt(null);
         }}
+        onSaved={handleSaved}
+        mode={editingAppt ? "edit" : "create"}
+        initialData={editingAppt}
       />
     </>
   );
