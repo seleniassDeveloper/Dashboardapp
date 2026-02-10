@@ -1,8 +1,17 @@
-import React, { useEffect, useState } from "react";
-import { Card, Button, ListGroup, Spinner, Alert, Stack } from "react-bootstrap";
+import React, { useEffect, useState, useCallback } from "react";
+import {
+  Card,
+  Button,
+  ListGroup,
+  Spinner,
+  Alert,
+  Stack,
+} from "react-bootstrap";
 import axios from "axios";
+
 import AppointmentItem from "./AppointmentItem";
 import AppointmentModal from "./AppointmentModal";
+import ConfirmDeleteModal from "./ConfirmDeleteModal";
 
 const API = "http://localhost:3001/api";
 
@@ -11,8 +20,13 @@ export default function AppointmentsList() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const [showModal, setShowModal] = useState(false);
+  // create/edit
+  const [showForm, setShowForm] = useState(false);
   const [editingAppt, setEditingAppt] = useState(null);
+
+  // delete
+  const [showDelete, setShowDelete] = useState(false);
+  const [deletingAppt, setDeletingAppt] = useState(null);
 
   async function fetchAppointments(signal) {
     try {
@@ -35,37 +49,57 @@ export default function AppointmentsList() {
     return () => controller.abort();
   }, []);
 
-  function openCreate() {
+  // 🔍 ESTE useEffect te dice el valor REAL de showDelete
+  useEffect(() => {
+    console.log("✅ showDelete cambió a:", showDelete);
+  }, [showDelete]);
+
+  // CREATE/EDIT
+  const handleOpenCreate = useCallback(() => {
     setEditingAppt(null);
-    setShowModal(true);
-  }
+    setShowForm(true);
+  }, []);
 
-  function openEdit(appt) {
+  const handleOpenEdit = useCallback((appt) => {
     setEditingAppt(appt);
-    setShowModal(true);
-  }
+    setShowForm(true);
+  }, []);
 
-  async function handleDelete(id) {
-    const ok = window.confirm("¿Seguro que quieres eliminar esta cita?");
-    if (!ok) return;
+  const handleCloseForm = useCallback(() => {
+    setShowForm(false);
+    setEditingAppt(null);
+  }, []);
+
+  const handleSaved = useCallback(() => {
+    handleCloseForm();
+    fetchAppointments();
+  }, [handleCloseForm]);
+
+const handleOpenDelete = useCallback((appt) => {
+  setDeletingAppt(appt);
+  setShowDelete(true);
+}, []);
+
+  const handleCloseDelete = useCallback(() => {
+    setShowDelete(false);
+    setDeletingAppt(null);
+  }, []);
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!deletingAppt?.id) return;
 
     try {
       setError("");
-      setAppointments((prev) => prev.filter((a) => a.id !== id));
-      await axios.delete(`${API}/appointments/${id}`);
+      await axios.delete(`${API}/appointments/${deletingAppt.id}`);
+      setAppointments((prev) => prev.filter((a) => a.id !== deletingAppt.id));
+      handleCloseDelete();
     } catch (e) {
       console.error(e);
       setError(e?.response?.data?.error || "No se pudo eliminar la cita.");
-      fetchAppointments();
     }
-  }
+  }, [deletingAppt, handleCloseDelete]);
 
-  function handleSaved() {
-    setShowModal(false);
-    setEditingAppt(null);
-    fetchAppointments();
-  }
-
+  console.log("ConfirmDeleteModal import =", ConfirmDeleteModal);
   return (
     <>
       <Card className="shadow-sm">
@@ -78,7 +112,7 @@ export default function AppointmentsList() {
               </Card.Text>
             </div>
 
-            <Button variant="dark" onClick={openCreate}>
+            <Button variant="dark" onClick={handleOpenCreate}>
               + Nueva cita
             </Button>
           </Stack>
@@ -99,8 +133,8 @@ export default function AppointmentsList() {
                   <AppointmentItem
                     key={appt.id}
                     appt={appt}
-                    onEdit={() => openEdit(appt)}
-                    onDelete={() => handleDelete(appt.id)}
+                    onEdit={handleOpenEdit}
+                    onDelete={handleOpenDelete}
                   />
                 ))}
               </ListGroup>
@@ -110,14 +144,22 @@ export default function AppointmentsList() {
       </Card>
 
       <AppointmentModal
-        show={showModal}
-        onHide={() => {
-          setShowModal(false);
-          setEditingAppt(null);
-        }}
+        show={showForm}
+        onHide={handleCloseForm}
         onSaved={handleSaved}
         mode={editingAppt ? "edit" : "create"}
         initialData={editingAppt}
+      />
+
+      <ConfirmDeleteModal
+        show={showDelete}
+        appt={deletingAppt}
+        onHide={handleCloseDelete}
+        onDeleted={(deletedId) => {
+          setAppointments((prev) => prev.filter((a) => a.id !== deletedId));
+          handleCloseDelete();
+        }}
+        onError={(msg) => setError(msg)}
       />
     </>
   );

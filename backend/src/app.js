@@ -14,6 +14,10 @@ app.get("/api/health", (req, res) => {
   res.json({ ok: true, service: "backend" });
 });
 
+app.get("/", (req, res) => {
+  res.json({ ok: true, message: "Backend running" });
+});
+
 app.use("/api/services", servicesRoutes);
 app.use("/api/clients", clientsRoutes);
 app.use("/api/appointments", appointmentsRoutes);
