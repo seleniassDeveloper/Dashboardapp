@@ -19,3 +19,7 @@ dashboard-react/node_modules
 dashboard-react/dist
 dashboard-react/.env
 dashboard-react/.env.*
+node_modules
+backend/node_modules
+dashboard-react/node_modules
+.env
