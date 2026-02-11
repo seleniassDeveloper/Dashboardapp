@@ -1,53 +1,121 @@
-import React from "react";
-import { ListGroup, Button, Stack, Badge } from "react-bootstrap";
+import React, { useMemo, useState } from "react";
+import { ListGroup, Button, Stack, Badge, Form, Spinner } from "react-bootstrap";
 
-export default function AppointmentItem({ appt, onEdit, onDelete }) {
-  const clientName = appt?.client?.fullName || "—";
-  const serviceName = appt?.service?.name || "—";
-  const when = appt?.startsAt ? new Date(appt.startsAt).toLocaleString() : "—";
+const STATUS_CHOICES = [
+  { value: "PENDING", label: "Pendiente" },
+  { value: "CONFIRMED", label: "Confirmada" },
+  { value: "CANCELLED", label: "Cancelada" },
+  { value: "DONE", label: "Finalizada" },
+];
 
-  function handleEditClick() {
-    onEdit?.(appt);
+function formatDateTime(iso) {
+  try {
+    return new Date(iso).toLocaleString();
+  } catch {
+    return iso;
   }
+}
 
-  function handleDeleteClick() {
-    console.log("console de la funcions que ejecuta delete del padre")
-    console.log("appt en delete click:", appt);
-    onDelete?.(appt); 
+function statusBadgeVariant(status) {
+  switch (status) {
+    case "CONFIRMED":
+      return "success";
+    case "CANCELLED":
+      return "danger";
+    case "DONE":
+      return "secondary";
+    default:
+      return "warning";
+  }
+}
+
+export default function AppointmentItem({ appt, onEdit, onDelete, onChangeStatus }) {
+  const [savingStatus, setSavingStatus] = useState(false);
+  const [localStatus, setLocalStatus] = useState(appt.status);
+
+  // si el appt cambia por props (ej. refrescar), sincroniza
+  React.useEffect(() => {
+    setLocalStatus(appt.status);
+  }, [appt.status]);
+
+  const serviceName = appt?.service?.name ?? "Servicio";
+  const clientName = appt?.client?.fullName ?? "Cliente";
+
+  const currentLabel = useMemo(() => {
+    return STATUS_CHOICES.find((s) => s.value === localStatus)?.label || localStatus;
+  }, [localStatus]);
+
+  async function handleStatusSelect(e) {
+    const next = e.target.value;
+    if (!next || next === localStatus) return;
+
+    // optimistic UI
+    const prev = localStatus;
+    setLocalStatus(next);
+    setSavingStatus(true);
+
+    try {
+      await onChangeStatus?.(appt, next); // ← hace PUT en el padre
+    } catch (err) {
+      // rollback si algo falla (por si tu handler no captura)
+      setLocalStatus(prev);
+    } finally {
+      setSavingStatus(false);
+    }
   }
 
   return (
-    <ListGroup.Item>
-      <Stack direction="horizontal" className="justify-content-between gap-3">
-        <div>
-          <div className="fw-semibold">
-            {clientName} <span className="text-muted">•</span> {serviceName}
+    <ListGroup.Item className="py-3">
+      <Stack direction="horizontal" className="justify-content-between" gap={3}>
+        <div style={{ minWidth: 0 }}>
+          <div className="d-flex align-items-center gap-2">
+            <div className="fw-semibold text-truncate">{clientName}</div>
+            <Badge bg={statusBadgeVariant(localStatus)}>{currentLabel}</Badge>
           </div>
 
           <div className="text-muted" style={{ fontSize: 13 }}>
-            {when}
-            {appt?.status ? (
-              <Badge bg="secondary" className="ms-2">
-                {appt.status}
-              </Badge>
-            ) : null}
+            {serviceName} • {formatDateTime(appt.startsAt)}
           </div>
 
-          {appt?.notes ? (
-            <div className="text-muted" style={{ fontSize: 13 }}>
+          {appt.notes ? (
+            <div className="text-muted mt-1" style={{ fontSize: 12 }}>
               {appt.notes}
             </div>
           ) : null}
         </div>
 
         <Stack direction="horizontal" gap={2}>
-          <Button variant="outline-secondary" size="sm" onClick={handleEditClick}>
-            Editar
-          </Button>
+          {/* ✅ selector estado */}
+          <div style={{ width: 170 }}>
+            <Form.Select
+              size="sm"
+              value={localStatus}
+              onChange={handleStatusSelect}
+              disabled={savingStatus}
+            >
+              {STATUS_CHOICES.map((s) => (
+                <option key={s.value} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
+            </Form.Select>
+          </div>
 
-          <Button variant="outline-danger" size="sm" onClick={handleDeleteClick}>
-            Eliminar
-          </Button>
+          {savingStatus ? (
+            <Button variant="outline-secondary" size="sm" disabled>
+              <Spinner animation="border" size="sm" className="me-2" />
+              Guardando
+            </Button>
+          ) : (
+            <>
+              <Button variant="outline-secondary" size="sm" onClick={() => onEdit?.(appt)}>
+                Editar
+              </Button>
+              <Button variant="outline-danger" size="sm" onClick={() => onDelete?.(appt)}>
+                Eliminar
+              </Button>
+            </>
+          )}
         </Stack>
       </Stack>
     </ListGroup.Item>

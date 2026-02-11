@@ -1,3 +1,4 @@
+// src/controllers/appointments.controller.js
 import prisma from "../prisma.js";
 
 export async function getAppointments(req, res) {
@@ -25,8 +26,8 @@ export async function createAppointment(req, res) {
 
     const created = await prisma.appointment.create({
       data: {
-        clientId,
-        serviceId,
+        clientId: String(clientId),
+        serviceId: String(serviceId),
         startsAt: new Date(startsAt),
         notes: notes ?? null,
       },
@@ -35,15 +36,17 @@ export async function createAppointment(req, res) {
 
     res.status(201).json(created);
   } catch (e) {
-    console.error(e);
+    console.error("createAppointment ERROR:", e);
     res.status(500).json({ error: "Error creando cita" });
   }
 }
 
 export async function updateAppointment(req, res) {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id || "");
     const { clientId, serviceId, startsAt, notes, status } = req.body;
+
+    if (!id) return res.status(400).json({ error: "id inválido" });
 
     if (!clientId || !serviceId || !startsAt) {
       return res.status(400).json({
@@ -54,8 +57,8 @@ export async function updateAppointment(req, res) {
     const updated = await prisma.appointment.update({
       where: { id },
       data: {
-        clientId,
-        serviceId,
+        clientId: String(clientId),
+        serviceId: String(serviceId),
         startsAt: new Date(startsAt),
         notes: notes ?? null,
         status: status ?? undefined,
@@ -65,18 +68,20 @@ export async function updateAppointment(req, res) {
 
     res.json(updated);
   } catch (e) {
-    console.error(e);
+    console.error("updateAppointment ERROR:", e);
     res.status(500).json({ error: "Error actualizando cita" });
   }
 }
 
 export async function deleteAppointment(req, res) {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id || "");
+    if (!id) return res.status(400).json({ error: "id inválido" });
+
     await prisma.appointment.delete({ where: { id } });
     res.json({ ok: true });
   } catch (e) {
-    console.error(e);
+    console.error("deleteAppointment ERROR:", e);
     res.status(500).json({ error: "Error eliminando cita" });
   }
 }

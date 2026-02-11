@@ -8,9 +8,9 @@ import {
 
 const router = Router();
 
-router.get("/", getAppointments);
-router.post("/", createAppointment);
-router.put("/:id", updateAppointment);
-router.delete("/:id", deleteAppointment);
+router.get("/appointments", getAppointments);
+router.post("/appointments", createAppointment);
+router.put("/appointments/:id", updateAppointment);
+router.delete("/appointments/:id", deleteAppointment);
 
 export default router;

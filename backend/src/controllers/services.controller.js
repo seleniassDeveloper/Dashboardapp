@@ -2,9 +2,7 @@ import prisma from "../prisma.js";
 
 export async function getServices(req, res) {
   try {
-    const data = await prisma.service.findMany({
-      orderBy: { createdAt: "desc" },
-    });
+    const data = await prisma.service.findMany({ orderBy: { name: "asc" } });
     res.json(data);
   } catch (e) {
     console.error(e);
@@ -16,17 +14,13 @@ export async function createService(req, res) {
   try {
     const { name, price, duration, isActive } = req.body;
 
-    if (!name || price == null || duration == null) {
-      return res.status(400).json({
-        error: "Faltan campos obligatorios: name, price, duration",
-      });
-    }
+    if (!name) return res.status(400).json({ error: "name es obligatorio" });
 
     const created = await prisma.service.create({
       data: {
-        name: String(name).trim(),
-        price: Number(price),
-        duration: Number(duration),
+        name: String(name),
+        price: Number(price) || 0,
+        duration: Number(duration) || 30,
         isActive: isActive ?? true,
       },
     });
