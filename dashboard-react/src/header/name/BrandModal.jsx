@@ -26,11 +26,10 @@ export default function BrandModal({ show, onHide, forceRequired = false }) {
   const { brand, setBrand } = useBrand();
 
   const [companyName, setCompanyName] = useState("");
-  const [textColor, setTextColor] = useState("#ffffff");
+  const [textColor, setTextColor] = useState("#ffffff"); // lo usamos como accent
   const [darkMode, setDarkMode] = useState(true);
   const [coverUrl, setCoverUrl] = useState("");
   const [preview, setPreview] = useState("");
-
   const [fontFamily, setFontFamily] = useState(FONT_OPTIONS[0].value);
 
   const nameIsValid = companyName.trim().length > 0;
@@ -39,7 +38,10 @@ export default function BrandModal({ show, onHide, forceRequired = false }) {
     if (!show) return;
 
     setCompanyName(brand.companyName || "");
-    setTextColor(brand.textColor || "#ffffff");
+
+    // ✅ si ya existía textColor lo respetamos, si no usamos accentColor
+    setTextColor(brand.accentColor || brand.textColor || "#ffffff");
+
     setDarkMode(Boolean(brand.darkMode));
 
     const image = brand.coverImage || "";
@@ -72,20 +74,21 @@ export default function BrandModal({ show, onHide, forceRequired = false }) {
     setCoverUrl("");
   };
 
-  const handleSave = () => {
-    if (!nameIsValid) return;
+const handleSave = () => {
+  if (!nameIsValid) return;
 
-    setBrand((prev) => ({
-      ...prev,
-      companyName: companyName.trim(),
-      coverImage: preview || prev.coverImage,
-      textColor,
-      darkMode,
-      fontFamily, // ✅ guardamos fuente
-    }));
+  setBrand((prev) => ({
+    ...prev,
+    companyName: companyName.trim(),
+    coverImage: preview || prev.coverImage,
+    textColor,
+    accentColor: textColor,
+    darkMode,
+    fontFamily,
+  }));
 
-    onHide();
-  };
+  window.location.reload(); // 🔥 fuerza todo
+};
 
   return (
     <Modal
@@ -101,7 +104,6 @@ export default function BrandModal({ show, onHide, forceRequired = false }) {
 
       <Modal.Body>
         <Form className="d-grid gap-3">
-          {/* Nombre */}
           <Form.Group>
             <Form.Label>Nombre de la empresa *</Form.Label>
             <Form.Control
@@ -116,7 +118,6 @@ export default function BrandModal({ show, onHide, forceRequired = false }) {
             )}
           </Form.Group>
 
-          {/* Fondo */}
           <Form.Group>
             <Form.Label>Fondo del header</Form.Label>
 
@@ -131,11 +132,7 @@ export default function BrandModal({ show, onHide, forceRequired = false }) {
               </Button>
             </InputGroup>
 
-            <Form.Control
-              type="file"
-              accept="image/*"
-              onChange={handleFileChange}
-            />
+            <Form.Control type="file" accept="image/*" onChange={handleFileChange} />
 
             {preview && (
               <img
@@ -154,7 +151,6 @@ export default function BrandModal({ show, onHide, forceRequired = false }) {
             )}
           </Form.Group>
 
-          {/* Color + Fuente */}
           <div className="d-flex gap-3">
             <Form.Group style={{ minWidth: 160 }}>
               <Form.Label>Color del texto</Form.Label>
@@ -164,14 +160,14 @@ export default function BrandModal({ show, onHide, forceRequired = false }) {
                 onChange={(e) => setTextColor(e.target.value)}
                 style={{ height: 44 }}
               />
+              <Form.Text className="text-muted">
+                Este color se usará como “color de marca” en todo el dashboard.
+              </Form.Text>
             </Form.Group>
 
             <Form.Group className="flex-grow-1">
               <Form.Label>Fuente del dashboard</Form.Label>
-              <Form.Select
-                value={fontFamily}
-                onChange={(e) => setFontFamily(e.target.value)}
-              >
+              <Form.Select value={fontFamily} onChange={(e) => setFontFamily(e.target.value)}>
                 {FONT_OPTIONS.map((f) => (
                   <option key={f.label} value={f.value}>
                     {f.label}
@@ -185,7 +181,6 @@ export default function BrandModal({ show, onHide, forceRequired = false }) {
             </Form.Group>
           </div>
 
-          {/* Dark mode */}
           <Form.Check
             type="switch"
             label="Dark mode"
@@ -201,7 +196,6 @@ export default function BrandModal({ show, onHide, forceRequired = false }) {
             Cancelar
           </Button>
         )}
-
         <Button variant="dark" onClick={handleSave} disabled={!nameIsValid}>
           Guardar cambios
         </Button>
