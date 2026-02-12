@@ -13,7 +13,8 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { useBrand } from "../../BrandProvider";
+import { useBrand } from "../../../header/name/BrandProvider";
+
 
 const API = "http://localhost:3001/api";
 

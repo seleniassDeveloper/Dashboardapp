@@ -244,11 +244,11 @@ export default function AppointmentsList() {
             </div>
 
             <Stack direction="horizontal" gap={2}>
-              <Button variant="outline-secondary" onClick={fetchAppointments}>
+              {/* <Button variant="outline-secondary" onClick={fetchAppointments}>
                 Refrescar
-              </Button>
+              </Button> */}
               <Button variant="dark" onClick={handleOpenCreate}>
-                + Nueva cita
+                + <i className="fa-regular fa-calendar"></i>
               </Button>
             </Stack>
           </Stack>
