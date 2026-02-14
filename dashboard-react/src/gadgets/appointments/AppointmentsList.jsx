@@ -1,10 +1,25 @@
 import React, { useEffect, useCallback, useMemo, useState } from "react";
-import { Card, Button, ListGroup, Spinner, Alert, Stack, Form, Row, Col } from "react-bootstrap";
+import {
+  Card,
+  Button,
+  ListGroup,
+  Spinner,
+  Alert,
+  Stack,
+  Form,
+  Row,
+  Col,
+  Pagination,
+} from "react-bootstrap";
 import axios from "axios";
 
 import AppointmentItem from "./AppointmentItem";
 import AppointmentModal from "./AppointmentModal";
 import ConfirmDeleteModal from "./ConfirmDeleteModal";
+
+import { useAppointmentsStore } from "./AppointmentsProvider.jsx";
+
+import "../../styles/appointments-list.css";
 
 const API = "http://localhost:3001/api";
 
@@ -28,7 +43,6 @@ function formatYMD(d) {
   const pad = (n) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
-
 function startOfDay(d) {
   const x = new Date(d);
   x.setHours(0, 0, 0, 0);
@@ -41,8 +55,8 @@ function endOfDay(d) {
 }
 function startOfWeekMonday(d) {
   const x = startOfDay(d);
-  const day = x.getDay(); // 0 dom..6 sáb
-  const diff = day === 0 ? -6 : 1 - day; // lunes inicio
+  const day = x.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
   x.setDate(x.getDate() + diff);
   return x;
 }
@@ -65,9 +79,15 @@ function endOfMonth(d) {
 }
 
 export default function AppointmentsList() {
-  const [appointments, setAppointments] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const {
+    appointments,
+    loading,
+    error,
+    setError,
+    fetchAppointments,
+    upsertAppointment,
+    removeAppointment,
+  } = useAppointmentsStore();
 
   // modal create/edit
   const [showForm, setShowForm] = useState(false);
@@ -77,44 +97,23 @@ export default function AppointmentsList() {
   const [showDelete, setShowDelete] = useState(false);
   const [deletingAppt, setDeletingAppt] = useState(null);
 
-  // ✅ filtros
-  const [range, setRange] = useState("ALL");     // ALL | DAY | WEEK | MONTH
-  const [status, setStatus] = useState("ALL");   // ALL | PENDING | CONFIRMED | CANCELLED | DONE
+  // filtros
+  const [range, setRange] = useState("ALL");
+  const [status, setStatus] = useState("ALL");
 
-  // DAY
   const [dayDate, setDayDate] = useState(() => formatYMD(new Date()));
-
-  // WEEK (rango)
   const [weekFrom, setWeekFrom] = useState("");
   const [weekTo, setWeekTo] = useState("");
-
-  // MONTH (fecha ancla, usamos 1 date)
   const [monthAnchor, setMonthAnchor] = useState(() => formatYMD(new Date()));
 
-  const fetchAppointments = useCallback(async () => {
-    try {
-      setError("");
-      setLoading(true);
-      const res = await axios.get(`${API}/appointments`);
-      const list = (res.data || []).slice().sort((a, b) => new Date(a.startsAt) - new Date(b.startsAt));
-      setAppointments(list);
-    } catch (e) {
-      console.error(e);
-      setError("No se pudieron cargar las citas.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // ✅ paginado
+  const PAGE_SIZE = 5;
+  const [page, setPage] = useState(1);
 
-  useEffect(() => {
-    fetchAppointments();
-  }, [fetchAppointments]);
-
-  // ✅ Cuando elijo WEEK, precargar semana actual (lunes-domingo)
+  // precargar semana actual si eliges WEEK
   useEffect(() => {
     if (range !== "WEEK") return;
     if (weekFrom && weekTo) return;
-
     const now = new Date();
     setWeekFrom(formatYMD(startOfWeekMonday(now)));
     setWeekTo(formatYMD(endOfWeekMonday(now)));
@@ -123,17 +122,20 @@ export default function AppointmentsList() {
 
   const handleRangeChange = (value) => {
     setRange(value);
-
-    // limpiar inputs si no se usan
     if (value !== "WEEK") {
       setWeekFrom("");
       setWeekTo("");
     }
+    setPage(1); // ✅ reset
   };
 
-  // ✅ lista filtrada
+  // ✅ si cambian filtros, reset página
+  useEffect(() => {
+    setPage(1);
+  }, [status, range, dayDate, weekFrom, weekTo, monthAnchor]);
+
   const filteredAppointments = useMemo(() => {
-    let list = appointments;
+    let list = appointments || [];
 
     if (status !== "ALL") list = list.filter((a) => a.status === status);
 
@@ -172,7 +174,23 @@ export default function AppointmentsList() {
     return list;
   }, [appointments, status, range, dayDate, weekFrom, weekTo, monthAnchor]);
 
-  // ---- modal handlers ----
+  // ✅ total de páginas
+  const totalPages = useMemo(() => {
+    return Math.max(1, Math.ceil(filteredAppointments.length / PAGE_SIZE));
+  }, [filteredAppointments.length]);
+
+  // ✅ si borras y quedas en una página inválida, corrige
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  // ✅ items a renderizar (slice)
+  const paginatedAppointments = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filteredAppointments.slice(start, start + PAGE_SIZE);
+  }, [filteredAppointments, page]);
+
+  // modales
   const handleOpenCreate = () => {
     setEditingAppt(null);
     setShowForm(true);
@@ -186,14 +204,17 @@ export default function AppointmentsList() {
     setEditingAppt(null);
   };
 
-  const handleSaved = useCallback(({ mode, appointment }) => {
-    setAppointments((prev) => {
-      if (mode === "create") return [...prev, appointment].sort((a, b) => new Date(a.startsAt) - new Date(b.startsAt));
-      return prev.map((x) => (x.id === appointment.id ? appointment : x));
-    });
-  }, []);
+  // ✅ al guardar en modal: update store + refetch (sincroniza calendario y todo)
+  const handleSaved = useCallback(
+    ({ appointment }) => {
+      upsertAppointment(appointment);
+      fetchAppointments();
+      setPage(1); // ✅ opcional: vuelve al inicio
+    },
+    [upsertAppointment, fetchAppointments]
+  );
 
-  // ---- delete handlers ----
+  // delete modal
   const handleOpenDelete = (appt) => {
     setDeletingAppt(appt);
     setShowDelete(true);
@@ -202,141 +223,217 @@ export default function AppointmentsList() {
     setShowDelete(false);
     setDeletingAppt(null);
   };
-  const handleDeleted = (deletedId) => {
-    setAppointments((prev) => prev.filter((a) => a.id !== deletedId));
-    handleCloseDelete();
-  };
 
-  // ✅ PUT: cambiar status (backend requiere clientId/serviceId/startsAt)
-  const handleStatusChange = useCallback(async (appt, nextStatus) => {
-    try {
-      setError("");
+  const handleDeleted = useCallback(
+    (deletedId) => {
+      removeAppointment(deletedId);
+      fetchAppointments();
+      handleCloseDelete();
+      setPage(1); // ✅ opcional
+    },
+    [removeAppointment, fetchAppointments]
+  );
 
-      const payload = {
-        clientId: appt.clientId,
-        serviceId: appt.serviceId,
-        startsAt: appt.startsAt,
-        notes: appt.notes ?? null,
-        status: nextStatus,
-      };
+  // ✅ PUT cambiar status: update store + refetch
+  const handleStatusChange = useCallback(
+    async (appt, nextStatus) => {
+      try {
+        setError("");
 
-      const res = await axios.put(`${API}/appointments/${appt.id}`, payload);
+        const payload = {
+          clientId: appt.clientId,
+          serviceId: appt.serviceId,
+          startsAt: appt.startsAt,
+          notes: appt.notes ?? null,
+          status: nextStatus,
+        };
 
-      setAppointments((prev) =>
-        prev.map((x) => (x.id === appt.id ? res.data : x))
+        const res = await axios.put(`${API}/appointments/${appt.id}`, payload);
+
+        upsertAppointment(res.data);
+        fetchAppointments();
+      } catch (e) {
+        console.error(e);
+        setError(e?.response?.data?.error || "No se pudo actualizar el estado.");
+      }
+    },
+    [setError, upsertAppointment, fetchAppointments]
+  );
+
+  // ✅ pagination UI (compacta y elegante)
+  const PaginationBar = () => {
+    if (filteredAppointments.length <= PAGE_SIZE) return null;
+
+    const items = [];
+
+    const go = (p) => setPage(p);
+
+    const addPage = (p) => {
+      items.push(
+        <Pagination.Item key={p} active={p === page} onClick={() => go(p)}>
+          {p}
+        </Pagination.Item>
       );
-    } catch (e) {
-      console.error(e);
-      setError(e?.response?.data?.error || "No se pudo actualizar el estado.");
+    };
+
+    // simple window (max 5 botones)
+    const windowSize = 5;
+    let start = Math.max(1, page - Math.floor(windowSize / 2));
+    let end = Math.min(totalPages, start + windowSize - 1);
+    start = Math.max(1, end - windowSize + 1);
+
+    items.push(
+      <Pagination.Prev key="prev" disabled={page === 1} onClick={() => go(page - 1)} />
+    );
+
+    if (start > 1) {
+      addPage(1);
+      if (start > 2) items.push(<Pagination.Ellipsis key="el1" disabled />);
     }
-  }, []);
+
+    for (let p = start; p <= end; p++) addPage(p);
+
+    if (end < totalPages) {
+      if (end < totalPages - 1) items.push(<Pagination.Ellipsis key="el2" disabled />);
+      addPage(totalPages);
+    }
+
+    items.push(
+      <Pagination.Next key="next" disabled={page === totalPages} onClick={() => go(page + 1)} />
+    );
+
+    return (
+      <div className="d-flex align-items-center justify-content-between mt-3">
+        <div className="text-muted" style={{ fontSize: 12 }}>
+          Mostrando{" "}
+          <strong>
+            {(page - 1) * PAGE_SIZE + 1}-
+            {Math.min(page * PAGE_SIZE, filteredAppointments.length)}
+          </strong>{" "}
+          de <strong>{filteredAppointments.length}</strong>
+        </div>
+
+        <Pagination className="mb-0">{items}</Pagination>
+      </div>
+    );
+  };
 
   return (
     <>
-      <Card className="shadow-sm">
+      <Card className="shadow-sm appt-card">
         <Card.Body>
-          <Stack direction="horizontal" className="justify-content-between">
-            <div>
-              <Card.Title className="mb-1">Próximas citas</Card.Title>
-              <Card.Text className="text-muted mb-0" style={{ fontSize: 13 }}>
-                Filtra por día/semana/mes y cambia el estado desde la lista.
-              </Card.Text>
+          <Stack direction="horizontal" className="justify-content-between align-items-start gap-3">
+            <div className="flex-grow-1">
+              <div className="appt-title">Próximas citas</div>
+              <div className="appt-subtitle">Filtra por día/semana/mes y cambia el estado desde la lista.</div>
             </div>
 
-            <Stack direction="horizontal" gap={2}>
-              {/* <Button variant="outline-secondary" onClick={fetchAppointments}>
-                Refrescar
-              </Button> */}
-              <Button variant="dark" onClick={handleOpenCreate}>
-                + <i className="fa-regular fa-calendar"></i>
+            <Stack direction="horizontal" gap={2} className="appt-header-actions">
+              <Button variant="outline-secondary" onClick={fetchAppointments} className="appt-btn">
+                Actualizar
+              </Button>
+
+              <Button variant="dark" onClick={handleOpenCreate} className="appt-btn">
+                <i className="fa-regular fa-calendar me-2" />
+                Nueva
               </Button>
             </Stack>
           </Stack>
 
-          {/* ✅ Filtros */}
-          <Row className="g-2 mt-3">
-            <Col md={3}>
-              <Form.Label className="small text-muted mb-1">Rango</Form.Label>
-              <Form.Select value={range} onChange={(e) => handleRangeChange(e.target.value)}>
-                {RANGE_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </Form.Select>
-            </Col>
-
-            {/* ✅ Día: 1 fecha */}
-            {range === "DAY" && (
-              <Col md={3}>
-                <Form.Label className="small text-muted mb-1">Día</Form.Label>
-                <Form.Control type="date" value={dayDate} onChange={(e) => setDayDate(e.target.value)} />
+          {/* filtros */}
+          <div className="appt-filters">
+            <Row className="g-3">
+              <Col md={4}>
+                <Form.Label>Rango</Form.Label>
+                <Form.Select value={range} onChange={(e) => handleRangeChange(e.target.value)}>
+                  {RANGE_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </Form.Select>
               </Col>
-            )}
 
-            {/* ✅ Semana: rango */}
-            {range === "WEEK" && (
-              <>
-                <Col md={3}>
-                  <Form.Label className="small text-muted mb-1">Desde</Form.Label>
-                  <Form.Control type="date" value={weekFrom} onChange={(e) => setWeekFrom(e.target.value)} />
+              {range === "DAY" && (
+                <Col md={4}>
+                  <Form.Label>Día</Form.Label>
+                  <Form.Control type="date" value={dayDate} onChange={(e) => setDayDate(e.target.value)} />
                 </Col>
-                <Col md={3}>
-                  <Form.Label className="small text-muted mb-1">Hasta</Form.Label>
-                  <Form.Control type="date" value={weekTo} onChange={(e) => setWeekTo(e.target.value)} min={weekFrom || undefined} />
-                </Col>
-              </>
-            )}
+              )}
 
-            {/* ✅ Mes: 1 fecha ancla */}
-            {range === "MONTH" && (
-              <Col md={3}>
-                <Form.Label className="small text-muted mb-1">Mes (fecha base)</Form.Label>
-                <Form.Control type="date" value={monthAnchor} onChange={(e) => setMonthAnchor(e.target.value)} />
+              {range === "WEEK" && (
+                <>
+                  <Col md={4}>
+                    <Form.Label>Desde</Form.Label>
+                    <Form.Control type="date" value={weekFrom} onChange={(e) => setWeekFrom(e.target.value)} />
+                  </Col>
+                  <Col md={4}>
+                    <Form.Label>Hasta</Form.Label>
+                    <Form.Control
+                      type="date"
+                      value={weekTo}
+                      onChange={(e) => setWeekTo(e.target.value)}
+                      min={weekFrom || undefined}
+                    />
+                  </Col>
+                </>
+              )}
+
+              {range === "MONTH" && (
+                <Col md={4}>
+                  <Form.Label>Mes (fecha base)</Form.Label>
+                  <Form.Control type="date" value={monthAnchor} onChange={(e) => setMonthAnchor(e.target.value)} />
+                </Col>
+              )}
+
+              <Col md={4}>
+                <Form.Label>Estado</Form.Label>
+                <Form.Select value={status} onChange={(e) => setStatus(e.target.value)}>
+                  {STATUS_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </Form.Select>
               </Col>
-            )}
+            </Row>
+          </div>
 
-            <Col md={range === "WEEK" ? 3 : 3}>
-              <Form.Label className="small text-muted mb-1">Estado</Form.Label>
-              <Form.Select value={status} onChange={(e) => setStatus(e.target.value)}>
-                {STATUS_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </Form.Select>
-            </Col>
-          </Row>
+          {error ? (
+            <Alert variant="danger" className="mt-3 mb-0">
+              {error}
+            </Alert>
+          ) : null}
 
-          <div className="mt-3">
-            {error ? <Alert variant="danger">{error}</Alert> : null}
-
+          <div className="appt-list-wrap">
             {loading ? (
-              <div className="d-flex align-items-center gap-2 text-muted">
-                <Spinner size="sm" />
-                Cargando...
+              <div className="appt-loading">
+                <Spinner size="sm" /> Cargando...
               </div>
             ) : filteredAppointments.length === 0 ? (
-              <div className="text-muted">No hay citas con esos filtros.</div>
+              <div className="appt-empty">No hay citas con esos filtros.</div>
             ) : (
-              <ListGroup>
-                {filteredAppointments.map((appt) => (
-                  <AppointmentItem
-                    key={appt.id}
-                    appt={appt}
-                    onEdit={handleOpenEdit}
-                    onDelete={handleOpenDelete}
-                    onChangeStatus={handleStatusChange} // ✅ nuevo
-                  />
-                ))}
-              </ListGroup>
+              <>
+                <ListGroup className="appt-list">
+                  {paginatedAppointments.map((appt) => (
+                    <AppointmentItem
+                      key={appt.id}
+                      appt={appt}
+                      onEdit={handleOpenEdit}
+                      onDelete={handleOpenDelete}
+                      onChangeStatus={handleStatusChange}
+                    />
+                  ))}
+                </ListGroup>
+
+                <PaginationBar />
+              </>
             )}
           </div>
         </Card.Body>
       </Card>
 
-      <AppointmentModal
-        show={showForm}
-        onHide={handleCloseForm}
-        onSaved={handleSaved}
-        initialData={editingAppt}
-      />
+      <AppointmentModal show={showForm} onHide={handleCloseForm} onSaved={handleSaved} initialData={editingAppt} />
 
       <ConfirmDeleteModal
         show={showDelete}

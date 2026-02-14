@@ -1,22 +1,7 @@
-/* FullCalendar (FC6) - Fix botones duplicados en Vite */
-.fc .fc-button .fc-button-text {
-  display: inline !important;
-}
-
-/* Oculta spans extra que a veces duplican */
-.fc .fc-button > span:not(.fc-icon):not(.fc-button-text) {
-  display: none !important;
-}
-
-/* Evita duplicados por pseudo-elementos */
-.fc .fc-button::before,
-.fc .fc-button::after {
-  content: none !important;
-}
-
-/* Opcional: alinea bien texto */
-.fc .fc-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+/* ✅ Fix duplicación de textos (Mes Mes / Febrero...February...) */
+.fc .fc-button .fc-button-text::before,
+.fc .fc-button .fc-button-text::after,
+.fc .fc-toolbar-title::before,
+.fc .fc-toolbar-title::after {
+  content: "" !important;
 }

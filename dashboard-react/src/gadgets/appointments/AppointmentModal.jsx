@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, { useEffect, useCallback, useMemo, useState } from "react";
 import { Modal, Button, Form, Row, Col, Alert, Spinner, InputGroup } from "react-bootstrap";
 import axios from "axios";
 import { WORKERS } from "../../data/workers";
@@ -45,11 +45,7 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
     setForm((p) => ({ ...p, [name]: value }));
   }, []);
 
-  const selectedWorker = useMemo(
-    () => WORKERS.find((w) => w.id === form.workerId) || null,
-    [form.workerId]
-  );
-
+  const selectedWorker = useMemo(() => WORKERS.find((w) => w.id === form.workerId) || null, [form.workerId]);
   const workerServices = useMemo(() => selectedWorker?.services || [], [selectedWorker]);
 
   const selectedService = useMemo(
@@ -58,17 +54,11 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
   );
 
   const valid = useMemo(() => {
-    return (
-      form.clientName.trim().length > 0 &&
-      Boolean(form.workerId) &&
-      Boolean(form.serviceKey) &&
-      Boolean(form.startsAt)
-    );
+    return form.clientName.trim().length > 0 && Boolean(form.workerId) && Boolean(form.serviceKey) && Boolean(form.startsAt);
   }, [form]);
 
   const saveDisabled = !valid || saving || (isEdit && !dirty);
 
-  // --- helpers ---
   const findWorkerAndServiceKey = useCallback((serviceName) => {
     const name = String(serviceName || "").toLowerCase();
     for (const w of WORKERS) {
@@ -96,7 +86,6 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
     [findWorkerAndServiceKey]
   );
 
-  // 1) hydrate al abrir
   useEffect(() => {
     if (!show) return;
     setError("");
@@ -105,23 +94,18 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
     setForm(isEdit ? hydrateFromInitial(initialData) : emptyForm);
   }, [show, isEdit, initialData?.id, hydrateFromInitial]);
 
-  // 2) si cambia worker, validar serviceKey
   useEffect(() => {
     if (!form.workerId) return;
-    const exists = WORKERS.find((w) => w.id === form.workerId)?.services?.some(
-      (s) => s.key === form.serviceKey
-    );
+    const exists = WORKERS.find((w) => w.id === form.workerId)?.services?.some((s) => s.key === form.serviceKey);
     if (!exists) setForm((p) => ({ ...p, serviceKey: "", price: "" }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.workerId]);
 
-  // 3) si cambia servicio, autocompletar precio
   useEffect(() => {
     if (!selectedService) return;
     setForm((p) => ({ ...p, price: String(selectedService.price ?? "") }));
   }, [selectedService]);
 
-  // --- API helpers ---
   const ensureClient = useCallback(async () => {
     if (!isEdit) {
       const payload = {
@@ -134,7 +118,6 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
       return res.data;
     }
 
-    // si editaste nombre/email/phone -> actualiza cliente
     const clientId = initialData?.client?.id;
     if (clientId) {
       const payload = {
@@ -184,10 +167,9 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
       const client = await ensureClient();
       const service = await ensureService();
 
-      // ✅ payload válido para appointments
       const payload = {
-        clientId: client.id,        // string
-        serviceId: service.id,      // string
+        clientId: client.id,
+        serviceId: service.id,
         startsAt: toISO(form.startsAt),
         notes: form.notes.trim() || null,
       };
@@ -228,7 +210,9 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
                 <Form.Select value={form.workerId} onChange={(e) => setField("workerId", e.target.value)}>
                   <option value="">Seleccionar...</option>
                   {WORKERS.map((w) => (
-                    <option key={w.id} value={w.id}>{w.name}</option>
+                    <option key={w.id} value={w.id}>
+                      {w.name}
+                    </option>
                   ))}
                 </Form.Select>
               </Form.Group>
@@ -244,7 +228,9 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
                 >
                   <option value="">{form.workerId ? "Seleccionar..." : "Elige trabajador primero"}</option>
                   {workerServices.map((s) => (
-                    <option key={s.key} value={s.key}>{s.name} • ${s.price}</option>
+                    <option key={s.key} value={s.key}>
+                      {s.name} • ${s.price}
+                    </option>
                   ))}
                 </Form.Select>
               </Form.Group>
@@ -292,9 +278,20 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
       </Modal.Body>
 
       <Modal.Footer>
-        <Button variant="outline-secondary" onClick={onHide} disabled={saving}>Cancelar</Button>
+        <Button variant="outline-secondary" onClick={onHide} disabled={saving}>
+          Cancelar
+        </Button>
         <Button variant="dark" onClick={handleSave} disabled={saveDisabled}>
-          {saving ? (<><Spinner size="sm" className="me-2" />Guardando...</>) : isEdit ? "Guardar cambios" : "Guardar"}
+          {saving ? (
+            <>
+              <Spinner size="sm" className="me-2" />
+              Guardando...
+            </>
+          ) : isEdit ? (
+            "Guardar cambios"
+          ) : (
+            "Guardar"
+          )}
         </Button>
       </Modal.Footer>
     </Modal>

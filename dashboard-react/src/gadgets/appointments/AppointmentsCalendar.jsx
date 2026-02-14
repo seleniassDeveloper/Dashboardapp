@@ -1,6 +1,5 @@
-import React, { useEffect, useMemo, useState, useCallback } from "react";
-import axios from "axios";
-import { Card, Modal, Button, Badge, Spinner, Alert } from "react-bootstrap";
+import React, { useMemo, useState, useCallback, useRef } from "react";
+import { Card, Modal, Button, Badge, Spinner, Alert, ButtonGroup } from "react-bootstrap";
 
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
@@ -8,11 +7,9 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 
 import { useBrand } from "../../header/name/BrandProvider";
+import { useAppointmentsStore } from "./AppointmentsProvider.jsx";
 
-// ✅ si tenés css para FullCalendar (el que ya estabas usando)
 import "./styles/fullcalendar-fix.css";
-
-const API = "http://localhost:3001/api";
 
 // ---------- helpers ----------
 function addMinutes(dateLike, minutes) {
@@ -50,39 +47,17 @@ export default function AppointmentsCalendar() {
   const { brand } = useBrand();
   const accent = brand?.accentColor || brand?.textColor || "#d32f2f";
 
-  const [appointments, setAppointments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const { appointments, loading, error } = useAppointmentsStore();
+
+  const calRef = useRef(null);
+
+  // ✅ controla vista + título arriba (sin depender del toolbar de FullCalendar)
+  const [view, setView] = useState("dayGridMonth"); // "dayGridMonth" | "timeGridWeek" | "timeGridDay"
+  const [title, setTitle] = useState("");
 
   const [selected, setSelected] = useState(null);
   const [showDetail, setShowDetail] = useState(false);
 
-  // ✅ GET citas
-  useEffect(() => {
-    let alive = true;
-
-    (async () => {
-      try {
-        setError("");
-        setLoading(true);
-        const res = await axios.get(`${API}/appointments`);
-
-        if (!alive) return;
-        setAppointments(Array.isArray(res.data) ? res.data : []);
-      } catch (e) {
-        if (!alive) return;
-        setError("No pude traer las citas. Revisa que el backend esté en :3001.");
-      } finally {
-        if (alive) setLoading(false);
-      }
-    })();
-
-    return () => {
-      alive = false;
-    };
-  }, []);
-
-  // ✅ eventos: start + end
   const events = useMemo(() => {
     return (appointments || [])
       .filter((a) => a?.startsAt)
@@ -124,7 +99,6 @@ export default function AppointmentsCalendar() {
       });
   }, [appointments, accent]);
 
-  // ✅ click evento -> modal
   const onEventClick = useCallback((info) => {
     const appt = info?.event?.extendedProps?.appt;
     if (!appt) return;
@@ -132,13 +106,69 @@ export default function AppointmentsCalendar() {
     setShowDetail(true);
   }, []);
 
+  // ✅ helpers para controlar FullCalendar desde el header
+  const api = () => calRef.current?.getApi();
+
+  const goPrev = () => api()?.prev();
+  const goNext = () => api()?.next();
+  const goToday = () => api()?.today();
+
+  const changeView = (nextView) => {
+    setView(nextView);
+    api()?.changeView(nextView);
+  };
+
   return (
     <>
       <Card className="shadow-sm brand-card">
         <Card.Body>
-          <div className="d-flex justify-content-between align-items-center mb-2">
-            <div className="brand-title">Calendario</div>
-            <span className="brand-pill">Semana</span>
+          {/* ✅ HEADER PRO (Bootstrap) */}
+          <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+            <div className="d-flex align-items-center gap-3">
+              <div className="brand-title">Calendario</div>
+
+              <div className="d-flex align-items-center gap-2">
+                <Button variant="outline-secondary" size="sm" onClick={goPrev}>
+                  ‹
+                </Button>
+                <Button variant="outline-secondary" size="sm" onClick={goNext}>
+                  ›
+                </Button>
+                <Button variant="outline-secondary" size="sm" onClick={goToday}>
+                  Hoy
+                </Button>
+              </div>
+            </div>
+
+            <div className="d-flex align-items-center gap-3">
+              <div className="fw-semibold" style={{ fontSize: 18 }}>
+                {title}
+              </div>
+
+              <ButtonGroup>
+                <Button
+                  size="sm"
+                  variant={view === "dayGridMonth" ? "dark" : "outline-dark"}
+                  onClick={() => changeView("dayGridMonth")}
+                >
+                  Mes
+                </Button>
+                <Button
+                  size="sm"
+                  variant={view === "timeGridWeek" ? "dark" : "outline-dark"}
+                  onClick={() => changeView("timeGridWeek")}
+                >
+                  Semana
+                </Button>
+                <Button
+                  size="sm"
+                  variant={view === "timeGridDay" ? "dark" : "outline-dark"}
+                  onClick={() => changeView("timeGridDay")}
+                >
+                  Día
+                </Button>
+              </ButtonGroup>
+            </div>
           </div>
 
           {loading ? (
@@ -152,9 +182,10 @@ export default function AppointmentsCalendar() {
           ) : (
             <div style={{ height: 560 }}>
               <FullCalendar
+                ref={calRef}
                 key={`cal-${accent}`}
                 plugins={[timeGridPlugin, dayGridPlugin, interactionPlugin]}
-                initialView="timeGridWeek"  // ✅ semana por defecto
+                initialView="dayGridMonth"
                 firstDay={1}
                 nowIndicator
                 allDaySlot={false}
@@ -165,24 +196,13 @@ export default function AppointmentsCalendar() {
                 events={events}
                 eventClick={onEventClick}
                 eventDisplay="block"
-                headerToolbar={{
-                  left: "prev,next today",
-                  center: "title",
-                  right: "timeGridWeek,timeGridDay,dayGridMonth",
-                }}
-                buttonText={{
-                  today: "Hoy",
-                  week: "Semana",
-                  day: "Día",
-                  month: "Mes",
-                }}
-                // ✅ evita “duplicados” visuales en botones/labels
-                buttonHints={{
-                  today: "Ir a hoy",
-                  week: "Vista semanal",
-                  day: "Vista diaria",
-                  month: "Vista mensual",
-                }}
+
+                // ✅ IMPORTANTÍSIMO: quitamos el header interno para evitar duplicados
+                headerToolbar={false}
+
+                // ✅ actualiza el título arriba cuando cambias de mes/semana/día
+                datesSet={(arg) => setTitle(arg.view.title)}
+
                 titleFormat={{ year: "numeric", month: "long" }}
                 slotLabelFormat={{ hour: "2-digit", minute: "2-digit", hour12: false }}
                 eventTimeFormat={{ hour: "2-digit", minute: "2-digit", hour12: false }}
