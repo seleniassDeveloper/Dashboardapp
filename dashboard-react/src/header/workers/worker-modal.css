@@ -1,0 +1,76 @@
+.workerModalDialog {
+  max-width: 980px; /* más ancho para que se vea pro */
+  width: calc(100% - 24px);
+}
+
+.workerModalBody {
+  overflow-x: hidden; /* ✅ evita que algo se vaya al costado */
+}
+
+.workerServicesBox {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 10px;
+  max-height: 260px;
+  overflow: auto;
+}
+
+.workerServiceLabel {
+  font-size: 13px;
+}
+
+/* ✅ horario estable */
+.workerScheduleGrid {
+  display: grid;
+  gap: 10px;
+}
+
+.workerScheduleRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 10px;
+  min-width: 0;
+}
+
+.workerScheduleRow.isOff {
+  opacity: 0.75;
+}
+
+.workerScheduleLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.workerScheduleRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.workerScheduleRight input[type="time"] {
+  width: 120px;
+  min-width: 120px;
+}
+
+/* ✅ responsive: en pantallas chicas se pone abajo */
+@media (max-width: 768px) {
+  .workerScheduleRow {
+    grid-template-columns: 1fr;
+  }
+
+  .workerScheduleRight {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .workerScheduleRight input[type="time"] {
+    width: 140px;
+    min-width: 140px;
+  }
+}

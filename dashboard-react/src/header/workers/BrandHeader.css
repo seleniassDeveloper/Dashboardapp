@@ -1,0 +1,110 @@
+.brandHeader {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+}
+
+.brandHeader__image {
+  height: 140px;
+  background-size: cover;
+  background-position: center;
+  filter: brightness(0.75);
+}
+
+.brandHeader__bar {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brandHeader--light .brandHeader__bar {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(8px);
+}
+
+.brandHeader--dark .brandHeader__bar {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+}
+
+.brandHeader__title {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0;
+}
+
+/* ===== BOTONES ===== */
+
+.brandHeader__actions {
+  position: relative;
+}
+
+.brandHeader__btn {
+  background: transparent;
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  color: inherit;
+}
+
+.brandHeader__btn:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.brandHeader--dark .brandHeader__btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* ===== DROPDOWN MENU ===== */
+
+.brandHeader__menu {
+  position: absolute;
+  top: 44px;
+  right: 0;
+  min-width: 220px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+  padding: 8px 0;
+  z-index: 50;
+  animation: fadeIn 0.15s ease;
+}
+
+.brandHeader__menuItem {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  text-align: left;
+  transition: background 0.15s ease;
+}
+
+.brandHeader__menuItem:hover {
+  background: #f3f4f6;
+}
+
+/* ===== ANIMATION ===== */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

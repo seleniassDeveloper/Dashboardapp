@@ -62,3 +62,54 @@
   background: #111;
   color: #fff;
 }
+.brandHeader__actions{
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  position: relative;
+}
+
+.brandHeader__menu{
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  background: white;
+  border: 1px solid #eef2f7;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  padding: 8px;
+  min-width: 220px;
+  z-index: 50;
+}
+
+.brandHeader--dark .brandHeader__menu{
+  background: #111827;
+  border-color: rgba(255,255,255,0.08);
+}
+
+.brandHeader__menuItem{
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  background: transparent;
+  padding: 10px 10px;
+  border-radius: 10px;
+  font-size: 13px;
+  color: #111827;
+  cursor: pointer;
+  text-align: left;
+}
+
+.brandHeader--dark .brandHeader__menuItem{
+  color: #f9fafb;
+}
+
+.brandHeader__menuItem:hover{
+  background: #f3f4f6;
+}
+
+.brandHeader--dark .brandHeader__menuItem:hover{
+  background: rgba(255,255,255,0.06);
+}
