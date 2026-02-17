@@ -39,6 +39,7 @@ model Service {
 model Appointment {
   id       String   @id @default(cuid())
   startsAt DateTime
+  endsAt   DateTime // ✅ nuevo
   status   AppointmentStatus @default(CONFIRMED)
   notes    String?
 
@@ -51,12 +52,13 @@ model Appointment {
   workerId String
   worker   Worker @relation(fields: [workerId], references: [id])
 
-  // 👇 NUEVO SNAPSHOT
   workerFirstName String?
   workerLastName  String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([workerId, startsAt, endsAt]) // ✅ ayuda muchísimo
 }
 
 enum AppointmentStatus {

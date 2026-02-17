@@ -1,21 +1,6 @@
 // src/gadgets/appointments/AppointmentModal.jsx
-import React, {
-  useEffect,
-  useCallback,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import {
-  Modal,
-  Button,
-  Form,
-  Row,
-  Col,
-  Alert,
-  Spinner,
-  InputGroup,
-} from "react-bootstrap";
+import React, { useEffect, useCallback, useMemo, useRef, useState } from "react";
+import { Modal, Button, Form, Row, Col, Alert, Spinner, InputGroup } from "react-bootstrap";
 import axios from "axios";
 
 const API = "http://localhost:3001/api";
@@ -23,7 +8,7 @@ const API = "http://localhost:3001/api";
 const emptyForm = {
   clientFirstName: "",
   clientLastName: "",
-  clientId: "", // si selecciona un cliente existente
+  clientId: "",
   email: "",
   phone: "",
   workerId: "",
@@ -42,7 +27,7 @@ const toDatetimeLocal = (iso) => {
   const d = new Date(iso);
   const pad = (n) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
-    d.getHours(),
+    d.getHours()
   )}:${pad(d.getMinutes())}`;
 };
 
@@ -50,7 +35,9 @@ const toISO = (dtLocal) => new Date(dtLocal).toISOString();
 
 function normalizeWorker(raw) {
   const w = raw || {};
-  const services = safeArray(w.services).map((s) => s?.service || s).filter(Boolean);
+  const services = safeArray(w.services)
+    .map((s) => s?.service || s)
+    .filter(Boolean);
 
   return {
     id: String(w.id || ""),
@@ -66,12 +53,7 @@ function normalizeWorker(raw) {
   };
 }
 
-export default function AppointmentModal({
-  show,
-  onHide,
-  onSaved,
-  initialData = null,
-}) {
+export default function AppointmentModal({ show, onHide, onSaved, initialData = null }) {
   const isEdit = Boolean(initialData?.id);
 
   const [form, setForm] = useState(emptyForm);
@@ -80,7 +62,6 @@ export default function AppointmentModal({
   const [loadingRefs, setLoadingRefs] = useState(false);
   const [error, setError] = useState("");
 
-  // workers
   const [workers, setWorkers] = useState([]);
 
   // --- autocomplete cliente ---
@@ -141,9 +122,7 @@ export default function AppointmentModal({
     const t = setTimeout(async () => {
       try {
         setClientLoading(true);
-        const res = await axios.get(`${API}/clients`, {
-          params: { search: q },
-        });
+        const res = await axios.get(`${API}/clients`, { params: { search: q } });
         setClientSug(Array.isArray(res.data) ? res.data : []);
       } catch {
         setClientSug([]);
@@ -158,28 +137,20 @@ export default function AppointmentModal({
   // worker/service
   const selectedWorker = useMemo(
     () => workers.find((w) => w.id === form.workerId) || null,
-    [workers, form.workerId],
+    [workers, form.workerId]
   );
 
-  const workerServices = useMemo(
-    () => safeArray(selectedWorker?.services),
-    [selectedWorker],
-  );
+  const workerServices = useMemo(() => safeArray(selectedWorker?.services), [selectedWorker]);
 
   const selectedService = useMemo(
     () => workerServices.find((s) => s.id === form.serviceId) || null,
-    [workerServices, form.serviceId],
+    [workerServices, form.serviceId]
   );
 
   // validación
   const valid = useMemo(() => {
     const hasClient = form.clientFirstName.trim() && form.clientLastName.trim();
-    return (
-      Boolean(hasClient) &&
-      Boolean(form.workerId) &&
-      Boolean(form.serviceId) &&
-      Boolean(form.startsAt)
-    );
+    return Boolean(hasClient) && Boolean(form.workerId) && Boolean(form.serviceId) && Boolean(form.startsAt);
   }, [form]);
 
   const saveDisabled = !valid || saving || (isEdit && !dirty);
@@ -207,11 +178,13 @@ export default function AppointmentModal({
     const phone = appt?.client?.phone || "";
     const startsAt = toDatetimeLocal(appt?.startsAt);
     const notes = appt?.notes || "";
-    const price =
-      appt?.service?.price != null ? String(appt.service.price) : "";
+    const price = appt?.service?.price != null ? String(appt.service.price) : "";
 
     const svcId = appt?.service?.id ? String(appt.service.id) : "";
     const workerId = appt?.workerId ? String(appt.workerId) : "";
+
+    const workerFirstName = appt?.worker?.firstName || appt?.workerFirstName || "";
+    const workerLastName = appt?.worker?.lastName || appt?.workerLastName || "";
 
     setForm({
       clientFirstName,
@@ -220,12 +193,14 @@ export default function AppointmentModal({
       email,
       phone,
       workerId,
+      workerFirstName,
+      workerLastName,
       serviceId: svcId,
       startsAt,
       notes,
       price,
     });
-  }, [show, isEdit, initialData, workers]);
+  }, [show, isEdit, initialData]);
 
   // si cambia worker, resetea servicio si no pertenece
   useEffect(() => {
@@ -233,15 +208,14 @@ export default function AppointmentModal({
     const exists = workerServices.some((s) => s.id === form.serviceId);
     if (!exists) setForm((p) => ({ ...p, serviceId: "", price: "" }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.workerId]);
+  }, [form.workerId, workerServices]);
 
   // autoprecio
   useEffect(() => {
     if (!selectedService) return;
     setForm((p) => ({
       ...p,
-      price:
-        selectedService.price != null ? String(selectedService.price) : p.price,
+      price: selectedService.price != null ? String(selectedService.price) : p.price,
     }));
   }, [selectedService]);
 
@@ -264,8 +238,7 @@ export default function AppointmentModal({
     const firstName = form.clientFirstName.trim();
     const lastName = form.clientLastName.trim();
 
-    if (!firstName || !lastName)
-      throw new Error("Completa nombre y apellido del cliente.");
+    if (!firstName || !lastName) throw new Error("Completa nombre y apellido del cliente.");
 
     if (form.clientId) {
       await axios.put(`${API}/clients/${form.clientId}`, {
@@ -286,18 +259,11 @@ export default function AppointmentModal({
     });
 
     return res.data;
-  }, [
-    form.clientFirstName,
-    form.clientLastName,
-    form.clientId,
-    form.email,
-    form.phone,
-  ]);
+  }, [form.clientFirstName, form.clientLastName, form.clientId, form.email, form.phone]);
 
   const handleSave = useCallback(async () => {
     setError("");
-    if (!valid)
-      return setError("Completa: Cliente, Trabajador, Servicio y Fecha/Hora.");
+    if (!valid) return setError("Completa: Cliente, Trabajador, Servicio y Fecha/Hora.");
     if (isEdit && !dirty) return setError("No hay cambios para guardar.");
 
     try {
@@ -305,32 +271,34 @@ export default function AppointmentModal({
 
       const client = await ensureClient();
 
-      // ✅ payload correcto: NO mandes workerName (no se guarda en DB)
       const payload = {
         clientId: client.id,
         workerId: form.workerId,
-        workerFirstName: form.workerFirstName,
-        workerLastName: form.workerLastName,
+        workerFirstName: form.workerFirstName?.trim() ? form.workerFirstName.trim() : null,
+        workerLastName: form.workerLastName?.trim() ? form.workerLastName.trim() : null,
         serviceId: form.serviceId,
         startsAt: toISO(form.startsAt),
         notes: form.notes.trim() || null,
       };
 
-      console.log("payload a enviar", payload);
-      const url = isEdit
-        ? `${API}/appointments/${initialData.id}`
-        : `${API}/appointments`;
-      const res = isEdit
-        ? await axios.put(url, payload)
-        : await axios.post(url, payload);
+      const url = isEdit ? `${API}/appointments/${initialData.id}` : `${API}/appointments`;
+      const res = isEdit ? await axios.put(url, payload) : await axios.post(url, payload);
 
       onSaved?.({ mode: isEdit ? "edit" : "create", appointment: res.data });
       onHide?.();
     } catch (e) {
       console.error(e);
-      setError(
-        e?.response?.data?.error || e.message || "Error guardando la cita.",
-      );
+
+      // ✅ ESTE ES EL CATCH QUE BUSCAS: manejar solapamiento
+      if (e?.response?.status === 409) {
+        setError(
+          e?.response?.data?.error ||
+            "Horario ocupado: este trabajador ya tiene una cita que se solapa con esa hora."
+        );
+        return;
+      }
+
+      setError(e?.response?.data?.error || e.message || "Error guardando la cita.");
     } finally {
       setSaving(false);
     }
@@ -340,6 +308,8 @@ export default function AppointmentModal({
     dirty,
     ensureClient,
     form.workerId,
+    form.workerFirstName,
+    form.workerLastName,
     form.serviceId,
     form.startsAt,
     form.notes,
@@ -349,13 +319,7 @@ export default function AppointmentModal({
   ]);
 
   return (
-    <Modal
-      show={show}
-      onHide={saving ? undefined : onHide}
-      centered
-      backdrop="static"
-      keyboard={!saving}
-    >
+    <Modal show={show} onHide={saving ? undefined : onHide} centered backdrop="static" keyboard={!saving}>
       <Modal.Header closeButton={!saving}>
         <Modal.Title>{isEdit ? "Editar cita" : "Nueva cita"}</Modal.Title>
       </Modal.Header>
@@ -364,10 +328,7 @@ export default function AppointmentModal({
         {error ? <Alert variant="danger">{error}</Alert> : null}
 
         {loadingRefs ? (
-          <div
-            className="d-flex align-items-center gap-2 text-muted"
-            style={{ minHeight: 120 }}
-          >
+          <div className="d-flex align-items-center gap-2 text-muted" style={{ minHeight: 120 }}>
             <Spinner size="sm" /> Cargando trabajadores…
           </div>
         ) : (
@@ -386,11 +347,7 @@ export default function AppointmentModal({
                           const v = e.target.value;
                           setDirty(true);
                           setClientOpen(true);
-                          setForm((p) => ({
-                            ...p,
-                            clientFirstName: v,
-                            clientId: "",
-                          }));
+                          setForm((p) => ({ ...p, clientFirstName: v, clientId: "" }));
                         }}
                         onFocus={() => setClientOpen(true)}
                         autoComplete="off"
@@ -448,10 +405,7 @@ export default function AppointmentModal({
                             <div className="fw-semibold">
                               {c.firstName} {c.lastName}
                             </div>
-                            <div
-                              className="text-muted"
-                              style={{ fontSize: 12 }}
-                            >
+                            <div className="text-muted" style={{ fontSize: 12 }}>
                               {c.phone || "—"} {c.email ? `· ${c.email}` : ""}
                             </div>
                           </button>
@@ -467,33 +421,33 @@ export default function AppointmentModal({
                 </div>
               </Col>
 
-          <Col md={6}>
-  <Form.Group>
-    <Form.Label>Trabajador *</Form.Label>
-    <Form.Select
-      value={form.workerId}
-      onChange={(e) => {
-        const id = e.target.value;
-        const selected = workers.find((w) => w.id === id);
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label>Trabajador *</Form.Label>
+                  <Form.Select
+                    value={form.workerId}
+                    onChange={(e) => {
+                      const id = e.target.value;
+                      const selected = workers.find((w) => w.id === id);
 
-        setDirty(true);
-        setForm((p) => ({
-          ...p,
-          workerId: id,
-          workerFirstName: selected?.firstName || "",
-          workerLastName: selected?.lastName || "",
-        }));
-      }}
-    >
-      <option value="">Seleccionar...</option>
-      {workers.map((w) => (
-        <option key={w.id} value={w.id}>
-          {w.name}
-        </option>
-      ))}
-    </Form.Select>
-  </Form.Group>
-</Col>
+                      setDirty(true);
+                      setForm((p) => ({
+                        ...p,
+                        workerId: id,
+                        workerFirstName: selected?.firstName || "",
+                        workerLastName: selected?.lastName || "",
+                      }));
+                    }}
+                  >
+                    <option value="">Seleccionar...</option>
+                    {workers.map((w) => (
+                      <option key={w.id} value={w.id}>
+                        {w.name}
+                      </option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
+              </Col>
 
               <Col md={6}>
                 <Form.Group>
@@ -504,9 +458,7 @@ export default function AppointmentModal({
                     disabled={!form.workerId}
                   >
                     <option value="">
-                      {form.workerId
-                        ? "Seleccionar..."
-                        : "Elige trabajador primero"}
+                      {form.workerId ? "Seleccionar..." : "Elige trabajador primero"}
                     </option>
                     {workerServices.map((s) => (
                       <option key={s.id} value={s.id}>
@@ -538,20 +490,14 @@ export default function AppointmentModal({
               <Col md={6}>
                 <Form.Group>
                   <Form.Label>Email</Form.Label>
-                  <Form.Control
-                    value={form.email}
-                    onChange={(e) => setField("email", e.target.value)}
-                  />
+                  <Form.Control value={form.email} onChange={(e) => setField("email", e.target.value)} />
                 </Form.Group>
               </Col>
 
               <Col md={6}>
                 <Form.Group>
                   <Form.Label>Teléfono</Form.Label>
-                  <Form.Control
-                    value={form.phone}
-                    onChange={(e) => setField("phone", e.target.value)}
-                  />
+                  <Form.Control value={form.phone} onChange={(e) => setField("phone", e.target.value)} />
                 </Form.Group>
               </Col>
 
@@ -560,14 +506,10 @@ export default function AppointmentModal({
                   <Form.Label>Precio</Form.Label>
                   <InputGroup>
                     <InputGroup.Text>$</InputGroup.Text>
-                    <Form.Control
-                      value={form.price}
-                      onChange={(e) => setField("price", e.target.value)}
-                    />
+                    <Form.Control value={form.price} onChange={(e) => setField("price", e.target.value)} />
                   </InputGroup>
                   <div className="text-muted mt-1" style={{ fontSize: 12 }}>
-                    Se autocompleta según el servicio (podés ajustarlo si
-                    querés).
+                    Se autocompleta según el servicio (podés ajustarlo si querés).
                   </div>
                 </Form.Group>
               </Col>
@@ -593,11 +535,7 @@ export default function AppointmentModal({
           Cancelar
         </Button>
 
-        <Button
-          variant="dark"
-          onClick={handleSave}
-          disabled={saveDisabled || loadingRefs}
-        >
+        <Button variant="dark" onClick={handleSave} disabled={saveDisabled || loadingRefs}>
           {saving ? (
             <>
               <Spinner size="sm" className="me-2" />
