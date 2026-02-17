@@ -9,7 +9,8 @@ datasource db {
 
 model Client {
   id        String   @id @default(cuid())
-  fullName  String
+  firstName String
+  lastName  String
   phone     String?
   email     String?
   notes     String?
@@ -31,20 +32,28 @@ model Service {
   appointments Appointment[]
 
   // ✅ relación many-to-many con Worker
-  workers   WorkerService[]
+  workers WorkerService[]
 }
 
-model Appointment {
-  id        String            @id @default(cuid())
-  startsAt  DateTime
-  status    AppointmentStatus @default(PENDING)
-  notes     String?
 
-  clientId  String
-  client    Client            @relation(fields: [clientId], references: [id])
+model Appointment {
+  id       String   @id @default(cuid())
+  startsAt DateTime
+  status   AppointmentStatus @default(CONFIRMED)
+  notes    String?
+
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id])
 
   serviceId String
-  service   Service           @relation(fields: [serviceId], references: [id])
+  service   Service @relation(fields: [serviceId], references: [id])
+
+  workerId String
+  worker   Worker @relation(fields: [workerId], references: [id])
+
+  // 👇 NUEVO SNAPSHOT
+  workerFirstName String?
+  workerLastName  String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -57,27 +66,30 @@ enum AppointmentStatus {
   DONE
 }
 
-/* =========================
-   ✅ WORKERS
-========================= */
+/**
+ * =========================
+ * ✅ WORKERS
+ * =========================
+ */
 
 model Worker {
-  id        String   @id @default(cuid())
+  id        String @id @default(cuid())
   firstName String
   lastName  String
 
-  schedules WorkerSchedule[]
-  services  WorkerService[]
+  schedules    WorkerSchedule[]
+  services     WorkerService[]
+  appointments Appointment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model WorkerSchedule {
-  id        String @id @default(cuid())
+  id String @id @default(cuid())
 
-  workerId  String
-  worker    Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  workerId String
+  worker   Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
 
   // 1 = Lunes ... 7 = Domingo
   dayOfWeek Int

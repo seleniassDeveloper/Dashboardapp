@@ -1,14 +1,14 @@
 import React, { useEffect, useRef, useState, lazy, Suspense } from "react";
 import { useBrand } from "./BrandProvider";
 import BrandModal from "./BrandModal";
-
 import "./BrandHeader.css";
 
 import ServiceModal from "../services/ServiceModal";
 import WorkerModal from "../workers/WorkerModal";
 
-// ✅ Lazy (solo carga cuando se usa)
-const WorkersListModal = lazy(() => import("../workers/WorkersListModal.jsx"));
+// ✅ ABM
+const WorkersABMModal = lazy(() => import("../workers/WorkersABMModal.jsx"));
+const ClientsABMModal = lazy(() => import("../clients/ClientsABMModal.jsx"));
 
 export default function BrandHeader() {
   const { brand } = useBrand();
@@ -16,12 +16,16 @@ export default function BrandHeader() {
   const hasCompanyName = Boolean(brand.companyName?.trim());
   const [showBrandModal, setShowBrandModal] = useState(!hasCompanyName);
 
+
+
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
   const [showWorkerModal, setShowWorkerModal] = useState(false);
   const [showServiceModal, setShowServiceModal] = useState(false);
-  const [showWorkersList, setShowWorkersList] = useState(false);
+
+  const [showWorkersABM, setShowWorkersABM] = useState(false);
+  const [showClientsABM, setShowClientsABM] = useState(false);
 
   useEffect(() => {
     setShowBrandModal(!hasCompanyName);
@@ -36,19 +40,14 @@ export default function BrandHeader() {
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, [menuOpen]);
 
-  const openWorker = () => {
+  const openWorkersABM = () => {
     setMenuOpen(false);
-    setShowWorkerModal(true);
+    setShowWorkersABM(true);
   };
 
-  const openService = () => {
+  const openClientsABM = () => {
     setMenuOpen(false);
-    setShowServiceModal(true);
-  };
-
-  const openWorkersList = () => {
-    setMenuOpen(false);
-    setShowWorkersList(true);
+    setShowClientsABM(true);
   };
 
   return (
@@ -57,10 +56,7 @@ export default function BrandHeader() {
         <div className="brandHeader__image" style={{ backgroundImage: `url(${brand.coverImage})` }} />
 
         <div className="brandHeader__bar d-flex align-items-center justify-content-between">
-          <h1
-            className="brandHeader__title m-0"
-            style={{ color: brand.textColor, fontFamily: brand.fontFamily }}
-          >
+          <h1 className="brandHeader__title m-0" style={{ color: brand.textColor, fontFamily: brand.fontFamily }}>
             {hasCompanyName ? brand.companyName : " "}
           </h1>
 
@@ -88,20 +84,42 @@ export default function BrandHeader() {
 
               {menuOpen && (
                 <div className="brandHeader__menu">
-                  <button type="button" className="brandHeader__menuItem" onClick={openWorker}>
+                  <button type="button" className="brandHeader__menuItem" onClick={openWorkersABM}>
+                    <i className="fa-solid fa-users me-2" />
+                    Administrar trabajadores
+                  </button>
+
+                  <button type="button" className="brandHeader__menuItem" onClick={openClientsABM}>
+                    <i className="fa-solid fa-address-book me-2" />
+                    Clientes
+                  </button>
+
+                  {/* opcionales si quieres dejar accesos directos */}
+                  <div className="brandHeader__menuDivider" />
+
+                  {/* <button
+                    type="button"
+                    className="brandHeader__menuItem"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      setShowWorkerModal(true);
+                    }}
+                  >
                     <i className="fa-solid fa-user-plus me-2" />
                     Agregar trabajador
-                  </button>
+                  </button> */}
 
-                  <button type="button" className="brandHeader__menuItem" onClick={openService}>
+                  {/* <button
+                    type="button"
+                    className="brandHeader__menuItem"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      setShowServiceModal(true);
+                    }}
+                  >
                     <i className="fa-solid fa-screwdriver-wrench me-2" />
                     Agregar servicio
-                  </button>
-
-                  <button type="button" className="brandHeader__menuItem" onClick={openWorkersList}>
-                    <i className="fa-solid fa-users me-2" />
-                    Ver trabajadores
-                  </button>
+                  </button> */}
                 </div>
               )}
             </div>
@@ -118,13 +136,21 @@ export default function BrandHeader() {
         }}
       />
 
+      {/* modales rápidos */}
       <WorkerModal show={showWorkerModal} onHide={() => setShowWorkerModal(false)} />
       <ServiceModal show={showServiceModal} onHide={() => setShowServiceModal(false)} />
 
-      {/* ✅ Suspense para lazy */}
-      {showWorkersList && (
+      {/* ABM: Workers */}
+      {showWorkersABM && (
         <Suspense fallback={null}>
-          <WorkersListModal show={showWorkersList} onHide={() => setShowWorkersList(false)} />
+          <WorkersABMModal show={showWorkersABM} onHide={() => setShowWorkersABM(false)} />
+        </Suspense>
+      )}
+
+      {/* ABM: Clients */}
+      {showClientsABM && (
+        <Suspense fallback={null}>
+          <ClientsABMModal show={showClientsABM} onHide={() => setShowClientsABM(false)} />
         </Suspense>
       )}
     </>

@@ -1,5 +1,13 @@
 import React, { useMemo, useState, useCallback, useRef } from "react";
-import { Card, Modal, Button, Badge, Spinner, Alert, ButtonGroup } from "react-bootstrap";
+import {
+  Card,
+  Modal,
+  Button,
+  Badge,
+  Spinner,
+  Alert,
+  ButtonGroup,
+} from "react-bootstrap";
 
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
@@ -35,7 +43,9 @@ function statusVariant(status) {
 }
 
 function withAlpha(hex, alpha = 1) {
-  const h = String(hex || "").replace("#", "").trim();
+  const h = String(hex || "")
+    .replace("#", "")
+    .trim();
   if (h.length !== 6) return `rgba(60,60,60,${alpha})`;
   const r = parseInt(h.slice(0, 2), 16);
   const g = parseInt(h.slice(2, 4), 16);
@@ -48,6 +58,8 @@ export default function AppointmentsCalendar() {
   const accent = brand?.accentColor || brand?.textColor || "#d32f2f";
 
   const { appointments, loading, error } = useAppointmentsStore();
+
+  // console.log("appointments", appointments);
 
   const calRef = useRef(null);
 
@@ -66,25 +78,29 @@ export default function AppointmentsCalendar() {
         const minutes = Number(a?.service?.duration) || 60;
         const end = addMinutes(start, minutes);
 
-        const title = `${a?.client?.fullName || "Cliente"} · ${a?.service?.name || "Servicio"}`;
+        const clientName =
+          [a?.client?.firstName, a?.client?.lastName]
+            .filter(Boolean)
+            .join(" ") || "Cliente";
 
+        const title = `${clientName} · ${a?.service?.name || "Servicio"}`;
         const bg =
           a?.status === "CANCELLED"
             ? "rgba(220,53,69,0.22)"
             : a?.status === "CONFIRMED"
-            ? "rgba(25,135,84,0.20)"
-            : a?.status === "DONE"
-            ? "rgba(108,117,125,0.20)"
-            : withAlpha(accent, 0.22);
+              ? "rgba(25,135,84,0.20)"
+              : a?.status === "DONE"
+                ? "rgba(108,117,125,0.20)"
+                : withAlpha(accent, 0.22);
 
         const border =
           a?.status === "CANCELLED"
             ? "rgba(220,53,69,0.85)"
             : a?.status === "CONFIRMED"
-            ? "rgba(25,135,84,0.85)"
-            : a?.status === "DONE"
-            ? "rgba(108,117,125,0.85)"
-            : withAlpha(accent, 0.85);
+              ? "rgba(25,135,84,0.85)"
+              : a?.status === "DONE"
+                ? "rgba(108,117,125,0.85)"
+                : withAlpha(accent, 0.85);
 
         return {
           id: String(a.id),
@@ -172,7 +188,10 @@ export default function AppointmentsCalendar() {
           </div>
 
           {loading ? (
-            <div className="d-flex align-items-center gap-2 text-muted" style={{ height: 560 }}>
+            <div
+              className="d-flex align-items-center gap-2 text-muted"
+              style={{ height: 560 }}
+            >
               <Spinner size="sm" /> Cargando calendario...
             </div>
           ) : error ? (
@@ -196,20 +215,39 @@ export default function AppointmentsCalendar() {
                 events={events}
                 eventClick={onEventClick}
                 eventDisplay="block"
-
                 // ✅ IMPORTANTÍSIMO: quitamos el header interno para evitar duplicados
                 headerToolbar={false}
-
                 // ✅ actualiza el título arriba cuando cambias de mes/semana/día
                 datesSet={(arg) => setTitle(arg.view.title)}
-
                 titleFormat={{ year: "numeric", month: "long" }}
-                slotLabelFormat={{ hour: "2-digit", minute: "2-digit", hour12: false }}
-                eventTimeFormat={{ hour: "2-digit", minute: "2-digit", hour12: false }}
+                slotLabelFormat={{
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: false,
+                }}
+                eventTimeFormat={{
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: false,
+                }}
                 eventContent={(arg) => (
-                  <div style={{ padding: "2px 6px", fontSize: 11, fontWeight: 500 }}>
-                    <div style={{ opacity: 0.85, fontWeight: 700 }}>{arg.timeText}</div>
-                    <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  <div
+                    style={{
+                      padding: "2px 6px",
+                      fontSize: 11,
+                      fontWeight: 500,
+                    }}
+                  >
+                    <div style={{ opacity: 0.85, fontWeight: 700 }}>
+                      {arg.timeText}
+                    </div>
+                    <div
+                      style={{
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
                       {arg.event.title}
                     </div>
                   </div>
@@ -231,40 +269,62 @@ export default function AppointmentsCalendar() {
           ) : (
             <div className="d-grid gap-2">
               <div>
-                <div className="text-muted" style={{ fontSize: 12 }}>Cliente</div>
-                <div className="fw-semibold">{selected?.client?.fullName || "—"}</div>
+                <div className="text-muted" style={{ fontSize: 12 }}>
+                  Cliente
+                </div>
+                <div className="fw-semibold">
+                  {[selected?.client?.firstName, selected?.client?.lastName]
+                    .filter(Boolean)
+                    .join(" ") || "—"}
+                </div>
               </div>
 
               <div>
-                <div className="text-muted" style={{ fontSize: 12 }}>Servicio</div>
-                <div className="fw-semibold">{selected?.service?.name || "—"}</div>
+                <div className="text-muted" style={{ fontSize: 12 }}>
+                  Servicio
+                </div>
+                <div className="fw-semibold">
+                  {selected?.service?.name || "—"}
+                </div>
               </div>
 
               <div className="d-flex gap-3">
                 <div>
-                  <div className="text-muted" style={{ fontSize: 12 }}>Inicio</div>
+                  <div className="text-muted" style={{ fontSize: 12 }}>
+                    Inicio
+                  </div>
                   <div className="fw-semibold">
-                    {selected?.startsAt ? new Date(selected.startsAt).toLocaleString() : "—"}
+                    {selected?.startsAt
+                      ? new Date(selected.startsAt).toLocaleString()
+                      : "—"}
                   </div>
                 </div>
 
                 <div>
-                  <div className="text-muted" style={{ fontSize: 12 }}>Duración</div>
+                  <div className="text-muted" style={{ fontSize: 12 }}>
+                    Duración
+                  </div>
                   <div className="fw-semibold">
-                    {selected?.service?.duration ? `${selected.service.duration} min` : "—"}
+                    {selected?.service?.duration
+                      ? `${selected.service.duration} min`
+                      : "—"}
                   </div>
                 </div>
               </div>
 
               <div>
-                <div className="text-muted" style={{ fontSize: 12 }}>Estado</div>
+                <div className="text-muted" style={{ fontSize: 12 }}>
+                  Estado
+                </div>
                 <Badge bg={statusVariant(selected?.status)}>
                   {statusLabel(selected?.status)}
                 </Badge>
               </div>
 
               <div>
-                <div className="text-muted" style={{ fontSize: 12 }}>Notas</div>
+                <div className="text-muted" style={{ fontSize: 12 }}>
+                  Notas
+                </div>
                 <div>{selected?.notes || "—"}</div>
               </div>
             </div>

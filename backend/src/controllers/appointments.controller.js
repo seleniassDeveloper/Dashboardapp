@@ -5,8 +5,13 @@ export async function getAppointments(req, res) {
   try {
     const data = await prisma.appointment.findMany({
       orderBy: { startsAt: "asc" },
-      include: { client: true, service: true },
+      include: {
+        client: true,
+        service: true,
+        worker: true, // ✅ ESTO FALTABA
+      },
     });
+
     res.json(data);
   } catch (e) {
     console.error(e);
@@ -16,60 +21,81 @@ export async function getAppointments(req, res) {
 
 export async function createAppointment(req, res) {
   try {
-    const { clientId, serviceId, startsAt, notes } = req.body;
+    const {
+      clientId,
+      serviceId,
+      workerId,
+      workerFirstName,
+      workerLastName,
+      startsAt,
+      notes,
+      status,
+    } = req.body;
 
-    if (!clientId || !serviceId || !startsAt) {
-      return res.status(400).json({
-        error: "Faltan campos obligatorios: clientId, serviceId, startsAt",
-      });
-    }
-
-    const created = await prisma.appointment.create({
+    const appt = await prisma.appointment.create({
       data: {
-        clientId: String(clientId),
-        serviceId: String(serviceId),
+        clientId,
+        serviceId,
+        workerId,
+        workerFirstName: workerFirstName || null,
+        workerLastName: workerLastName || null,
         startsAt: new Date(startsAt),
-        notes: notes ?? null,
+        notes: notes || null,
+        status: status || "PENDING",
       },
-      include: { client: true, service: true },
+      include: {
+        client: true,
+        service: true,
+        worker: true,
+      },
     });
 
-    res.status(201).json(created);
+    res.json(appt);
   } catch (e) {
-    console.error("createAppointment ERROR:", e);
-    res.status(500).json({ error: "Error creando cita" });
+    console.error(e);
+    res.status(500).json({ error: "Error creando la cita." });
   }
 }
 
 export async function updateAppointment(req, res) {
   try {
-    const id = String(req.params.id || "");
-    const { clientId, serviceId, startsAt, notes, status } = req.body;
+    const { id } = req.params;
+    const {
+      clientId,
+      serviceId,
+      workerId,
+      workerFirstName,
+      workerLastName,
+      startsAt,
+      notes,
+      status,
+    } = req.body;
 
-    if (!id) return res.status(400).json({ error: "id inválido" });
-
-    if (!clientId || !serviceId || !startsAt) {
+    if (!clientId || !serviceId || !workerId || !startsAt) {
       return res.status(400).json({
-        error: "Faltan campos obligatorios: clientId, serviceId, startsAt",
+        error: "Faltan datos: clientId, serviceId, workerId, startsAt.",
       });
     }
 
-    const updated = await prisma.appointment.update({
+    const appt = await prisma.appointment.update({
       where: { id },
       data: {
-        clientId: String(clientId),
-        serviceId: String(serviceId),
+        clientId,
+        serviceId,
+        workerId,
+        workerFirstName: workerFirstName ?? null,
+        workerLastName: workerLastName ?? null,
         startsAt: new Date(startsAt),
-        notes: notes ?? null,
-        status: status ?? undefined,
+        notes: notes || null,
+        status: status || undefined,
       },
-      include: { client: true, service: true },
+      include: { client: true, service: true, worker: true },
     });
 
-    res.json(updated);
+    res.json(appt);
   } catch (e) {
-    console.error("updateAppointment ERROR:", e);
-    res.status(500).json({ error: "Error actualizando cita" });
+    console.error(e);
+    res.status(500).json({ error: "Error actualizando la cita." });
   }
 }
 

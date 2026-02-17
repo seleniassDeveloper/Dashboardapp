@@ -1,3 +1,4 @@
+// src/gadgets/appointments/AppointmentsList.jsx
 import React, { useEffect, useCallback, useMemo, useState } from "react";
 import {
   Card,
@@ -78,6 +79,22 @@ function endOfMonth(d) {
   return endOfDay(x);
 }
 
+// ✅ helper: garantiza ids aunque vengan dentro de client/service
+function normalizeAppt(appt) {
+  if (!appt) return appt;
+  const workerNameFromRelation = appt?.worker
+    ? `${appt.worker.firstName || ""} ${appt.worker.lastName || ""}`.trim()
+    : "";
+
+  return {
+    ...appt,
+    clientId: appt.clientId || appt.client?.id || "",
+    workerId: appt.workerId || appt.worker?.id || "",
+    workerName: appt.workerName || workerNameFromRelation || "",
+    serviceId: appt.serviceId || appt.service?.id || "",
+  };
+}
+
 export default function AppointmentsList() {
   const {
     appointments,
@@ -126,7 +143,7 @@ export default function AppointmentsList() {
       setWeekFrom("");
       setWeekTo("");
     }
-    setPage(1); // ✅ reset
+    setPage(1);
   };
 
   // ✅ si cambian filtros, reset página
@@ -134,8 +151,13 @@ export default function AppointmentsList() {
     setPage(1);
   }, [status, range, dayDate, weekFrom, weekTo, monthAnchor]);
 
+  // ✅ normalizamos antes de filtrar/render
+  const normalizedAppointments = useMemo(() => {
+    return (appointments || []).map(normalizeAppt);
+  }, [appointments]);
+
   const filteredAppointments = useMemo(() => {
-    let list = appointments || [];
+    let list = normalizedAppointments;
 
     if (status !== "ALL") list = list.filter((a) => a.status === status);
 
@@ -172,19 +194,24 @@ export default function AppointmentsList() {
     }
 
     return list;
-  }, [appointments, status, range, dayDate, weekFrom, weekTo, monthAnchor]);
+  }, [
+    normalizedAppointments,
+    status,
+    range,
+    dayDate,
+    weekFrom,
+    weekTo,
+    monthAnchor,
+  ]);
 
-  // ✅ total de páginas
   const totalPages = useMemo(() => {
     return Math.max(1, Math.ceil(filteredAppointments.length / PAGE_SIZE));
   }, [filteredAppointments.length]);
 
-  // ✅ si borras y quedas en una página inválida, corrige
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
 
-  // ✅ items a renderizar (slice)
   const paginatedAppointments = useMemo(() => {
     const start = (page - 1) * PAGE_SIZE;
     return filteredAppointments.slice(start, start + PAGE_SIZE);
@@ -195,23 +222,26 @@ export default function AppointmentsList() {
     setEditingAppt(null);
     setShowForm(true);
   };
+
   const handleOpenEdit = (appt) => {
-    setEditingAppt(appt);
+    // ✅ aseguramos initialData consistente para el modal
+    setEditingAppt(normalizeAppt(appt));
     setShowForm(true);
   };
+
   const handleCloseForm = () => {
     setShowForm(false);
     setEditingAppt(null);
   };
 
-  // ✅ al guardar en modal: update store + refetch (sincroniza calendario y todo)
   const handleSaved = useCallback(
     ({ appointment }) => {
+      // ✅ guardamos lo que venga y luego refrescamos
       upsertAppointment(appointment);
       fetchAppointments();
-      setPage(1); // ✅ opcional: vuelve al inicio
+      setPage(1);
     },
-    [upsertAppointment, fetchAppointments]
+    [upsertAppointment, fetchAppointments],
   );
 
   // delete modal
@@ -219,6 +249,7 @@ export default function AppointmentsList() {
     setDeletingAppt(appt);
     setShowDelete(true);
   };
+
   const handleCloseDelete = () => {
     setShowDelete(false);
     setDeletingAppt(null);
@@ -229,61 +260,76 @@ export default function AppointmentsList() {
       removeAppointment(deletedId);
       fetchAppointments();
       handleCloseDelete();
-      setPage(1); // ✅ opcional
+      setPage(1);
     },
-    [removeAppointment, fetchAppointments]
+    [removeAppointment, fetchAppointments],
   );
 
-  // ✅ PUT cambiar status: update store + refetch
   const handleStatusChange = useCallback(
     async (appt, nextStatus) => {
       try {
         setError("");
 
+        const clientId = appt.clientId || appt.client?.id;
+        const serviceId = appt.serviceId || appt.service?.id;
+
+        const workerId = appt.workerId || appt.worker?.id;
+
+        if (!clientId || !serviceId || !workerId) {
+          return setError(
+            "Faltan IDs de cliente/servicio/trabajador en la cita. Revisa el GET /appointments con include.",
+          );
+        }
+
         const payload = {
-          clientId: appt.clientId,
-          serviceId: appt.serviceId,
+          clientId,
+          workerId,
+          workerName: appt.workerName || null,
+          serviceId,
           startsAt: appt.startsAt,
           notes: appt.notes ?? null,
           status: nextStatus,
         };
 
         const res = await axios.put(`${API}/appointments/${appt.id}`, payload);
-
+        console.log("PUT /appointments response", res.data);
         upsertAppointment(res.data);
         fetchAppointments();
       } catch (e) {
         console.error(e);
-        setError(e?.response?.data?.error || "No se pudo actualizar el estado.");
+        setError(
+          e?.response?.data?.error || "No se pudo actualizar el estado.",
+        );
       }
     },
-    [setError, upsertAppointment, fetchAppointments]
+    [setError, upsertAppointment, fetchAppointments],
   );
 
-  // ✅ pagination UI (compacta y elegante)
   const PaginationBar = () => {
     if (filteredAppointments.length <= PAGE_SIZE) return null;
 
     const items = [];
-
     const go = (p) => setPage(p);
 
     const addPage = (p) => {
       items.push(
         <Pagination.Item key={p} active={p === page} onClick={() => go(p)}>
           {p}
-        </Pagination.Item>
+        </Pagination.Item>,
       );
     };
 
-    // simple window (max 5 botones)
     const windowSize = 5;
     let start = Math.max(1, page - Math.floor(windowSize / 2));
     let end = Math.min(totalPages, start + windowSize - 1);
     start = Math.max(1, end - windowSize + 1);
 
     items.push(
-      <Pagination.Prev key="prev" disabled={page === 1} onClick={() => go(page - 1)} />
+      <Pagination.Prev
+        key="prev"
+        disabled={page === 1}
+        onClick={() => go(page - 1)}
+      />,
     );
 
     if (start > 1) {
@@ -294,12 +340,17 @@ export default function AppointmentsList() {
     for (let p = start; p <= end; p++) addPage(p);
 
     if (end < totalPages) {
-      if (end < totalPages - 1) items.push(<Pagination.Ellipsis key="el2" disabled />);
+      if (end < totalPages - 1)
+        items.push(<Pagination.Ellipsis key="el2" disabled />);
       addPage(totalPages);
     }
 
     items.push(
-      <Pagination.Next key="next" disabled={page === totalPages} onClick={() => go(page + 1)} />
+      <Pagination.Next
+        key="next"
+        disabled={page === totalPages}
+        onClick={() => go(page + 1)}
+      />,
     );
 
     return (
@@ -322,18 +373,28 @@ export default function AppointmentsList() {
     <>
       <Card className="shadow-sm appt-card">
         <Card.Body>
-          <Stack direction="horizontal" className="justify-content-between align-items-start gap-3">
-            <div className="flex-grow-1">
-              <div className="appt-title">Próximas citas</div>
-              <div className="appt-subtitle">Filtra por día/semana/mes y cambia el estado desde la lista.</div>
-            </div>
-
-            <Stack direction="horizontal" gap={2} className="appt-header-actions">
-              <Button variant="outline-secondary" onClick={fetchAppointments} className="appt-btn">
+          <Stack
+            direction="horizontal"
+            className="justify-content-between align-items-start gap-3"
+          >
+            <Stack
+              direction="horizontal"
+              gap={2}
+              className="appt-header-actions"
+            >
+              <Button
+                variant="outline-secondary"
+                onClick={fetchAppointments}
+                className="appt-btn"
+              >
                 Actualizar
               </Button>
 
-              <Button variant="dark" onClick={handleOpenCreate} className="appt-btn">
+              <Button
+                variant="dark"
+                onClick={handleOpenCreate}
+                className="appt-btn"
+              >
                 <i className="fa-regular fa-calendar me-2" />
                 Nueva
               </Button>
@@ -341,11 +402,14 @@ export default function AppointmentsList() {
           </Stack>
 
           {/* filtros */}
-          <div className="appt-filters">
+          <div className="appt-filters py-2">
             <Row className="g-3">
               <Col md={4}>
                 <Form.Label>Rango</Form.Label>
-                <Form.Select value={range} onChange={(e) => handleRangeChange(e.target.value)}>
+                <Form.Select
+                  value={range}
+                  onChange={(e) => handleRangeChange(e.target.value)}
+                >
                   {RANGE_OPTIONS.map((o) => (
                     <option key={o.value} value={o.value}>
                       {o.label}
@@ -357,7 +421,11 @@ export default function AppointmentsList() {
               {range === "DAY" && (
                 <Col md={4}>
                   <Form.Label>Día</Form.Label>
-                  <Form.Control type="date" value={dayDate} onChange={(e) => setDayDate(e.target.value)} />
+                  <Form.Control
+                    type="date"
+                    value={dayDate}
+                    onChange={(e) => setDayDate(e.target.value)}
+                  />
                 </Col>
               )}
 
@@ -365,7 +433,11 @@ export default function AppointmentsList() {
                 <>
                   <Col md={4}>
                     <Form.Label>Desde</Form.Label>
-                    <Form.Control type="date" value={weekFrom} onChange={(e) => setWeekFrom(e.target.value)} />
+                    <Form.Control
+                      type="date"
+                      value={weekFrom}
+                      onChange={(e) => setWeekFrom(e.target.value)}
+                    />
                   </Col>
                   <Col md={4}>
                     <Form.Label>Hasta</Form.Label>
@@ -382,13 +454,20 @@ export default function AppointmentsList() {
               {range === "MONTH" && (
                 <Col md={4}>
                   <Form.Label>Mes (fecha base)</Form.Label>
-                  <Form.Control type="date" value={monthAnchor} onChange={(e) => setMonthAnchor(e.target.value)} />
+                  <Form.Control
+                    type="date"
+                    value={monthAnchor}
+                    onChange={(e) => setMonthAnchor(e.target.value)}
+                  />
                 </Col>
               )}
 
               <Col md={4}>
                 <Form.Label>Estado</Form.Label>
-                <Form.Select value={status} onChange={(e) => setStatus(e.target.value)}>
+                <Form.Select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                >
                   {STATUS_OPTIONS.map((o) => (
                     <option key={o.value} value={o.value}>
                       {o.label}
@@ -433,7 +512,12 @@ export default function AppointmentsList() {
         </Card.Body>
       </Card>
 
-      <AppointmentModal show={showForm} onHide={handleCloseForm} onSaved={handleSaved} initialData={editingAppt} />
+      <AppointmentModal
+        show={showForm}
+        onHide={handleCloseForm}
+        onSaved={handleSaved}
+        initialData={editingAppt}
+      />
 
       <ConfirmDeleteModal
         show={showDelete}
