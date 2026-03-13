@@ -1,19 +1,18 @@
 import { Router } from "express";
 import {
+  listClients,
+  getClientAppointments,
   createClient,
   updateClient,
-  listClients,
   deleteClient,
-  getClientAppointments,
 } from "../controllers/clients.controller.js";
 
 const router = Router();
 
-router.get("/clients", listClients);
-router.get("/clients/:id/appointments", getClientAppointments);
-
-router.post("/clients", createClient);
-router.put("/clients/:id", updateClient);
-router.delete("/clients/:id", deleteClient);
+router.get("/", listClients);
+router.get("/:id/appointments", getClientAppointments);
+router.post("/", createClient);
+router.put("/:id", updateClient);
+router.delete("/:id", deleteClient);
 
 export default router;

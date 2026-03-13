@@ -37,28 +37,20 @@ model Service {
 
 
 model Appointment {
-  id       String   @id @default(cuid())
-  startsAt DateTime
-  endsAt   DateTime // ✅ nuevo
-  status   AppointmentStatus @default(CONFIRMED)
-  notes    String?
+  id            String   @id @default(cuid())
+  startsAt      DateTime
+  status        String
+  notes         String?
+  clientId      String
+  workerId      String
+  serviceId     String
 
-  clientId String
-  client   Client @relation(fields: [clientId], references: [id])
+  reminderSentAt DateTime?
+  reminderType   String?   
 
-  serviceId String
-  service   Service @relation(fields: [serviceId], references: [id])
-
-  workerId String
-  worker   Worker @relation(fields: [workerId], references: [id])
-
-  workerFirstName String?
-  workerLastName  String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([workerId, startsAt, endsAt]) // ✅ ayuda muchísimo
+  client        Client   @relation(fields: [clientId], references: [id])
+  worker        Worker   @relation(fields: [workerId], references: [id])
+  service       Service  @relation(fields: [serviceId], references: [id])
 }
 
 enum AppointmentStatus {

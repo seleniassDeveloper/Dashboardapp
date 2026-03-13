@@ -12,6 +12,8 @@ import Eficiencia from "./gadgets/appointments/Metricas/Eficiencia";
 
 // ✅ si hiciste el css limpio:
 import "./styles/dashboard-clean.css";
+import AIChat from "./gadgets/ai/AIChat";
+import AIChatFloating from "./gadgets/ai/AIChatFloating";
 
 function formatYMD(d) {
   const pad = (n) => String(n).padStart(2, "0");
@@ -86,6 +88,7 @@ export default function Body() {
           </div>
         </Col>
       </Row>
-    </Container>
+
+<AIChatFloating />    </Container>
   );
 }

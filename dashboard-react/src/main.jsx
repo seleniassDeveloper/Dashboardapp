@@ -7,11 +7,9 @@ import { BrandProvider } from "./header/name/BrandProvider.jsx";
 import { AppointmentsProvider } from "./gadgets/appointments/AppointmentsProvider.jsx";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
-  <React.StrictMode>
-    <BrandProvider>
-      <AppointmentsProvider>
-        <App />
-      </AppointmentsProvider>
-    </BrandProvider>
-  </React.StrictMode>
+  <BrandProvider>
+    <AppointmentsProvider>
+      <App />
+    </AppointmentsProvider>
+  </BrandProvider>
 );

@@ -1,0 +1,72 @@
+import { Router } from "express";
+import prisma from "../prisma.js";
+
+const router = Router();
+
+/**
+ * GET /api/workers
+ */
+router.get("/", async (req, res) => {
+  try {
+    const workers = await prisma.worker.findMany({
+      orderBy: { name: "asc" },
+    });
+    res.json(workers);
+  } catch (error) {
+    console.error("Error obteniendo workers:", error);
+    res.status(500).json({ error: "Error obteniendo workers" });
+  }
+});
+
+/**
+ * POST /api/workers
+ */
+router.post("/", async (req, res) => {
+  try {
+    const worker = await prisma.worker.create({
+      data: req.body,
+    });
+    res.status(201).json(worker);
+  } catch (error) {
+    console.error("Error creando worker:", error);
+    res.status(500).json({ error: "Error creando worker" });
+  }
+});
+
+export default router;
+import { Router } from "express";
+import prisma from "../lib/prisma.js";
+
+const router = Router();
+
+/**
+ * GET /api/workers
+ */
+router.get("/", async (req, res) => {
+  try {
+    const workers = await prisma.worker.findMany({
+      orderBy: { name: "asc" },
+    });
+    res.json(workers);
+  } catch (error) {
+    console.error("Error obteniendo workers:", error);
+    res.status(500).json({ error: "Error obteniendo workers" });
+  }
+});
+
+/**
+ * POST /api/workers
+ */
+router.post("/", async (req, res) => {
+  try {
+    const worker = await prisma.worker.create({
+      data: req.body,
+    });
+    res.status(201).json(worker);
+  } catch (error) {
+    console.error("Error creando worker:", error);
+    res.status(500).json({ error: "Error creando worker" });
+  }
+});
+
+export default router;

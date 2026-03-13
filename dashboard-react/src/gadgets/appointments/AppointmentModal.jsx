@@ -33,23 +33,45 @@ const toDatetimeLocal = (iso) => {
 
 const toISO = (dtLocal) => new Date(dtLocal).toISOString();
 
-function normalizeWorker(raw) {
+function normalizeService(raw) {
+  if (!raw) return null;
+  return {
+    id: String(raw.id || ""),
+    name: raw.name || "Servicio",
+    price: raw.price ?? null,
+    duration: raw.duration ?? null,
+  };
+}
+
+function normalizeWorker(raw, servicesById = {}) {
   const w = raw || {};
-  const services = safeArray(w.services)
+
+  // Caso A: backend trae services completos
+  const nestedServices = safeArray(w.services)
     .map((s) => s?.service || s)
+    .filter(Boolean)
+    .map(normalizeService)
     .filter(Boolean);
+
+  // Caso B: backend trae solo serviceIds
+  const idsFromWorker =
+    safeArray(w.serviceIds).map(String).filter(Boolean);
+
+  const derivedFromIds = idsFromWorker
+    .map((id) => servicesById[id])
+    .filter(Boolean)
+    .map(normalizeService)
+    .filter(Boolean);
+
+  const finalServices = nestedServices.length > 0 ? nestedServices : derivedFromIds;
 
   return {
     id: String(w.id || ""),
     firstName: w.firstName || "",
     lastName: w.lastName || "",
     name: `${w.firstName || ""} ${w.lastName || ""}`.trim() || "Trabajador",
-    services: services.map((svc) => ({
-      id: String(svc.id || ""),
-      name: svc.name || "Servicio",
-      price: svc.price ?? null,
-      duration: svc.duration ?? null,
-    })),
+    serviceIds: idsFromWorker,
+    services: finalServices,
   };
 }
 
@@ -63,6 +85,7 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
   const [error, setError] = useState("");
 
   const [workers, setWorkers] = useState([]);
+  const [servicesCatalog, setServicesCatalog] = useState([]);
 
   // --- autocomplete cliente ---
   const [clientOpen, setClientOpen] = useState(false);
@@ -79,6 +102,13 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
     return `${form.clientFirstName} ${form.clientLastName}`.trim();
   }, [form.clientFirstName, form.clientLastName]);
 
+  const servicesById = useMemo(() => {
+    return safeArray(servicesCatalog).reduce((acc, svc) => {
+      acc[String(svc.id)] = svc;
+      return acc;
+    }, {});
+  }, [servicesCatalog]);
+
   // cerrar dropdown click afuera
   useEffect(() => {
     function onClickOutside(e) {
@@ -89,7 +119,7 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, [clientOpen]);
 
-  // cargar workers al abrir
+  // cargar workers + services al abrir
   useEffect(() => {
     if (!show) return;
 
@@ -97,12 +127,27 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
       try {
         setError("");
         setLoadingRefs(true);
-        const wRes = await axios.get(`${API}/workers`);
-        setWorkers(safeArray(wRes.data).map(normalizeWorker));
+
+        const [wRes, sRes] = await Promise.all([
+          axios.get(`${API}/workers`),
+          axios.get(`${API}/services`),
+        ]);
+
+        const services = safeArray(sRes.data).map(normalizeService);
+        setServicesCatalog(services);
+
+        const map = services.reduce((acc, svc) => {
+          acc[String(svc.id)] = svc;
+          return acc;
+        }, {});
+
+        const normalizedWorkers = safeArray(wRes.data).map((w) => normalizeWorker(w, map));
+        setWorkers(normalizedWorkers);
       } catch (e) {
-        console.error(e);
+        console.error("Error cargando refs de cita:", e?.response?.data || e);
         setWorkers([]);
-        setError(e?.response?.data?.error || "No pude cargar trabajadores.");
+        setServicesCatalog([]);
+        setError(e?.response?.data?.error || "No pude cargar trabajadores o servicios.");
       } finally {
         setLoadingRefs(false);
       }
@@ -140,7 +185,19 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
     [workers, form.workerId]
   );
 
-  const workerServices = useMemo(() => safeArray(selectedWorker?.services), [selectedWorker]);
+  const workerServices = useMemo(() => {
+    if (!selectedWorker) return [];
+
+    // si ya tiene services completos, usar eso
+    if (safeArray(selectedWorker.services).length > 0) {
+      return selectedWorker.services;
+    }
+
+    // fallback por serviceIds
+    return safeArray(selectedWorker.serviceIds)
+      .map((id) => servicesById[String(id)])
+      .filter(Boolean);
+  }, [selectedWorker, servicesById]);
 
   const selectedService = useMemo(
     () => workerServices.find((s) => s.id === form.serviceId) || null,
@@ -287,9 +344,8 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
       onSaved?.({ mode: isEdit ? "edit" : "create", appointment: res.data });
       onHide?.();
     } catch (e) {
-      console.error(e);
+      console.error("Appointment save error:", e?.response?.data || e);
 
-      // ✅ ESTE ES EL CATCH QUE BUSCAS: manejar solapamiento
       if (e?.response?.status === 409) {
         setError(
           e?.response?.data?.error ||
@@ -317,6 +373,7 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
     onSaved,
     onHide,
   ]);
+  console.log( "workerServices", workerServices)
 
   return (
     <Modal show={show} onHide={saving ? undefined : onHide} centered backdrop="static" keyboard={!saving}>
@@ -463,7 +520,7 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
                     {workerServices.map((s) => (
                       <option key={s.id} value={s.id}>
                         {s.name}
-                        {s.price != null ? ` • $${s.price}` : ""}
+                      
                       </option>
                     ))}
                   </Form.Select>
@@ -550,4 +607,4 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
       </Modal.Footer>
     </Modal>
   );
-}
+} 
