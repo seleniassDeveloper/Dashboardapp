@@ -73,7 +73,7 @@ export default function AIChatFloating() {
         </div>
       ) : null}
 
-      {/* Botón flotante */}
+      
       <Button
         variant="dark"
         onClick={() => setOpen((v) => !v)}

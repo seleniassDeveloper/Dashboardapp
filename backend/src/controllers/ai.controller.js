@@ -1,164 +1,252 @@
-// src/controllers/ai.controller.js
 import OpenAI from "openai";
 import prisma from "../prisma.js";
 
-const openai = new OpenAI({
+const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// limpia ```json ... ``` y basura común
-function extractJson(raw = "") {
-  let t = String(raw).trim();
+function buildLocalMetrics({ appointments, workers, services }) {
+  const totalAppointments = appointments.length;
 
-  // quita fences ```json ... ```
-  t = t.replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim();
+  const revenue = appointments.reduce((acc, a) => {
+    const price = Number(a?.service?.price || 0);
+    return acc + price;
+  }, 0);
 
-  // intenta recortar a primer { ... último }
-  const first = t.indexOf("{");
-  const last = t.lastIndexOf("}");
-  if (first !== -1 && last !== -1 && last > first) {
-    t = t.slice(first, last + 1);
+  const cancelled = appointments.filter((a) => a.status === "CANCELLED").length;
+  const completed = appointments.filter(
+    (a) => a.status === "CONFIRMED" || a.status === "DONE"
+  ).length;
+  const pending = appointments.filter((a) => a.status === "PENDING").length;
+
+  const byServiceMap = {};
+  for (const a of appointments) {
+    const name = a?.service?.name || "Sin servicio";
+    byServiceMap[name] = (byServiceMap[name] || 0) + 1;
   }
 
-  return t;
-}
-
-// fallback para poder testear UI aunque OpenAI falle
-function mockResponse(appointments = []) {
-  // ejemplo básico: torta por servicio
-  const byService = new Map();
+  const byWorkerMap = {};
   for (const a of appointments) {
-    const name = a?.service?.name || "Servicio";
-    byService.set(name, (byService.get(name) || 0) + 1);
+    const name =
+      `${a?.worker?.firstName || ""} ${a?.worker?.lastName || ""}`.trim() ||
+      "Sin trabajador";
+    byWorkerMap[name] = (byWorkerMap[name] || 0) + 1;
   }
 
   return {
-    title: "Reporte (mock)",
-    summaryText:
-      "No pude llamar a OpenAI (cuota/billing). Este reporte es de prueba para validar el frontend.",
-    widgets: [
-      {
-        type: "kpis",
-        title: "KPIs",
-        items: [
-          { label: "Citas", value: appointments.length },
-          {
-            label: "Confirmadas",
-            value: appointments.filter((a) => a.status === "CONFIRMED").length,
-          },
-          {
-            label: "Canceladas",
-            value: appointments.filter((a) => a.status === "CANCELLED").length,
-          },
-          { label: "Finalizadas", value: appointments.filter((a) => a.status === "DONE").length },
-        ],
-      },
-      {
-        type: "pie",
-        title: "Citas por servicio",
-        data: Array.from(byService.entries()).map(([name, value]) => ({ name, value })),
-        nameKey: "name",
-        dataKey: "value",
-      },
-    ],
+    totals: {
+      totalAppointments,
+      revenue,
+      cancelled,
+      completed,
+      pending,
+      totalWorkers: workers.length,
+      totalServices: services.length,
+    },
+    byService: Object.entries(byServiceMap).map(([name, value]) => ({
+      name,
+      value,
+    })),
+    byWorker: Object.entries(byWorkerMap).map(([name, value]) => ({
+      name,
+      value,
+    })),
   };
 }
 
-export async function aiAnalytics(req, res) {
-  console.log("OPENAI KEY?", process.env.OPENAI_API_KEY ? "OK" : "NO");
-
+export async function createAIReport(req, res) {
   try {
-    const { question, from, to } = req.body;
+    const { question } = req.body || {};
 
-    const where = {};
-    if (from || to) {
-      where.startsAt = {};
-      if (from) where.startsAt.gte = new Date(from);
-      if (to) where.startsAt.lte = new Date(to);
+    if (!question?.trim()) {
+      return res.status(400).json({ error: "Falta la pregunta." });
     }
 
-    const appointments = await prisma.appointment.findMany({
-      where,
-      include: { client: true, service: true, worker: true },
-      orderBy: { startsAt: "asc" },
+    const [appointments, workers, services] = await Promise.all([
+      prisma.appointment.findMany({
+        include: {
+          client: true,
+          worker: true,
+          service: true,
+        },
+        orderBy: { startsAt: "asc" },
+      }),
+      prisma.worker.findMany(),
+      prisma.service.findMany({
+        where: { isActive: true },
+      }),
+    ]);
+
+    const metrics = buildLocalMetrics({ appointments, workers, services });
+
+    const prompt = `
+Eres un analista de negocio para un dashboard de citas.
+
+Responde en español.
+Analiza los datos del negocio y devuelve decisiones accionables.
+No inventes datos que no estén en el contexto.
+
+Pregunta del usuario:
+${question}
+
+Contexto del dashboard:
+${JSON.stringify(metrics, null, 2)}
+`;
+
+    const response = await client.responses.create({
+      model: "gpt-4.1-mini",
+      input: prompt,
+      text: {
+        format: {
+          type: "json_schema",
+          name: "dashboard_report",
+          strict: true,
+          schema: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              summary: { type: "string" },
+              insights: {
+                type: "array",
+                items: { type: "string" },
+              },
+              kpis: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    label: { type: "string" },
+                    value: { type: "string" },
+                    delta: { type: "string" },
+                  },
+                  required: ["label", "value", "delta"],
+                },
+              },
+              chart: {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  type: { type: "string" },
+                  title: { type: "string" },
+                  data: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      additionalProperties: false,
+                      properties: {
+                        name: { type: "string" },
+                        value: { type: "number" },
+                      },
+                      required: ["name", "value"],
+                    },
+                  },
+                },
+                required: ["type", "title", "data"],
+              },
+              actions: {
+                type: "array",
+                items: { type: "string" },
+              },
+            },
+            required: ["summary", "insights", "kpis", "chart", "actions"],
+          },
+        },
+      },
     });
 
-    const system = `
-Sos un analista de datos para un dashboard de turnos.
-Tu tarea: devolver SOLO JSON válido (sin texto extra).
-Ese JSON debe tener:
-{
-  "title": "string",
-  "summaryText": "string",
-  "insights": ["string", "..."],
-  "widgets": [
-    { "type": "kpis", "title": "string", "items": [{ "label": "string", "value": "string|number" }] },
-    { "type": "pie", "title": "string", "data": [{ "name":"string", "value": number }], "nameKey":"name", "dataKey":"value" },
-    { "type": "bar", "title": "string", "data": [{ "name":"string", "value": number }], "xKey":"name", "series":[{ "key":"value", "name":"Valor" }] },
-    { "type": "table", "title": "string", "columns": ["..."], "rows": [{...}] }
-  ]
-}
-Las "insights" deben ser frases cortas en español, claras y accionables, en tono similar a:
-- "Tu facturación cayó 12% este mes."
-- "Tus tareas se están acumulando en el equipo A."
-- "Tus tiempos promedio están aumentando."
-Podés ajustar los porcentajes o valores según los datos disponibles.
-Reglas: nada de markdown, nada de backticks, nada de explicación fuera del JSON.
-`.trim();
+    const text =
+      response.output_text ||
+      response.output?.[0]?.content?.[0]?.text ||
+      "{}";
 
-    const user = `
-Datos (citas) en JSON:
-${JSON.stringify(appointments)}
-
-Pedido del usuario:
-"${question}"
-`.trim();
-
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      temperature: 0.2,
-      // clave: pedir respuesta en JSON para que sea parseable
-      response_format: { type: "json_object" },
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: user },
-      ],
-    });
-
-    const raw = completion?.choices?.[0]?.message?.content || "";
-    const cleaned = extractJson(raw);
-
-    let parsed;
-    try {
-      parsed = JSON.parse(cleaned);
-    } catch (e) {
-      console.error("IA no devolvió JSON puro:", raw);
-      return res.status(500).json({
-        error: "La IA no devolvió JSON válido",
-        raw,
-      });
-    }
-
+    const parsed = JSON.parse(text);
     return res.json(parsed);
-  } catch (err) {
-    // caso cuota/billing
-    const code = err?.code || err?.error?.code;
-    const status = err?.status || 500;
-
-    console.error("AI ERROR:", status, code, err?.message);
-
-    if (status === 429 || code === "insufficient_quota") {
-      // devolvé mock para poder seguir probando el front
-      // (si preferís que sea 429 real, cambiamos esto)
-      const appointments = await prisma.appointment.findMany({
-        include: { client: true, service: true, worker: true },
-      });
-      return res.status(200).json(mockResponse(appointments));
-    }
-
-    return res.status(500).json({
-      error: "Error generando reporte IA",
-      details: err?.message || String(err),
+  } catch (error) {
+    console.error("AI report error FULL:", {
+      message: error?.message,
+      status: error?.status,
+      code: error?.code,
+      type: error?.type,
+      name: error?.name,
+      request_id: error?.request_id,
     });
+
+    try {
+      const [appointments, workers, services] = await Promise.all([
+        prisma.appointment.findMany({
+          include: {
+            client: true,
+            worker: true,
+            service: true,
+          },
+        }),
+        prisma.worker.findMany(),
+        prisma.service.findMany({
+          where: { isActive: true },
+        }),
+      ]);
+
+      const metrics = buildLocalMetrics({ appointments, workers, services });
+
+      return res.status(200).json({
+        summary: `Tienes ${metrics.totals.totalAppointments} citas y una facturación estimada de $${metrics.totals.revenue}.`,
+        insights: [
+          `Canceladas: ${metrics.totals.cancelled}`,
+          `Pendientes: ${metrics.totals.pending}`,
+          `Completadas: ${metrics.totals.completed}`,
+        ],
+        kpis: [
+          {
+            label: "Citas",
+            value: String(metrics.totals.totalAppointments),
+            delta: "0%",
+          },
+          {
+            label: "Facturación",
+            value: `$${metrics.totals.revenue}`,
+            delta: "0%",
+          },
+          {
+            label: "Canceladas",
+            value: String(metrics.totals.cancelled),
+            delta: "0%",
+          },
+        ],
+        chart: {
+          type: "pie",
+          title: "Citas por servicio",
+          data: metrics.byService,
+        },
+        actions: [
+          "Revisa el servicio con mayor carga.",
+          "Redistribuye citas entre trabajadores con menor ocupación.",
+          "Reduce cancelaciones en los bloques con más ausencias.",
+        ],
+      });
+    } catch (fallbackError) {
+      console.error("Fallback metrics error:", fallbackError);
+
+      return res.status(200).json({
+        summary:
+          "No pude usar OpenAI en este momento. Mostrando un análisis local básico del dashboard.",
+        insights: [
+          "Revisa el servicio con más citas para detectar saturación.",
+          "Compara cancelaciones frente a confirmaciones.",
+          "Busca trabajadores con baja carga para redistribuir agenda.",
+        ],
+        kpis: [{ label: "Estado IA", value: "Fallback local", delta: "0%" }],
+        chart: {
+          type: "pie",
+          title: "Sin datos IA",
+          data: [],
+        },
+        actions: [
+          "Verifica la API key y el billing.",
+          "Reintenta la consulta.",
+          "Usa el análisis local como respaldo.",
+        ],
+      });
+    }
   }
 }

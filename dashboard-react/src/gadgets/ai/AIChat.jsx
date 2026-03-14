@@ -1,162 +1,171 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useState } from "react";
 import axios from "axios";
-import { Button, Form, Spinner, Alert, Badge } from "react-bootstrap";
 
 const API = "http://localhost:3001/api";
 
-function safeArray(x) {
-  return Array.isArray(x) ? x : [];
-}
-
 export default function AIChat({ embedded = false }) {
-  const [input, setInput] = useState("kpis y torta por servicio");
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
-
+  const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState("");
-  const [messages, setMessages] = useState([]); // {role:"user"|"assistant", text}
+  const [report, setReport] = useState(null);
+  const [error, setError] = useState("");
 
-  const canSend = useMemo(() => input.trim().length >= 2 && !loading, [input, loading]);
+  const sendPreset = async (preset) => {
+    setQuestion(preset);
+    await handleSend(preset);
+  };
 
-  const listRef = useRef(null);
-
-  // auto-scroll al final
-  useEffect(() => {
-    const el = listRef.current;
-    if (!el) return;
-    el.scrollTop = el.scrollHeight;
-  }, [messages.length, loading]);
-
-  const send = async () => {
-    if (!canSend) return;
-
-    const question = input.trim();
-    setInput("");
-    setErr("");
-    setLoading(true);
-
-    setMessages((p) => [...p, { role: "user", text: question }]);
+  const handleSend = async (customQuestion) => {
+    const q = (customQuestion ?? question).trim();
+    if (!q) return;
 
     try {
-      const res = await axios.post(`${API}/ai/analytics`, {
-        question,
-        from: from || null,
-        to: to || null,
+      setLoading(true);
+      setError("");
+
+      const res = await axios.post(`${API}/ai/report`, {
+        question: q,
       });
 
-      setMessages((p) => [
-        ...p,
-        {
-          role: "assistant",
-          text: res.data?.summaryText || "Listo.",
-        },
-      ]);
+      setReport(res.data);
     } catch (e) {
-      const msg = e?.response?.data?.error || "No pude generar el reporte IA.";
-      setErr(msg);
-      setMessages((p) => [...p, { role: "assistant", text: msg }]);
+      console.error("AI chat error:", e?.response?.data || e);
+      setError(e?.response?.data?.error || "No se pudo generar el reporte.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div
-      style={{
-        height: "100%",
-        display: "flex",
-        flexDirection: "column",
-        minHeight: 0,
-        background: "#fff",
-        padding: embedded ? 12 : 0,
-      }}
-    >
-      {/* Top bar mini dentro */}
-      <div className="d-flex align-items-center justify-content-between mb-2" style={{ flex: "0 0 auto" }}>
-        <div className="fw-bold">Reportes IA</div>
-        <Badge bg="secondary">Beta</Badge>
+    <div style={{ height: "100%", display: "flex", flexDirection: "column", padding: 12 }}>
+      <div style={{ marginBottom: 12, display: "flex", flexWrap: "wrap", gap: 8 }}>
+        <button onClick={() => sendPreset("Analiza mis ingresos")} style={btnMini}>
+          Analiza mis ingresos
+        </button>
+        <button onClick={() => sendPreset("Detecta problemas operativos")} style={btnMini}>
+          Detecta problemas operativos
+        </button>
+        <button onClick={() => sendPreset("Dame decisiones para esta semana")} style={btnMini}>
+          Decisiones semanales
+        </button>
       </div>
 
-      {/* filtros */}
-      <div className="d-flex gap-2 mb-2" style={{ flex: "0 0 auto" }}>
-        <Form.Control type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-        <Form.Control type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-      </div>
+      <div style={{ flex: 1, overflow: "auto", paddingRight: 4 }}>
+        {error ? <div style={{ color: "#b91c1c", marginBottom: 12 }}>{error}</div> : null}
 
-      {err ? (
-        <div style={{ flex: "0 0 auto" }}>
-          <Alert variant="danger" className="py-2 mb-2">
-            {err}
-          </Alert>
-        </div>
-      ) : null}
-
-      {/* Mensajes */}
-      <div
-        ref={listRef}
-        style={{
-          flex: "1 1 auto",
-          minHeight: 0,
-          overflowY: "auto",
-          border: "1px solid rgba(0,0,0,0.08)",
-          borderRadius: 12,
-          padding: 12,
-          display: "grid",
-          gap: 10,
-          background: "#fafafa",
-        }}
-      >
-        {messages.length === 0 ? (
-          <div style={{ fontSize: 13, color: "#666" }}>
-            Escribí algo tipo: “kpis y torta por servicio”.
+        {!report && !loading ? (
+          <div style={{ color: "#666" }}>
+            Pregúntale algo al dashboard.
+            <ul>
+              <li>¿Qué servicio genera más ingresos?</li>
+              <li>¿Qué trabajador está más cargado?</li>
+              <li>¿Qué decisiones debería tomar esta semana?</li>
+            </ul>
           </div>
         ) : null}
 
-        {safeArray(messages).map((m, i) => (
-          <div
-            key={i}
-            style={{
-              justifySelf: m.role === "user" ? "end" : "start",
-              maxWidth: "85%",
-              padding: "10px 12px",
-              borderRadius: 14,
-              border: "1px solid rgba(0,0,0,0.08)",
-              background: m.role === "user" ? "rgba(0,0,0,0.06)" : "#fff",
-            }}
-          >
-            <div style={{ fontSize: 12, opacity: 0.65, marginBottom: 2 }}>
-              {m.role === "user" ? "Vos" : "IA"}
-            </div>
-            <div style={{ whiteSpace: "pre-wrap" }}>{m.text}</div>
-          </div>
-        ))}
+        {loading ? <div>Generando reporte...</div> : null}
 
-        {loading ? (
-          <div style={{ justifySelf: "start", fontSize: 13, color: "#666" }}>
-            <Spinner size="sm" className="me-2" />
-            Generando...
+        {report ? (
+          <div>
+            <section style={card}>
+              <h4 style={{ marginTop: 0 }}>Resumen</h4>
+              <p style={{ marginBottom: 0 }}>{report.summary}</p>
+            </section>
+
+            <section style={card}>
+              <h4 style={{ marginTop: 0 }}>Insights</h4>
+              <ul>
+                {(report.insights || []).map((x, i) => <li key={i}>{x}</li>)}
+              </ul>
+            </section>
+
+            <section style={card}>
+              <h4 style={{ marginTop: 0 }}>KPIs</h4>
+              <div style={{ display: "grid", gap: 8 }}>
+                {(report.kpis || []).map((kpi, i) => (
+                  <div key={i} style={kpiCard}>
+                    <strong>{kpi.label}</strong>
+                    <div>{kpi.value}</div>
+                    <small>{kpi.delta}</small>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section style={card}>
+              <h4 style={{ marginTop: 0 }}>{report.chart?.title || "Gráfico"}</h4>
+              {(report.chart?.data || []).length === 0 ? (
+                <div style={{ color: "#666" }}>Sin datos para graficar.</div>
+              ) : (
+                <ul>
+                  {report.chart.data.map((item, i) => (
+                    <li key={i}>
+                      {item.name}: {item.value}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+
+            <section style={card}>
+              <h4 style={{ marginTop: 0 }}>Acciones recomendadas</h4>
+              <ul>
+                {(report.actions || []).map((x, i) => <li key={i}>{x}</li>)}
+              </ul>
+            </section>
           </div>
         ) : null}
       </div>
 
-      {/* Input fijo abajo */}
-      <div style={{ flex: "0 0 auto", marginTop: 10, display: "flex", gap: 8 }}>
-        <Form.Control
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Pedile algo a la IA..."
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              send();
-            }
+      <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+        <input
+          value={question}
+          onChange={(e) => setQuestion(e.target.value)}
+          placeholder="Escribe una pregunta..."
+          style={{
+            flex: 1,
+            padding: 10,
+            borderRadius: 10,
+            border: "1px solid #ddd",
           }}
         />
-        <Button variant="dark" onClick={send} disabled={!canSend} style={{ minWidth: 96 }}>
+        <button
+          onClick={() => handleSend()}
+          disabled={!question.trim() || loading}
+          style={{
+            padding: "10px 14px",
+            borderRadius: 10,
+            border: "none",
+            background: "#111827",
+            color: "#fff",
+            cursor: "pointer",
+          }}
+        >
           {loading ? "..." : "Enviar"}
-        </Button>
+        </button>
       </div>
     </div>
   );
 }
+
+const btnMini = {
+  border: "1px solid #ddd",
+  background: "#fff",
+  borderRadius: 999,
+  padding: "8px 12px",
+  cursor: "pointer",
+};
+
+const card = {
+  border: "1px solid #e5e7eb",
+  borderRadius: 12,
+  padding: 12,
+  marginBottom: 12,
+  background: "#fff",
+};
+
+const kpiCard = {
+  border: "1px solid #eee",
+  borderRadius: 10,
+  padding: 10,
+};

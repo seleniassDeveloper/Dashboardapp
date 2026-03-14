@@ -1,8 +1,8 @@
 import { Router } from "express";
-import { aiAnalytics } from "../controllers/ai.controller.js";
+import { createAIReport } from "../controllers/ai.controller.js";
 
 const router = Router();
 
-router.post("/analytics", aiAnalytics);
+router.post("/report", createAIReport);
 
 export default router;
