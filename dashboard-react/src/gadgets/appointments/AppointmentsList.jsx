@@ -1,4 +1,3 @@
-// src/gadgets/appointments/AppointmentsList.jsx
 import React, { useEffect, useCallback, useMemo, useState } from "react";
 import {
   Card,
@@ -19,6 +18,7 @@ import AppointmentModal from "./AppointmentModal";
 import ConfirmDeleteModal from "./ConfirmDeleteModal";
 
 import { useAppointmentsStore } from "./AppointmentsProvider.jsx";
+import { useBrand } from "../../header/name/BrandProvider.jsx";
 
 import "../../styles/appointments-list.css";
 
@@ -39,7 +39,7 @@ const RANGE_OPTIONS = [
   { value: "MONTH", label: "Mes" },
 ];
 
-// ------- helpers fecha -------
+// helpers fecha
 function formatYMD(d) {
   const pad = (n) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -79,9 +79,9 @@ function endOfMonth(d) {
   return endOfDay(x);
 }
 
-// ✅ helper: garantiza ids aunque vengan dentro de client/service
 function normalizeAppt(appt) {
   if (!appt) return appt;
+
   const workerNameFromRelation = appt?.worker
     ? `${appt.worker.firstName || ""} ${appt.worker.lastName || ""}`.trim()
     : "";
@@ -96,6 +96,8 @@ function normalizeAppt(appt) {
 }
 
 export default function AppointmentsList() {
+  const { brand } = useBrand();
+
   const {
     appointments,
     loading,
@@ -106,15 +108,12 @@ export default function AppointmentsList() {
     removeAppointment,
   } = useAppointmentsStore();
 
-  // modal create/edit
   const [showForm, setShowForm] = useState(false);
   const [editingAppt, setEditingAppt] = useState(null);
 
-  // delete modal
   const [showDelete, setShowDelete] = useState(false);
   const [deletingAppt, setDeletingAppt] = useState(null);
 
-  // filtros
   const [range, setRange] = useState("ALL");
   const [status, setStatus] = useState("ALL");
 
@@ -123,19 +122,22 @@ export default function AppointmentsList() {
   const [weekTo, setWeekTo] = useState("");
   const [monthAnchor, setMonthAnchor] = useState(() => formatYMD(new Date()));
 
-  // ✅ paginado
   const PAGE_SIZE = 5;
   const [page, setPage] = useState(1);
 
-  // precargar semana actual si eliges WEEK
+  const newButtonStyle = {
+    backgroundColor: brand?.textColor || "#111827",
+    borderColor: brand?.textColor || "#111827",
+    color: "#ffffff",
+  };
+
   useEffect(() => {
     if (range !== "WEEK") return;
     if (weekFrom && weekTo) return;
     const now = new Date();
     setWeekFrom(formatYMD(startOfWeekMonday(now)));
     setWeekTo(formatYMD(endOfWeekMonday(now)));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [range]);
+  }, [range, weekFrom, weekTo]);
 
   const handleRangeChange = (value) => {
     setRange(value);
@@ -146,12 +148,10 @@ export default function AppointmentsList() {
     setPage(1);
   };
 
-  // ✅ si cambian filtros, reset página
   useEffect(() => {
     setPage(1);
   }, [status, range, dayDate, weekFrom, weekTo, monthAnchor]);
 
-  // ✅ normalizamos antes de filtrar/render
   const normalizedAppointments = useMemo(() => {
     return (appointments || []).map(normalizeAppt);
   }, [appointments]);
@@ -217,14 +217,12 @@ export default function AppointmentsList() {
     return filteredAppointments.slice(start, start + PAGE_SIZE);
   }, [filteredAppointments, page]);
 
-  // modales
   const handleOpenCreate = () => {
     setEditingAppt(null);
     setShowForm(true);
   };
 
   const handleOpenEdit = (appt) => {
-    // ✅ aseguramos initialData consistente para el modal
     setEditingAppt(normalizeAppt(appt));
     setShowForm(true);
   };
@@ -236,15 +234,13 @@ export default function AppointmentsList() {
 
   const handleSaved = useCallback(
     ({ appointment }) => {
-      // ✅ guardamos lo que venga y luego refrescamos
       upsertAppointment(appointment);
       fetchAppointments();
       setPage(1);
     },
-    [upsertAppointment, fetchAppointments],
+    [upsertAppointment, fetchAppointments]
   );
 
-  // delete modal
   const handleOpenDelete = (appt) => {
     setDeletingAppt(appt);
     setShowDelete(true);
@@ -262,7 +258,7 @@ export default function AppointmentsList() {
       handleCloseDelete();
       setPage(1);
     },
-    [removeAppointment, fetchAppointments],
+    [removeAppointment, fetchAppointments]
   );
 
   const handleStatusChange = useCallback(
@@ -272,12 +268,11 @@ export default function AppointmentsList() {
 
         const clientId = appt.clientId || appt.client?.id;
         const serviceId = appt.serviceId || appt.service?.id;
-
         const workerId = appt.workerId || appt.worker?.id;
 
         if (!clientId || !serviceId || !workerId) {
           return setError(
-            "Faltan IDs de cliente/servicio/trabajador en la cita. Revisa el GET /appointments con include.",
+            "Faltan IDs de cliente/servicio/trabajador en la cita. Revisa el GET /appointments con include."
           );
         }
 
@@ -292,17 +287,16 @@ export default function AppointmentsList() {
         };
 
         const res = await axios.put(`${API}/appointments/${appt.id}`, payload);
-        console.log("PUT /appointments response", res.data);
         upsertAppointment(res.data);
         fetchAppointments();
       } catch (e) {
         console.error(e);
         setError(
-          e?.response?.data?.error || "No se pudo actualizar el estado.",
+          e?.response?.data?.error || "No se pudo actualizar el estado."
         );
       }
     },
-    [setError, upsertAppointment, fetchAppointments],
+    [setError, upsertAppointment, fetchAppointments]
   );
 
   const PaginationBar = () => {
@@ -315,7 +309,7 @@ export default function AppointmentsList() {
       items.push(
         <Pagination.Item key={p} active={p === page} onClick={() => go(p)}>
           {p}
-        </Pagination.Item>,
+        </Pagination.Item>
       );
     };
 
@@ -329,7 +323,7 @@ export default function AppointmentsList() {
         key="prev"
         disabled={page === 1}
         onClick={() => go(page - 1)}
-      />,
+      />
     );
 
     if (start > 1) {
@@ -340,8 +334,9 @@ export default function AppointmentsList() {
     for (let p = start; p <= end; p++) addPage(p);
 
     if (end < totalPages) {
-      if (end < totalPages - 1)
+      if (end < totalPages - 1) {
         items.push(<Pagination.Ellipsis key="el2" disabled />);
+      }
       addPage(totalPages);
     }
 
@@ -350,7 +345,7 @@ export default function AppointmentsList() {
         key="next"
         disabled={page === totalPages}
         onClick={() => go(page + 1)}
-      />,
+      />
     );
 
     return (
@@ -383,17 +378,9 @@ export default function AppointmentsList() {
               className="appt-header-actions"
             >
               <Button
-                variant="outline-secondary"
-                onClick={fetchAppointments}
-                className="appt-btn"
-              >
-                Actualizar
-              </Button>
-
-              <Button
-                variant="dark"
                 onClick={handleOpenCreate}
                 className="appt-btn"
+                style={newButtonStyle}
               >
                 <i className="fa-regular fa-calendar me-2" />
                 Nueva
@@ -401,7 +388,6 @@ export default function AppointmentsList() {
             </Stack>
           </Stack>
 
-          {/* filtros */}
           <div className="appt-filters py-2">
             <Row className="g-3">
               <Col md={4}>

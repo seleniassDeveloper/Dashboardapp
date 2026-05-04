@@ -1,9 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { Button } from "react-bootstrap";
 import AIChat from "./AIChat";
+import GadgetConfigWizard from "./GadgetConfigWizard";
+import { useAiAssistantTheme } from "./useAiAssistantTheme";
 
-export default function AIChatFloating() {
+export default function AIChatFloating({ onReportAdded }) {
   const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState("chat");
+  const t = useAiAssistantTheme();
 
   useEffect(() => {
     const onKey = (e) => {
@@ -13,6 +17,25 @@ export default function AIChatFloating() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  useEffect(() => {
+    if (!open) setMode("chat");
+  }, [open]);
+
+  const headerTitle =
+    mode === "wizard" ? "Asistente de gadgets" : "Chat IA";
+
+  const tabBtn = (active) => ({
+    flex: 1,
+    padding: "8px 6px",
+    border: "none",
+    borderRadius: 8,
+    background: active ? t.tabActiveBg : "transparent",
+    fontWeight: active ? 700 : 500,
+    fontSize: 12,
+    cursor: "pointer",
+    color: t.panelFg,
+  });
+
   return (
     <>
       {open ? (
@@ -21,61 +44,94 @@ export default function AIChatFloating() {
             position: "fixed",
             right: 18,
             bottom: 86,
-            width: 390,
-            maxWidth: "92vw",
-            height: 560,
-            maxHeight: "75vh",
+            width: 400,
+            maxWidth: "94vw",
+            height: 620,
+            maxHeight: "88vh",
             zIndex: 9999,
             borderRadius: 16,
             overflow: "hidden",
-            background: "#fff",
-            border: "1px solid rgba(0,0,0,0.10)",
-            boxShadow: "0 22px 70px rgba(0,0,0,0.20)",
+            background: t.panelBg,
+            border: `1px solid ${t.borderSubtle}`,
+            boxShadow: t.panelShadow,
             display: "flex",
             flexDirection: "column",
+            color: t.panelFg,
+            fontFamily: t.fontFamily,
           }}
         >
-          {/* Header */}
           <div
             style={{
-              height: 52,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "0 12px",
-              borderBottom: "1px solid rgba(0,0,0,0.08)",
-              background: "#fff",
               flex: "0 0 auto",
+              borderBottom: `1px solid ${t.borderSubtle}`,
+              background: t.panelBg,
             }}
           >
-            <div style={{ fontWeight: 700 }}>Chat IA</div>
-
-            <button
-              onClick={() => setOpen(false)}
+            <div
               style={{
-                border: "none",
-                background: "transparent",
-                fontSize: 22,
-                lineHeight: 1,
-                cursor: "pointer",
+                height: 48,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "0 10px",
               }}
-              aria-label="Cerrar"
-              title="Cerrar"
             >
-              ×
-            </button>
+              <div style={{ fontWeight: 700, fontSize: 15 }}>{headerTitle}</div>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                style={{
+                  border: "none",
+                  background: "transparent",
+                  fontSize: 22,
+                  lineHeight: 1,
+                  cursor: "pointer",
+                  color: t.panelFg,
+                }}
+                aria-label="Cerrar"
+                title="Cerrar"
+              >
+                ×
+              </button>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                gap: 6,
+                padding: "0 10px 10px",
+              }}
+            >
+              <button
+                type="button"
+                style={tabBtn(mode === "chat")}
+                onClick={() => setMode("chat")}
+              >
+                Chat libre
+              </button>
+              <button
+                type="button"
+                style={tabBtn(mode === "wizard")}
+                onClick={() => setMode("wizard")}
+              >
+                Configurar gadget · paso a paso
+              </button>
+            </div>
           </div>
 
-          {/* Contenido: el chat ocupa TODO */}
-          <div style={{ flex: "1 1 auto", minHeight: 0 }}>
-            <AIChat embedded />
+          <div style={{ flex: "1 1 auto", minHeight: 0, background: t.panelBg }}>
+            {mode === "chat" ? (
+              <AIChat embedded onReportAdded={onReportAdded} />
+            ) : (
+              <GadgetConfigWizard
+                onReportAdded={onReportAdded}
+                onBack={() => setMode("chat")}
+              />
+            )}
           </div>
         </div>
       ) : null}
 
-      
       <Button
-        variant="dark"
         onClick={() => setOpen((v) => !v)}
         style={{
           position: "fixed",
@@ -87,7 +143,12 @@ export default function AIChatFloating() {
           zIndex: 9999,
           display: "grid",
           placeItems: "center",
-          boxShadow: "0 18px 55px rgba(0,0,0,0.22)",
+          boxShadow: t.fabShadow,
+          background: t.primaryBg,
+          color: t.primaryFg,
+          border: `1px solid ${t.accentBorder}`,
+          fontFamily: t.fontFamily,
+          fontWeight: 700,
         }}
         aria-label="Abrir chat IA"
         title="Chat IA"
