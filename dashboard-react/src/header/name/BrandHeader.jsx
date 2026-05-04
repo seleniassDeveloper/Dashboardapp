@@ -5,6 +5,7 @@ import "./BrandHeader.css";
 
 import ServiceModal from "../services/ServiceModal";
 import WorkerModal from "../workers/WorkerModal";
+import { useAuth } from "../../auth/AuthProvider.jsx";
 
 // ✅ ABM
 const WorkersABMModal = lazy(() => import("../workers/WorkersABMModal.jsx"));
@@ -12,6 +13,7 @@ const ClientsABMModal = lazy(() => import("../clients/ClientsABMModal.jsx"));
 
 export default function BrandHeader() {
   const { brand } = useBrand();
+  const { logout } = useAuth();
 
   const hasCompanyName = Boolean(brand.companyName?.trim());
   const [showBrandModal, setShowBrandModal] = useState(!hasCompanyName);
@@ -60,8 +62,8 @@ export default function BrandHeader() {
             {hasCompanyName ? brand.companyName : " "}
           </h1>
 
-          {hasCompanyName && (
-            <div className="brandHeader__actions d-flex align-items-center gap-2" ref={menuRef}>
+          <div className="brandHeader__actions d-flex align-items-center gap-2" ref={menuRef}>
+            {hasCompanyName && (
               <button
                 className="brandHeader__btn"
                 onClick={() => setShowBrandModal(true)}
@@ -71,59 +73,50 @@ export default function BrandHeader() {
               >
                 <i className="fa-solid fa-pen" />
               </button>
+            )}
 
-              <button
-                className="brandHeader__btn"
-                onClick={() => setMenuOpen((v) => !v)}
-                aria-label="Abrir menú"
-                title="Opciones"
-                type="button"
-              >
-                <i className="fa-solid fa-ellipsis-vertical" />
-              </button>
+            <button
+              className="brandHeader__btn"
+              onClick={() => setMenuOpen((v) => !v)}
+              aria-label="Abrir menú"
+              title="Opciones"
+              type="button"
+            >
+              <i className="fa-solid fa-ellipsis-vertical" />
+            </button>
 
-              {menuOpen && (
-                <div className="brandHeader__menu">
-                  <button type="button" className="brandHeader__menuItem" onClick={openWorkersABM}>
-                    <i className="fa-solid fa-users me-2" />
-                    Administrar trabajadores
-                  </button>
+            {menuOpen && (
+              <div className="brandHeader__menu">
+                {hasCompanyName ? (
+                  <>
+                    <button type="button" className="brandHeader__menuItem" onClick={openWorkersABM}>
+                      <i className="fa-solid fa-users me-2" />
+                      Administrar trabajadores
+                    </button>
 
-                  <button type="button" className="brandHeader__menuItem" onClick={openClientsABM}>
-                    <i className="fa-solid fa-address-book me-2" />
-                    Clientes
-                  </button>
+                    <button type="button" className="brandHeader__menuItem" onClick={openClientsABM}>
+                      <i className="fa-solid fa-address-book me-2" />
+                      Clientes
+                    </button>
 
-                  {/* opcionales si quieres dejar accesos directos */}
-                  <div className="brandHeader__menuDivider" />
+                    <div className="brandHeader__menuDivider" />
+                  </>
+                ) : null}
 
-                  {/* <button
-                    type="button"
-                    className="brandHeader__menuItem"
-                    onClick={() => {
-                      setMenuOpen(false);
-                      setShowWorkerModal(true);
-                    }}
-                  >
-                    <i className="fa-solid fa-user-plus me-2" />
-                    Agregar trabajador
-                  </button> */}
-
-                  {/* <button
-                    type="button"
-                    className="brandHeader__menuItem"
-                    onClick={() => {
-                      setMenuOpen(false);
-                      setShowServiceModal(true);
-                    }}
-                  >
-                    <i className="fa-solid fa-screwdriver-wrench me-2" />
-                    Agregar servicio
-                  </button> */}
-                </div>
-              )}
-            </div>
-          )}
+                <button
+                  type="button"
+                  className="brandHeader__menuItem"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    logout();
+                  }}
+                >
+                  <i className="fa-solid fa-right-from-bracket me-2" />
+                  Cerrar sesión
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 

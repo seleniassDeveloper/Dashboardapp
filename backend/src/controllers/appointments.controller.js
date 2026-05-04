@@ -12,12 +12,14 @@ function dayRange(date) {
   const d = new Date(date);
   const start = new Date(d);
   start.setHours(0, 0, 0, 0);
+
   const end = new Date(d);
   end.setHours(23, 59, 59, 999);
+
   return { start, end };
 }
 
-// devuelve workers disponibles para: serviceId + startsAt
+// Devuelve workers disponibles para: serviceId + startsAt
 async function findAvailableWorkers({ serviceId, startsAt, excludeAppointmentId = null }) {
   const service = await prisma.service.findUnique({
     where: { id: String(serviceId) },
@@ -65,6 +67,7 @@ async function findAvailableWorkers({ serviceId, startsAt, excludeAppointmentId 
       const aEnd = addMinutes(aStart, a?.service?.duration || 60);
       return overlaps(aStart, aEnd, newStart, newEnd);
     });
+
     return !busy;
   });
 
@@ -87,23 +90,20 @@ export async function getAppointments(req, res) {
       },
     });
 
-    res.json(appointments);
+    return res.status(200).json(appointments);
   } catch (error) {
     console.error("Error obteniendo citas:", error);
-    res.status(500).json({ error: "Error obteniendo citas" });
+
+    return res.status(500).json({
+      error: "Error obteniendo citas",
+      detail: error?.message || "Unknown error",
+    });
   }
 }
 
 export async function createAppointment(req, res) {
   try {
-    const {
-      clientId,
-      serviceId,
-      workerId,
-      startsAt,
-      notes,
-      status,
-    } = req.body;
+    const { clientId, serviceId, workerId, startsAt, notes, status } = req.body;
 
     if (!clientId || !serviceId || !workerId || !startsAt) {
       return res.status(400).json({
@@ -139,6 +139,10 @@ export async function createAppointment(req, res) {
     }
 
     const newStart = new Date(startsAt);
+    if (isNaN(newStart.getTime())) {
+      return res.status(400).json({ error: "startsAt inválido." });
+    }
+
     const newEnd = addMinutes(newStart, service.duration);
     const { start: dayStart, end: dayEnd } = dayRange(newStart);
 
@@ -192,10 +196,11 @@ export async function createAppointment(req, res) {
       },
     });
 
-    res.status(201).json(appt);
+    return res.status(201).json(appt);
   } catch (e) {
     console.error("Error creando la cita:", e);
-    res.status(500).json({
+
+    return res.status(500).json({
       error: "Error creando la cita.",
       detail: e?.message || "Unknown error",
     });
@@ -205,14 +210,11 @@ export async function createAppointment(req, res) {
 export async function updateAppointment(req, res) {
   try {
     const { id } = req.params;
-    const {
-      clientId,
-      serviceId,
-      workerId,
-      startsAt,
-      notes,
-      status,
-    } = req.body;
+    const { clientId, serviceId, workerId, startsAt, notes, status } = req.body;
+
+    if (!id) {
+      return res.status(400).json({ error: "Id inválido." });
+    }
 
     if (!clientId || !serviceId || !workerId || !startsAt) {
       return res.status(400).json({
@@ -230,6 +232,10 @@ export async function updateAppointment(req, res) {
     }
 
     const newStart = new Date(startsAt);
+    if (isNaN(newStart.getTime())) {
+      return res.status(400).json({ error: "startsAt inválido." });
+    }
+
     const newEnd = addMinutes(newStart, service.duration);
     const { start: dayStart, end: dayEnd } = dayRange(newStart);
 
@@ -237,10 +243,7 @@ export async function updateAppointment(req, res) {
       where: {
         workerId: String(workerId),
         startsAt: { gte: dayStart, lte: dayEnd },
-        NOT: [
-          { id: String(id) },
-          { status: "CANCELLED" },
-        ],
+        NOT: [{ id: String(id) }, { status: "CANCELLED" }],
       },
       include: {
         service: {
@@ -288,10 +291,11 @@ export async function updateAppointment(req, res) {
       },
     });
 
-    res.json(appt);
+    return res.status(200).json(appt);
   } catch (e) {
     console.error("Error actualizando la cita:", e);
-    res.status(500).json({
+
+    return res.status(500).json({
       error: "Error actualizando la cita.",
       detail: e?.message || "Unknown error",
     });
@@ -301,15 +305,22 @@ export async function updateAppointment(req, res) {
 export async function deleteAppointment(req, res) {
   try {
     const id = String(req.params.id || "");
-    if (!id) return res.status(400).json({ error: "id inválido" });
+
+    if (!id) {
+      return res.status(400).json({ error: "Id inválido." });
+    }
 
     await prisma.appointment.delete({
       where: { id },
     });
 
-    res.json({ ok: true });
+    return res.status(200).json({ ok: true });
   } catch (e) {
-    console.error("deleteAppointment ERROR:", e);
-    res.status(500).json({ error: "Error eliminando cita" });
+    console.error("Error eliminando cita:", e);
+
+    return res.status(500).json({
+      error: "Error eliminando cita.",
+      detail: e?.message || "Unknown error",
+    });
   }
 }
