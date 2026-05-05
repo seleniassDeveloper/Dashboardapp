@@ -1,7 +1,7 @@
 .pricing {
-  padding: clamp(40px, 8vw, 80px) max(12px, env(safe-area-inset-right, 0px))
-    clamp(56px, 10vw, 100px) max(12px, env(safe-area-inset-left, 0px));
-  max-width: 1120px;
+  padding: clamp(64px, 10vw, 100px) max(16px, env(safe-area-inset-right, 0px))
+    clamp(80px, 12vw, 120px) max(16px, env(safe-area-inset-left, 0px));
+  max-width: 1200px;
   margin: 0 auto;
   box-sizing: border-box;
 }
@@ -18,9 +18,9 @@
 
 .pricing__title {
   text-align: center;
-  font-size: clamp(28px, 4vw, 38px);
+  font-size: clamp(32px, 5vw, 48px);
   font-weight: 800;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.04em;
   margin: 0 0 12px;
   color: var(--color-ink, #0f172a);
 }
@@ -43,56 +43,49 @@
 
 .pricing__card {
   position: relative;
-  background: rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(8px);
-  border-radius: var(--radius-lg, 26px);
-  padding: 28px 22px;
+  background: var(--color-surface, #ffffff);
+  border-radius: var(--radius-lg, 32px);
+  padding: 40px 32px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  border: 1px solid var(--color-border, #e5ddd3);
-  box-shadow: var(--shadow-sm, 0 4px 16px rgba(15, 23, 42, 0.06));
-  transition: transform 0.25s var(--ease-out, ease), box-shadow 0.25s ease,
-    border-color 0.2s ease;
+  gap: 12px;
+  border: 1px solid var(--color-border, #e2e8f0);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+  transition: all 0.3s var(--ease-out, ease);
   cursor: pointer;
   user-select: none;
 }
 
 .pricing__card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-md, 0 20px 50px rgba(15, 23, 42, 0.08));
-  border-color: rgba(231, 146, 53, 0.35);
+  transform: translateY(-8px);
+  box-shadow: 0 32px 64px rgba(15, 23, 42, 0.1);
+  border-color: var(--color-accent, #e79235);
 }
 
 .pricing__card--featured {
-  background: linear-gradient(
-    180deg,
-    #fffefb 0%,
-    rgba(255, 255, 255, 0.98) 100%
-  );
-  border-color: rgba(231, 146, 53, 0.45);
-  box-shadow: 0 20px 50px rgba(231, 146, 53, 0.12),
-    0 1px 0 rgba(255, 255, 255, 0.9) inset;
+  background: #ffffff;
+  border: 2px solid #e79235;
+  box-shadow: 0 32px 80px rgba(231, 146, 53, 0.12);
 }
 
 .pricing__card--featured::before {
-  content: "Popular";
+  content: "POPULAR";
   position: absolute;
-  top: 14px;
-  right: 14px;
-  font-size: 11px;
-  font-weight: 700;
+  top: 18px;
+  right: 18px;
+  font-size: 10px;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  padding: 5px 10px;
+  letter-spacing: 0.1em;
+  padding: 6px 12px;
   border-radius: 999px;
-  background: rgba(231, 146, 53, 0.15);
-  color: #9a5410;
+  background: rgba(231, 146, 53, 0.1);
+  color: #e79235;
 }
 
 .pricing__card--featured:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 28px 60px rgba(231, 146, 53, 0.18);
+  transform: translateY(-10px);
+  box-shadow: 0 40px 96px rgba(231, 146, 53, 0.18);
 }
 
 .pricing__label {
@@ -103,10 +96,10 @@
 }
 
 .pricing__price {
-  margin: 4px 0 0;
-  font-size: 40px;
+  margin: 8px 0 24px;
+  font-size: 48px;
   font-weight: 800;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.04em;
   color: var(--color-ink, #0f172a);
   line-height: 1;
 }
@@ -121,33 +114,32 @@
 
 .pricing__button {
   margin-top: auto;
-  padding-top: 16px;
-  border: none;
-  border-radius: var(--radius-sm, 12px);
-  padding: 14px 0;
+  border-radius: 16px;
+  padding: 16px 24px;
   font-weight: 700;
-  font-size: 15px;
+  font-size: 16px;
   font-family: inherit;
-  background: #e8e4df;
+  background: #f1f0ee;
   color: var(--color-ink, #0f172a);
-  transition: transform 0.2s ease, filter 0.2s ease, background 0.2s ease;
+  transition: all 0.2s ease;
   text-align: center;
+  border: none;
 }
 
 .pricing__button:hover {
-  filter: brightness(0.97);
-  transform: translateY(-1px);
+  background: #e5e4e2;
+  transform: translateY(-2px);
 }
 
 .pricing__button--featured {
-  background: var(--color-accent, #e79235);
-  color: #fff;
-  box-shadow: 0 10px 24px rgba(231, 146, 53, 0.35);
+  background: #e79235;
+  color: #ffffff;
+  box-shadow: 0 12px 32px rgba(231, 146, 53, 0.3);
 }
 
 .pricing__button--featured:hover {
-  background: var(--color-accent-hover, #d67f22);
-  filter: none;
+  background: #d67f22;
+  box-shadow: 0 16px 40px rgba(231, 146, 53, 0.4);
 }
 
 @media (max-width: 900px) {

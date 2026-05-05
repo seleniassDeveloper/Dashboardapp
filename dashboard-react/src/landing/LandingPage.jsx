@@ -48,8 +48,8 @@ function Hero() {
           </h1>
 
           <p className="hero-description">
-            Gestiona citas, trabajadores, servicios, clientes y métricas desde una
-            sola plataforma.
+            Gestiona citas, trabajadores, servicios, clientes y métricas desde
+            una sola plataforma.
           </p>
 
           <div className="hero-buttons hero-enter-up">
@@ -65,17 +65,21 @@ function Hero() {
 
         <div className="hero-image-container hero-enter-right">
           <div className="hero-image-frame hero-float-soft">
-            <img src={heroImg} alt="Vista del dashboard" className="hero-image" />
+            <img
+              src={heroImg}
+              alt="Vista del dashboard"
+              className="hero-image"
+            />
           </div>
 
-          <div className="hero-mini-card hero-mini-card--top">
-            <span>Métricas</span>
-            <strong>Estado en tiempo real</strong>
+          <div className="hero-callout hero-callout--metrics">
+            <span className="hero-callout__label">Métricas</span>
+            <strong className="hero-callout__text">Estado en tiempo real</strong>
           </div>
 
-          <div className="hero-mini-card hero-mini-card--bottom">
-            <span>Calendario</span>
-            <strong>Control visual del día</strong>
+          <div className="hero-callout hero-callout--calendar">
+            <span className="hero-callout__label">Calendario</span>
+            <strong className="hero-callout__text">Control visual del día</strong>
           </div>
         </div>
       </div>
@@ -111,16 +115,24 @@ function LandingExplainer() {
             />
           </div>
 
-          <div className="landing-explainer__note landing-explainer__note--top">
-            <span>Vista rápida</span>
-            <strong>Todo conectado</strong>
-            <small>Citas, métricas y control diario</small>
+          <div className="landing-explainer__note landing-explainer__note--metrics">
+            <span>Métricas en tiempo real</span>
+            <small>Monitorea el estado del negocio en instante</small>
           </div>
 
-          <div className="landing-explainer__note landing-explainer__note--bottom">
-            <span>En una sola vista</span>
-            <strong>Operación más clara</strong>
-            <small>Menos pasos, menos desorden</small>
+          <div className="landing-explainer__note landing-explainer__note--citas">
+            <span>Gestión de citas</span>
+            <small>Edita estados, clientes y servicios fácilmente.</small>
+          </div>
+
+          <div className="landing-explainer__note landing-explainer__note--calendar">
+            <span>Calendario integrado</span>
+            <small>Organización clara por horarios</small>
+          </div>
+
+          <div className="landing-explainer__note landing-explainer__note--insights">
+            <span>Entender qué está pasando</span>
+            <small>Con métricas visuales puedes detectar rápidamente el rendimiento.</small>
           </div>
         </div>
 
@@ -162,20 +174,36 @@ function LandingExplainer() {
 
           <div className="landing-explainer__miniGrid">
             <div className="landing-explainer__miniCard">
-              <strong>Panel principal</strong>
-              <span>Métricas, gráficos y visión general</span>
+              <strong className="landing-explainer__miniCardTitle">
+                Panel principal
+              </strong>
+              <span className="landing-explainer__miniCardDesc">
+                Métricas, gráficos y visión general
+              </span>
             </div>
             <div className="landing-explainer__miniCard">
-              <strong>Lista de citas</strong>
-              <span>Estados, filtros y seguimiento diario</span>
+              <strong className="landing-explainer__miniCardTitle">
+                Lista de citas
+              </strong>
+              <span className="landing-explainer__miniCardDesc">
+                Estados, filtros y seguimiento diario
+              </span>
             </div>
             <div className="landing-explainer__miniCard">
-              <strong>Calendario</strong>
-              <span>Organización clara de horarios</span>
+              <strong className="landing-explainer__miniCardTitle">
+                Calendario
+              </strong>
+              <span className="landing-explainer__miniCardDesc">
+                Organización clara de horarios
+              </span>
             </div>
             <div className="landing-explainer__miniCard">
-              <strong>Pagos y rentabilidad</strong>
-              <span>Ingresos, ticket promedio y cierre</span>
+              <strong className="landing-explainer__miniCardTitle">
+                Pagos y rentabilidad
+              </strong>
+              <span className="landing-explainer__miniCardDesc">
+                Ingresos, ticket promedio y cierre
+              </span>
             </div>
           </div>
 

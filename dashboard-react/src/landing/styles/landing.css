@@ -1,32 +1,38 @@
 /* Landing global styles (isolated from /app by body.is-dashboard-app) */
 
 :root {
-  --color-bg: #f0eeea;
-  --color-bg-warm: #f7f4ef;
+  --color-bg: #f5f3f0;
+  --color-bg-warm: #fcfbf9;
   --color-surface: #ffffff;
   --color-text: #111827;
-  --color-text-muted: #5c6573;
+  --color-text-muted: #64748b;
   --color-accent: #e79235;
   --color-accent-hover: #d67f22;
   --color-ink: #0f172a;
-  --color-border: #e5ddd3;
-  --color-border-strong: #d4cbc0;
-  --shadow-sm: 0 4px 16px rgba(15, 23, 42, 0.06);
-  --shadow-md: 0 20px 50px rgba(15, 23, 42, 0.08);
-  --shadow-lg: 0 32px 80px rgba(15, 23, 42, 0.1);
+  --color-border: #e2e8f0;
+  --color-border-strong: #cbd5e1;
+  --shadow-sm: 0 4px 12px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 12px 36px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 24px 64px rgba(15, 23, 42, 0.12);
   --radius-sm: 12px;
-  --radius-md: 18px;
-  --radius-lg: 26px;
-  --radius-xl: 36px;
+  --radius-md: 20px;
+  --radius-lg: 32px;
+  --radius-xl: 48px;
   --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto,
     sans-serif;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-body:not(.is-dashboard-app) * {
+body:not(.is-dashboard-app) {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+body:not(.is-dashboard-app) *,
+body:not(.is-dashboard-app) *::before,
+body:not(.is-dashboard-app) *::after {
+  box-sizing: border-box;
 }
 
 html {
@@ -38,8 +44,8 @@ body {
   overflow-x: clip;
   min-height: 100%;
   min-height: 100dvh;
-  padding-left: env(safe-area-inset-left, 0px);
-  padding-right: env(safe-area-inset-right, 0px);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
 
 html,
@@ -73,7 +79,11 @@ body:not(.is-dashboard-app) #root {
 #root {
   min-height: 100%;
   min-height: 100dvh;
-  overflow-x: clip;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 body:not(.is-dashboard-app) a {
@@ -96,28 +106,37 @@ a[role="button"],
 
 .page {
   min-height: 100vh;
+  width: 100%;
   display: flex;
   flex-direction: column;
+  align-items: center;
 }
 
 .stack {
   display: flex;
   flex-direction: column;
-  gap: 40px;
+  gap: 64px;
 }
 
 .home-page {
   min-height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   background: transparent;
 }
 
 .home-main {
-  width: min(1240px, calc(100% - 40px));
+  width: 100%;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 32px 0 max(96px, env(safe-area-inset-bottom, 0px));
-  display: grid;
-  gap: 40px;
+  padding: 40px 24px max(96px, env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 100px;
   box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 @media (max-width: 640px) {
