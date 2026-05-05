@@ -6,6 +6,7 @@ import "./BrandHeader.css";
 import ServiceModal from "../services/ServiceModal";
 import WorkerModal from "../workers/WorkerModal";
 import { useAuth } from "../../auth/AuthProvider.jsx";
+import UsersAdminModal from "../../admin/UsersAdminModal.jsx";
 
 // ✅ ABM
 const WorkersABMModal = lazy(() => import("../workers/WorkersABMModal.jsx"));
@@ -13,7 +14,7 @@ const ClientsABMModal = lazy(() => import("../clients/ClientsABMModal.jsx"));
 
 export default function BrandHeader() {
   const { brand } = useBrand();
-  const { logout } = useAuth();
+  const { logout, isAdmin } = useAuth();
 
   const hasCompanyName = Boolean(brand.companyName?.trim());
   const [showBrandModal, setShowBrandModal] = useState(!hasCompanyName);
@@ -28,6 +29,7 @@ export default function BrandHeader() {
 
   const [showWorkersABM, setShowWorkersABM] = useState(false);
   const [showClientsABM, setShowClientsABM] = useState(false);
+  const [showUsersAdmin, setShowUsersAdmin] = useState(false);
 
   useEffect(() => {
     setShowBrandModal(!hasCompanyName);
@@ -103,6 +105,23 @@ export default function BrandHeader() {
                   </>
                 ) : null}
 
+                  {isAdmin ? (
+                    <>
+                      <button
+                        type="button"
+                        className="brandHeader__menuItem"
+                        onClick={() => {
+                          setMenuOpen(false);
+                          setShowUsersAdmin(true);
+                        }}
+                      >
+                        <i className="fa-solid fa-user-gear me-2" />
+                        Usuarios (admin)
+                      </button>
+                      <div className="brandHeader__menuDivider" />
+                    </>
+                  ) : null}
+
                 <button
                   type="button"
                   className="brandHeader__menuItem"
@@ -146,6 +165,8 @@ export default function BrandHeader() {
           <ClientsABMModal show={showClientsABM} onHide={() => setShowClientsABM(false)} />
         </Suspense>
       )}
+
+      <UsersAdminModal show={showUsersAdmin} onHide={() => setShowUsersAdmin(false)} />
     </>
   );
 }

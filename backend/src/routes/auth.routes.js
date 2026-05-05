@@ -9,6 +9,7 @@ router.get("/me", requireAuth, (req, res) => {
     success: true,
     uid: req.user.uid,
     email: req.user.email,
+    admin: req.user.admin === true,
   });
 });
 

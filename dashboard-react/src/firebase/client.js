@@ -22,12 +22,3 @@ export function firebaseConfigOk() {
       firebaseConfig.appId
   );
 }
-
-/** Enlace a Authentication → Método de inicio de sesión en tu proyecto. */
-export function firebaseConsoleAuthProvidersUrl() {
-  const pid = import.meta.env.VITE_FIREBASE_PROJECT_ID;
-  if (pid) {
-    return `https://console.firebase.google.com/project/${encodeURIComponent(pid)}/authentication/providers`;
-  }
-  return "https://console.firebase.google.com/";
-}

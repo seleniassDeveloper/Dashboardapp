@@ -1,42 +1,10 @@
 import React, { useState } from "react";
-import Alert from "react-bootstrap/Alert";
 import Button from "react-bootstrap/Button";
 import Card from "react-bootstrap/Card";
 import Form from "react-bootstrap/Form";
 import Tab from "react-bootstrap/Tab";
 import Tabs from "react-bootstrap/Tabs";
 import { useAuth } from "./AuthProvider.jsx";
-import { firebaseConsoleAuthProvidersUrl } from "../firebase/client.js";
-
-function FirebaseProvidersHint({ authProvidersUrl }) {
-  return (
-    <Alert variant="warning" className="small py-2 mb-3">
-      <strong className="d-block mb-1">Activá el acceso en Firebase</strong>
-      <p className="mb-2">
-        El código del componente está bien; Firebase exige habilitar cada método en la consola.
-      </p>
-      <ol className="mb-2 ps-3">
-        <li>
-          Abrí{" "}
-          <a href={authProvidersUrl} target="_blank" rel="noopener noreferrer">
-            Authentication → Sign-in method
-          </a>{" "}
-          de <strong>este mismo proyecto</strong>.
-        </li>
-        <li>
-          Para email/contraseña: activá <strong>Correo electrónico/contraseña</strong> y guardá.
-        </li>
-        <li>
-          Para el botón de Google: activá <strong>Google</strong> y completá la configuración.
-        </li>
-      </ol>
-      <p className="mb-0 text-muted">
-        En “Authentication → Settings → Authorized domains” debe figurar <code>localhost</code> (y tu dominio en
-        producción).
-      </p>
-    </Alert>
-  );
-}
 
 export default function LoginScreen() {
   const {
@@ -63,11 +31,8 @@ export default function LoginScreen() {
   const [forgotMessage, setForgotMessage] = useState("");
 
   const [error, setError] = useState("");
-  /** Código Firebase (ej. auth/operation-not-allowed) para ayuda contextual */
   const [errorCode, setErrorCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
-
-  const authProvidersUrl = firebaseConsoleAuthProvidersUrl();
 
   async function onLoginSubmit(e) {
     e.preventDefault();
@@ -166,10 +131,7 @@ export default function LoginScreen() {
                   disabled={submitting}
                 />
               </Form.Group>
-              {error ? <div className="text-danger small mb-2">{error}</div> : null}
-              {errorCode === "auth/operation-not-allowed" ? (
-                <FirebaseProvidersHint authProvidersUrl={authProvidersUrl} />
-              ) : null}
+              {error ? <div className="text-danger small mb-3">{error}</div> : null}
               {forgotMessage ? <div className="text-success small mb-3">{forgotMessage}</div> : null}
               <Button type="submit" variant="primary" className="w-100 mb-2" disabled={submitting}>
                 {submitting ? "Enviando…" : "Enviar enlace"}
@@ -245,12 +207,11 @@ export default function LoginScreen() {
                   <button
                     type="button"
                     className="btn btn-link btn-sm p-0"
-                onClick={() => {
-                  setForgotOpen(true);
-                  setForgotEmail(email);
-                  setError("");
-                  setErrorCode("");
-                }}
+                    onClick={() => {
+                      setForgotOpen(true);
+                      setForgotEmail(email);
+                      setError("");
+                    }}
                   >
                     ¿Olvidaste tu contraseña?
                   </button>
@@ -331,9 +292,25 @@ export default function LoginScreen() {
             </Tab>
           </Tabs>
 
-          {error ? <div className="text-danger small mb-2">{error}</div> : null}
+          {error ? <div className="text-danger small mb-3">{error}</div> : null}
           {errorCode === "auth/operation-not-allowed" ? (
-            <FirebaseProvidersHint authProvidersUrl={authProvidersUrl} />
+            <div className="alert alert-warning py-2 small mb-3">
+              <div className="fw-semibold mb-1">Cómo habilitarlo en Firebase</div>
+              <ol className="mb-0 ps-3">
+                <li>
+                  Firebase Console → <strong>Authentication</strong> → <strong>Método de acceso</strong>
+                </li>
+                <li>
+                  Activá <strong>Email/Password</strong> (para el formulario) y/o <strong>Google</strong>
+                </li>
+                <li>
+                  En <strong>Dominios autorizados</strong>, asegurate de tener <code>localhost</code>
+                </li>
+                <li>
+                  Recargá la página y probá de nuevo
+                </li>
+              </ol>
+            </div>
           ) : null}
 
           <div className="d-flex align-items-center gap-2 my-3">

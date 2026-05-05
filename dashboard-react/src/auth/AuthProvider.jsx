@@ -30,7 +30,7 @@ function firebaseErrorMessage(err) {
     "auth/popup-closed-by-user": "Ventana de Google cerrada antes de completar.",
     "auth/network-request-failed": "Error de red. Revisá tu conexión.",
     "auth/operation-not-allowed":
-      "Falta activar el proveedor en Firebase (ver cuadro amarillo abajo).",
+      "Este método de acceso no está habilitado en Firebase (revisá Authentication en la consola).",
     "auth/configuration": "Firebase no está bien configurado en el proyecto (revisá las variables VITE_FIREBASE_*).",
   };
   return map[code] || err?.message || "Ocurrió un error de autenticación.";
@@ -39,14 +39,29 @@ function firebaseErrorMessage(err) {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(firebaseAuth, (u) => {
       setUser(u);
+      setIsAdmin(false);
       setAuthLoading(false);
     });
     return unsub;
   }, []);
+
+  useEffect(() => {
+    async function loadClaims() {
+      if (!firebaseAuth.currentUser) return;
+      try {
+        const tokenResult = await firebaseAuth.currentUser.getIdTokenResult();
+        setIsAdmin(tokenResult?.claims?.admin === true);
+      } catch {
+        setIsAdmin(false);
+      }
+    }
+    if (user) loadClaims();
+  }, [user]);
 
   useEffect(() => {
     const reqId = axios.interceptors.request.use(async (config) => {
@@ -112,6 +127,7 @@ export function AuthProvider({ children }) {
     () => ({
       user,
       authLoading,
+      isAdmin,
       firebaseConfigOk: firebaseConfigOk(),
       loginWithEmailPassword,
       registerWithEmailPassword,
@@ -124,6 +140,7 @@ export function AuthProvider({ children }) {
     [
       user,
       authLoading,
+      isAdmin,
       loginWithEmailPassword,
       registerWithEmailPassword,
       loginWithGooglePopup,

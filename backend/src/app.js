@@ -12,6 +12,7 @@ import workersRoutes from "./routes/workers.routes.js";
 import servicesRoutes from "./routes/services.routes.js";
 import aiRoutes from "./routes/ai.routes.js";
 import authRoutes from "./routes/auth.routes.js";
+import adminUsersRoutes from "./routes/adminUsers.routes.js";
 import requireAuth from "./middleware/requireAuth.js";
 
 const app = express();
@@ -20,6 +21,7 @@ app.use(cors());
 app.use(express.json());
 
 app.use("/api/auth", authRoutes);
+app.use("/api/admin", adminUsersRoutes);
 
 app.use("/api/appointments", requireAuth, appointmentsRoutes);
 app.use("/api/clients", requireAuth, clientsRoutes);
