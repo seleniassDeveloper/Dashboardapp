@@ -1,102 +1,135 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import axios from "axios";
+import {
+  createUserWithEmailAndPassword,
+  GoogleAuthProvider,
+  onAuthStateChanged,
+  sendPasswordResetEmail,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  signOut,
+  updateProfile,
+} from "firebase/auth";
+import { firebaseAuth, firebaseConfigOk } from "../firebase/client.js";
 
-const TOKEN_KEY = "dashboard_auth_token";
-const API = "http://localhost:3001/api";
-
-function applyAxiosToken(token) {
-  if (token) {
-    axios.defaults.headers.common.Authorization = `Bearer ${token}`;
-  } else {
-    delete axios.defaults.headers.common.Authorization;
-  }
-}
-
-function isPublicAuthUrl(url) {
-  return (
-    url.includes("/auth/login") ||
-    url.includes("/auth/register") ||
-    url.includes("/auth/google")
-  );
-}
-
-function readStoredToken() {
-  const t = sessionStorage.getItem(TOKEN_KEY);
-  applyAxiosToken(t);
-  return t;
-}
+const API_HOST = "http://localhost:3001";
 
 const AuthContext = createContext(null);
 
-export function AuthProvider({ children }) {
-  const [token, setToken] = useState(() => readStoredToken());
-  const setTokenRef = useRef(setToken);
-  setTokenRef.current = setToken;
+function firebaseErrorMessage(err) {
+  const code = err?.code || "";
+  const map = {
+    "auth/email-already-in-use": "Ya existe una cuenta con ese email.",
+    "auth/invalid-email": "El email no es válido.",
+    "auth/weak-password": "La contraseña es demasiado débil (usá al menos 6 caracteres).",
+    "auth/user-disabled": "Esta cuenta fue deshabilitada.",
+    "auth/user-not-found": "No hay cuenta con ese email.",
+    "auth/wrong-password": "Contraseña incorrecta.",
+    "auth/invalid-credential": "Email o contraseña incorrectos.",
+    "auth/too-many-requests": "Demasiados intentos. Probá más tarde.",
+    "auth/popup-closed-by-user": "Ventana de Google cerrada antes de completar.",
+    "auth/network-request-failed": "Error de red. Revisá tu conexión.",
+    "auth/operation-not-allowed":
+      "Falta activar el proveedor en Firebase (ver cuadro amarillo abajo).",
+    "auth/configuration": "Firebase no está bien configurado en el proyecto (revisá las variables VITE_FIREBASE_*).",
+  };
+  return map[code] || err?.message || "Ocurrió un error de autenticación.";
+}
 
-  const persistSession = useCallback((t) => {
-    sessionStorage.setItem(TOKEN_KEY, t);
-    applyAxiosToken(t);
-    setToken(t);
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(firebaseAuth, (u) => {
+      setUser(u);
+      setAuthLoading(false);
+    });
+    return unsub;
   }, []);
 
   useEffect(() => {
-    const id = axios.interceptors.response.use(
+    const reqId = axios.interceptors.request.use(async (config) => {
+      const url = String(config.url || "");
+      if (!url.includes("localhost:3001")) return config;
+      const u = firebaseAuth.currentUser;
+      if (u) {
+        const token = await u.getIdToken();
+        config.headers = config.headers || {};
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
+    });
+    return () => axios.interceptors.request.eject(reqId);
+  }, []);
+
+  useEffect(() => {
+    const resId = axios.interceptors.response.use(
       (res) => res,
-      (err) => {
-        const url = String(err.config?.url || "");
-        if (err.response?.status === 401 && !isPublicAuthUrl(url)) {
-          sessionStorage.removeItem(TOKEN_KEY);
-          applyAxiosToken(null);
-          setTokenRef.current(null);
+      async (err) => {
+        if (err.response?.status === 401 && firebaseAuth.currentUser) {
+          try {
+            await signOut(firebaseAuth);
+          } catch {
+            /* ignore */
+          }
         }
         return Promise.reject(err);
       }
     );
-    return () => axios.interceptors.response.eject(id);
+    return () => axios.interceptors.response.eject(resId);
   }, []);
 
-  const login = useCallback(async (email, password) => {
-    const res = await axios.post(`${API}/auth/login`, { email, password });
-    const t = res.data?.token;
-    if (!t || typeof t !== "string") {
-      throw new Error("Respuesta inválida del servidor.");
+  const loginWithEmailPassword = useCallback(async (email, password) => {
+    await signInWithEmailAndPassword(firebaseAuth, email.trim(), password);
+  }, []);
+
+  const registerWithEmailPassword = useCallback(async ({ firstName, lastName, email, password }) => {
+    const cred = await createUserWithEmailAndPassword(firebaseAuth, email.trim(), password);
+    const name = `${firstName || ""} ${lastName || ""}`.trim();
+    if (name && cred.user) {
+      await updateProfile(cred.user, { displayName: name });
     }
-    persistSession(t);
-  }, [persistSession]);
+  }, []);
 
-  const register = useCallback(
-    async (payload) => {
-      const res = await axios.post(`${API}/auth/register`, payload);
-      const t = res.data?.token;
-      if (!t || typeof t !== "string") {
-        throw new Error("Respuesta inválida del servidor.");
-      }
-      persistSession(t);
-    },
-    [persistSession]
-  );
+  const loginWithGooglePopup = useCallback(async () => {
+    const provider = new GoogleAuthProvider();
+    await signInWithPopup(firebaseAuth, provider);
+  }, []);
 
-  const loginWithGoogle = useCallback(
-    async (idToken) => {
-      const res = await axios.post(`${API}/auth/google`, { idToken });
-      const t = res.data?.token;
-      if (!t || typeof t !== "string") {
-        throw new Error("Respuesta inválida del servidor.");
-      }
-      persistSession(t);
-    },
-    [persistSession]
-  );
+  const sendPasswordReset = useCallback(async (email) => {
+    await sendPasswordResetEmail(firebaseAuth, email.trim(), {
+      url: window.location.origin,
+      handleCodeInApp: false,
+    });
+  }, []);
 
-  const logout = useCallback(() => {
-    sessionStorage.removeItem(TOKEN_KEY);
-    applyAxiosToken(null);
-    setToken(null);
+  const logout = useCallback(async () => {
+    await signOut(firebaseAuth);
   }, []);
 
   const value = useMemo(
-    () => ({ token, login, register, loginWithGoogle, logout }),
-    [token, login, register, loginWithGoogle, logout]
+    () => ({
+      user,
+      authLoading,
+      firebaseConfigOk: firebaseConfigOk(),
+      loginWithEmailPassword,
+      registerWithEmailPassword,
+      loginWithGooglePopup,
+      sendPasswordReset,
+      logout,
+      firebaseErrorMessage,
+      apiHost: API_HOST,
+    }),
+    [
+      user,
+      authLoading,
+      loginWithEmailPassword,
+      registerWithEmailPassword,
+      loginWithGooglePopup,
+      sendPasswordReset,
+      logout,
+    ]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

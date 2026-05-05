@@ -1,19 +1,54 @@
-import React, { useCallback, useState } from "react";
+import React, { useState } from "react";
+import Alert from "react-bootstrap/Alert";
 import Button from "react-bootstrap/Button";
 import Card from "react-bootstrap/Card";
 import Form from "react-bootstrap/Form";
 import Tab from "react-bootstrap/Tab";
 import Tabs from "react-bootstrap/Tabs";
 import { useAuth } from "./AuthProvider.jsx";
-import GoogleSignInButton from "./GoogleSignInButton.jsx";
+import { firebaseConsoleAuthProvidersUrl } from "../firebase/client.js";
 
-function parseApiError(err, fallback) {
-  return err.response?.data?.error || fallback;
+function FirebaseProvidersHint({ authProvidersUrl }) {
+  return (
+    <Alert variant="warning" className="small py-2 mb-3">
+      <strong className="d-block mb-1">Activá el acceso en Firebase</strong>
+      <p className="mb-2">
+        El código del componente está bien; Firebase exige habilitar cada método en la consola.
+      </p>
+      <ol className="mb-2 ps-3">
+        <li>
+          Abrí{" "}
+          <a href={authProvidersUrl} target="_blank" rel="noopener noreferrer">
+            Authentication → Sign-in method
+          </a>{" "}
+          de <strong>este mismo proyecto</strong>.
+        </li>
+        <li>
+          Para email/contraseña: activá <strong>Correo electrónico/contraseña</strong> y guardá.
+        </li>
+        <li>
+          Para el botón de Google: activá <strong>Google</strong> y completá la configuración.
+        </li>
+      </ol>
+      <p className="mb-0 text-muted">
+        En “Authentication → Settings → Authorized domains” debe figurar <code>localhost</code> (y tu dominio en
+        producción).
+      </p>
+    </Alert>
+  );
 }
 
 export default function LoginScreen() {
-  const { login, register, loginWithGoogle } = useAuth();
+  const {
+    loginWithEmailPassword,
+    registerWithEmailPassword,
+    loginWithGooglePopup,
+    sendPasswordReset,
+    firebaseErrorMessage,
+  } = useAuth();
+
   const [tab, setTab] = useState("login");
+  const [forgotOpen, setForgotOpen] = useState(false);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -24,20 +59,26 @@ export default function LoginScreen() {
   const [rPassword, setRPassword] = useState("");
   const [rConfirm, setRConfirm] = useState("");
 
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotMessage, setForgotMessage] = useState("");
+
   const [error, setError] = useState("");
+  /** Código Firebase (ej. auth/operation-not-allowed) para ayuda contextual */
+  const [errorCode, setErrorCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  const authProvidersUrl = firebaseConsoleAuthProvidersUrl();
 
   async function onLoginSubmit(e) {
     e.preventDefault();
     setError("");
+    setErrorCode("");
     setSubmitting(true);
     try {
-      await login(email, password);
+      await loginWithEmailPassword(email, password);
     } catch (err) {
-      setError(
-        parseApiError(err, err.response?.status === 401 ? "Credenciales incorrectas." : null) ||
-          "No se pudo iniciar sesión. Revisá que el backend esté en marcha."
-      );
+      setErrorCode(err?.code || "");
+      setError(firebaseErrorMessage(err));
     } finally {
       setSubmitting(false);
     }
@@ -46,42 +87,112 @@ export default function LoginScreen() {
   async function onRegisterSubmit(e) {
     e.preventDefault();
     setError("");
+    setErrorCode("");
+    if (rPassword !== rConfirm) {
+      setError("Las contraseñas no coinciden.");
+      return;
+    }
+    if (rPassword.length < 6) {
+      setError("La contraseña debe tener al menos 6 caracteres (regla de Firebase).");
+      return;
+    }
     setSubmitting(true);
     try {
-      await register({
+      await registerWithEmailPassword({
         firstName: rFirst,
         lastName: rLast,
         email: rEmail,
         password: rPassword,
-        confirmPassword: rConfirm,
       });
     } catch (err) {
-      setError(
-        parseApiError(err, null) ||
-          "No se pudo crear la cuenta. Revisá los datos o probá con otro email."
-      );
+      setErrorCode(err?.code || "");
+      setError(firebaseErrorMessage(err));
     } finally {
       setSubmitting(false);
     }
   }
 
-  const onGoogleCredential = useCallback(
-    async (credential) => {
-      setError("");
-      setSubmitting(true);
-      try {
-        await loginWithGoogle(credential);
-      } catch (err) {
-        setError(
-          parseApiError(err, null) ||
-            "No se pudo iniciar sesión con Google. Revisá la configuración del servidor."
-        );
-      } finally {
-        setSubmitting(false);
-      }
-    },
-    [loginWithGoogle]
-  );
+  async function onGoogleClick() {
+    setError("");
+    setErrorCode("");
+    setSubmitting(true);
+    try {
+      await loginWithGooglePopup();
+    } catch (err) {
+      setErrorCode(err?.code || "");
+      setError(firebaseErrorMessage(err));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function onForgotSubmit(e) {
+    e.preventDefault();
+    setError("");
+    setErrorCode("");
+    setForgotMessage("");
+    setSubmitting(true);
+    try {
+      await sendPasswordReset(forgotEmail);
+      setForgotMessage("Si el email existe, Firebase envió las instrucciones. Revisá tu bandeja (y spam).");
+    } catch (err) {
+      setErrorCode(err?.code || "");
+      setError(firebaseErrorMessage(err));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (forgotOpen) {
+    return (
+      <div
+        className="d-flex min-vh-100 align-items-center justify-content-center px-3 py-4"
+        style={{ background: "linear-gradient(160deg, #1a1d24 0%, #2d3340 100%)" }}
+      >
+        <Card style={{ width: "100%", maxWidth: 440 }} className="shadow">
+          <Card.Body className="p-4">
+            <Card.Title className="mb-3">Recuperar contraseña</Card.Title>
+            <Card.Subtitle className="text-muted small mb-3">
+              Te enviamos un correo desde Firebase para restablecer la clave.
+            </Card.Subtitle>
+            <Form onSubmit={onForgotSubmit}>
+              <Form.Group className="mb-3" controlId="forgot-email">
+                <Form.Label>Email</Form.Label>
+                <Form.Control
+                  type="email"
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  required
+                  disabled={submitting}
+                />
+              </Form.Group>
+              {error ? <div className="text-danger small mb-2">{error}</div> : null}
+              {errorCode === "auth/operation-not-allowed" ? (
+                <FirebaseProvidersHint authProvidersUrl={authProvidersUrl} />
+              ) : null}
+              {forgotMessage ? <div className="text-success small mb-3">{forgotMessage}</div> : null}
+              <Button type="submit" variant="primary" className="w-100 mb-2" disabled={submitting}>
+                {submitting ? "Enviando…" : "Enviar enlace"}
+              </Button>
+              <Button
+                type="button"
+                variant="link"
+                className="w-100 p-0"
+                onClick={() => {
+                  setForgotOpen(false);
+                  setError("");
+                  setErrorCode("");
+                  setForgotMessage("");
+                }}
+              >
+                Volver al inicio de sesión
+              </Button>
+            </Form>
+          </Card.Body>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -92,7 +203,7 @@ export default function LoginScreen() {
         <Card.Body className="p-4">
           <Card.Title className="mb-1">Acceso al panel</Card.Title>
           <Card.Subtitle className="text-muted small mb-3">
-            Creá una cuenta o entrá con email y contraseña o con Google.
+            Autenticación con Firebase (email, Google y recuperación de contraseña).
           </Card.Subtitle>
 
           <Tabs
@@ -101,6 +212,7 @@ export default function LoginScreen() {
             onSelect={(k) => {
               setTab(k || "login");
               setError("");
+              setErrorCode("");
             }}
             className="mb-3"
             justify
@@ -118,7 +230,7 @@ export default function LoginScreen() {
                     disabled={submitting}
                   />
                 </Form.Group>
-                <Form.Group className="mb-3" controlId="login-password">
+                <Form.Group className="mb-2" controlId="login-password">
                   <Form.Label>Contraseña</Form.Label>
                   <Form.Control
                     type="password"
@@ -129,6 +241,20 @@ export default function LoginScreen() {
                     disabled={submitting}
                   />
                 </Form.Group>
+                <div className="mb-3 text-end">
+                  <button
+                    type="button"
+                    className="btn btn-link btn-sm p-0"
+                onClick={() => {
+                  setForgotOpen(true);
+                  setForgotEmail(email);
+                  setError("");
+                  setErrorCode("");
+                }}
+                  >
+                    ¿Olvidaste tu contraseña?
+                  </button>
+                </div>
                 <Button type="submit" variant="primary" className="w-100" disabled={submitting}>
                   {submitting ? "Entrando…" : "Entrar"}
                 </Button>
@@ -182,10 +308,10 @@ export default function LoginScreen() {
                     onChange={(e) => setRPassword(e.target.value)}
                     autoComplete="new-password"
                     required
-                    minLength={8}
+                    minLength={6}
                     disabled={submitting}
                   />
-                  <Form.Text className="text-muted">Mínimo 8 caracteres.</Form.Text>
+                  <Form.Text className="text-muted">Mínimo 6 caracteres (Firebase).</Form.Text>
                 </Form.Group>
                 <Form.Group className="mb-3" controlId="reg-confirm">
                   <Form.Label>Repetir contraseña</Form.Label>
@@ -199,13 +325,16 @@ export default function LoginScreen() {
                   />
                 </Form.Group>
                 <Button type="submit" variant="success" className="w-100" disabled={submitting}>
-                  {submitting ? "Creando cuenta…" : "Crear cuenta y entrar"}
+                  {submitting ? "Creando cuenta…" : "Crear cuenta"}
                 </Button>
               </Form>
             </Tab>
           </Tabs>
 
-          {error ? <div className="text-danger small mb-3">{error}</div> : null}
+          {error ? <div className="text-danger small mb-2">{error}</div> : null}
+          {errorCode === "auth/operation-not-allowed" ? (
+            <FirebaseProvidersHint authProvidersUrl={authProvidersUrl} />
+          ) : null}
 
           <div className="d-flex align-items-center gap-2 my-3">
             <hr className="flex-grow-1" />
@@ -213,7 +342,33 @@ export default function LoginScreen() {
             <hr className="flex-grow-1" />
           </div>
 
-          <GoogleSignInButton onCredential={onGoogleCredential} disabled={submitting} />
+          <Button
+            type="button"
+            variant="outline-secondary"
+            className="w-100 d-flex align-items-center justify-content-center gap-2"
+            onClick={onGoogleClick}
+            disabled={submitting}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 48 48" aria-hidden>
+              <path
+                fill="#FFC107"
+                d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"
+              />
+              <path
+                fill="#FF3D00"
+                d="m6.306 14.691 6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"
+              />
+              <path
+                fill="#4CAF50"
+                d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"
+              />
+              <path
+                fill="#1976D2"
+                d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"
+              />
+            </svg>
+            Continuar con Google
+          </Button>
         </Card.Body>
       </Card>
     </div>

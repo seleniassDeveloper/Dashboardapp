@@ -10,16 +10,24 @@ build
 backend/node_modules
 backend/.env
 backend/.env.*
+!backend/.env.example
 backend/prisma/dev.db
 backend/prisma/*.db
 backend/prisma/*.db-journal
+backend/firebase-service-account.json
 
 # frontend
 dashboard-react/node_modules
 dashboard-react/dist
 dashboard-react/.env
 dashboard-react/.env.*
+!dashboard-react/.env.example
 node_modules
 backend/node_modules
 dashboard-react/node_modules
 .env
+
+# Plantillas de variables (sí van al repo)
+!.env.example
+!backend/.env.example
+!dashboard-react/.env.example
