@@ -1,0 +1,86 @@
+.featureRow {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  padding: clamp(44px, 7vw, 72px) max(16px, env(safe-area-inset-right, 0px))
+    clamp(44px, 7vw, 72px) max(16px, env(safe-area-inset-left, 0px));
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  border-radius: var(--radius-xl, 36px);
+  background: linear-gradient(125deg, #0f172a 0%, #1a2744 42%, #111827 100%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: var(--shadow-lg, 0 32px 80px rgba(15, 23, 42, 0.1));
+}
+
+.featureRow::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+      circle at 18% 22%,
+      rgba(231, 146, 53, 0.18),
+      transparent 42%
+    ),
+    radial-gradient(
+      circle at 88% 78%,
+      rgba(59, 130, 246, 0.12),
+      transparent 38%
+    );
+  pointer-events: none;
+}
+
+.featureRow::after {
+  content: "\201C";
+  position: absolute;
+  top: clamp(12px, 3vw, 28px);
+  left: clamp(16px, 4vw, 40px);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(64px, 12vw, 120px);
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.06);
+  pointer-events: none;
+}
+
+.featureRow__text {
+  position: relative;
+  z-index: 1;
+  width: min(880px, 100%);
+  margin: 0;
+  text-align: center;
+  font-size: clamp(21px, 2.8vw, 30px);
+  line-height: 1.35;
+  letter-spacing: -0.02em;
+  font-weight: 500;
+  color: #e2e8f0;
+}
+
+.featureRow__text strong {
+  font-weight: 800;
+  background: linear-gradient(90deg, #fde68a 0%, #fcd34d 35%, #fbbf24 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+@media (max-width: 640px) {
+  .featureRow {
+    border-radius: clamp(20px, 5vw, 30px);
+    padding-top: clamp(36px, 9vw, 52px);
+    padding-bottom: clamp(36px, 9vw, 52px);
+  }
+
+  .featureRow::after {
+    font-size: clamp(44px, 16vw, 72px);
+    left: max(8px, env(safe-area-inset-left, 0px));
+    top: 8px;
+  }
+
+  .featureRow__text {
+    text-align: center;
+    font-size: clamp(18px, 4.5vw, 22px);
+  }
+}
+
