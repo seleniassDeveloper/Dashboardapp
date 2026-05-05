@@ -4,6 +4,7 @@ import Card from "react-bootstrap/Card";
 import Form from "react-bootstrap/Form";
 import Tab from "react-bootstrap/Tab";
 import Tabs from "react-bootstrap/Tabs";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthProvider.jsx";
 
 export default function LoginScreen() {
@@ -14,6 +15,10 @@ export default function LoginScreen() {
     sendPasswordReset,
     firebaseErrorMessage,
   } = useAuth();
+
+  const navigate = useNavigate();
+  const location = useLocation();
+  const redirectTo = location?.state?.from || "/app";
 
   const [tab, setTab] = useState("login");
   const [forgotOpen, setForgotOpen] = useState(false);
@@ -41,6 +46,7 @@ export default function LoginScreen() {
     setSubmitting(true);
     try {
       await loginWithEmailPassword(email, password);
+      navigate(redirectTo, { replace: true });
     } catch (err) {
       setErrorCode(err?.code || "");
       setError(firebaseErrorMessage(err));
@@ -69,6 +75,7 @@ export default function LoginScreen() {
         email: rEmail,
         password: rPassword,
       });
+      navigate(redirectTo, { replace: true });
     } catch (err) {
       setErrorCode(err?.code || "");
       setError(firebaseErrorMessage(err));
