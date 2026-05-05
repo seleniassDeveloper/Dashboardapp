@@ -3,10 +3,11 @@ import axios from "axios";
 import {
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
+  getRedirectResult,
   onAuthStateChanged,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
-  signInWithPopup,
+  signInWithRedirect,
   signOut,
   updateProfile,
 } from "firebase/auth";
@@ -40,6 +41,14 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    // Completa el flujo si venimos de un redirect de Google.
+    // No necesitamos el resultado para nada extra: onAuthStateChanged actualizará `user`.
+    getRedirectResult(firebaseAuth).catch(() => {
+      /* ignore */
+    });
+  }, []);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(firebaseAuth, (u) => {
@@ -109,7 +118,7 @@ export function AuthProvider({ children }) {
 
   const loginWithGooglePopup = useCallback(async () => {
     const provider = new GoogleAuthProvider();
-    await signInWithPopup(firebaseAuth, provider);
+    await signInWithRedirect(firebaseAuth, provider);
   }, []);
 
   const sendPasswordReset = useCallback(async (email) => {
