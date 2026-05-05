@@ -14,6 +14,7 @@ export default defineConfig({
   server: {
     fs: {
       allow: [
+        __dirname,
         path.resolve(__dirname, "../../DashboardWeb"),
         path.resolve(__dirname, "../../DashboardWeb/src"),
       ],
