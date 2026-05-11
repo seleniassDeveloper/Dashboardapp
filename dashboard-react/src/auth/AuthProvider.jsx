@@ -7,7 +7,7 @@ import {
   onAuthStateChanged,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
-  signInWithRedirect,
+  signInWithPopup,
   signOut,
   updateProfile,
 } from "firebase/auth";
@@ -118,7 +118,12 @@ export function AuthProvider({ children }) {
 
   const loginWithGooglePopup = useCallback(async () => {
     const provider = new GoogleAuthProvider();
-    await signInWithRedirect(firebaseAuth, provider);
+    try {
+      await signInWithPopup(firebaseAuth, provider);
+    } catch (err) {
+      console.error("Google login error:", err);
+      throw err;
+    }
   }, []);
 
   const sendPasswordReset = useCallback(async (email) => {

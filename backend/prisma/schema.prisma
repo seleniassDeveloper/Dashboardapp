@@ -8,49 +8,77 @@ datasource db {
 }
 
 model Client {
-  id        String   @id @default(cuid())
-  firstName String
-  lastName  String
-  phone     String?
-  email     String?
-  notes     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  id           String        @id @default(cuid())
+  firstName    String
+  lastName     String
+  phone        String?
+  email        String?
+  notes        String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
   appointments Appointment[]
 }
 
 model Service {
-  id        String   @id @default(cuid())
-  name      String   @unique
-  price     Int
-  duration  Int
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  id           String          @id @default(cuid())
+  name         String          @unique
+  price        Int
+  duration     Int
+  isActive     Boolean         @default(true)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
   appointments Appointment[]
-
-  // ✅ relación many-to-many con Worker
-  workers WorkerService[]
+  workers      WorkerService[]
 }
 
-
 model Appointment {
-  id            String   @id @default(cuid())
-  startsAt      DateTime
-  status        String
-  notes         String?
-  clientId      String
-  workerId      String
-  serviceId     String
-
+  id             String    @id @default(cuid())
+  startsAt       DateTime
+  status         String
+  notes          String?
+  clientId       String
+  workerId       String
+  serviceId      String
   reminderSentAt DateTime?
-  reminderType   String?   
+  reminderType   String?
+  client         Client    @relation(fields: [clientId], references: [id])
+  service        Service   @relation(fields: [serviceId], references: [id])
+  worker         Worker    @relation(fields: [workerId], references: [id])
+}
 
-  client        Client   @relation(fields: [clientId], references: [id])
-  worker        Worker   @relation(fields: [workerId], references: [id])
-  service       Service  @relation(fields: [serviceId], references: [id])
+model Worker {
+  id           String           @id @default(cuid())
+  firstName    String
+  lastName     String
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  appointments Appointment[]
+  schedules    WorkerSchedule[]
+  services     WorkerService[]
+}
+
+model WorkerSchedule {
+  id        String   @id @default(cuid())
+  workerId  String
+  dayOfWeek Int
+  startTime String
+  endTime   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  worker    Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  @@index([workerId, dayOfWeek])
+}
+
+model WorkerService {
+  workerId    String
+  serviceId   String
+  customPrice Int?
+  service     Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  worker      Worker  @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  @@id([workerId, serviceId])
+  @@index([serviceId])
 }
 
 enum AppointmentStatus {
@@ -58,56 +86,4 @@ enum AppointmentStatus {
   CONFIRMED
   CANCELLED
   DONE
-}
-
-/**
- * =========================
- * ✅ WORKERS
- * =========================
- */
-
-model Worker {
-  id        String @id @default(cuid())
-  firstName String
-  lastName  String
-
-  schedules    WorkerSchedule[]
-  services     WorkerService[]
-  appointments Appointment[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model WorkerSchedule {
-  id String @id @default(cuid())
-
-  workerId String
-  worker   Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
-
-  // 1 = Lunes ... 7 = Domingo
-  dayOfWeek Int
-
-  // "09:00" "18:00"
-  startTime String
-  endTime   String
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([workerId, dayOfWeek])
-}
-
-model WorkerService {
-  workerId  String
-  serviceId String
-
-  worker  Worker  @relation(fields: [workerId], references: [id], onDelete: Cascade)
-  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-
-  // opcional
-  customPrice Int?
-
-  @@id([workerId, serviceId])
-  @@index([serviceId])
 }

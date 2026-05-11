@@ -14,10 +14,10 @@ function hexToRgba(hex, alpha = 1) {
 const DEFAULT_BRAND = {
   companyName: "",
   coverImage: "",
-  darkMode: true,
+  darkMode: false,
   fontFamily: 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial',
-  textColor: "#ffffff",
-  accentColor: "#ffffff",
+  textColor: "#1a1d24",
+  accentColor: "#4f46e5",
 };
 
 export function BrandProvider({ children }) {

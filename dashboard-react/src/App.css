@@ -9,18 +9,19 @@
   --brand-font: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
 }
 
-html, body {
+html, body, #root {
   height: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 body {
-  margin: 0;
   font-family: var(--brand-font);
+  background-color: #f8f9fa; /* Color base para el dashboard */
 }
 
-/* Root: NO centrar texto global */
-#root {
-  max-width: 1280px;
+.app-container {
+  max-width: 1440px; /* Un poco más ancho para pantallas grandes */
   margin: 0 auto;
   padding: 24px;
 }

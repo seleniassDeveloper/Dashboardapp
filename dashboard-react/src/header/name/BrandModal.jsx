@@ -26,8 +26,8 @@ export default function BrandModal({ show, onHide, forceRequired = false }) {
   const { brand, setBrand } = useBrand();
 
   const [companyName, setCompanyName] = useState("");
-  const [textColor, setTextColor] = useState("#ffffff"); // lo usamos como accent
-  const [darkMode, setDarkMode] = useState(true);
+  const [textColor, setTextColor] = useState("#1a1d24"); // lo usamos como accent
+  const [darkMode, setDarkMode] = useState(false);
   const [coverUrl, setCoverUrl] = useState("");
   const [preview, setPreview] = useState("");
   const [fontFamily, setFontFamily] = useState(FONT_OPTIONS[0].value);

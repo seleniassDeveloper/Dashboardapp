@@ -4,10 +4,9 @@ import Body from "./body";
 
 export default function App() {
   return (
-    <div className="pageContent">
+    <div className="app-container">
       <BrandHeader />
       <Body />
-      
     </div>
   );
 }
