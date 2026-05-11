@@ -1,0 +1,29 @@
+:root {
+  /* --- Brand Colors (Dynamic) --- */
+  --brand-accent: #111827;
+  --brand-accent-soft: rgba(17, 24, 39, 0.04);
+  --brand-bg: #f9fafb;
+  --brand-menu-active: #111827;
+
+  /* --- Design System (Compact) --- */
+  --bg-main: #f3f4f6;
+  --bg-card: #ffffff;
+  --border-light: rgba(0, 0, 0, 0.05);
+  --border-soft: rgba(0, 0, 0, 0.08);
+  
+  --text-primary: #111827;
+  --text-secondary: #4b5563;
+  --text-muted: #9ca3af;
+  
+  /* --- Shadows (Subtle) --- */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07);
+  --shadow-premium: 0 10px 15px -3px rgba(0, 0, 0, 0.04), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+
+  /* --- Spacing (Reduced) --- */
+  --space-sidebar: 240px;
+  --space-sidebar-collapsed: 72px;
+  --space-topbar: 70px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+}

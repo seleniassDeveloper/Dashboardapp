@@ -5,9 +5,9 @@ import { useAppointmentsStore } from "../../gadgets/appointments/AppointmentsPro
 
 const API = "http://localhost:3001/api";
 
-export default function ServiceModal({ show, onHide }) {
+export default function ServiceModal({ show, onHide, editService = null }) {
   const store = useAppointmentsStore?.();
-  const refreshAll = store?.fetchAppointments; // si existe
+  const refreshAll = store?.fetchAppointments;
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -15,6 +15,8 @@ export default function ServiceModal({ show, onHide }) {
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [duration, setDuration] = useState("30");
+
+  const isEditing = Boolean(editService);
 
   const valid = useMemo(() => {
     const p = Number(String(price).replace(",", "."));
@@ -26,10 +28,17 @@ export default function ServiceModal({ show, onHide }) {
     if (!show) return;
     setError("");
     setSaving(false);
-    setName("");
-    setPrice("");
-    setDuration("30");
-  }, [show]);
+
+    if (editService) {
+      setName(editService.name || "");
+      setPrice(editService.price || "");
+      setDuration(editService.duration || "30");
+    } else {
+      setName("");
+      setPrice("");
+      setDuration("30");
+    }
+  }, [show, editService]);
 
   const handleSave = useCallback(async () => {
     try {
@@ -43,23 +52,25 @@ export default function ServiceModal({ show, onHide }) {
         duration: Number(duration),
       };
 
-      await axios.post(`${API}/services`, payload);
+      if (isEditing) {
+        await axios.put(`${API}/services/${editService.id}`, payload);
+      } else {
+        await axios.post(`${API}/services`, payload);
+      }
 
-      // opcional: refrescar data global si lo estás usando para métricas/citas
       if (typeof refreshAll === "function") refreshAll();
-
       onHide?.();
     } catch (e) {
-      setError(e?.response?.data?.error || "Error creando servicio.");
+      setError(e?.response?.data?.error || `Error ${isEditing ? "editando" : "creando"} servicio.`);
     } finally {
       setSaving(false);
     }
-  }, [valid, name, price, duration, onHide, refreshAll]);
+  }, [valid, name, price, duration, onHide, refreshAll, isEditing, editService]);
 
   return (
     <Modal show={show} onHide={saving ? undefined : onHide} centered backdrop="static" keyboard={!saving}>
       <Modal.Header closeButton={!saving}>
-        <Modal.Title>Agregar servicio</Modal.Title>
+        <Modal.Title>{isEditing ? "Editar" : "Agregar"} servicio</Modal.Title>
       </Modal.Header>
 
       <Modal.Body>

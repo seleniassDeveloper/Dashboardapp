@@ -7,12 +7,12 @@ const AppointmentsContext = createContext(null);
 
 export function AppointmentsProvider({ children }) {
   const [appointments, setAppointments] = useState([]);
+  const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   const fetchAppointments = useCallback(async () => {
     try {
-      setError("");
       setLoading(true);
       const res = await axios.get(`${API}/appointments`);
       const list = Array.isArray(res.data) ? res.data : [];
@@ -26,9 +26,19 @@ export function AppointmentsProvider({ children }) {
     }
   }, []);
 
+  const fetchServices = useCallback(async () => {
+    try {
+      const res = await axios.get(`${API}/services`);
+      setServices(Array.isArray(res.data) ? res.data : []);
+    } catch (e) {
+      console.error("Error fetching services", e);
+    }
+  }, []);
+
   useEffect(() => {
     fetchAppointments();
-  }, [fetchAppointments]);
+    fetchServices();
+  }, [fetchAppointments, fetchServices]);
 
   const upsertAppointment = useCallback((appointment) => {
     if (!appointment?.id) return;
@@ -48,14 +58,16 @@ export function AppointmentsProvider({ children }) {
   const value = useMemo(
     () => ({
       appointments,
+      services,
       loading,
       error,
       setError,
       fetchAppointments,
+      fetchServices,
       upsertAppointment,
       removeAppointment,
     }),
-    [appointments, loading, error, fetchAppointments, upsertAppointment, removeAppointment]
+    [appointments, services, loading, error, fetchAppointments, fetchServices, upsertAppointment, removeAppointment]
   );
 
   return <AppointmentsContext.Provider value={value}>{children}</AppointmentsContext.Provider>;

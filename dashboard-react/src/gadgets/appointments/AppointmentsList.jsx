@@ -365,138 +365,72 @@ export default function AppointmentsList() {
   };
 
   return (
-    <>
-      <Card className="shadow-sm appt-card">
-        <Card.Body>
-          <Stack
-            direction="horizontal"
-            className="justify-content-between align-items-start gap-3"
-          >
-            <Stack
-              direction="horizontal"
-              gap={2}
-              className="appt-header-actions"
+    <div className="appointments-list-content">
+      <div className="appt-filters mb-4">
+        <Row className="g-2">
+          <Col xs={6}>
+            <Form.Select
+              size="sm"
+              value={range}
+              onChange={(e) => handleRangeChange(e.target.value)}
+              className="rounded-lg border-light"
             >
-              <Button
-                onClick={handleOpenCreate}
-                className="appt-btn"
-                style={newButtonStyle}
-              >
-                <i className="fa-regular fa-calendar me-2" />
-                Nueva
-              </Button>
-            </Stack>
-          </Stack>
+              {RANGE_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </Form.Select>
+          </Col>
+          <Col xs={6}>
+            <Form.Select
+              size="sm"
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              className="rounded-lg border-light"
+            >
+              {STATUS_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </Form.Select>
+          </Col>
+        </Row>
+      </div>
 
-          <div className="appt-filters py-2">
-            <Row className="g-3">
-              <Col md={4}>
-                <Form.Label>Rango</Form.Label>
-                <Form.Select
-                  value={range}
-                  onChange={(e) => handleRangeChange(e.target.value)}
-                >
-                  {RANGE_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </Form.Select>
-              </Col>
+      {error ? (
+        <Alert variant="danger" className="py-2 small">
+          {error}
+        </Alert>
+      ) : null}
 
-              {range === "DAY" && (
-                <Col md={4}>
-                  <Form.Label>Día</Form.Label>
-                  <Form.Control
-                    type="date"
-                    value={dayDate}
-                    onChange={(e) => setDayDate(e.target.value)}
-                  />
-                </Col>
-              )}
-
-              {range === "WEEK" && (
-                <>
-                  <Col md={4}>
-                    <Form.Label>Desde</Form.Label>
-                    <Form.Control
-                      type="date"
-                      value={weekFrom}
-                      onChange={(e) => setWeekFrom(e.target.value)}
-                    />
-                  </Col>
-                  <Col md={4}>
-                    <Form.Label>Hasta</Form.Label>
-                    <Form.Control
-                      type="date"
-                      value={weekTo}
-                      onChange={(e) => setWeekTo(e.target.value)}
-                      min={weekFrom || undefined}
-                    />
-                  </Col>
-                </>
-              )}
-
-              {range === "MONTH" && (
-                <Col md={4}>
-                  <Form.Label>Mes (fecha base)</Form.Label>
-                  <Form.Control
-                    type="date"
-                    value={monthAnchor}
-                    onChange={(e) => setMonthAnchor(e.target.value)}
-                  />
-                </Col>
-              )}
-
-              <Col md={4}>
-                <Form.Label>Estado</Form.Label>
-                <Form.Select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                >
-                  {STATUS_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </Form.Select>
-              </Col>
-            </Row>
+      <div className="appt-list-wrap">
+        {loading ? (
+          <div className="text-center py-4 text-muted">
+            <Spinner size="sm" />
           </div>
-
-          {error ? (
-            <Alert variant="danger" className="mt-3 mb-0">
-              {error}
-            </Alert>
-          ) : null}
-
-          <div className="appt-list-wrap">
-            {loading ? (
-              <div className="appt-loading">
-                <Spinner size="sm" /> Cargando...
-              </div>
-            ) : filteredAppointments.length === 0 ? (
-              <div className="appt-empty">No hay citas con esos filtros.</div>
-            ) : (
-              <>
-                <ListGroup className="appt-list">
-                  {paginatedAppointments.map((appt) => (
-                    <AppointmentItem
-                      key={appt.id}
-                      appt={appt}
-                      onEdit={handleOpenEdit}
-                      onDelete={handleOpenDelete}
-                      onChangeStatus={handleStatusChange}
-                    />
-                  ))}
-                </ListGroup>
-
-                <PaginationBar />
-              </>
-            )}
+        ) : filteredAppointments.length === 0 ? (
+          <div className="text-center py-5 text-muted small bg-light rounded-xl">
+            No hay citas para mostrar.
           </div>
-        </Card.Body>
-      </Card>
+        ) : (
+          <>
+            <ListGroup variant="flush" className="appt-list rounded-xl overflow-hidden">
+              {paginatedAppointments.map((appt) => (
+                <AppointmentItem
+                  key={appt.id}
+                  appt={appt}
+                  onEdit={handleOpenEdit}
+                  onDelete={handleOpenDelete}
+                  onChangeStatus={handleStatusChange}
+                />
+              ))}
+            </ListGroup>
+            <PaginationBar />
+          </>
+        )}
+      </div>
 
       <AppointmentModal
         show={showForm}
@@ -512,6 +446,6 @@ export default function AppointmentsList() {
         onDeleted={handleDeleted}
         onError={(msg) => setError(msg)}
       />
-    </>
+    </div>
   );
 }

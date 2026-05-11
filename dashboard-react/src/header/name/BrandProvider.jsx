@@ -13,11 +13,14 @@ function hexToRgba(hex, alpha = 1) {
 
 const DEFAULT_BRAND = {
   companyName: "",
+  slogan: "",
   coverImage: "",
   darkMode: false,
   fontFamily: 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial',
   textColor: "#1a1d24",
-  accentColor: "#4f46e5",
+  accentColor: "#10b981",
+  dashboardBg: "#f8f9fa",
+  menuSelectionColor: "#10b981",
 };
 
 export function BrandProvider({ children }) {
@@ -34,15 +37,20 @@ export function BrandProvider({ children }) {
   useEffect(() => {
     const root = document.documentElement;
 
- const accent = brand.accentColor || brand.textColor || "#ffffff";
+    const accent = brand.accentColor || brand.textColor || "#10b981";
+    const menuActive = brand.menuSelectionColor || accent;
+
     root.style.setProperty("--brand-accent", accent);
     root.style.setProperty("--brand-accent-soft", hexToRgba(accent, 0.12));
     root.style.setProperty("--brand-accent-border", hexToRgba(accent, 0.35));
     root.style.setProperty("--brand-font", brand.fontFamily || DEFAULT_BRAND.fontFamily);
+    root.style.setProperty("--brand-bg", brand.dashboardBg || DEFAULT_BRAND.dashboardBg);
+    root.style.setProperty("--brand-menu-active", menuActive);
+    root.style.setProperty("--brand-menu-active-soft", hexToRgba(menuActive, 0.1));
 
     // opcional: dark mode token
     root.style.setProperty("--brand-dark", brand.darkMode ? "1" : "0");
-  }, [brand.accentColor, brand.textColor, brand.fontFamily, brand.darkMode]);
+  }, [brand.accentColor, brand.textColor, brand.fontFamily, brand.darkMode, brand.dashboardBg, brand.menuSelectionColor]);
 
   const value = useMemo(() => ({ brand, setBrand }), [brand]);
 

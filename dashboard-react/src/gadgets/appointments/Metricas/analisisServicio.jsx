@@ -236,304 +236,241 @@ export default function AnalisisServicio() {
   });
 
   return (
-    <Card className="mt-3 shadow-sm brand-card">
-      <Card.Body>
-        <div className="d-flex justify-content-between align-items-center">
-          <div>
-            <Card.Title className="mb-1 brand-title">Métricas de citas</Card.Title>
-            <div className="text-muted" style={{ fontSize: 13 }}>
-              Total: <b>{metrics.total}</b>
+    <div className="analisis-servicio-content">
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <h4 className="mb-0 fw-black brand-title">Métricas de Citas</h4>
+          <div className="text-muted" style={{ fontSize: '0.8rem' }}>
+            Total: <b className="text-dark">{metrics.total}</b>
+          </div>
+        </div>
+        <div className="badge bg-dark text-white px-2 py-1 rounded-pill" style={{ fontSize: '0.65rem' }}>Hoy</div>
+      </div>
+
+      {/* ✅ KPIs */}
+      <Row className="g-2 mb-3">
+        {[
+          { t: "Pendientes", v: metrics.counts.PENDING, color: 'text-warning' },
+          { t: "Confirmadas", v: metrics.counts.CONFIRMED, color: 'text-info' },
+          { t: "Finalizadas", v: metrics.counts.DONE, color: 'text-success' },
+          { t: "Canceladas", v: metrics.counts.CANCELLED, color: 'text-danger' },
+        ].map((k) => (
+          <Col md={3} sm={6} key={k.t}>
+            <div className="p-3 rounded-lg border bg-light h-100 d-flex flex-column justify-content-center">
+              <div className="text-muted fw-bold uppercase mb-1" style={{ fontSize: '0.65rem', letterSpacing: '0.5px' }}>
+                {k.t}
+              </div>
+              <div className={`fw-black m-0 ${k.color}`} style={{ fontSize: '1.75rem', lineHeight: 1 }}>
+                {k.v}
+              </div>
+            </div>
+          </Col>
+        ))}
+      </Row>
+
+      {/* ✅ TORTAS */}
+      <Row className="g-2 mt-4">
+        {/* Estado global */}
+        <Col md={4}>
+          <div className="h-100 p-3 rounded-lg border bg-white">
+            <div className="fw-semibold brand-title mb-3">Estado global</div>
+            <div style={{ height: 260 }}>
+              {metrics.statusPie.length === 0 ? (
+                <div className="text-muted">No hay datos.</div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%" key={`st-${chartKey}`}>
+                  <PieChart>
+                    <Pie
+                      data={metrics.statusPie}
+                      dataKey="value"
+                      nameKey="name"
+                      innerRadius={50}
+                      outerRadius={80}
+                      paddingAngle={5}
+                    >
+                      {metrics.statusPie.map((_, idx) => (
+                        <Cell key={idx} {...pieCell(idx)} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend verticalAlign="bottom" height={36}/>
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </div>
-          <span className="brand-pill">Resumen</span>
-        </div>
+        </Col>
 
-        {/* ✅ KPIs */}
-        <Row className="g-3 mt-2">
-          {[
-            { t: "Pendientes", v: metrics.counts.PENDING },
-            { t: "Confirmadas", v: metrics.counts.CONFIRMED },
-            { t: "Finalizadas", v: metrics.counts.DONE },
-            { t: "Canceladas", v: metrics.counts.CANCELLED },
-          ].map((k) => (
-            <Col md={3} sm={6} key={k.t}>
-              <Card className="brand-card h-100">
-                <Card.Body>
-                  <div className="text-muted" style={{ fontSize: 12 }}>
-                    {k.t}
-                  </div>
-                  <div style={{ fontSize: 22 }}>
-                    <b className="brand-title">{k.v}</b>
-                  </div>
-                </Card.Body>
-              </Card>
-            </Col>
-          ))}
-        </Row>
+        {/* Servicios */}
+        <Col md={4}>
+          <div className="h-100 p-3 rounded-lg border bg-white">
+            <div className="fw-semibold brand-title mb-3">Citas por servicio</div>
+            <div style={{ height: 260 }}>
+              {metrics.servicePie.length === 0 ? (
+                <div className="text-muted">No hay datos.</div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%" key={`svc-${chartKey}`}>
+                  <PieChart>
+                    <Pie
+                      data={metrics.servicePie}
+                      dataKey="value"
+                      nameKey="name"
+                      innerRadius={50}
+                      outerRadius={80}
+                      paddingAngle={5}
+                    >
+                      {metrics.servicePie.map((_, idx) => (
+                        <Cell key={idx} {...pieCell(idx)} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend verticalAlign="bottom" height={36}/>
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </div>
+        </Col>
 
-        {/* ✅ TORTAS */}
-        <Row className="g-3 mt-2">
-          {/* Estado global */}
-          <Col md={4}>
-            <Card className="brand-card h-100">
-              <Card.Body>
-                <div className="fw-semibold brand-title">Estado global</div>
-                <div style={{ height: 240 }} className="mt-2">
-                  {metrics.statusPie.length === 0 ? (
-                    <div className="text-muted">No hay datos.</div>
-                  ) : (
-                    <ResponsiveContainer width="100%" height="100%" key={`st-${chartKey}`}>
-                      <PieChart>
-                        <Pie
-                          data={metrics.statusPie}
-                          dataKey="value"
-                          nameKey="name"
-                          outerRadius={85}
-                          label={(d) => `${d.pct}%`}
-                        >
-                          {metrics.statusPie.map((_, idx) => (
-                            <Cell key={idx} {...pieCell(idx)} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                        <Legend />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  )}
+        {/* Trabajadores */}
+        <Col md={4}>
+          <div className="h-100 p-3 rounded-lg border bg-white">
+            <div className="fw-semibold brand-title mb-3">Citas por trabajador</div>
+            <div style={{ height: 260 }}>
+              {metrics.workerPie.length === 0 ? (
+                <div className="text-muted">No hay datos.</div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%" key={`wrk-${chartKey}`}>
+                  <PieChart>
+                    <Pie
+                      data={metrics.workerPie}
+                      dataKey="value"
+                      nameKey="name"
+                      innerRadius={50}
+                      outerRadius={80}
+                      paddingAngle={5}
+                    >
+                      {metrics.workerPie.map((_, idx) => (
+                        <Cell key={idx} {...pieCell(idx)} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend verticalAlign="bottom" height={36}/>
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </div>
+        </Col>
+      </Row>
+
+      {/* ✅ CARDS tipo “insight” */}
+      <Row className="g-3 mt-2">
+        <Col md={6}>
+          <div className="p-3 rounded-lg border bg-light">
+            <div className="fw-semibold brand-title small uppercase">Servicio más vendido</div>
+            {metrics.topService ? (
+              <div className="mt-2">
+                <div style={{ fontSize: 18 }}>
+                  <b className="brand-title">{metrics.topService.name}</b>
                 </div>
-              </Card.Body>
-            </Card>
-          </Col>
-
-          {/* Servicios */}
-          <Col md={4}>
-            <Card className="brand-card h-100">
-              <Card.Body>
-                <div className="fw-semibold brand-title">Citas por servicio</div>
-                <div style={{ height: 240 }} className="mt-2">
-                  {metrics.servicePie.length === 0 ? (
-                    <div className="text-muted">No hay datos.</div>
-                  ) : (
-                    <ResponsiveContainer width="100%" height="100%" key={`svc-${chartKey}`}>
-                      <PieChart>
-                        <Pie
-                          data={metrics.servicePie}
-                          dataKey="value"
-                          nameKey="name"
-                          outerRadius={85}
-                          label={(d) => `${d.pct}%`}
-                        >
-                          {metrics.servicePie.map((_, idx) => (
-                            <Cell key={idx} {...pieCell(idx)} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                        <Legend />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  )}
+                <div className="text-muted small">
+                  Citas: <b>{metrics.topService.total}</b>
                 </div>
-              </Card.Body>
-            </Card>
-          </Col>
+              </div>
+            ) : (
+              <div className="text-muted mt-2 small">No hay datos.</div>
+            )}
+          </div>
+        </Col>
 
-          {/* Trabajadores */}
-          <Col md={4}>
-            <Card className="brand-card h-100">
-              <Card.Body>
-                <div className="fw-semibold brand-title">Citas por trabajador</div>
-                <div style={{ height: 240 }} className="mt-2">
-                  {metrics.workerPie.length === 0 ? (
-                    <div className="text-muted">No hay datos.</div>
-                  ) : (
-                    <ResponsiveContainer width="100%" height="100%" key={`wrk-${chartKey}`}>
-                      <PieChart>
-                        <Pie
-                          data={metrics.workerPie}
-                          dataKey="value"
-                          nameKey="name"
-                          outerRadius={85}
-                          label={(d) => `${d.pct}%`}
-                        >
-                          {metrics.workerPie.map((_, idx) => (
-                            <Cell key={idx} {...pieCell(idx)} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                        <Legend />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  )}
+        <Col md={6}>
+          <div className="p-3 rounded-lg border bg-light">
+            <div className="fw-semibold brand-title small uppercase">Mayor cancelación (tasa)</div>
+            {metrics.worstCancel ? (
+              <div className="mt-2">
+                <div style={{ fontSize: 18 }}>
+                  <b className="brand-title">{metrics.worstCancel.name}</b>
                 </div>
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
-
-        {/* ✅ CARDS tipo “insight” */}
-        <Row className="g-3 mt-2">
-          <Col md={6}>
-            <Card className="brand-card h-100">
-              <Card.Body>
-                <div className="fw-semibold brand-title">Servicio más vendido</div>
-                {metrics.topService ? (
-                  <div className="mt-2">
-                    <div style={{ fontSize: 18 }}>
-                      <b className="brand-title">{metrics.topService.name}</b>
-                    </div>
-                    <div className="text-muted">
-                      Citas: <b>{metrics.topService.total}</b>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-muted mt-2">No hay datos.</div>
-                )}
-              </Card.Body>
-            </Card>
-          </Col>
-
-          <Col md={6}>
-            <Card className="brand-card h-100">
-              <Card.Body>
-                <div className="fw-semibold brand-title">Mayor cancelación (tasa)</div>
-                {metrics.worstCancel ? (
-                  <div className="mt-2">
-                    <div style={{ fontSize: 18 }}>
-                      <b className="brand-title">{metrics.worstCancel.name}</b>
-                    </div>
-                    <div className="text-muted">
-                      Canceladas: <b>{metrics.worstCancel.cancelled}</b> /{" "}
-                      <b>{metrics.worstCancel.total}</b>{" "}
-                      ({Math.round((metrics.worstCancel.cancelled / metrics.worstCancel.total) * 100)}%)
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-muted mt-2">No hay datos.</div>
-                )}
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
-
-        {/* ✅ SOLO 1 BARRA (opcional) */}
-        <Row className="g-3 mt-2">
-          <Col md={12}>
-            <Card className="brand-card">
-              <Card.Body>
-                <div className="fw-semibold brand-title">Citas vs Canceladas por servicio</div>
-                <div className="text-muted" style={{ fontSize: 12 }}>
-                  (Si no la quieres, eliminas este bloque completo)
+                <div className="text-muted small">
+                  Canceladas: <b>{metrics.worstCancel.cancelled}</b> /{" "}
+                  <b>{metrics.worstCancel.total}</b>{" "}
+                  ({Math.round((metrics.worstCancel.cancelled / metrics.worstCancel.total) * 100)}%)
                 </div>
+              </div>
+            ) : (
+              <div className="text-muted mt-2 small">No hay datos.</div>
+            )}
+          </div>
+        </Col>
+      </Row>
 
-                <div style={{ height: 260 }} className="mt-2">
-                  {metrics.serviceCancelBar.length === 0 ? (
-                    <div className="text-muted">No hay datos.</div>
-                  ) : (
-                    <ResponsiveContainer width="100%" height="100%" key={`bar-${chartKey}`}>
-                      <BarChart data={metrics.serviceCancelBar}>
-                        <CartesianGrid stroke={stroke} vertical={false} />
-                        <XAxis dataKey="name" hide />
-                        <YAxis allowDecimals={false} />
-                        <Tooltip />
-                        <Legend />
-                        <Bar dataKey="citas" fill={withAlpha(accent, 0.65)} />
-                        <Bar dataKey="canceladas" fill={withAlpha(accent, 0.25)} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  )}
-                </div>
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
+      {/* ✅ RANKINGS (TABLAS) */}
+      <Row className="g-3 mt-4">
+        <Col md={6}>
+          <div className="fw-semibold brand-title mb-2 px-1">Top trabajadores</div>
+          <div className="p-0 rounded-lg border bg-white overflow-hidden">
+            {metrics.topWorkers.length === 0 ? (
+              <div className="text-muted p-3">No hay datos.</div>
+            ) : (
+              <Table responsive hover size="sm" className="mb-0">
+                <thead className="bg-light">
+                  <tr className="text-muted" style={{ fontSize: 11 }}>
+                    <th className="ps-3 py-2">Trabajador</th>
+                    <th className="text-end py-2">Total</th>
+                    <th className="text-end py-2">Finalizadas</th>
+                    <th className="text-end pe-3 py-2">Tasa Cancel.</th>
+                  </tr>
+                </thead>
+                <tbody style={{ fontSize: 13 }}>
+                  {metrics.topWorkers.map((w) => (
+                    <tr key={w.name}>
+                      <td className="ps-3 py-2 fw-medium">{w.name}</td>
+                      <td className="text-end py-2">{w.total}</td>
+                      <td className="text-end py-2 text-success">{w.done}</td>
+                      <td className="text-end pe-3 py-2">
+                        <Badge bg={w.cancelRate > 20 ? 'danger' : 'secondary'} className="opacity-75">{w.cancelRate}%</Badge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            )}
+          </div>
+        </Col>
 
-        {/* ✅ RANKINGS (TABLAS) */}
-        <Row className="g-3 mt-2">
-          <Col md={6}>
-            <Card className="brand-card h-100">
-              <Card.Body>
-                <div className="fw-semibold brand-title">Top trabajadores</div>
-                <div className="text-muted" style={{ fontSize: 12 }}>
-                  Total, finalizadas, canceladas y tasa
-                </div>
-
-                <div className="mt-2">
-                  {metrics.topWorkers.length === 0 ? (
-                    <div className="text-muted">No hay datos.</div>
-                  ) : (
-                    <Table responsive size="sm" className="mb-0">
-                      <thead>
-                        <tr className="text-muted" style={{ fontSize: 12 }}>
-                          <th>Trabajador</th>
-                          <th className="text-end">Total</th>
-                          <th className="text-end">Done</th>
-                          <th className="text-end">Cancel</th>
-                          <th className="text-end">Tasa</th>
-                        </tr>
-                      </thead>
-                      <tbody style={{ fontSize: 13 }}>
-                        {metrics.topWorkers.map((w) => (
-                          <tr key={w.name}>
-                            <td>{w.name}</td>
-                            <td className="text-end"><b>{w.total}</b></td>
-                            <td className="text-end">{w.done}</td>
-                            <td className="text-end">{w.cancelled}</td>
-                            <td className="text-end">
-                              <Badge bg="secondary">{w.cancelRate}%</Badge>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </Table>
-                  )}
-                </div>
-              </Card.Body>
-            </Card>
-          </Col>
-
-          <Col md={6}>
-            <Card className="brand-card h-100">
-              <Card.Body>
-                <div className="fw-semibold brand-title">Top servicios</div>
-                <div className="text-muted" style={{ fontSize: 12 }}>
-                  Total, finalizadas, canceladas y tasa
-                </div>
-
-                <div className="mt-2">
-                  {metrics.topServices.length === 0 ? (
-                    <div className="text-muted">No hay datos.</div>
-                  ) : (
-                    <Table responsive size="sm" className="mb-0">
-                      <thead>
-                        <tr className="text-muted" style={{ fontSize: 12 }}>
-                          <th>Servicio</th>
-                          <th className="text-end">Total</th>
-                          <th className="text-end">Done</th>
-                          <th className="text-end">Cancel</th>
-                          <th className="text-end">Tasa</th>
-                        </tr>
-                      </thead>
-                      <tbody style={{ fontSize: 13 }}>
-                        {metrics.topServices.map((s) => (
-                          <tr key={s.name}>
-                            <td>{s.name}</td>
-                            <td className="text-end"><b>{s.total}</b></td>
-                            <td className="text-end">{s.done}</td>
-                            <td className="text-end">{s.cancelled}</td>
-                            <td className="text-end">
-                              <Badge bg="secondary">{s.cancelRate}%</Badge>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </Table>
-                  )}
-                </div>
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
-      </Card.Body>
-    </Card>
+        <Col md={6}>
+          <div className="fw-semibold brand-title mb-2 px-1">Top servicios</div>
+          <div className="p-0 rounded-lg border bg-white overflow-hidden">
+            {metrics.topServices.length === 0 ? (
+              <div className="text-muted p-3">No hay datos.</div>
+            ) : (
+              <Table responsive hover size="sm" className="mb-0">
+                <thead className="bg-light">
+                  <tr className="text-muted" style={{ fontSize: 11 }}>
+                    <th className="ps-3 py-2">Servicio</th>
+                    <th className="text-end py-2">Total</th>
+                    <th className="text-end py-2">Finalizadas</th>
+                    <th className="text-end pe-3 py-2">Tasa Cancel.</th>
+                  </tr>
+                </thead>
+                <tbody style={{ fontSize: 13 }}>
+                  {metrics.topServices.map((s) => (
+                    <tr key={s.name}>
+                      <td className="ps-3 py-2 fw-medium">{s.name}</td>
+                      <td className="text-end py-2">{s.total}</td>
+                      <td className="text-end py-2 text-success">{s.done}</td>
+                      <td className="text-end pe-3 py-2">
+                        <Badge bg={s.cancelRate > 20 ? 'danger' : 'secondary'} className="opacity-75">{s.cancelRate}%</Badge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            )}
+          </div>
+        </Col>
+      </Row>
+    </div>
   );
 }

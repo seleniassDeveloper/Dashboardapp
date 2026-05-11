@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import "bootstrap/dist/css/bootstrap.min.css";
+import "./styles/global.css";
 
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import App from "./App.jsx";
@@ -11,11 +12,13 @@ import LoginGate from "./auth/LoginGate.jsx";
 import ErrorBoundary from "./ErrorBoundary.jsx";
 import LandingPage from "./landing/LandingPage.jsx";
 import DashboardAppRoute from "./DashboardAppRoute.jsx";
+import HowItWorks from "./views/HowItWorks";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <BrowserRouter>
     <Routes>
       <Route path="/" element={<LandingPage />} />
+      <Route path="/guide" element={<HowItWorks />} />
       <Route
         path="/app/*"
         element={

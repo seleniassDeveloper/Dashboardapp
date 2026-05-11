@@ -26,11 +26,14 @@ export default function BrandModal({ show, onHide, forceRequired = false }) {
   const { brand, setBrand } = useBrand();
 
   const [companyName, setCompanyName] = useState("");
+  const [slogan, setSlogan] = useState("");
   const [textColor, setTextColor] = useState("#1a1d24"); // lo usamos como accent
   const [darkMode, setDarkMode] = useState(false);
   const [coverUrl, setCoverUrl] = useState("");
   const [preview, setPreview] = useState("");
   const [fontFamily, setFontFamily] = useState(FONT_OPTIONS[0].value);
+  const [dashboardBg, setDashboardBg] = useState("#f8f9fa");
+  const [menuSelectionColor, setMenuSelectionColor] = useState("#10b981");
 
   const nameIsValid = companyName.trim().length > 0;
 
@@ -38,6 +41,7 @@ export default function BrandModal({ show, onHide, forceRequired = false }) {
     if (!show) return;
 
     setCompanyName(brand.companyName || "");
+    setSlogan(brand.slogan || "");
 
     // ✅ si ya existía textColor lo respetamos, si no usamos accentColor
     setTextColor(brand.accentColor || brand.textColor || "#ffffff");
@@ -49,6 +53,8 @@ export default function BrandModal({ show, onHide, forceRequired = false }) {
     setCoverUrl(image.startsWith("http") ? image : "");
 
     setFontFamily(brand.fontFamily || FONT_OPTIONS[0].value);
+    setDashboardBg(brand.dashboardBg || "#f8f9fa");
+    setMenuSelectionColor(brand.menuSelectionColor || brand.accentColor || "#10b981");
   }, [show, brand]);
 
   const handleUrlChange = (e) => {
@@ -80,11 +86,14 @@ const handleSave = () => {
   setBrand((prev) => ({
     ...prev,
     companyName: companyName.trim(),
+    slogan: slogan.trim(),
     coverImage: preview || prev.coverImage,
     textColor,
     accentColor: textColor,
     darkMode,
     fontFamily,
+    dashboardBg,
+    menuSelectionColor,
   }));
 
   window.location.reload(); // 🔥 fuerza todo
@@ -116,6 +125,15 @@ const handleSave = () => {
                 El nombre es obligatorio.
               </Form.Text>
             )}
+          </Form.Group>
+
+          <Form.Group>
+            <Form.Label>Slogan / Indicaciones</Form.Label>
+            <Form.Control
+              value={slogan}
+              onChange={(e) => setSlogan(e.target.value)}
+              placeholder="Ej: Estética Profesional & Spa"
+            />
           </Form.Group>
 
           <Form.Group>
@@ -151,21 +169,42 @@ const handleSave = () => {
             )}
           </Form.Group>
 
-          <div className="d-flex gap-3">
-            <Form.Group style={{ minWidth: 160 }}>
-              <Form.Label>Color del texto</Form.Label>
+          <div className="d-flex flex-wrap gap-3">
+            <Form.Group style={{ minWidth: 160, flex: 1 }}>
+              <Form.Label>Color de marca</Form.Label>
               <Form.Control
                 type="color"
                 value={textColor}
                 onChange={(e) => setTextColor(e.target.value)}
-                style={{ height: 44 }}
+                style={{ height: 44, padding: '4px', cursor: 'pointer' }}
               />
-              <Form.Text className="text-muted">
-                Este color se usará como “color de marca” en todo el dashboard.
-              </Form.Text>
+              <Form.Text className="text-muted">Primario.</Form.Text>
             </Form.Group>
 
-            <Form.Group className="flex-grow-1">
+            <Form.Group style={{ minWidth: 160, flex: 1 }}>
+              <Form.Label>Fondo Dashboard</Form.Label>
+              <Form.Control
+                type="color"
+                value={dashboardBg}
+                onChange={(e) => setDashboardBg(e.target.value)}
+                style={{ height: 44, padding: '4px', cursor: 'pointer' }}
+              />
+              <Form.Text className="text-muted">General.</Form.Text>
+            </Form.Group>
+
+            <Form.Group style={{ minWidth: 160, flex: 1 }}>
+              <Form.Label>Selección Menú</Form.Label>
+              <Form.Control
+                type="color"
+                value={menuSelectionColor}
+                onChange={(e) => setMenuSelectionColor(e.target.value)}
+                style={{ height: 44, padding: '4px', cursor: 'pointer' }}
+              />
+              <Form.Text className="text-muted">Activo.</Form.Text>
+            </Form.Group>
+          </div>
+
+          <Form.Group className="flex-grow-1">
               <Form.Label>Fuente del dashboard</Form.Label>
               <Form.Select value={fontFamily} onChange={(e) => setFontFamily(e.target.value)}>
                 {FONT_OPTIONS.map((f) => (
@@ -179,7 +218,6 @@ const handleSave = () => {
                 Preview: El zorro rápido salta sobre el perro perezoso.
               </div>
             </Form.Group>
-          </div>
 
           <Form.Check
             type="switch"

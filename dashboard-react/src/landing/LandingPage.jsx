@@ -57,9 +57,9 @@ function Hero() {
               Iniciar prueba
             </Link>
 
-            <a className="hero-btn hero-btn-secondary" href="#como-funciona">
+            <Link className="hero-btn hero-btn-secondary" to="/guide">
               Ver cómo funciona
-            </a>
+            </Link>
           </div>
         </div>
 

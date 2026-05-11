@@ -1,6 +1,7 @@
 // src/gadgets/appointments/AppointmentItem.jsx
 import React, { useMemo, useState } from "react";
 import { ListGroup, Button, Form, Modal, Badge, Alert } from "react-bootstrap";
+import { Edit2, Trash2 } from "lucide-react";
 
 // ✅ Config simple AR (solo datos de transferencia, NO afecta el teléfono)
 const PAYMENT_AR = {
@@ -173,71 +174,54 @@ export default function AppointmentItem({ appt, onEdit, onDelete, onChangeStatus
   return (
     <>
       <ListGroup.Item
-        className="rounded-4 shadow-sm mb-2"
+        className="appointment-card mb-2"
         style={{
-          border: "1px solid #eef2f7",
-          borderLeft: `6px solid ${border}`,
-          padding: "14px",
+          borderLeft: `4px solid ${border}`,
         }}
       >
-        <div className="d-flex justify-content-between align-items-start gap-3">
-          <div>
-            <div className="fw-semibold" style={{ fontSize: 14 }}>
-              {clientName || "Cliente"}
+        <div className="d-flex align-items-center justify-content-between gap-3">
+          {/* Info Principal */}
+          <div className="d-flex align-items-center gap-3 flex-grow-1">
+            <div className="appt-time-box">
+              <span className="appt-time">{new Date(appt.startsAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+              <span className="appt-date">{new Date(appt.startsAt).toLocaleDateString([], { day: '2-digit', month: '2-digit' })}</span>
             </div>
-
-            <div className="text-muted" style={{ fontSize: 12 }}>
-              {workerName ? `Con: ${workerName}` : "Con: —"}
+            
+            <div className="appt-main-info">
+              <h5 className="appt-client-name m-0">{clientName || "Cliente"}</h5>
+              <div className="appt-details">
+                <span className="appt-worker">con {workerName}</span>
+                <span className="appt-divider">•</span>
+                <span className="appt-service">{serviceName}</span>
+              </div>
             </div>
           </div>
 
-          <div className="text-muted text-end" style={{ fontSize: 12, whiteSpace: "nowrap" }}>
-            {when}
-          </div>
-        </div>
-
-        <div className="d-flex justify-content-between align-items-start gap-3 mt-1">
-          <div className="text-muted" style={{ fontSize: 12 }}>
-            {serviceName}
-          </div>
-
-          <div className="text-muted text-end" style={{ fontSize: 12, maxWidth: 320 }}>
-            {notes ? notes : "—"}
-          </div>
-        </div>
-
-        <div className="d-flex justify-content-between align-items-center gap-3 mt-3">
+          {/* Acciones y Estado */}
           <div className="d-flex align-items-center gap-2">
-            <div className="text-muted" style={{ fontSize: 11, width: 64 }}>
-              Estado
+            <div className="appt-status-badge" style={{ backgroundColor: `${border}15`, color: border, borderColor: `${border}30` }}>
+              <Form.Select
+                size="sm"
+                value={appt?.status || "CONFIRMED"}
+                onChange={(e) => handleSelectStatus(e.target.value)}
+                className="appt-status-select-transparent"
+                style={{ color: border }}
+              >
+                <option value="CONFIRMED">Confirmada</option>
+                <option value="DONE">Finalizada</option>
+                <option value="CANCELLED">Cancelada</option>
+              </Form.Select>
             </div>
 
-            <Form.Select
-              size="sm"
-              value={appt?.status || "CONFIRMED"}
-              onChange={(e) => handleSelectStatus(e.target.value)}
-              style={{ minWidth: 170, borderRadius: 10 }}
-            >
-              <option value="CONFIRMED">Confirmada</option>
-              <option value="DONE">Finalizada</option>
-              <option value="CANCELLED">Cancelada</option>
-            </Form.Select>
+            <div className="appt-actions d-flex gap-1">
+              <Button variant="link" className="p-1 text-muted hover-dark" onClick={() => onEdit?.(appt)}>
+                <Edit2 size={14} />
+              </Button>
+              <Button variant="link" className="p-1 text-muted hover-danger" onClick={() => onDelete?.(appt)}>
+                <Trash2 size={14} />
+              </Button>
+            </div>
           </div>
-
-          <div className="d-flex gap-2">
-            <Button size="sm" variant="outline-secondary" style={{ borderRadius: 10 }} onClick={() => onEdit?.(appt)}>
-              Editar
-            </Button>
-
-            <Button size="sm" variant="outline-danger" style={{ borderRadius: 10 }} onClick={() => onDelete?.(appt)}>
-              Eliminar
-            </Button>
-          </div>
-        </div>
-
-        <div className="mt-2" style={{ fontSize: 11, color: "#6b7280" }}>
-          Estado actual:{" "}
-          <span style={{ fontWeight: 600, color: border }}>{statusLabel(appt?.status)}</span>
         </div>
       </ListGroup.Item>
 

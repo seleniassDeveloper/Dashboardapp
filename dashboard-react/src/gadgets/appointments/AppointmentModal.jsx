@@ -376,29 +376,46 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
   console.log( "workerServices", workerServices)
 
   return (
-    <Modal show={show} onHide={saving ? undefined : onHide} centered backdrop="static" keyboard={!saving}>
-      <Modal.Header closeButton={!saving}>
-        <Modal.Title>{isEdit ? "Editar cita" : "Nueva cita"}</Modal.Title>
+    <Modal 
+      show={show} 
+      onHide={saving ? undefined : onHide} 
+      centered 
+      size="lg"
+      className="hegemonic-modal"
+      backdrop="static" 
+      keyboard={!saving}
+    >
+      <Modal.Header className="border-0 pb-0" closeButton={!saving}>
+        <Modal.Title className="fw-black h4 brand-title">
+          {isEdit ? "Refinar Cita" : "Nueva Reserva"}
+        </Modal.Title>
       </Modal.Header>
 
-      <Modal.Body>
-        {error ? <Alert variant="danger">{error}</Alert> : null}
+      <Modal.Body className="pt-4">
+        {error ? (
+          <Alert variant="danger" className="rounded-xl border-0 shadow-sm mb-4">
+            <div className="fw-bold mb-1">Hubo un problema:</div>
+            {error}
+          </Alert>
+        ) : null}
 
         {loadingRefs ? (
-          <div className="d-flex align-items-center gap-2 text-muted" style={{ minHeight: 120 }}>
-            <Spinner size="sm" /> Cargando trabajadores…
+          <div className="py-5 text-center text-muted">
+            <Spinner animation="border" variant="primary" className="mb-3" />
+            <p className="fw-medium">Preparando agenda...</p>
           </div>
         ) : (
-          <Form>
-            <Row className="g-3">
-              <Col md={12}>
-                <Form.Label>Cliente *</Form.Label>
-
-                <div ref={clientBoxRef} style={{ position: "relative" }}>
-                  <Row className="g-2">
-                    <Col md={6}>
+          <Form className="custom-form">
+            <div className="form-section mb-4">
+              <h6 className="form-section-title">Información del Cliente</h6>
+              <div className="form-section-content" ref={clientBoxRef}>
+                <Row className="g-3">
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="small-label">Nombre *</Form.Label>
                       <Form.Control
-                        placeholder="Nombre"
+                        className="modern-input"
+                        placeholder="Ej: María"
                         value={form.clientFirstName}
                         onChange={(e) => {
                           const v = e.target.value;
@@ -409,11 +426,14 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
                         onFocus={() => setClientOpen(true)}
                         autoComplete="off"
                       />
-                    </Col>
-
-                    <Col md={6}>
+                    </Form.Group>
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="small-label">Apellido *</Form.Label>
                       <Form.Control
-                        placeholder="Apellido"
+                        className="modern-input"
+                        placeholder="Ej: García"
                         value={form.clientLastName}
                         onChange={(e) => {
                           setField("clientLastName", e.target.value);
@@ -423,188 +443,151 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
                         onFocus={() => setClientOpen(true)}
                         autoComplete="off"
                       />
-                    </Col>
-                  </Row>
+                    </Form.Group>
+                  </Col>
+                </Row>
 
-                  {clientOpen && (clientLoading || clientSug.length > 0) && (
-                    <div
-                      style={{
-                        position: "absolute",
-                        top: "calc(100% + 6px)",
-                        left: 0,
-                        right: 0,
-                        background: "#fff",
-                        border: "1px solid #e5e7eb",
-                        borderRadius: 12,
-                        maxHeight: 220,
-                        overflow: "auto",
-                        zIndex: 20,
-                      }}
-                    >
-                      {clientLoading ? (
-                        <div className="p-2 text-muted d-flex align-items-center gap-2">
-                          <Spinner size="sm" /> Buscando…
-                        </div>
-                      ) : (
-                        clientSug.map((c) => (
-                          <button
-                            key={c.id}
-                            type="button"
-                            onClick={() => pickClient(c)}
-                            style={{
-                              width: "100%",
-                              textAlign: "left",
-                              padding: "10px 12px",
-                              border: "none",
-                              background: "transparent",
-                            }}
-                          >
-                            <div className="fw-semibold">
-                              {c.firstName} {c.lastName}
-                            </div>
-                            <div className="text-muted" style={{ fontSize: 12 }}>
-                              {c.phone || "—"} {c.email ? `· ${c.email}` : ""}
-                            </div>
-                          </button>
-                        ))
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <div className="text-muted mt-1" style={{ fontSize: 12 }}>
-                  Si existe te lo sugiere. Si no, se crea al guardar.
-                  {form.clientId ? " (Seleccionado de la base)" : ""}
-                </div>
-              </Col>
-
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label>Trabajador *</Form.Label>
-                  <Form.Select
-                    value={form.workerId}
-                    onChange={(e) => {
-                      const id = e.target.value;
-                      const selected = workers.find((w) => w.id === id);
-
-                      setDirty(true);
-                      setForm((p) => ({
-                        ...p,
-                        workerId: id,
-                        workerFirstName: selected?.firstName || "",
-                        workerLastName: selected?.lastName || "",
-                      }));
-                    }}
-                  >
-                    <option value="">Seleccionar...</option>
-                    {workers.map((w) => (
-                      <option key={w.id} value={w.id}>
-                        {w.name}
-                      </option>
-                    ))}
-                  </Form.Select>
-                </Form.Group>
-              </Col>
-
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label>Servicio *</Form.Label>
-                  <Form.Select
-                    value={form.serviceId}
-                    onChange={(e) => setField("serviceId", e.target.value)}
-                    disabled={!form.workerId}
-                  >
-                    <option value="">
-                      {form.workerId ? "Seleccionar..." : "Elige trabajador primero"}
-                    </option>
-                    {workerServices.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      
-                      </option>
-                    ))}
-                  </Form.Select>
-
-                  {form.workerId && workerServices.length === 0 ? (
-                    <div className="text-muted mt-1" style={{ fontSize: 12 }}>
-                      Este trabajador no tiene servicios asignados.
-                    </div>
-                  ) : null}
-                </Form.Group>
-              </Col>
-
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label>Fecha y hora *</Form.Label>
-                  <Form.Control
-                    type="datetime-local"
-                    value={form.startsAt}
-                    onChange={(e) => setField("startsAt", e.target.value)}
-                  />
-                </Form.Group>
-              </Col>
-
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label>Email</Form.Label>
-                  <Form.Control value={form.email} onChange={(e) => setField("email", e.target.value)} />
-                </Form.Group>
-              </Col>
-
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label>Teléfono</Form.Label>
-                  <Form.Control value={form.phone} onChange={(e) => setField("phone", e.target.value)} />
-                </Form.Group>
-              </Col>
-
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label>Precio</Form.Label>
-                  <InputGroup>
-                    <InputGroup.Text>$</InputGroup.Text>
-                    <Form.Control value={form.price} onChange={(e) => setField("price", e.target.value)} />
-                  </InputGroup>
-                  <div className="text-muted mt-1" style={{ fontSize: 12 }}>
-                    Se autocompleta según el servicio (podés ajustarlo si querés).
+                {/* Dropdown de Sugerencias mejorado */}
+                {clientOpen && (clientLoading || clientSug.length > 0) && (
+                  <div className="client-autocomplete-dropdown shadow-premium">
+                    {clientLoading ? (
+                      <div className="p-3 text-center text-muted small">
+                        <Spinner size="sm" className="me-2" /> Buscando...
+                      </div>
+                    ) : (
+                      clientSug.map((c) => (
+                        <button key={c.id} type="button" onClick={() => pickClient(c)} className="suggestion-item">
+                          <div className="fw-bold text-dark">{c.firstName} {c.lastName}</div>
+                          <div className="text-muted smaller">{c.phone || "Sin teléfono"} · {c.email || "Sin email"}</div>
+                        </button>
+                      ))
+                    )}
                   </div>
-                </Form.Group>
-              </Col>
+                )}
+              </div>
+            </div>
 
-              <Col md={12}>
-                <Form.Group>
-                  <Form.Label>Notas</Form.Label>
-                  <Form.Control
-                    as="textarea"
-                    rows={3}
-                    value={form.notes}
-                    onChange={(e) => setField("notes", e.target.value)}
-                  />
-                </Form.Group>
-              </Col>
-            </Row>
+            <div className="form-section mb-4">
+              <h6 className="form-section-title">Detalles del Servicio</h6>
+              <div className="form-section-content">
+                <Row className="g-3">
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="small-label">Asignar Profesional *</Form.Label>
+                      <Form.Select
+                        className="modern-input"
+                        value={form.workerId}
+                        onChange={(e) => {
+                          const id = e.target.value;
+                          const selected = workers.find((w) => w.id === id);
+                          setDirty(true);
+                          setForm((p) => ({
+                            ...p,
+                            workerId: id,
+                            workerFirstName: selected?.firstName || "",
+                            workerLastName: selected?.lastName || "",
+                          }));
+                        }}
+                      >
+                        <option value="">Seleccionar...</option>
+                        {workers.map((w) => (
+                          <option key={w.id} value={w.id}>{w.name}</option>
+                        ))}
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="small-label">Servicio *</Form.Label>
+                      <Form.Select
+                        className="modern-input"
+                        value={form.serviceId}
+                        onChange={(e) => setField("serviceId", e.target.value)}
+                        disabled={!form.workerId}
+                      >
+                        <option value="">{form.workerId ? "Seleccionar..." : "Elige trabajador primero"}</option>
+                        {workerServices.map((s) => (
+                          <option key={s.id} value={s.id}>{s.name}</option>
+                        ))}
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="small-label">Fecha y Hora *</Form.Label>
+                      <Form.Control
+                        className="modern-input"
+                        type="datetime-local"
+                        value={form.startsAt}
+                        onChange={(e) => setField("startsAt", e.target.value)}
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="small-label">Inversión / Precio</Form.Label>
+                      <InputGroup className="modern-input-group">
+                        <InputGroup.Text className="bg-transparent border-0">$</InputGroup.Text>
+                        <Form.Control 
+                          className="border-0 ps-1"
+                          value={form.price} 
+                          onChange={(e) => setField("price", e.target.value)} 
+                        />
+                      </InputGroup>
+                    </Form.Group>
+                  </Col>
+                </Row>
+              </div>
+            </div>
+
+            <div className="form-section">
+              <h6 className="form-section-title">Información Adicional</h6>
+              <div className="form-section-content">
+                <Row className="g-3">
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="small-label">WhatsApp / Teléfono</Form.Label>
+                      <Form.Control className="modern-input" value={form.phone} onChange={(e) => setField("phone", e.target.value)} />
+                    </Form.Group>
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="small-label">Notas o Indicaciones</Form.Label>
+                      <Form.Control
+                        className="modern-input"
+                        as="textarea"
+                        rows={1}
+                        value={form.notes}
+                        onChange={(e) => setField("notes", e.target.value)}
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
+              </div>
+            </div>
           </Form>
         )}
       </Modal.Body>
 
-      <Modal.Footer>
-        <Button variant="outline-secondary" onClick={onHide} disabled={saving}>
+      <Modal.Footer className="border-0 pt-0 pb-4 pe-4">
+        <Button variant="link" className="text-muted text-decoration-none me-auto ps-4" onClick={onHide} disabled={saving}>
           Cancelar
         </Button>
 
-        <Button variant="dark" onClick={handleSave} disabled={saveDisabled || loadingRefs}>
+        <Button 
+          variant="dark" 
+          className="btn-premium px-5 py-3"
+          onClick={handleSave} 
+          disabled={saveDisabled || loadingRefs}
+        >
           {saving ? (
             <>
               <Spinner size="sm" className="me-2" />
-              Guardando...
+              Procesando...
             </>
-          ) : isEdit ? (
-            "Guardar cambios"
-          ) : (
-            "Guardar"
-          )}
+          ) : isEdit ? "Actualizar Cita" : "Agendar Cita"}
         </Button>
       </Modal.Footer>
     </Modal>
   );
-} 
+}

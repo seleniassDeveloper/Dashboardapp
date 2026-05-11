@@ -1,0 +1,93 @@
+.topbar {
+  height: var(--space-topbar);
+  width: 100% !important;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background-size: cover;
+  background-position: center;
+  transition: all 0.3s ease;
+}
+
+.topbar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.4) 100%);
+  backdrop-filter: blur(1px);
+  z-index: 0;
+}
+
+.topbar__left, .topbar__search, .topbar__actions {
+  position: relative;
+  z-index: 1;
+}
+
+.topbar__brand-wrap {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.topbar__brand-name {
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: white;
+  letter-spacing: -0.03em;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  line-height: 1.1;
+}
+
+.topbar__brand-slogan {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0;
+  letter-spacing: 0.02em;
+}
+
+.topbar__search {
+  flex: 0 1 400px;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  padding: 6px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: white;
+}
+
+.topbar__search input {
+  background: transparent;
+  border: none;
+  color: white;
+  outline: none;
+  width: 100%;
+  font-size: 0.9rem;
+}
+
+.topbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.topbar__btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: white;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
