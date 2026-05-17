@@ -86,11 +86,7 @@ export default function Sidebar({
         {MENU_ITEMS.map((item) => {
           const isActive = location.pathname === item.path || (item.path !== "/app" && location.pathname.startsWith(item.path));
           
-          const handleClick = (e) => {
-            if (item.id === "config") {
-              e.preventDefault();
-              onEditBrand();
-            }
+          const handleClick = () => {
             onClose();
           };
 

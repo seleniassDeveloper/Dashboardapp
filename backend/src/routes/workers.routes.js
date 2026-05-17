@@ -1,44 +1,57 @@
 import { Router } from "express";
 import prisma from "../prisma.js";
+import { normalizeWorker, saveWorkerRelations } from "../utils/normalizeWorker.js";
 
 const router = Router();
 
+const workerInclude = {
+  services: { include: { service: true } },
+  schedules: true,
+};
+
 // GET /api/workers
-router.get("/", async (req, res) => {
+router.get("/", async (_req, res) => {
   try {
     const workers = await prisma.worker.findMany({
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
-      include: {
-        services: {
-          include: {
-            service: true,
-          },
-        },
-        schedules: true,
-      },
+      include: workerInclude,
     });
-
-    const normalized = workers.map((w) => ({
-      id: w.id,
-      firstName: w.firstName,
-      lastName: w.lastName,
-      serviceIds: (w.services || []).map((ws) => String(ws.serviceId)),
-      schedules: w.schedules || [],
-      createdAt: w.createdAt,
-      updatedAt: w.updatedAt,
-    }));
-
-    res.json(normalized);
+    res.json(workers.map(normalizeWorker));
   } catch (error) {
     console.error("Error obteniendo workers:", error);
-    res.status(500).json({ error: "Error obteniendo workers" });
+    res.status(500).json({ error: "Error obteniendo workers." });
+  }
+});
+
+// GET /api/workers/:id
+router.get("/:id", async (req, res) => {
+  try {
+    const w = await prisma.worker.findUnique({
+      where: { id: req.params.id },
+      include: workerInclude,
+    });
+    if (!w) return res.status(404).json({ error: "Trabajador no encontrado." });
+    res.json(normalizeWorker(w));
+  } catch (error) {
+    console.error("Error obteniendo worker:", error);
+    res.status(500).json({ error: "Error obteniendo trabajador." });
   }
 });
 
 // POST /api/workers
 router.post("/", async (req, res) => {
   try {
-    const { firstName, lastName, serviceIds = [], schedules = [] } = req.body;
+    const {
+      firstName,
+      lastName,
+      email,
+      phone,
+      roleTitle,
+      customFields,
+      serviceIds = [],
+      schedules = [],
+      servicePricing = {},
+    } = req.body;
 
     if (!firstName?.trim() || !lastName?.trim()) {
       return res.status(400).json({ error: "Nombre y apellido son obligatorios." });
@@ -56,45 +69,21 @@ router.post("/", async (req, res) => {
       data: {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
+        email: email?.trim() || null,
+        phone: phone?.trim() || null,
+        roleTitle: roleTitle?.trim() || null,
+        customFields: customFields && typeof customFields === "object" ? customFields : {},
       },
     });
 
-    await prisma.workerService.createMany({
-      data: serviceIds.map((serviceId) => ({
-        workerId: worker.id,
-        serviceId: String(serviceId),
-      })),
-      skipDuplicates: true,
-    });
-
-    await prisma.workerSchedule.createMany({
-      data: schedules.map((s) => ({
-        workerId: worker.id,
-        dayOfWeek: Number(s.dayOfWeek),
-        startTime: s.startTime,
-        endTime: s.endTime,
-      })),
-    });
+    await saveWorkerRelations(prisma, worker.id, { serviceIds, schedules, servicePricing });
 
     const fullWorker = await prisma.worker.findUnique({
       where: { id: worker.id },
-      include: {
-        services: {
-          include: {
-            service: true,
-          },
-        },
-        schedules: true,
-      },
+      include: workerInclude,
     });
 
-    res.status(201).json({
-      id: fullWorker.id,
-      firstName: fullWorker.firstName,
-      lastName: fullWorker.lastName,
-      serviceIds: (fullWorker.services || []).map((ws) => String(ws.serviceId)),
-      schedules: fullWorker.schedules || [],
-    });
+    res.status(201).json(normalizeWorker(fullWorker));
   } catch (error) {
     console.error("Error creando worker:", error);
     res.status(500).json({ error: "Error creando trabajador." });
@@ -105,7 +94,17 @@ router.post("/", async (req, res) => {
 router.put("/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { firstName, lastName, serviceIds = [], schedules = [] } = req.body;
+    const {
+      firstName,
+      lastName,
+      email,
+      phone,
+      roleTitle,
+      customFields,
+      serviceIds = [],
+      schedules = [],
+      servicePricing = {},
+    } = req.body;
 
     if (!firstName?.trim() || !lastName?.trim()) {
       return res.status(400).json({ error: "Nombre y apellido son obligatorios." });
@@ -116,57 +115,21 @@ router.put("/:id", async (req, res) => {
       data: {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
+        email: email?.trim() || null,
+        phone: phone?.trim() || null,
+        roleTitle: roleTitle?.trim() || null,
+        customFields: customFields && typeof customFields === "object" ? customFields : {},
       },
     });
 
-    await prisma.workerService.deleteMany({
-      where: { workerId: id },
-    });
-
-    await prisma.workerSchedule.deleteMany({
-      where: { workerId: id },
-    });
-
-    if (serviceIds.length > 0) {
-      await prisma.workerService.createMany({
-        data: serviceIds.map((serviceId) => ({
-          workerId: id,
-          serviceId: String(serviceId),
-        })),
-        skipDuplicates: true,
-      });
-    }
-
-    if (schedules.length > 0) {
-      await prisma.workerSchedule.createMany({
-        data: schedules.map((s) => ({
-          workerId: id,
-          dayOfWeek: Number(s.dayOfWeek),
-          startTime: s.startTime,
-          endTime: s.endTime,
-        })),
-      });
-    }
+    await saveWorkerRelations(prisma, id, { serviceIds, schedules, servicePricing });
 
     const fullWorker = await prisma.worker.findUnique({
       where: { id },
-      include: {
-        services: {
-          include: {
-            service: true,
-          },
-        },
-        schedules: true,
-      },
+      include: workerInclude,
     });
 
-    res.json({
-      id: fullWorker.id,
-      firstName: fullWorker.firstName,
-      lastName: fullWorker.lastName,
-      serviceIds: (fullWorker.services || []).map((ws) => String(ws.serviceId)),
-      schedules: fullWorker.schedules || [],
-    });
+    res.json(normalizeWorker(fullWorker));
   } catch (error) {
     console.error("Error actualizando worker:", error);
     res.status(500).json({ error: "Error actualizando trabajador." });

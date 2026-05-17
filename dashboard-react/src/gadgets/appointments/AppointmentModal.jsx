@@ -72,7 +72,21 @@ function normalizeWorker(raw, servicesById = {}) {
     name: `${w.firstName || ""} ${w.lastName || ""}`.trim() || "Trabajador",
     serviceIds: idsFromWorker,
     services: finalServices,
+    schedules: safeArray(w.schedules),
   };
+}
+
+function formatDateTimeLocalLabel(dtLocal) {
+  if (!dtLocal) return "—";
+  const d = new Date(dtLocal);
+  if (isNaN(d.getTime())) return "—";
+  return d.toLocaleString("es-AR", {
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 export default function AppointmentModal({ show, onHide, onSaved, initialData = null }) {
@@ -86,6 +100,12 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
 
   const [workers, setWorkers] = useState([]);
   const [servicesCatalog, setServicesCatalog] = useState([]);
+  const [availability, setAvailability] = useState({
+    loading: false,
+    available: null,
+    reason: "",
+    availableWorkers: [],
+  });
 
   // --- autocomplete cliente ---
   const [clientOpen, setClientOpen] = useState(false);
@@ -204,13 +224,57 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
     [workerServices, form.serviceId]
   );
 
+  const slotComplete = Boolean(form.workerId) && Boolean(form.serviceId) && Boolean(form.startsAt);
+
   // validación
   const valid = useMemo(() => {
     const hasClient = form.clientFirstName.trim() && form.clientLastName.trim();
-    return Boolean(hasClient) && Boolean(form.workerId) && Boolean(form.serviceId) && Boolean(form.startsAt);
-  }, [form]);
+    const slotOk = availability.available !== false;
+    return Boolean(hasClient) && slotComplete && slotOk;
+  }, [form, slotComplete, availability.available]);
 
-  const saveDisabled = !valid || saving || (isEdit && !dirty);
+  const saveDisabled =
+    !valid || saving || (isEdit && !dirty) || availability.loading || (slotComplete && availability.available === false);
+
+  // verificar disponibilidad del profesional al cambiar hora/servicio/trabajador
+  useEffect(() => {
+    if (!show || !slotComplete) {
+      setAvailability({ loading: false, available: null, reason: "", availableWorkers: [] });
+      return;
+    }
+
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      try {
+        setAvailability((p) => ({ ...p, loading: true }));
+        const params = {
+          workerId: form.workerId,
+          serviceId: form.serviceId,
+          startsAt: toISO(form.startsAt),
+        };
+        if (isEdit && initialData?.id) params.excludeId = initialData.id;
+
+        const res = await axios.get(`${API}/appointments/availability`, { params });
+        if (cancelled) return;
+
+        setAvailability({
+          loading: false,
+          available: Boolean(res.data?.available),
+          reason: res.data?.reason || "",
+          availableWorkers: safeArray(res.data?.availableWorkers),
+        });
+      } catch {
+        if (!cancelled) {
+          setAvailability({ loading: false, available: null, reason: "", availableWorkers: [] });
+        }
+      }
+    }, 350);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [show, form.workerId, form.serviceId, form.startsAt, slotComplete, isEdit, initialData?.id]);
 
   // hydrate edit
   useEffect(() => {
@@ -347,10 +411,19 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
       console.error("Appointment save error:", e?.response?.data || e);
 
       if (e?.response?.status === 409) {
-        setError(
-          e?.response?.data?.error ||
-            "Horario ocupado: este trabajador ya tiene una cita que se solapa con esa hora."
-        );
+        const data = e?.response?.data || {};
+        const alts = safeArray(data.availableWorkers)
+          .map((w) => w.name)
+          .filter(Boolean);
+        const altText =
+          alts.length > 0 ? ` Profesionales disponibles: ${alts.join(", ")}.` : "";
+        setError((data.error || "El profesional no está disponible en ese horario.") + altText);
+        setAvailability({
+          loading: false,
+          available: false,
+          reason: data.error || "",
+          availableWorkers: safeArray(data.availableWorkers),
+        });
         return;
       }
 
@@ -373,7 +446,9 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
     onSaved,
     onHide,
   ]);
-  console.log( "workerServices", workerServices)
+  const attendingLabel = selectedWorker?.name || "Sin asignar";
+  const serviceLabel = selectedService?.name || "—";
+  const whenLabel = formatDateTimeLocalLabel(form.startsAt);
 
   return (
     <Modal 
@@ -470,10 +545,57 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
             <div className="form-section mb-4">
               <h6 className="form-section-title">Detalles del Servicio</h6>
               <div className="form-section-content">
+                {slotComplete && (
+                  <div
+                    className="mb-3 p-3 rounded-3"
+                    style={{
+                      background:
+                        availability.available === false
+                          ? "rgba(220,53,69,0.08)"
+                          : "rgba(25,135,84,0.08)",
+                      border: `1px solid ${
+                        availability.available === false
+                          ? "rgba(220,53,69,0.25)"
+                          : "rgba(25,135,84,0.25)"
+                      }`,
+                    }}
+                  >
+                    <div className="text-muted small mb-1">Resumen de la cita</div>
+                    <div className="fw-semibold">
+                      Atiende: <span className="text-dark">{attendingLabel}</span>
+                    </div>
+                    <div className="small text-muted mt-1">
+                      {serviceLabel} · {whenLabel}
+                      {selectedService?.duration ? ` · ${selectedService.duration} min` : ""}
+                    </div>
+                    {availability.loading && (
+                      <div className="small text-muted mt-2 d-flex align-items-center gap-2">
+                        <Spinner size="sm" /> Verificando disponibilidad…
+                      </div>
+                    )}
+                    {!availability.loading && availability.available === false && (
+                      <div className="small text-danger mt-2 fw-medium">
+                        {availability.reason || "No disponible en ese horario."}
+                        {availability.availableWorkers.length > 0 && (
+                          <div className="mt-1 fw-normal">
+                            Disponibles:{" "}
+                            {availability.availableWorkers.map((w) => w.name).join(", ")}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {!availability.loading && availability.available === true && (
+                      <div className="small text-success mt-2">
+                        Horario disponible para este profesional.
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <Row className="g-3">
                   <Col md={6}>
                     <Form.Group>
-                      <Form.Label className="small-label">Asignar Profesional *</Form.Label>
+                      <Form.Label className="small-label">Profesional que atiende *</Form.Label>
                       <Form.Select
                         className="modern-input"
                         value={form.workerId}

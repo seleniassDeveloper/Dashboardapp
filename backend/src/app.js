@@ -14,6 +14,9 @@ import servicesRoutes from "./routes/services.routes.js";
 import aiRoutes from "./routes/ai.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import adminUsersRoutes from "./routes/adminUsers.routes.js";
+import formSchemasRoutes from "./routes/formSchemas.routes.js";
+import businessModelsRoutes from "./routes/businessModels.routes.js";
+import workflowsRoutes from "./routes/workflows.routes.js";
 import requireAuth from "./middleware/requireAuth.js";
 
 const app = express();
@@ -28,6 +31,9 @@ app.use("/api/appointments", requireAuth, appointmentsRoutes);
 app.use("/api/clients", requireAuth, clientsRoutes);
 app.use("/api/workers", requireAuth, workersRoutes);
 app.use("/api/services", requireAuth, servicesRoutes);
+app.use("/api/form-schemas", requireAuth, formSchemasRoutes);
+app.use("/api/business-models", requireAuth, businessModelsRoutes);
+app.use("/api/workflows", requireAuth, workflowsRoutes);
 app.use("/api/ai", requireAuth, aiRoutes);
 
 export default app;

@@ -7,9 +7,11 @@ export default function LoginScreen() {
   const {
     loginWithEmailPassword,
     registerWithEmailPassword,
-    loginWithGooglePopup,
+    loginWithGoogle,
     sendPasswordReset,
     firebaseErrorMessage,
+    authError,
+    clearAuthError,
   } = useAuth();
 
   const navigate = useNavigate();
@@ -82,14 +84,14 @@ export default function LoginScreen() {
   async function onGoogleClick() {
     setError("");
     setErrorCode("");
+    clearAuthError();
     setSubmitting(true);
     try {
-      await loginWithGooglePopup();
-      // Si es exitoso, LoginGate reaccionará al cambio de estado de 'user'
+      await loginWithGoogle();
+      // Con redirect la página se recarga; no llegamos al finally
     } catch (err) {
       setErrorCode(err?.code || "");
       setError(firebaseErrorMessage(err));
-    } finally {
       setSubmitting(false);
     }
   }
@@ -168,6 +170,10 @@ export default function LoginScreen() {
           <h1 className="login-title">Bienvenido</h1>
           <p className="login-subtitle">Accede a tu panel de control avanzado.</p>
         </div>
+
+        {(authError || error) && (
+          <div className="error-msg mb-3">{authError || error}</div>
+        )}
 
         <div className="auth-tabs-nav">
           <div
@@ -339,8 +345,15 @@ export default function LoginScreen() {
               d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 12-4.53z"
             />
           </svg>
-          Google
+          {submitting ? "Redirigiendo a Google…" : "Google"}
         </button>
+
+        {errorCode === "auth/unauthorized-domain" && (
+          <div className="error-msg mt-3" style={{ background: "rgba(251, 191, 36, 0.1)", color: "#fbbf24", borderColor: "rgba(251, 191, 36, 0.2)" }}>
+            En Firebase Console → Authentication → Settings → Authorized domains, agregá{" "}
+            <strong>localhost</strong>. Usá siempre http://localhost:5173
+          </div>
+        )}
 
         {errorCode === "auth/operation-not-allowed" && (
           <div className="error-msg mt-3" style={{ background: 'rgba(251, 191, 36, 0.1)', color: '#fbbf24', borderColor: 'rgba(251, 191, 36, 0.2)' }}>

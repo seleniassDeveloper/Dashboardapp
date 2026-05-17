@@ -1,0 +1,113 @@
+/** Modelos de negocio y plantillas de workflow iniciales */
+export const DEFAULT_BUSINESS_MODELS = [
+  {
+    slug: "salon",
+    name: "Salón de belleza",
+    description: "Citas, color, corte y tratamientos con recordatorios y fidelización.",
+    icon: "scissors",
+    allowedTriggers: [
+      "appointment_before",
+      "appointment_after",
+      "appointment_created",
+      "appointment_cancelled",
+      "client_inactive",
+    ],
+    allowedActions: ["send_whatsapp", "send_email", "send_reminder_email", "notify_admin", "apply_discount"],
+    templateWorkflows: [
+      {
+        name: "Recordatorio 24h (WhatsApp)",
+        description: "Avisa al cliente un día antes de la cita.",
+        trigger: { type: "appointment_before", config: { minutesBefore: 1440 } },
+        steps: [{ type: "send_whatsapp", config: { template: "recordatorio_cita" } }],
+      },
+      {
+        name: "Fidelización post-servicio",
+        description: "Cupón al finalizar la cita.",
+        trigger: { type: "appointment_after", config: { whenStatus: "DONE" } },
+        steps: [{ type: "apply_discount", config: { percent: 10, validDays: 30 } }],
+      },
+    ],
+  },
+  {
+    slug: "barber",
+    name: "Barbería",
+    description: "Turnos rápidos, barba y corte con confirmaciones automáticas.",
+    icon: "user",
+    allowedTriggers: ["appointment_before", "appointment_created", "client_inactive"],
+    allowedActions: ["send_whatsapp", "send_email", "notify_admin"],
+    templateWorkflows: [
+      {
+        name: "Recordatorio 2h antes",
+        trigger: { type: "appointment_before", config: { minutesBefore: 120 } },
+        steps: [{ type: "send_whatsapp", config: { template: "recordatorio_corta" } }],
+      },
+    ],
+  },
+  {
+    slug: "clinic",
+    name: "Clínica / Consultorio",
+    description: "Agenda médica con emails formales y seguimiento.",
+    icon: "heart-pulse",
+    allowedTriggers: ["appointment_before", "appointment_created", "appointment_cancelled"],
+    allowedActions: ["send_email", "send_reminder_email", "notify_admin"],
+    templateWorkflows: [
+      {
+        name: "Recordatorio por email (48h)",
+        trigger: { type: "appointment_before", config: { minutesBefore: 2880 } },
+        steps: [{ type: "send_reminder_email", config: {} }],
+      },
+    ],
+  },
+  {
+    slug: "gym",
+    name: "Gimnasio / Estudio",
+    description: "Clases, entrenadores y reactivación de socios inactivos.",
+    icon: "dumbbell",
+    allowedTriggers: ["appointment_before", "client_inactive", "schedule_daily"],
+    allowedActions: ["send_email", "send_whatsapp", "notify_admin"],
+    templateWorkflows: [
+      {
+        name: "Re-activación 30 días",
+        trigger: { type: "client_inactive", config: { inactiveDays: 30 } },
+        steps: [{ type: "send_email", config: { template: "reactivacion" } }],
+      },
+    ],
+  },
+  {
+    slug: "spa",
+    name: "Spa & Wellness",
+    description: "Experiencias premium con confirmación y upsell.",
+    icon: "sparkles",
+    allowedTriggers: ["appointment_before", "appointment_after", "appointment_created"],
+    allowedActions: ["send_whatsapp", "send_email", "apply_discount", "notify_admin"],
+    templateWorkflows: [
+      {
+        name: "Bienvenida al reservar",
+        trigger: { type: "appointment_created", config: {} },
+        steps: [{ type: "send_email", config: { template: "confirmacion_reserva" } }],
+      },
+    ],
+  },
+  {
+    slug: "custom",
+    name: "Personalizado",
+    description: "Armá tus propios disparadores y acciones sin plantilla fija.",
+    icon: "settings",
+    allowedTriggers: [
+      "appointment_before",
+      "appointment_after",
+      "appointment_created",
+      "appointment_cancelled",
+      "client_inactive",
+      "schedule_daily",
+    ],
+    allowedActions: [
+      "send_whatsapp",
+      "send_email",
+      "send_reminder_email",
+      "notify_admin",
+      "apply_discount",
+    ],
+    templateWorkflows: [],
+  },
+];

@@ -288,6 +288,17 @@ export default function AppointmentsCalendar() {
                 </div>
               </div>
 
+              <div>
+                <div className="text-muted" style={{ fontSize: 12 }}>
+                  Profesional que atiende
+                </div>
+                <div className="fw-semibold">
+                  {selected?.worker
+                    ? `${selected.worker.firstName || ""} ${selected.worker.lastName || ""}`.trim()
+                    : "—"}
+                </div>
+              </div>
+
               <div className="d-flex gap-3">
                 <div>
                   <div className="text-muted" style={{ fontSize: 12 }}>

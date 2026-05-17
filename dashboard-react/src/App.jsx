@@ -12,6 +12,7 @@ import FinancesView from "./views/FinancesView";
 import WorkflowsView from "./views/WorkflowsView";
 import AutomationsView from "./views/AutomationsView";
 import HowItWorks from "./views/HowItWorks";
+import SettingsView from "./views/SettingsView";
 
 export default function App() {
   return (
@@ -26,7 +27,7 @@ export default function App() {
         <Route path="/workflows" element={<WorkflowsView />} />
         <Route path="/automations" element={<AutomationsView />} />
         <Route path="/guide" element={<HowItWorks />} />
-        <Route path="/settings" element={<DashboardView />} />
+        <Route path="/settings" element={<SettingsView />} />
         
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

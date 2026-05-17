@@ -7,13 +7,20 @@ import {
   onAuthStateChanged,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
-  signInWithPopup,
+  signInWithRedirect,
   signOut,
   updateProfile,
 } from "firebase/auth";
 import { firebaseAuth, firebaseConfigOk } from "../firebase/client.js";
 
-const API_HOST = "http://localhost:3001";
+const API_HOST = import.meta.env.VITE_API_URL?.replace(/\/api\/?$/, "") || "http://localhost:3001";
+const AUTH_DISABLED = import.meta.env.VITE_AUTH_DISABLED === "true";
+
+const DEV_USER = {
+  uid: "dev-user",
+  email: "dev@example.com",
+  displayName: "Usuario Dev",
+};
 
 const AuthContext = createContext(null);
 
@@ -29,6 +36,11 @@ function firebaseErrorMessage(err) {
     "auth/invalid-credential": "Email o contraseña incorrectos.",
     "auth/too-many-requests": "Demasiados intentos. Probá más tarde.",
     "auth/popup-closed-by-user": "Ventana de Google cerrada antes de completar.",
+    "auth/popup-blocked":
+      "El navegador bloqueó la ventana emergente. Probá de nuevo: usamos redirección automática.",
+    "auth/redirect-cancelled-by-user": "Inicio de sesión con Google cancelado.",
+    "auth/unauthorized-domain":
+      "Este dominio no está autorizado en Firebase. Agregá localhost en Authentication → Settings → Authorized domains.",
     "auth/network-request-failed": "Error de red. Revisá tu conexión.",
     "auth/operation-not-allowed":
       "Este método de acceso no está habilitado en Firebase (revisá Authentication en la consola).",
@@ -37,29 +49,54 @@ function firebaseErrorMessage(err) {
   return map[code] || err?.message || "Ocurrió un error de autenticación.";
 }
 
+function googleProvider() {
+  const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: "select_account" });
+  return provider;
+}
+
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [authLoading, setAuthLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [user, setUser] = useState(AUTH_DISABLED ? DEV_USER : null);
+  const [authLoading, setAuthLoading] = useState(!AUTH_DISABLED);
+  const [isAdmin, setIsAdmin] = useState(AUTH_DISABLED);
+  const [authError, setAuthError] = useState("");
 
   useEffect(() => {
-    // Completa el flujo si venimos de un redirect de Google.
-    // No necesitamos el resultado para nada extra: onAuthStateChanged actualizará `user`.
-    getRedirectResult(firebaseAuth).catch(() => {
-      /* ignore */
-    });
+    if (AUTH_DISABLED) return;
+
+    let unsub = () => {};
+    let cancelled = false;
+
+    (async () => {
+      try {
+        await getRedirectResult(firebaseAuth);
+      } catch (err) {
+        if (!cancelled) {
+          console.error("Google redirect error:", err);
+          setAuthError(firebaseErrorMessage(err));
+        }
+      } finally {
+        sessionStorage.removeItem("authRedirectPending");
+      }
+
+      if (cancelled) return;
+
+      unsub = onAuthStateChanged(firebaseAuth, (u) => {
+        setUser(u);
+        setIsAdmin(false);
+        setAuthLoading(false);
+        if (u) setAuthError("");
+      });
+    })();
+
+    return () => {
+      cancelled = true;
+      unsub();
+    };
   }, []);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(firebaseAuth, (u) => {
-      setUser(u);
-      setIsAdmin(false);
-      setAuthLoading(false);
-    });
-    return unsub;
-  }, []);
-
-  useEffect(() => {
+    if (AUTH_DISABLED) return;
     async function loadClaims() {
       if (!firebaseAuth.currentUser) return;
       try {
@@ -73,6 +110,7 @@ export function AuthProvider({ children }) {
   }, [user]);
 
   useEffect(() => {
+    if (AUTH_DISABLED) return;
     const reqId = axios.interceptors.request.use(async (config) => {
       const url = String(config.url || "");
       if (!url.includes("localhost:3001")) return config;
@@ -88,6 +126,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
+    if (AUTH_DISABLED) return;
     const resId = axios.interceptors.response.use(
       (res) => res,
       async (err) => {
@@ -116,11 +155,15 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  const loginWithGooglePopup = useCallback(async () => {
-    const provider = new GoogleAuthProvider();
+  const loginWithGoogle = useCallback(async () => {
+    setAuthError("");
+    const provider = googleProvider();
+
     try {
-      await signInWithPopup(firebaseAuth, provider);
+      sessionStorage.setItem("authRedirectPending", "1");
+      await signInWithRedirect(firebaseAuth, provider);
     } catch (err) {
+      sessionStorage.removeItem("authRedirectPending");
       console.error("Google login error:", err);
       throw err;
     }
@@ -142,10 +185,13 @@ export function AuthProvider({ children }) {
       user,
       authLoading,
       isAdmin,
-      firebaseConfigOk: firebaseConfigOk(),
+      authDisabled: AUTH_DISABLED,
+      authError,
+      clearAuthError: () => setAuthError(""),
+      firebaseConfigOk: AUTH_DISABLED || firebaseConfigOk(),
       loginWithEmailPassword,
       registerWithEmailPassword,
-      loginWithGooglePopup,
+      loginWithGoogle,
       sendPasswordReset,
       logout,
       firebaseErrorMessage,
@@ -155,9 +201,10 @@ export function AuthProvider({ children }) {
       user,
       authLoading,
       isAdmin,
+      authError,
       loginWithEmailPassword,
       registerWithEmailPassword,
-      loginWithGooglePopup,
+      loginWithGoogle,
       sendPasswordReset,
       logout,
     ]

@@ -4,17 +4,27 @@ import { useAuth } from "./AuthProvider.jsx";
 import LoginScreen from "./LoginScreen.jsx";
 
 export default function LoginGate({ children }) {
-  const { user, authLoading, firebaseConfigOk } = useAuth();
+  const { user, authLoading, firebaseConfigOk, authDisabled } = useAuth();
+
+  if (authDisabled) {
+    return children;
+  }
+
+  const googleRedirectPending =
+    typeof sessionStorage !== "undefined" && sessionStorage.getItem("authRedirectPending") === "1";
 
   if (authLoading) {
     return (
       <div
-        className="d-flex min-vh-100 align-items-center justify-content-center"
+        className="d-flex min-vh-100 flex-column align-items-center justify-content-center gap-3"
         style={{ background: "linear-gradient(160deg, #1a1d24 0%, #2d3340 100%)" }}
       >
         <Spinner animation="border" variant="light" role="status">
           <span className="visually-hidden">Cargando…</span>
         </Spinner>
+        {googleRedirectPending && (
+          <p className="text-white-50 small mb-0">Completando inicio de sesión con Google…</p>
+        )}
       </div>
     );
   }

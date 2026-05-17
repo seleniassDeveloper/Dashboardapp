@@ -1,83 +1,8 @@
 import prisma from "../prisma.js";
-
-function addMinutes(date, minutes) {
-  return new Date(date.getTime() + Number(minutes || 0) * 60 * 1000);
-}
-
-function overlaps(aStart, aEnd, bStart, bEnd) {
-  return aStart < bEnd && aEnd > bStart;
-}
-
-function dayRange(date) {
-  const d = new Date(date);
-  const start = new Date(d);
-  start.setHours(0, 0, 0, 0);
-
-  const end = new Date(d);
-  end.setHours(23, 59, 59, 999);
-
-  return { start, end };
-}
-
-// Devuelve workers disponibles para: serviceId + startsAt
-async function findAvailableWorkers({ serviceId, startsAt, excludeAppointmentId = null }) {
-  const service = await prisma.service.findUnique({
-    where: { id: String(serviceId) },
-    select: { duration: true },
-  });
-
-  if (!service) return [];
-
-  const newStart = new Date(startsAt);
-  const newEnd = addMinutes(newStart, service.duration);
-  const { start: dayStart, end: dayEnd } = dayRange(newStart);
-
-  const workers = await prisma.worker.findMany({
-    where: {
-      services: {
-        some: { serviceId: String(serviceId) },
-      },
-    },
-    select: {
-      id: true,
-      firstName: true,
-      lastName: true,
-      appointments: {
-        where: {
-          startsAt: { gte: dayStart, lte: dayEnd },
-          NOT: [
-            { status: "CANCELLED" },
-            ...(excludeAppointmentId ? [{ id: String(excludeAppointmentId) }] : []),
-          ],
-        },
-        select: {
-          id: true,
-          startsAt: true,
-          service: {
-            select: { duration: true },
-          },
-        },
-      },
-    },
-  });
-
-  const available = workers.filter((w) => {
-    const busy = (w.appointments || []).some((a) => {
-      const aStart = new Date(a.startsAt);
-      const aEnd = addMinutes(aStart, a?.service?.duration || 60);
-      return overlaps(aStart, aEnd, newStart, newEnd);
-    });
-
-    return !busy;
-  });
-
-  return available.map((w) => ({
-    id: w.id,
-    firstName: w.firstName || "",
-    lastName: w.lastName || "",
-    name: `${w.firstName || ""} ${w.lastName || ""}`.trim() || "Trabajador",
-  }));
-}
+import {
+  validateAppointmentSlot,
+  findAvailableWorkers,
+} from "../services/appointmentAvailability.js";
 
 export async function getAppointments(req, res) {
   try {
@@ -101,6 +26,33 @@ export async function getAppointments(req, res) {
   }
 }
 
+export async function checkAppointmentAvailability(req, res) {
+  try {
+    const { workerId, serviceId, startsAt, excludeId } = req.query;
+
+    if (!workerId || !serviceId || !startsAt) {
+      return res.status(400).json({
+        error: "Parámetros requeridos: workerId, serviceId, startsAt.",
+      });
+    }
+
+    const result = await validateAppointmentSlot({
+      workerId,
+      serviceId,
+      startsAt,
+      excludeAppointmentId: excludeId || null,
+    });
+
+    return res.status(200).json(result);
+  } catch (error) {
+    console.error("Error verificando disponibilidad:", error);
+    return res.status(500).json({
+      error: "Error verificando disponibilidad.",
+      detail: error?.message || "Unknown error",
+    });
+  }
+}
+
 export async function createAppointment(req, res) {
   try {
     const { clientId, serviceId, workerId, startsAt, notes, status } = req.body;
@@ -109,24 +61,6 @@ export async function createAppointment(req, res) {
       return res.status(400).json({
         error: "Faltan datos: clientId, serviceId, workerId, startsAt.",
       });
-    }
-
-    const service = await prisma.service.findUnique({
-      where: { id: String(serviceId) },
-      select: { id: true, name: true, duration: true },
-    });
-
-    if (!service) {
-      return res.status(400).json({ error: "Servicio inválido." });
-    }
-
-    const worker = await prisma.worker.findUnique({
-      where: { id: String(workerId) },
-      select: { id: true, firstName: true, lastName: true },
-    });
-
-    if (!worker) {
-      return res.status(400).json({ error: "Trabajador inválido." });
     }
 
     const client = await prisma.client.findUnique({
@@ -138,45 +72,17 @@ export async function createAppointment(req, res) {
       return res.status(400).json({ error: "Cliente inválido." });
     }
 
-    const newStart = new Date(startsAt);
-    if (isNaN(newStart.getTime())) {
-      return res.status(400).json({ error: "startsAt inválido." });
-    }
-
-    const newEnd = addMinutes(newStart, service.duration);
-    const { start: dayStart, end: dayEnd } = dayRange(newStart);
-
-    const sameDay = await prisma.appointment.findMany({
-      where: {
-        workerId: String(workerId),
-        startsAt: { gte: dayStart, lte: dayEnd },
-        NOT: { status: "CANCELLED" },
-      },
-      include: {
-        service: {
-          select: { id: true, name: true, duration: true },
-        },
-        client: true,
-        worker: true,
-      },
+    const slot = await validateAppointmentSlot({
+      workerId,
+      serviceId,
+      startsAt,
     });
 
-    const conflict = sameDay.find((a) => {
-      const aStart = new Date(a.startsAt);
-      const aEnd = addMinutes(aStart, a?.service?.duration || 60);
-      return overlaps(aStart, aEnd, newStart, newEnd);
-    });
-
-    if (conflict) {
-      const availableWorkers = await findAvailableWorkers({
-        serviceId,
-        startsAt: newStart,
-      });
-
+    if (!slot.available) {
       return res.status(409).json({
-        error: "El trabajador no está libre en ese horario.",
-        conflict,
-        availableWorkers,
+        error: slot.reason || "El profesional no está disponible en ese horario.",
+        conflict: slot.conflict || null,
+        availableWorkers: slot.availableWorkers || [],
       });
     }
 
@@ -185,7 +91,7 @@ export async function createAppointment(req, res) {
         clientId: String(clientId),
         serviceId: String(serviceId),
         workerId: String(workerId),
-        startsAt: newStart,
+        startsAt: new Date(startsAt),
         notes: notes || null,
         status: status || "PENDING",
       },
@@ -222,55 +128,27 @@ export async function updateAppointment(req, res) {
       });
     }
 
-    const service = await prisma.service.findUnique({
-      where: { id: String(serviceId) },
-      select: { duration: true },
+    const client = await prisma.client.findUnique({
+      where: { id: String(clientId) },
+      select: { id: true },
     });
 
-    if (!service) {
-      return res.status(400).json({ error: "Servicio inválido." });
+    if (!client) {
+      return res.status(400).json({ error: "Cliente inválido." });
     }
 
-    const newStart = new Date(startsAt);
-    if (isNaN(newStart.getTime())) {
-      return res.status(400).json({ error: "startsAt inválido." });
-    }
-
-    const newEnd = addMinutes(newStart, service.duration);
-    const { start: dayStart, end: dayEnd } = dayRange(newStart);
-
-    const sameDay = await prisma.appointment.findMany({
-      where: {
-        workerId: String(workerId),
-        startsAt: { gte: dayStart, lte: dayEnd },
-        NOT: [{ id: String(id) }, { status: "CANCELLED" }],
-      },
-      include: {
-        service: {
-          select: { id: true, name: true, duration: true },
-        },
-        client: true,
-        worker: true,
-      },
+    const slot = await validateAppointmentSlot({
+      workerId,
+      serviceId,
+      startsAt,
+      excludeAppointmentId: id,
     });
 
-    const conflict = sameDay.find((a) => {
-      const aStart = new Date(a.startsAt);
-      const aEnd = addMinutes(aStart, a?.service?.duration || 60);
-      return overlaps(aStart, aEnd, newStart, newEnd);
-    });
-
-    if (conflict) {
-      const availableWorkers = await findAvailableWorkers({
-        serviceId,
-        startsAt: newStart,
-        excludeAppointmentId: id,
-      });
-
+    if (!slot.available) {
       return res.status(409).json({
-        error: "El trabajador no está libre en ese horario.",
-        conflict,
-        availableWorkers,
+        error: slot.reason || "El profesional no está disponible en ese horario.",
+        conflict: slot.conflict || null,
+        availableWorkers: slot.availableWorkers || [],
       });
     }
 
@@ -280,7 +158,7 @@ export async function updateAppointment(req, res) {
         clientId: String(clientId),
         serviceId: String(serviceId),
         workerId: String(workerId),
-        startsAt: newStart,
+        startsAt: new Date(startsAt),
         notes: notes || null,
         status: status || undefined,
       },

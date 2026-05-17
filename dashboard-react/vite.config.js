@@ -12,6 +12,8 @@ export default defineConfig({
     dedupe: ["react", "react-dom"],
   },
   server: {
+    port: 5173,
+    strictPort: true,
     fs: {
       allow: [
         __dirname,

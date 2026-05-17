@@ -50,11 +50,63 @@ model Worker {
   id           String           @id @default(cuid())
   firstName    String
   lastName     String
+  email        String?
+  phone        String?
+  roleTitle    String?
+  customFields Json?
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
   appointments Appointment[]
   schedules    WorkerSchedule[]
   services     WorkerService[]
+}
+
+model FormSchema {
+  id         String   @id @default(cuid())
+  key        String   @unique
+  label      String
+  entity     String?
+  component  String?
+  schemaType String   @default("legacy")
+  fields     Json     @default("[]")
+  fieldRefs  Json?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model BusinessModel {
+  id                String     @id @default(cuid())
+  slug              String     @unique
+  name              String
+  description       String?
+  icon              String?
+  allowedTriggers   Json
+  allowedActions    Json
+  templateWorkflows Json?
+  isActive          Boolean    @default(true)
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  workflows         Workflow[]
+}
+
+model Workflow {
+  id              String        @id @default(cuid())
+  name            String
+  description     String?
+  status          String        @default("DRAFT")
+  businessModelId String
+  trigger         Json
+  steps           Json
+  transitions     Json          @default("[]")
+  screens         Json          @default("[]")
+  runCount        Int           @default(0)
+  lastRunAt       DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  businessModel   BusinessModel @relation(fields: [businessModelId], references: [id], onDelete: Cascade)
+
+  @@index([businessModelId])
+  @@index([status])
 }
 
 model WorkerSchedule {

@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   getAppointments,
+  checkAppointmentAvailability,
   createAppointment,
   updateAppointment,
   deleteAppointment,
@@ -9,6 +10,7 @@ import {
 const router = Router();
 
 // IMPORTANTE: acá es "/" porque el mount ya es "/api/appointments"
+router.get("/availability", checkAppointmentAvailability);
 router.get("/", getAppointments);
 router.post("/", createAppointment);
 router.put("/:id", updateAppointment);
