@@ -1,12 +1,15 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import api, { API_BASE_URL, isApiRequest } from "../lib/api.js";
 import {
+  browserLocalPersistence,
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
   getRedirectResult,
   onAuthStateChanged,
   sendPasswordResetEmail,
+  setPersistence,
   signInWithEmailAndPassword,
+  signInWithPopup,
   signInWithRedirect,
   signOut,
   updateProfile,
@@ -69,7 +72,12 @@ export function AuthProvider({ children }) {
 
     (async () => {
       try {
-        await getRedirectResult(firebaseAuth);
+        await setPersistence(firebaseAuth, browserLocalPersistence);
+        const result = await getRedirectResult(firebaseAuth);
+        if (!cancelled && result?.user) {
+          setUser(result.user);
+          setAuthError("");
+        }
       } catch (err) {
         if (!cancelled) {
           console.error("Google redirect error:", err);
@@ -82,6 +90,7 @@ export function AuthProvider({ children }) {
       if (cancelled) return;
 
       unsub = onAuthStateChanged(firebaseAuth, (u) => {
+        if (cancelled) return;
         setUser(u);
         setIsAdmin(false);
         setAuthLoading(false);
@@ -129,14 +138,9 @@ export function AuthProvider({ children }) {
     if (AUTH_DISABLED) return;
     const resId = api.interceptors.response.use(
       (res) => res,
-      async (err) => {
-        if (err.response?.status === 401 && firebaseAuth.currentUser) {
-          try {
-            await signOut(firebaseAuth);
-          } catch {
-            /* ignore */
-          }
-        }
+      (err) => {
+        // No cerrar sesión automáticamente: en producción el API puede no estar
+        // desplegado aún (localhost / 401) y eso expulsaba al usuario tras Google.
         return Promise.reject(err);
       }
     );
@@ -160,10 +164,15 @@ export function AuthProvider({ children }) {
     const provider = googleProvider();
 
     try {
-      sessionStorage.setItem("authRedirectPending", "1");
-      await signInWithRedirect(firebaseAuth, provider);
+      // Popup evita perder la sesión al volver del redirect en Vercel/Safari.
+      await signInWithPopup(firebaseAuth, provider);
     } catch (err) {
-      sessionStorage.removeItem("authRedirectPending");
+      const code = err?.code || "";
+      if (code === "auth/popup-blocked" || code === "auth/popup-closed-by-user") {
+        sessionStorage.setItem("authRedirectPending", "1");
+        await signInWithRedirect(firebaseAuth, provider);
+        return;
+      }
       console.error("Google login error:", err);
       throw err;
     }
