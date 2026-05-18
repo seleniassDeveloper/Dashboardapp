@@ -4,11 +4,23 @@ El frontend en Vercel **no puede** usar `localhost:3001`. Necesitás el API púb
 
 ## Si ves "Build failed" en Railway
 
-1. **Repo correcto:** `seleniassDeveloper/Dashboardapp` (no otro fork viejo).
-2. **Root Directory:** dejalo **vacío** (raíz del repo) — hay `Dockerfile` en la raíz.
-   - O bien: Root Directory = `backend` (usa `backend/Dockerfile`).
-3. Abrí el servicio → pestaña **Deployments** → clic en el deploy fallido → **View logs** y buscá la línea en rojo.
-4. **Variables obligatorias antes del deploy:** `DATABASE_URL` y `FIREBASE_SERVICE_ACCOUNT_JSON` (si faltan, el healthcheck falla después del build).
+### Error: `npm run build` + Vite / Rolldown
+
+Railway está intentando **compilar el frontend React** (Vite). El API **no** usa Vite.
+
+**Solución:**
+
+1. Servicio → **Settings** → **Build** → **Builder:** elegí **Dockerfile** (no Nixpacks / Railpack por defecto).
+2. **Root Directory:** vacío (raíz) **o** `backend`.
+3. Repo: `seleniassDeveloper/Dashboardapp` (último push con `Dockerfile` en la raíz).
+4. **Redeploy**.
+
+En el repo ya no hay script `build` en la raíz (solo `build:all` local) para que Nixpacks no dispare Vite.
+
+### Otros checks
+
+1. **Variables:** `DATABASE_URL` obligatoria.
+2. **Logs:** Deployments → deploy fallido → última línea en rojo.
 
 ## 1. Crear servicio
 

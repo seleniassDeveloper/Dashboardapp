@@ -1,8 +1,9 @@
-# Railway — despliegue del backend desde la raíz del repo
-# Alternativa: Root Directory = "backend" y usar backend/railway.toml
+# Railway — SOLO backend (API). El frontend va en Vercel.
+# En Railway → Settings → Build: elegir "Dockerfile" si Nixpacks sigue fallando.
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
+watchPatterns = ["backend/**", "Dockerfile", "railway.toml", "package.json"]
 
 [deploy]
 healthcheckPath = "/health"
