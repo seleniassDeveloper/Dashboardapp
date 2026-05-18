@@ -67,6 +67,11 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (AUTH_DISABLED) return;
 
+    if (!firebaseConfigOk() || !firebaseAuth) {
+      setAuthLoading(false);
+      return;
+    }
+
     let unsub = () => {};
     let cancelled = false;
 
@@ -105,7 +110,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    if (AUTH_DISABLED) return;
+    if (AUTH_DISABLED || !firebaseAuth) return;
     async function loadClaims() {
       if (!firebaseAuth.currentUser) return;
       try {
@@ -119,7 +124,7 @@ export function AuthProvider({ children }) {
   }, [user]);
 
   useEffect(() => {
-    if (AUTH_DISABLED) return;
+    if (AUTH_DISABLED || !firebaseAuth) return;
     const reqId = api.interceptors.request.use(async (config) => {
       const url = String(config.url || "");
       if (!isApiRequest(url)) return config;
@@ -148,10 +153,12 @@ export function AuthProvider({ children }) {
   }, []);
 
   const loginWithEmailPassword = useCallback(async (email, password) => {
+    if (!firebaseAuth) throw new Error("Firebase no configurado.");
     await signInWithEmailAndPassword(firebaseAuth, email.trim(), password);
   }, []);
 
   const registerWithEmailPassword = useCallback(async ({ firstName, lastName, email, password }) => {
+    if (!firebaseAuth) throw new Error("Firebase no configurado.");
     const cred = await createUserWithEmailAndPassword(firebaseAuth, email.trim(), password);
     const name = `${firstName || ""} ${lastName || ""}`.trim();
     if (name && cred.user) {
@@ -160,6 +167,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const loginWithGoogle = useCallback(async () => {
+    if (!firebaseAuth) throw new Error("Firebase no configurado en el servidor.");
     setAuthError("");
     const provider = googleProvider();
 
@@ -179,6 +187,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const sendPasswordReset = useCallback(async (email) => {
+    if (!firebaseAuth) throw new Error("Firebase no configurado.");
     await sendPasswordResetEmail(firebaseAuth, email.trim(), {
       url: window.location.origin,
       handleCodeInApp: false,
@@ -186,7 +195,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const logout = useCallback(async () => {
-    await signOut(firebaseAuth);
+    if (firebaseAuth) await signOut(firebaseAuth);
   }, []);
 
   const value = useMemo(

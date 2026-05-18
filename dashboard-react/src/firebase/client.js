@@ -2,23 +2,31 @@ import { initializeApp, getApps } from "firebase/app";
 import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY?.trim(),
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN?.trim(),
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID?.trim(),
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET?.trim(),
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID?.trim(),
+  appId: import.meta.env.VITE_FIREBASE_APP_ID?.trim(),
 };
 
-const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
-
-export const firebaseAuth = getAuth(app);
-
 export function firebaseConfigOk() {
+  const { apiKey, authDomain, projectId, appId } = firebaseConfig;
   return Boolean(
-    firebaseConfig.apiKey &&
-      firebaseConfig.authDomain &&
-      firebaseConfig.projectId &&
-      firebaseConfig.appId
+    apiKey &&
+      apiKey.length > 20 &&
+      !apiKey.includes("undefined") &&
+      authDomain &&
+      projectId &&
+      appId
   );
 }
+
+let firebaseAuth = null;
+
+if (firebaseConfigOk()) {
+  const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+  firebaseAuth = getAuth(app);
+}
+
+export { firebaseAuth };

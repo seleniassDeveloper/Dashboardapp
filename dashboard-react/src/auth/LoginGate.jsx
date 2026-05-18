@@ -38,9 +38,11 @@ export default function LoginGate({ children }) {
         <div className="text-white text-center" style={{ maxWidth: 480 }}>
           <h1 className="h5 mb-3">Falta configurar Firebase en el frontend</h1>
           <p className="small text-white-50 mb-0">
-            Copiá las variables del proyecto Firebase (Ajustes del proyecto → Tus apps → Web) en{" "}
-            <code className="text-warning">dashboard-react/.env</code> con prefijo{" "}
-            <code className="text-warning">VITE_FIREBASE_*</code> y reiniciá <code>npm run dev</code>.
+            En <strong>local</strong>: copiá las claves de Firebase en{" "}
+            <code className="text-warning">dashboard-react/.env</code> (<code>VITE_FIREBASE_*</code>).
+            <br />
+            En <strong>Vercel</strong>: Settings → Environment Variables → mismas variables →{" "}
+            <strong>Redeploy</strong> (sin redeploy el build queda sin API key).
           </p>
         </div>
       </div>
