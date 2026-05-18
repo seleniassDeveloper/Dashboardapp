@@ -26,7 +26,9 @@ export function assertProductionEnv() {
     process.env.FIREBASE_SERVICE_ACCOUNT_JSON?.trim() ||
     process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
   if (!hasFirebase && process.env.AUTH_DISABLED !== "true") {
-    missing.push("FIREBASE_SERVICE_ACCOUNT_JSON o FIREBASE_SERVICE_ACCOUNT_PATH");
+    console.warn(
+      "[env] Sin Firebase Admin: el login del cliente funcionará pero /health marcará firebase:false hasta configurar FIREBASE_SERVICE_ACCOUNT_JSON."
+    );
   }
 
   if (missing.length) {

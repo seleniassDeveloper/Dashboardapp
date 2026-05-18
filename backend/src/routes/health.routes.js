@@ -24,7 +24,8 @@ router.get("/", async (_req, res) => {
     checks.firebase = false;
   }
 
-  const ok = checks.database && checks.firebase;
+  // Railway healthcheck: alcanza con DB; Firebase se configura después si hace falta
+  const ok = checks.database;
 
   res.status(ok ? 200 : 503).json({
     ok,

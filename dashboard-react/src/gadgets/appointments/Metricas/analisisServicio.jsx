@@ -14,7 +14,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import { useBrand } from "../../../header/name/BrandProvider";
-import api from "../../../lib/api.js";
+import api, { API_BASE_URL } from "../../../lib/api.js";
 
 function safeArray(v) {
   return Array.isArray(v) ? v.filter(Boolean) : [];
@@ -73,9 +73,12 @@ export default function AnalisisServicio() {
         setAppointments(safeArray(res.data));
       } catch (e) {
         if (!alive) return;
+        const isLocalApi = API_BASE_URL.includes("localhost");
         setError(
           e?.response?.data?.error ||
-            "No pude traer las citas. ¿Está corriendo el backend en http://localhost:3001 ?"
+            (isLocalApi
+              ? "No pude traer las citas. ¿Está corriendo el backend en http://localhost:3001?"
+              : "No pude conectar con el servidor. Revisá que el API esté desplegado en Railway y VITE_API_URL en Vercel.")
         );
       } finally {
         if (alive) setLoading(false);

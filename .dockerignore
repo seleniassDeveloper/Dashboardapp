@@ -1,0 +1,14 @@
+node_modules
+**/node_modules
+.env
+.env.*
+!.env.example
+.git
+dashboard-react
+Aplicacion Dashboard
+DashboardWeb
+Capturas de Dashboards
+ideas DIseno
+img:videos WWW.
+*.md
+!backend/**/*.md

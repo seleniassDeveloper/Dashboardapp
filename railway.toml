@@ -1,0 +1,11 @@
+# Railway — despliegue del backend desde la raíz del repo
+# Alternativa: Root Directory = "backend" y usar backend/railway.toml
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5
