@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import axios from "axios";
+import api, { API_BASE_URL, isApiRequest } from "../lib/api.js";
 import {
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
@@ -13,8 +13,8 @@ import {
 } from "firebase/auth";
 import { firebaseAuth, firebaseConfigOk } from "../firebase/client.js";
 
-const API_HOST = import.meta.env.VITE_API_URL?.replace(/\/api\/?$/, "") || "http://localhost:3001";
 const AUTH_DISABLED = import.meta.env.VITE_AUTH_DISABLED === "true";
+const API_HOST = API_BASE_URL.replace(/\/api\/?$/, "");
 
 const DEV_USER = {
   uid: "dev-user",
@@ -40,7 +40,7 @@ function firebaseErrorMessage(err) {
       "El navegador bloqueó la ventana emergente. Probá de nuevo: usamos redirección automática.",
     "auth/redirect-cancelled-by-user": "Inicio de sesión con Google cancelado.",
     "auth/unauthorized-domain":
-      "Este dominio no está autorizado en Firebase. Agregá localhost en Authentication → Settings → Authorized domains.",
+      "Este dominio no está autorizado en Firebase. Agregalo en Authentication → Settings → Authorized domains.",
     "auth/network-request-failed": "Error de red. Revisá tu conexión.",
     "auth/operation-not-allowed":
       "Este método de acceso no está habilitado en Firebase (revisá Authentication en la consola).",
@@ -111,9 +111,9 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     if (AUTH_DISABLED) return;
-    const reqId = axios.interceptors.request.use(async (config) => {
+    const reqId = api.interceptors.request.use(async (config) => {
       const url = String(config.url || "");
-      if (!url.includes("localhost:3001")) return config;
+      if (!isApiRequest(url)) return config;
       const u = firebaseAuth.currentUser;
       if (u) {
         const token = await u.getIdToken();
@@ -122,12 +122,12 @@ export function AuthProvider({ children }) {
       }
       return config;
     });
-    return () => axios.interceptors.request.eject(reqId);
+    return () => api.interceptors.request.eject(reqId);
   }, []);
 
   useEffect(() => {
     if (AUTH_DISABLED) return;
-    const resId = axios.interceptors.response.use(
+    const resId = api.interceptors.response.use(
       (res) => res,
       async (err) => {
         if (err.response?.status === 401 && firebaseAuth.currentUser) {
@@ -140,7 +140,7 @@ export function AuthProvider({ children }) {
         return Promise.reject(err);
       }
     );
-    return () => axios.interceptors.response.eject(resId);
+    return () => api.interceptors.response.eject(resId);
   }, []);
 
   const loginWithEmailPassword = useCallback(async (email, password) => {

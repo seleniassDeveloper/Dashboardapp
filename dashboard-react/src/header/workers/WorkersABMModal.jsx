@@ -1,12 +1,11 @@
 // src/header/workers/WorkersABMModal.jsx
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import axios from "axios";
 import { Modal, Button, Table, Spinner, Alert, Form, Badge, Stack } from "react-bootstrap";
 import { useBrand } from "../name/BrandProvider";
 import WorkerModal from "./WorkerModal";
 import ServiceModal from "../services/ServiceModal";
+import api from "../../lib/api.js";
 
-const API = "http://localhost:3001/api";
 const PAGE_SIZE = 10;
 
 const safeArray = (x) => (Array.isArray(x) ? x : []);
@@ -94,7 +93,7 @@ export default function WorkersABMModal({ show, onHide }) {
       setOkMsg("");
       setLoading(true);
 
-      const res = await axios.get(`${API}/workers`);
+      const res = await api.get(`/workers`);
       setWorkers(safeArray(res.data).map(normalizeWorker));
     } catch (e) {
       console.error(e);
@@ -170,7 +169,7 @@ export default function WorkersABMModal({ show, onHide }) {
         setOkMsg("");
         setBusyId(w.id);
 
-        await axios.delete(`${API}/workers/${w.id}`);
+        await api.delete(`/workers/${w.id}`);
         setWorkers((prev) => prev.filter((x) => x.id !== w.id));
         setOkMsg("Trabajador eliminado.");
       } catch (e) {

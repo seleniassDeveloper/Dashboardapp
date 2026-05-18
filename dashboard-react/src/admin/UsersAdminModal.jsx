@@ -1,12 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
-import axios from "axios";
 import Button from "react-bootstrap/Button";
 import Form from "react-bootstrap/Form";
 import Modal from "react-bootstrap/Modal";
 import Table from "react-bootstrap/Table";
 import { useAuth } from "../auth/AuthProvider.jsx";
-
-const API = "http://localhost:3001/api";
+import api from "../lib/api.js";
 
 function fmt(d) {
   if (!d) return "";
@@ -39,7 +37,7 @@ export default function UsersAdminModal({ show, onHide }) {
     setError("");
     setLoading(true);
     try {
-      const res = await axios.get(`${API}/admin/users`);
+      const res = await api.get(`/admin/users`);
       setUsers(Array.isArray(res.data?.users) ? res.data.users : []);
     } catch (e) {
       setError(e.response?.data?.error || "No se pudieron cargar usuarios. ¿Sos admin?");
@@ -66,7 +64,7 @@ export default function UsersAdminModal({ show, onHide }) {
     setError("");
     setLoading(true);
     try {
-      await axios.post(`${API}/admin/users`, {
+      await api.post(`/admin/users`, {
         email: createEmail,
         password: createPassword,
         displayName: createName || undefined,
@@ -94,7 +92,7 @@ export default function UsersAdminModal({ show, onHide }) {
         disabled: Boolean(editDisabled),
         password: editPassword ? editPassword : undefined,
       };
-      await axios.patch(`${API}/admin/users/${editUid}`, payload);
+      await api.patch(`/admin/users/${editUid}`, payload);
       await refresh();
     } catch (e2) {
       setError(e2.response?.data?.error || "No se pudo actualizar el usuario.");
@@ -110,7 +108,7 @@ export default function UsersAdminModal({ show, onHide }) {
     setError("");
     setLoading(true);
     try {
-      await axios.delete(`${API}/admin/users/${uid}`);
+      await api.delete(`/admin/users/${uid}`);
       if (uid === editUid) setEditUid("");
       await refresh();
     } catch (e2) {

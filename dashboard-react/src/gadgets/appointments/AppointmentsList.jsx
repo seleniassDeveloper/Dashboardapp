@@ -11,8 +11,6 @@ import {
   Col,
   Pagination,
 } from "react-bootstrap";
-import axios from "axios";
-
 import AppointmentItem from "./AppointmentItem";
 import AppointmentModal from "./AppointmentModal";
 import ConfirmDeleteModal from "./ConfirmDeleteModal";
@@ -21,8 +19,7 @@ import { useAppointmentsStore } from "./AppointmentsProvider.jsx";
 import { useBrand } from "../../header/name/BrandProvider.jsx";
 
 import "../../styles/appointments-list.css";
-
-const API = "http://localhost:3001/api";
+import api from "../../lib/api.js";
 
 const STATUS_OPTIONS = [
   { value: "ALL", label: "Todos" },
@@ -286,7 +283,7 @@ export default function AppointmentsList() {
           status: nextStatus,
         };
 
-        const res = await axios.put(`${API}/appointments/${appt.id}`, payload);
+        const res = await api.put(`/appointments/${appt.id}`, payload);
         upsertAppointment(res.data);
         fetchAppointments();
       } catch (e) {

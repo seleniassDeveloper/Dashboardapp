@@ -1,10 +1,8 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import { Card, Button, Form, Alert, Spinner, Badge, Row, Col } from "react-bootstrap";
 import { Plus, Trash2, ChevronUp, ChevronDown, Save } from "lucide-react";
 import { FIELD_TYPE_OPTIONS, SYSTEM_FIELD_IDS } from "../../config/formFieldTypes.js";
-
-const API = "http://localhost:3001/api";
+import api from "../../lib/api.js";
 
 const EDITABLE_SCHEMAS = [
   { key: "worker.create", label: "Alta de empleado" },
@@ -24,7 +22,7 @@ export default function FormSchemaEditor() {
       try {
         setLoading(true);
         setError("");
-        const res = await axios.get(`${API}/form-schemas/${selectedKey}`);
+        const res = await api.get(`/form-schemas/${selectedKey}`);
         setFields(Array.isArray(res.data?.fields) ? res.data.fields : []);
         setSchemaLabel(res.data?.label || "");
       } catch (e) {
@@ -76,7 +74,7 @@ export default function FormSchemaEditor() {
       setSaving(true);
       setError("");
       setSuccess("");
-      await axios.put(`${API}/form-schemas/${selectedKey}`, {
+      await api.put(`/form-schemas/${selectedKey}`, {
         label: schemaLabel,
         fields,
       });

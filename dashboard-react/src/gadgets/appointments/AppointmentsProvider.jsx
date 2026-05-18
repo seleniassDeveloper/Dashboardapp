@@ -1,8 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import axios from "axios";
-
-const API = "http://localhost:3001/api";
-
+import api from "../../lib/api.js";
 const AppointmentsContext = createContext(null);
 
 export function AppointmentsProvider({ children }) {
@@ -14,7 +11,7 @@ export function AppointmentsProvider({ children }) {
   const fetchAppointments = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API}/appointments`);
+      const res = await api.get(`/appointments`);
       const list = Array.isArray(res.data) ? res.data : [];
       list.sort((a, b) => new Date(a.startsAt) - new Date(b.startsAt));
       setAppointments(list);
@@ -28,7 +25,7 @@ export function AppointmentsProvider({ children }) {
 
   const fetchServices = useCallback(async () => {
     try {
-      const res = await axios.get(`${API}/services`);
+      const res = await api.get(`/services`);
       setServices(Array.isArray(res.data) ? res.data : []);
     } catch (e) {
       console.error("Error fetching services", e);

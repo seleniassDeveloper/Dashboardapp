@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import { Card, Button, Form, Alert, Spinner, Badge, Row, Col } from "react-bootstrap";
 import { Plus, Trash2, Save } from "lucide-react";
 import { FIELD_TYPE_OPTIONS } from "../../config/formFieldTypes.js";
 import { REGISTRY_SCHEMA_KEY } from "../../config/appFormTargets.js";
+import api from "../../lib/api.js";
 
-const API = "http://localhost:3001/api";
 const ENTITIES = ["worker", "client", "appointment", "service", "workflow"];
 
 export default function FieldRegistryEditor() {
@@ -20,7 +19,7 @@ export default function FieldRegistryEditor() {
     (async () => {
       try {
         setLoading(true);
-        const res = await axios.get(`${API}/form-schemas/${REGISTRY_SCHEMA_KEY}`);
+        const res = await api.get(`/form-schemas/${REGISTRY_SCHEMA_KEY}`);
         setFields(Array.isArray(res.data?.fields) ? res.data.fields : []);
       } catch (e) {
         setError(e?.response?.data?.error || "Error cargando catálogo.");
@@ -50,7 +49,7 @@ export default function FieldRegistryEditor() {
     try {
       setSaving(true);
       setError("");
-      await axios.put(`${API}/form-schemas/${REGISTRY_SCHEMA_KEY}`, {
+      await api.put(`/form-schemas/${REGISTRY_SCHEMA_KEY}`, {
         label: "Catálogo global de campos",
         schemaType: "registry",
         fields,

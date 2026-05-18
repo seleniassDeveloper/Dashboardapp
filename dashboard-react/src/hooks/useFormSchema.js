@@ -1,8 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import axios from "axios";
-
-const API = "http://localhost:3001/api";
-
+import api from "../lib/api.js";
 export function useFormSchema(schemaKey, { enabled = true } = {}) {
   const [schema, setSchema] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -15,7 +12,7 @@ export function useFormSchema(schemaKey, { enabled = true } = {}) {
       setError("");
       let res;
       if (schemaKey.startsWith("assign.")) {
-        res = await axios.get(`${API}/form-schemas/resolve/${schemaKey}`);
+        res = await api.get(`/form-schemas/resolve/${schemaKey}`);
         setSchema({
           key: schemaKey,
           label: res.data?.schema?.label || schemaKey,
@@ -23,7 +20,7 @@ export function useFormSchema(schemaKey, { enabled = true } = {}) {
           fieldRefs: res.data?.schema?.fieldRefs,
         });
       } else {
-        res = await axios.get(`${API}/form-schemas/${schemaKey}`);
+        res = await api.get(`/form-schemas/${schemaKey}`);
         setSchema(res.data);
       }
     } catch (e) {
@@ -50,7 +47,7 @@ export function useFormSchemasList({ enabled = true } = {}) {
   const load = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API}/form-schemas`);
+      const res = await api.get(`/form-schemas`);
       setSchemas(Array.isArray(res.data) ? res.data : []);
     } catch {
       setSchemas([]);

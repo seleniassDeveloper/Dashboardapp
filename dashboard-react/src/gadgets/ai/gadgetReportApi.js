@@ -1,8 +1,5 @@
-import axios from "axios";
-
-const API = "http://localhost:3001/api";
-
+import api from "../../lib/api.js";
 export async function postGadgetAiReport(body) {
-  const res = await axios.post(`${API}/ai/report`, body);
+  const res = await api.post(`/ai/report`, body);
   return res.data;
 }

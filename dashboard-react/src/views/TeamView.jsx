@@ -1,10 +1,8 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { Container, Row, Col, Button, Spinner, Alert } from "react-bootstrap";
 import { UserPlus, Mail, Phone, Calendar, Pencil } from "lucide-react";
-import axios from "axios";
 import WorkerFormModal from "../header/workers/WorkerFormModal.jsx";
-
-const API = "http://localhost:3001/api";
+import api from "../lib/api.js";
 
 function memberInitials(firstName, lastName) {
   const a = (firstName || "").charAt(0);
@@ -31,7 +29,7 @@ export default function TeamView() {
     try {
       setLoading(true);
       setError("");
-      const res = await axios.get(`${API}/workers`);
+      const res = await api.get(`/workers`);
       setWorkers(Array.isArray(res.data) ? res.data : []);
     } catch (e) {
       setError(e?.response?.data?.error || "No se pudo cargar el equipo.");

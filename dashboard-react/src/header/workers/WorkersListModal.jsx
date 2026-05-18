@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import axios from "axios";
 import {
   Modal,
   Button,
@@ -12,8 +11,8 @@ import {
 } from "react-bootstrap";
 
 import WorkerModal from "./WorkerModal"; // ✅ AJUSTA si tu ruta es distinta
+import api from "../../lib/api.js";
 
-const API = "http://localhost:3001/api";
 const PAGE_SIZE = 10;
 
 const DAYS = [
@@ -99,8 +98,8 @@ export default function WorkersListModal({ show, onHide }) {
       setLoading(true);
 
       const [wRes, sRes] = await Promise.all([
-        axios.get(`${API}/workers`),
-        axios.get(`${API}/services`),
+        api.get(`/workers`),
+        api.get(`/services`),
       ]);
 
       setWorkers(safeArray(wRes.data).map(normalizeWorker));
@@ -166,7 +165,7 @@ export default function WorkersListModal({ show, onHide }) {
       setOkMsg("");
       setBusyId(worker.id);
 
-      await axios.delete(`${API}/workers/${worker.id}`);
+      await api.delete(`/workers/${worker.id}`);
 
       setWorkers((prev) => prev.filter((x) => x.id !== worker.id));
       setOkMsg("Trabajador eliminado.");

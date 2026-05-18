@@ -1,10 +1,9 @@
 // src/header/clients/ClientsABMModal.jsx
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import axios from "axios";
 import { Modal, Button, Table, Spinner, Alert, Form, Stack, Pagination } from "react-bootstrap";
 import ClientModal from "./ClientModal.jsx";
+import api from "../../lib/api.js";
 
-const API = "http://localhost:3001/api";
 const safeArray = (x) => (Array.isArray(x) ? x : []);
 
 function displayName(c) {
@@ -40,7 +39,7 @@ export default function ClientsABMModal({ show, onHide }) {
       setOkMsg("");
       setLoading(true);
 
-      const res = await axios.get(`${API}/clients`, {
+      const res = await api.get(`/clients`, {
         params: q.trim() ? { search: q.trim() } : {},
       });
 
@@ -124,7 +123,7 @@ export default function ClientsABMModal({ show, onHide }) {
       setOkMsg("");
       setBusyId(client.id);
 
-      await axios.delete(`${API}/clients/${client.id}`);
+      await api.delete(`/clients/${client.id}`);
 
       setClients((prev) => prev.filter((c) => c.id !== client.id));
       setOkMsg("Cliente eliminado.");

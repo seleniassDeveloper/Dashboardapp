@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState } from "react";
-import axios from "axios";
 import { Card, Row, Col, Spinner, Alert, Table, Badge } from "react-bootstrap";
 import {
   PieChart,
@@ -15,8 +14,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import { useBrand } from "../../../header/name/BrandProvider";
-
-const API = "http://localhost:3001/api";
+import api from "../../../lib/api.js";
 
 function safeArray(v) {
   return Array.isArray(v) ? v.filter(Boolean) : [];
@@ -70,7 +68,7 @@ export default function AnalisisServicio() {
       try {
         setError("");
         setLoading(true);
-        const res = await axios.get(`${API}/appointments`);
+        const res = await api.get(`/appointments`);
         if (!alive) return;
         setAppointments(safeArray(res.data));
       } catch (e) {

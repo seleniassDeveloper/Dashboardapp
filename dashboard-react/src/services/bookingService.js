@@ -1,5 +1,4 @@
-import axios from "axios";
-
+import api from "../lib/api.js";
 export const createAppointment = (data) => {
-  return axios.post("http://localhost:3001/api/appointments", data);
+  return api.post("/appointments", data);
 };

@@ -1,9 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
-import axios from "axios";
 import { Modal, Button, Form, Row, Col, Alert, Spinner } from "react-bootstrap";
 import "./worker-modal.css"; // ✅ crea este CSS (abajo)
-
-const API = "http://localhost:3001/api";
+import api from "../../lib/api.js";
 
 const DAYS = [
   { key: 1, label: "Lunes" },
@@ -55,7 +53,7 @@ export default function WorkerModal({
           setServices(servicesFromParent);
           return;
         }
-        const res = await axios.get(`${API}/services`);
+        const res = await api.get(`/services`);
         setServices(safeArray(res.data));
       } catch (e) {
         setServices([]);
@@ -143,8 +141,8 @@ export default function WorkerModal({
         schedules: schedulesPayload,
       };
 
-      const url = isEdit ? `${API}/workers/${initialData.id}` : `${API}/workers`;
-      const res = isEdit ? await axios.put(url, payload) : await axios.post(url, payload);
+      const url = isEdit ? `/workers/${initialData.id}` : `/workers`;
+      const res = isEdit ? await api.put(url, payload) : await api.post(url, payload);
 
       onSaved?.(res.data);
       onHide?.();

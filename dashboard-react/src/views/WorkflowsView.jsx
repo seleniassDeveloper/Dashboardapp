@@ -1,12 +1,10 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { Container, Row, Col, Badge, Button, Spinner, Alert, Form } from "react-bootstrap";
 import { Play, Plus, GitBranch, Zap, Pencil, Trash2, Copy, Pause, Scissors, User, HeartPulse, Dumbbell, Sparkles, Settings } from "lucide-react";
-import axios from "axios";
 import WorkflowBuilderModal from "../components/workflows/WorkflowBuilderModal.jsx";
 import BusinessModelModal from "../components/workflows/BusinessModelModal.jsx";
 import { triggerSummary, stepsSummary } from "../config/workflowCatalog.js";
-
-const API = "http://localhost:3001/api";
+import api from "../lib/api.js";
 
 const ICON_MAP = {
   scissors: Scissors,
@@ -39,14 +37,14 @@ export default function WorkflowsView() {
       setLoading(true);
       setError("");
       const [modelsRes, statsRes] = await Promise.all([
-        axios.get(`${API}/business-models`),
-        axios.get(`${API}/workflows/stats/summary`),
+        api.get(`/business-models`),
+        api.get(`/workflows/stats/summary`),
       ]);
       setBusinessModels(Array.isArray(modelsRes.data) ? modelsRes.data : []);
       setStats(statsRes.data || {});
 
       const params = filterModelId ? { businessModelId: filterModelId } : {};
-      const wfRes = await axios.get(`${API}/workflows`, { params });
+      const wfRes = await api.get(`/workflows`, { params });
       setWorkflows(Array.isArray(wfRes.data) ? wfRes.data : []);
     } catch (e) {
       setError(e?.response?.data?.error || "Error cargando workflows.");
@@ -73,7 +71,7 @@ export default function WorkflowsView() {
 
   const createFromTemplate = async (model, templateIndex) => {
     try {
-      const res = await axios.post(`${API}/workflows/from-template`, {
+      const res = await api.post(`/workflows/from-template`, {
         businessModelId: model.id,
         templateIndex,
       });
@@ -89,7 +87,7 @@ export default function WorkflowsView() {
   const toggleStatus = async (wf) => {
     const next = wf.status === "ACTIVE" ? "PAUSED" : "ACTIVE";
     try {
-      await axios.patch(`${API}/workflows/${wf.id}/status`, { status: next });
+      await api.patch(`/workflows/${wf.id}/status`, { status: next });
       load();
     } catch (e) {
       setError(e?.response?.data?.error || "Error cambiando estado.");
@@ -99,7 +97,7 @@ export default function WorkflowsView() {
   const deleteWorkflow = async (wf) => {
     if (!window.confirm(`¿Eliminar "${wf.name}"?`)) return;
     try {
-      await axios.delete(`${API}/workflows/${wf.id}`);
+      await api.delete(`/workflows/${wf.id}`);
       load();
     } catch (e) {
       setError(e?.response?.data?.error || "Error eliminando.");

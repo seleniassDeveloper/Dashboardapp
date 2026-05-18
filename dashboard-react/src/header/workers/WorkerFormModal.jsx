@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState } from "react";
-import axios from "axios";
 import { Modal, Button, Alert, Spinner } from "react-bootstrap";
 import { useFormSchema } from "../../hooks/useFormSchema.js";
 import DynamicForm, {
@@ -9,8 +8,7 @@ import DynamicForm, {
   formValuesToWorkerPayload,
 } from "../../components/configurable-fields/DynamicForm.jsx";
 import "./worker-modal.css";
-
-const API = "http://localhost:3001/api";
+import api from "../../lib/api.js";
 
 export default function WorkerFormModal({
   show,
@@ -56,8 +54,8 @@ export default function WorkerFormModal({
       setSaving(true);
       setError("");
       const payload = formValuesToWorkerPayload(values, enabledFields);
-      const url = isEdit ? `${API}/workers/${initialData.id}` : `${API}/workers`;
-      const res = isEdit ? await axios.put(url, payload) : await axios.post(url, payload);
+      const url = isEdit ? `/workers/${initialData.id}` : `/workers`;
+      const res = isEdit ? await api.put(url, payload) : await api.post(url, payload);
       onSaved?.(res.data);
       onHide?.();
     } catch (e) {

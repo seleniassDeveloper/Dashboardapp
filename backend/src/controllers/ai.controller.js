@@ -1,9 +1,18 @@
 import OpenAI from "openai";
 import prisma from "../prisma.js";
 
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+let openaiClient = null;
+
+function getOpenAIClient() {
+  const apiKey = process.env.OPENAI_API_KEY?.trim();
+  if (!apiKey) {
+    throw new Error("OPENAI_API_KEY no configurada.");
+  }
+  if (!openaiClient) {
+    openaiClient = new OpenAI({ apiKey });
+  }
+  return openaiClient;
+}
 
 function daysInUtcMonth(year, monthIndex0) {
   return new Date(Date.UTC(year, monthIndex0 + 1, 0)).getUTCDate();
@@ -590,7 +599,7 @@ Contexto del dashboard:
 ${JSON.stringify(metrics, null, 2)}
 `;
 
-    const response = await client.responses.create({
+    const response = await getOpenAIClient().responses.create({
       model: "gpt-4.1-mini",
       input: prompt,
       text: {

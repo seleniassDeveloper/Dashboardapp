@@ -1,9 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Modal, Button, Alert, Spinner } from "react-bootstrap";
-import axios from "axios";
-
-const API = "http://localhost:3001/api";
-
+import api from "../../lib/api.js";
 export default function ConfirmDeleteModal({
   show,
   onHide,
@@ -25,7 +22,7 @@ export default function ConfirmDeleteModal({
       setLoading(true);
       setLocalError("");
 
-      await axios.delete(`${API}/appointments/${appt.id}`);
+      await api.delete(`/appointments/${appt.id}`);
 
       onDeleted?.(appt.id);
     } catch (e) {

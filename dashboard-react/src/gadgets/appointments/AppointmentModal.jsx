@@ -1,10 +1,7 @@
 // src/gadgets/appointments/AppointmentModal.jsx
 import React, { useEffect, useCallback, useMemo, useRef, useState } from "react";
 import { Modal, Button, Form, Row, Col, Alert, Spinner, InputGroup } from "react-bootstrap";
-import axios from "axios";
-
-const API = "http://localhost:3001/api";
-
+import api from "../../lib/api.js";
 const emptyForm = {
   clientFirstName: "",
   clientLastName: "",
@@ -149,8 +146,8 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
         setLoadingRefs(true);
 
         const [wRes, sRes] = await Promise.all([
-          axios.get(`${API}/workers`),
-          axios.get(`${API}/services`),
+          api.get(`/workers`),
+          api.get(`/services`),
         ]);
 
         const services = safeArray(sRes.data).map(normalizeService);
@@ -187,7 +184,7 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
     const t = setTimeout(async () => {
       try {
         setClientLoading(true);
-        const res = await axios.get(`${API}/clients`, { params: { search: q } });
+        const res = await api.get(`/clients`, { params: { search: q } });
         setClientSug(Array.isArray(res.data) ? res.data : []);
       } catch {
         setClientSug([]);
@@ -254,7 +251,7 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
         };
         if (isEdit && initialData?.id) params.excludeId = initialData.id;
 
-        const res = await axios.get(`${API}/appointments/availability`, { params });
+        const res = await api.get(`/appointments/availability`, { params });
         if (cancelled) return;
 
         setAvailability({
@@ -362,7 +359,7 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
     if (!firstName || !lastName) throw new Error("Completa nombre y apellido del cliente.");
 
     if (form.clientId) {
-      await axios.put(`${API}/clients/${form.clientId}`, {
+      await api.put(`/clients/${form.clientId}`, {
         firstName,
         lastName,
         email: form.email.trim() || null,
@@ -371,7 +368,7 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
       return { id: form.clientId };
     }
 
-    const res = await axios.post(`${API}/clients`, {
+    const res = await api.post(`/clients`, {
       firstName,
       lastName,
       email: form.email.trim() || null,
@@ -402,8 +399,8 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
         notes: form.notes.trim() || null,
       };
 
-      const url = isEdit ? `${API}/appointments/${initialData.id}` : `${API}/appointments`;
-      const res = isEdit ? await axios.put(url, payload) : await axios.post(url, payload);
+      const url = isEdit ? `/appointments/${initialData.id}` : `/appointments`;
+      const res = isEdit ? await api.put(url, payload) : await api.post(url, payload);
 
       onSaved?.({ mode: isEdit ? "edit" : "create", appointment: res.data });
       onHide?.();

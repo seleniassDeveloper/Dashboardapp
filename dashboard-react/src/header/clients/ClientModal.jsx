@@ -1,9 +1,7 @@
 // src/header/clients/ClientModal.jsx
 import React, { useEffect, useMemo, useState } from "react";
-import axios from "axios";
 import { Modal, Button, Form, Row, Col, Alert, Spinner } from "react-bootstrap";
-
-const API = "http://localhost:3001/api";
+import api from "../../lib/api.js";
 
 export default function ClientModal({
   show,
@@ -64,8 +62,8 @@ export default function ClientModal({
         notes: notes.trim() || null,
       };
 
-      const url = isEdit ? `${API}/clients/${initialData.id}` : `${API}/clients`;
-      const res = isEdit ? await axios.put(url, payload) : await axios.post(url, payload);
+      const url = isEdit ? `/clients/${initialData.id}` : `/clients`;
+      const res = isEdit ? await api.put(url, payload) : await api.post(url, payload);
 
       onSaved?.(res.data);
       onHide?.();

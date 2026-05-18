@@ -4,14 +4,19 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon src/server.js",
+    "build": "prisma generate",
+    "postinstall": "prisma generate",
     "start": "node src/server.js",
+    "start:prod": "prisma migrate deploy && node src/server.js",
+    "db:migrate": "prisma migrate deploy",
+    "db:push": "prisma db push",
     "create-user": "node scripts/create-user.js",
     "set-admin": "node scripts/set-admin.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
+  "description": "Dashboard SaaS API",
   "dependencies": {
     "@prisma/adapter-pg": "^7.3.0",
     "@prisma/client": "^6.19.2",
@@ -23,11 +28,14 @@
     "nodemailer": "^8.0.1",
     "openai": "^6.27.0",
     "pg": "^8.18.0",
+    "prisma": "^6.19.2",
     "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/node": "^25.2.0",
-    "nodemon": "^3.1.11",
-    "prisma": "^6.19.2"
+    "nodemon": "^3.1.11"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

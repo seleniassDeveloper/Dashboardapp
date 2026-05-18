@@ -1,11 +1,9 @@
 import React, { useEffect, useState, useMemo } from "react";
-import axios from "axios";
 import { Card, Button, Form, Alert, Spinner, Badge, Row, Col } from "react-bootstrap";
 import { Save } from "lucide-react";
 import { FORM_TARGET_GROUPS, REGISTRY_SCHEMA_KEY } from "../../config/appFormTargets.js";
 import { resolveFieldsFromRegistry } from "../../utils/resolveFormFields.js";
-
-const API = "http://localhost:3001/api";
+import api from "../../lib/api.js";
 
 export default function ComponentAssignmentEditor() {
   const [registry, setRegistry] = useState([]);
@@ -39,7 +37,7 @@ export default function ComponentAssignmentEditor() {
     (async () => {
       try {
         setLoading(true);
-        const regRes = await axios.get(`${API}/form-schemas/${REGISTRY_SCHEMA_KEY}`);
+        const regRes = await api.get(`/form-schemas/${REGISTRY_SCHEMA_KEY}`);
         setRegistry(Array.isArray(regRes.data?.fields) ? regRes.data.fields : []);
       } catch (e) {
         setError("Error cargando catálogo.");
@@ -54,7 +52,7 @@ export default function ComponentAssignmentEditor() {
     (async () => {
       try {
         setError("");
-        const res = await axios.get(`${API}/form-schemas/${selectedKey}`);
+        const res = await api.get(`/form-schemas/${selectedKey}`);
         setFieldRefs(Array.isArray(res.data?.fieldRefs) ? res.data.fieldRefs : []);
         setComponentMeta({ label: res.data?.label || "", component: res.data?.component || selectedTarget?.component || "" });
       } catch {
@@ -80,7 +78,7 @@ export default function ComponentAssignmentEditor() {
     try {
       setSaving(true);
       setError("");
-      await axios.put(`${API}/form-schemas/${selectedKey}`, {
+      await api.put(`/form-schemas/${selectedKey}`, {
         label: componentMeta.label || selectedTarget?.label,
         schemaType: "assignment",
         entity: selectedTarget?.entity,

@@ -3,8 +3,7 @@ import { Container, Row, Col, Button, Card, Table, Badge } from "react-bootstrap
 import { Plus, Edit2, Trash2, Scissors, Clock, Tag } from "lucide-react";
 import { useAppointmentsStore } from "../gadgets/appointments/AppointmentsProvider";
 import ServiceModal from "../header/services/ServiceModal";
-import axios from "axios";
-
+import api from "../lib/api.js";
 export default function ServicesView() {
   const { services, fetchServices } = useAppointmentsStore();
   const [showModal, setShowModal] = useState(false);
@@ -23,7 +22,7 @@ export default function ServicesView() {
   const handleDelete = async (id) => {
     if (!window.confirm("¿Estás seguro de eliminar este servicio?")) return;
     try {
-      await axios.delete(`http://localhost:3001/api/services/${id}`);
+      await api.delete(`/services/${id}`);
       fetchServices();
     } catch (e) {
       alert("Error eliminando servicio");

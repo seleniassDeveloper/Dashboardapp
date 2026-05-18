@@ -1,9 +1,7 @@
 import React, { useState } from "react";
-import axios from "axios";
 import { Modal, Button, Form, Alert, Spinner } from "react-bootstrap";
 import { TRIGGER_META, ACTION_META } from "../../config/workflowCatalog.js";
-
-const API = "http://localhost:3001/api";
+import api from "../../lib/api.js";
 
 export default function BusinessModelModal({ show, onHide, onSaved }) {
   const [name, setName] = useState("");
@@ -23,7 +21,7 @@ export default function BusinessModelModal({ show, onHide, onSaved }) {
     try {
       setSaving(true);
       setError("");
-      const res = await axios.post(`${API}/business-models`, {
+      const res = await api.post(`/business-models`, {
         name: name.trim(),
         description: description.trim(),
         allowedTriggers: triggers,

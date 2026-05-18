@@ -1,10 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
-import axios from "axios";
 import { Modal, Button, Form, Alert, Spinner, Row, Col, Badge } from "react-bootstrap";
 import { Plus, Trash2, GripVertical } from "lucide-react";
 import { TRIGGER_META, ACTION_META } from "../../config/workflowCatalog.js";
-
-const API = "http://localhost:3001/api";
+import api from "../../lib/api.js";
 
 function ConfigFields({ fields, config, onChange }) {
   if (!fields?.length) return <p className="text-muted small mb-0">Sin configuración extra.</p>;
@@ -80,7 +78,7 @@ export default function WorkflowBuilderModal({
     if (!show) return;
     (async () => {
       try {
-        const res = await axios.get(`${API}/form-schemas/resolve/assign.workflow.screen`);
+        const res = await api.get(`/form-schemas/resolve/assign.workflow.screen`);
         setScreenFieldOptions(res.data?.fields || []);
       } catch {
         setScreenFieldOptions([]);
@@ -155,8 +153,8 @@ export default function WorkflowBuilderModal({
         transitions,
         screens,
       };
-      const url = isEdit ? `${API}/workflows/${initialData.id}` : `${API}/workflows`;
-      const res = isEdit ? await axios.put(url, payload) : await axios.post(url, payload);
+      const url = isEdit ? `/workflows/${initialData.id}` : `/workflows`;
+      const res = isEdit ? await api.put(url, payload) : await api.post(url, payload);
       onSaved?.(res.data);
       onHide?.();
     } catch (e) {

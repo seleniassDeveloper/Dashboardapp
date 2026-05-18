@@ -1,7 +1,12 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import { registerSW } from "virtual:pwa-register";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./styles/global.css";
+
+if (import.meta.env.PROD) {
+  registerSW({ immediate: true });
+}
 
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import App from "./App.jsx";

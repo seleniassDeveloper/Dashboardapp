@@ -1,9 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Form, Row, Col, Spinner } from "react-bootstrap";
-import axios from "axios";
 import "../../header/workers/worker-modal.css";
+import api from "../../lib/api.js";
 
-const API = "http://localhost:3001/api";
 const safeArray = (x) => (Array.isArray(x) ? x : []);
 
 const DAYS = [
@@ -142,7 +141,7 @@ export default function DynamicForm({ enabledFields, values, onChange, errors = 
     (async () => {
       try {
         setLoadingServices(true);
-        const res = await axios.get(`${API}/services`);
+        const res = await api.get(`/services`);
         setServices(safeArray(res.data).filter((s) => s?.isActive !== false));
       } catch {
         setServices([]);

@@ -1,9 +1,7 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { Modal, Button, Form, Row, Col, Alert, Spinner, InputGroup } from "react-bootstrap";
-import axios from "axios";
 import { useAppointmentsStore } from "../../gadgets/appointments/AppointmentsProvider.jsx";
-
-const API = "http://localhost:3001/api";
+import api from "../../lib/api.js";
 
 export default function ServiceModal({ show, onHide, editService = null }) {
   const store = useAppointmentsStore?.();
@@ -53,9 +51,9 @@ export default function ServiceModal({ show, onHide, editService = null }) {
       };
 
       if (isEditing) {
-        await axios.put(`${API}/services/${editService.id}`, payload);
+        await api.put(`/services/${editService.id}`, payload);
       } else {
-        await axios.post(`${API}/services`, payload);
+        await api.post(`/services`, payload);
       }
 
       if (typeof refreshAll === "function") refreshAll();
