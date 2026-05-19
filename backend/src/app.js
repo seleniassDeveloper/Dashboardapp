@@ -33,6 +33,7 @@ app.get("/", (_req, res) => {
   res.json({
     service: "Dashboard API",
     health: "/health",
+    ready: "/health/ready",
     api: "/api",
   });
 });

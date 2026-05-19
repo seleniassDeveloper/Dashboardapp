@@ -1,7 +1,7 @@
-# API Express — monorepo (carpeta backend/). Usar en Railway/Render con Root Directory vacío.
+# API Express — Railway/Render (Root Directory vacío en el monorepo)
 FROM node:20-alpine AS base
 WORKDIR /app
-RUN apk add --no-cache openssl wget
+RUN apk add --no-cache openssl
 
 FROM base AS deps
 COPY backend/package.json backend/package-lock.json ./
@@ -10,7 +10,6 @@ RUN npm ci
 
 FROM base AS runner
 ENV NODE_ENV=production
-ENV HOST=0.0.0.0
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
@@ -21,9 +20,7 @@ COPY backend/scripts ./scripts/
 
 RUN chmod +x scripts/start-prod.sh && npx prisma generate
 
+# Railway inyecta PORT en runtime (suele ser distinto de 3001)
 EXPOSE 3001
-
-HEALTHCHECK --interval=30s --timeout=10s --start-period=90s --retries=3 \
-  CMD wget -qO- "http://127.0.0.1:${PORT:-3001}/health" | grep -q '"ok":true' || exit 1
 
 CMD ["sh", "scripts/start-prod.sh"]

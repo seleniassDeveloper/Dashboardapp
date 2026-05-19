@@ -17,26 +17,36 @@ export function getFrontendOrigins() {
   return [...new Set([...fromEnv, ...devDefaults])];
 }
 
+/**
+ * En producción solo advierte — no hace process.exit.
+ * Un exit antes de listen() rompe el healthcheck de Railway.
+ */
 export function assertProductionEnv() {
   if (!isProd) return;
 
   const missing = [];
   if (!process.env.DATABASE_URL) missing.push("DATABASE_URL");
   if (!process.env.FRONTEND_URL) missing.push("FRONTEND_URL");
+
+  if (missing.length) {
+    console.warn(
+      "[env] Variables recomendadas en producción (faltan):",
+      missing.join(", ")
+    );
+    console.warn("[env] El servidor arrancará; /health responderá ok. Configurá las variables en Railway.");
+  }
+
   if (process.env.AUTH_DISABLED === "true") {
     console.warn("[env] AUTH_DISABLED=true en producción — desactivá esto para usuarios reales.");
   }
+
   const hasFirebase =
     process.env.FIREBASE_SERVICE_ACCOUNT_JSON?.trim() ||
     process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
+
   if (!hasFirebase && process.env.AUTH_DISABLED !== "true") {
     console.warn(
-      "[env] Sin Firebase Admin: el login del cliente funcionará pero /health marcará firebase:false hasta configurar FIREBASE_SERVICE_ACCOUNT_JSON."
+      "[env] Sin Firebase Admin: configurá FIREBASE_SERVICE_ACCOUNT_JSON en Railway para login en producción."
     );
-  }
-
-  if (missing.length) {
-    console.error("[env] Variables obligatorias en producción:", missing.join(", "));
-    process.exit(1);
   }
 }

@@ -4,15 +4,18 @@ import prisma from "./prisma.js";
 import { assertProductionEnv } from "./config/env.js";
 import { startRemindersJob } from "./jobs/reminders.job.js";
 
-assertProductionEnv();
+console.log("Starting server...");
 
 const PORT = Number(process.env.PORT) || 3001;
-const HOST = process.env.HOST || "0.0.0.0";
+console.log("PORT:", PORT);
+console.log("NODE_ENV:", process.env.NODE_ENV || "development");
+console.log("HOST: 0.0.0.0");
 
-const server = app.listen(PORT, HOST, () => {
-  console.log(
-    `[server] Dashboard API en ${HOST}:${PORT} (${process.env.NODE_ENV || "development"})`
-  );
+assertProductionEnv();
+
+const server = app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on port ${PORT}`);
+  console.log(`Health: http://0.0.0.0:${PORT}/health`);
 });
 
 if (process.env.ENABLE_REMINDERS_JOB === "true") {
