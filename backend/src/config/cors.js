@@ -1,14 +1,13 @@
 import { getFrontendOrigins } from "./env.js";
 
 export function getCorsOptions() {
-  const allowed = getFrontendOrigins();
-
-  if (!allowed.length) {
-    console.warn("[cors] FRONTEND_URL vacío — permitiendo cualquier origen (solo para debug).");
-    return { origin: true, credentials: true };
-  }
-
-  console.log("[cors] orígenes permitidos:", allowed.join(", "));
+  const allowed = [
+    ...getFrontendOrigins(),
+    "https://dashboardapp-psi.vercel.app",
+    "https://dashboard-react-rust-eight.vercel.app",
+    "http://localhost:5173",
+    "http://localhost:3000",
+  ];
 
   return {
     origin(origin, callback) {
@@ -16,6 +15,7 @@ export function getCorsOptions() {
         callback(null, true);
         return;
       }
+
       console.warn(`[cors] bloqueado: ${origin}`);
       callback(null, false);
     },
