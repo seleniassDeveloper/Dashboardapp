@@ -12,9 +12,19 @@ export function ensureFirebaseAdmin() {
   }
 
   const inline = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  console.log("Firebase env exists:", !!process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+  console.log("Type of inline:", typeof inline);
+  console.log("Preview of inline string (first 80 chars):", inline?.slice(0, 80));
+  
   if (inline?.trim()) {
-    const cred = JSON.parse(inline);
-    admin.initializeApp({ credential: admin.credential.cert(cred) });
+    try {
+      const cred = JSON.parse(inline);
+      console.log("Firebase parsed:", !!cred);
+      admin.initializeApp({ credential: admin.credential.cert(cred) });
+    } catch (err) {
+      console.error("Error parsing FIREBASE_SERVICE_ACCOUNT_JSON:", err.message);
+      throw err;
+    }
     return admin;
   }
 
