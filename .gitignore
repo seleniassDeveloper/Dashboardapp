@@ -26,7 +26,9 @@ dashboard-react/.env.*
 # Plantillas de variables (sí van al repo)
 !.env.example
 !backend/.env.example
+!backend/.env.production.example
 !dashboard-react/.env.example
+!dashboard-react/.env.production.example
 
 # Carpetas locales que no van al repo de la app
 Aplicacion Dashboard/
