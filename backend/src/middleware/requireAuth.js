@@ -7,13 +7,21 @@ export default async function requireAuth(req, res, next) {
   }
 
   const header = req.headers.authorization;
+  console.log("Authorization header:", header ? "Present" : "Missing");
+  
   const token = header?.startsWith("Bearer ") ? header.slice(7) : null;
+  console.log("Token preview:", token?.slice(0, 30));
+  
   if (!token) {
     return res.status(401).json({ error: "No autenticado." });
   }
 
   try {
     const decoded = await getFirebaseAuth().verifyIdToken(token);
+    console.log("decoded uid:", decoded.uid);
+    console.log("decoded aud:", decoded.aud);
+    console.log("decoded iss:", decoded.iss);
+    
     req.user = {
       uid: decoded.uid,
       email: decoded.email ?? null,
@@ -21,7 +29,7 @@ export default async function requireAuth(req, res, next) {
     };
     next();
   } catch (e) {
-    console.error(e);
+    console.error("verifyIdToken failed:", e);
     const msg = String(e?.message || e);
     if (
       msg.includes("credenciales") ||
