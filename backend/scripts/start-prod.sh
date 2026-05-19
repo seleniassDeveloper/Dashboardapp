@@ -1,24 +1,19 @@
 #!/bin/sh
-set -e
-
-PORT="${PORT:-3001}"
 echo "=========================================="
 echo "[start-prod] Starting server..."
+echo "[start-prod] PORT=${PORT:-3001}"
 echo "[start-prod] NODE_ENV=${NODE_ENV:-production}"
-echo "[start-prod] PORT=${PORT}"
-echo "[start-prod] HOST=0.0.0.0"
 echo "=========================================="
 
+# Migraciones en background — NO bloquean el healthcheck de Railway
 if [ -n "${DATABASE_URL}" ]; then
-  echo "[start-prod] Running prisma migrate deploy..."
-  if npx prisma migrate deploy; then
-    echo "[start-prod] Migrations OK"
-  else
-    echo "[start-prod] WARNING: prisma migrate deploy failed — starting API anyway"
-  fi
+  (
+    echo "[start-prod] prisma migrate deploy (background)..."
+    npx prisma migrate deploy && echo "[start-prod] migrations OK" || echo "[start-prod] migrations WARN"
+  ) &
 else
-  echo "[start-prod] WARNING: DATABASE_URL not set — skipping migrations"
+  echo "[start-prod] DATABASE_URL not set — skip migrations"
 fi
 
-echo "[start-prod] Launching node src/server.js"
+echo "[start-prod] exec node src/server.js"
 exec node src/server.js

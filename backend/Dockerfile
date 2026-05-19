@@ -1,4 +1,4 @@
-# API Express — Railway con Root Directory = "backend"
+# Railway: Root Directory = "backend" · Dockerfile path = Dockerfile
 FROM node:20-alpine AS base
 WORKDIR /app
 RUN apk add --no-cache openssl
@@ -20,6 +20,6 @@ COPY scripts ./scripts/
 
 RUN chmod +x scripts/start-prod.sh && npx prisma generate
 
-EXPOSE 3001
+EXPOSE 8080
 
 CMD ["sh", "scripts/start-prod.sh"]

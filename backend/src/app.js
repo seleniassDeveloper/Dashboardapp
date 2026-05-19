@@ -25,6 +25,11 @@ const app = express();
 
 app.set("trust proxy", 1);
 
+/** Liveness — primero, sin middleware (Railway healthcheck). */
+app.get("/health", (_req, res) => {
+  res.status(200).json({ ok: true });
+});
+
 app.use(cors(getCorsOptions()));
 app.use(express.json({ limit: "2mb" }));
 app.use(requestLogger);

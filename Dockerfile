@@ -1,4 +1,4 @@
-# API Express — Railway/Render (Root Directory vacío en el monorepo)
+# Railway: Root Directory = vacío · Dockerfile path = Dockerfile
 FROM node:20-alpine AS base
 WORKDIR /app
 RUN apk add --no-cache openssl
@@ -20,7 +20,7 @@ COPY backend/scripts ./scripts/
 
 RUN chmod +x scripts/start-prod.sh && npx prisma generate
 
-# Railway inyecta PORT en runtime (suele ser distinto de 3001)
-EXPOSE 3001
+# Railway inyecta PORT en runtime (ej. 8080)
+EXPOSE 8080
 
 CMD ["sh", "scripts/start-prod.sh"]
