@@ -77,7 +77,7 @@ export default function AnalisisServicio() {
         setError(
           e?.response?.data?.error ||
             (isLocalApi
-              ? "No pude traer las citas. ¿Está corriendo el backend en http://localhost:3001?"
+              ? "No pude traer las citas. Revisá que el API esté en línea (Railway/Render) y VITE_API_URL en Vercel."
               : "No pude conectar con el servidor. Revisá que el API esté desplegado en Railway y VITE_API_URL en Vercel.")
         );
       } finally {

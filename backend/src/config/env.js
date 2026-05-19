@@ -1,9 +1,13 @@
 const isProd = process.env.NODE_ENV === "production";
 
+function normalizeOrigin(url) {
+  return url.replace(/\/+$/, "");
+}
+
 export function getFrontendOrigins() {
   const fromEnv = (process.env.FRONTEND_URL || "")
     .split(",")
-    .map((s) => s.trim())
+    .map((s) => normalizeOrigin(s.trim()))
     .filter(Boolean);
 
   const devDefaults = ["http://localhost:5173", "http://127.0.0.1:5173"];

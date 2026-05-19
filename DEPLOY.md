@@ -60,8 +60,9 @@ Habilitá **Google** y/o **Email/Password** en **Sign-in method**.
 
 1. [railway.app](https://railway.app) → **New Project** → **Deploy from GitHub repo**.
 2. Elegí `seleniassDeveloper/Dashboardapp` (o tu repo).
-3. **Root Directory:** `backend`
-4. Railway detectará `railway.toml` y el `Dockerfile`.
+3. **Root Directory:** vacío (raíz del monorepo, **no** `backend`)
+4. **Builder:** **Dockerfile** · path `Dockerfile` (ver `RAILWAY.md`)
+5. **NO** uses Railpack ni el repo `Aplicacion-Dashboard` para el API.
 
 ### Variables de entorno (Production)
 
@@ -189,7 +190,9 @@ Dashboard/
 
 | Síntoma | Causa probable | Solución |
 |---------|----------------|----------|
-| CORS error | `FRONTEND_URL` incorrecto | En Railway, `FRONTEND_URL=https://tu-app.vercel.app` exacto |
+| CORS error | API caído (502) o `FRONTEND_URL` mal | Primero `/health` OK; luego `FRONTEND_URL=https://tu-app.vercel.app` sin `/` final |
+| 502 Bad Gateway | Railpack/Vite en Railway | Repo `Dashboardapp` + builder **Dockerfile** |
+| Build: vite static site | Repo `Aplicacion-Dashboard` | Cambiar source a `Dashboardapp` |
 | 401 en todas las rutas | Token no enviado | Revisá `VITE_API_URL` y Firebase |
 | Firebase Admin 500 | JSON de cuenta de servicio | `FIREBASE_SERVICE_ACCOUNT_JSON` en Railway |
 | DB connection | SSL / URL incorrecta | `?sslmode=require` en Neon/Supabase |

@@ -1,66 +1,76 @@
-# Desplegar el backend en Railway (5–10 min)
+# Backend en Railway (API Express)
 
-El frontend en Vercel **no puede** usar `localhost:3001`. Necesitás el API público en Railway.
+Frontend en **Vercel**: https://dashboard-react-rust-eight.vercel.app/app  
+API en **Railway**: solo el repo **`seleniassDeveloper/Dashboardapp`**.
 
-## Si ves "Build failed" en Railway
+---
 
-### Error: `npm run build` + Vite / Rolldown
+## Error típico (lo que tenés ahora)
 
-Railway está intentando **compilar el frontend React** (Vite). El API **no** usa Vite.
+| Síntoma | Causa |
+|---------|--------|
+| **502** en `/health` | El servicio no corre Express (Railpack desplegó Vite + Caddy) |
+| **CORS** en el navegador | El 502 no trae cabeceras CORS; al arreglar el API desaparece |
+| Build log: `railpack` + `vite static site` | Repo o builder incorrectos |
 
-**Solución:**
+---
 
-1. Servicio → **Settings** → **Build** → **Builder:** elegí **Dockerfile** (no Nixpacks / Railpack por defecto).
-2. **Root Directory:** vacío (raíz) **o** `backend`.
-3. Repo: `seleniassDeveloper/Dashboardapp` (último push con `Dockerfile` en la raíz).
-4. **Redeploy**.
+## Configuración correcta (checklist)
 
-En el repo ya no hay script `build` en la raíz (solo `build:all` local) para que Nixpacks no dispare Vite.
+### 1. Source
+- Repo: **`seleniassDeveloper/Dashboardapp`**
+- Rama: **`main`**
+- **NO** uses `Aplicacion-Dashboard`
 
-### Otros checks
+### 2. Build
+| Campo | Valor |
+|--------|--------|
+| Builder | **Dockerfile** |
+| Dockerfile path | `Dockerfile` |
+| Root Directory | **vacío** (raíz del monorepo) |
 
-1. **Variables:** `DATABASE_URL` obligatoria.
-2. **Logs:** Deployments → deploy fallido → última línea en rojo.
+El repo incluye `railway.json` y `railway.toml` para forzar Docker.
 
-## 1. Crear servicio
+### 3. Variables (RAW)
 
-1. [railway.app](https://railway.app) → **New Project** → **Deploy from GitHub repo**
-2. Repo: `seleniassDeveloper/Dashboardapp`
-3. **Settings** → **Root Directory:** vacío **o** `backend` (cualquiera de los dos funciona con el repo actual)
-4. **Builder:** Dockerfile (detectado por `railway.toml`)
-
-## 2. Variables de entorno (Railway → Variables)
-
-| Variable | Valor |
-|----------|--------|
-| `NODE_ENV` | `production` |
-| `DATABASE_URL` | Tu URL de Neon (la misma del `.env` local) |
-| `FRONTEND_URL` | `https://dashboard-react-rust-eight.vercel.app` |
-| `FIREBASE_SERVICE_ACCOUNT_JSON` | Contenido completo del JSON de Firebase (una línea) |
-
-Obtener JSON: Firebase Console → Configuración → Cuentas de servicio → Generar clave privada.
-
-## 3. Dominio público
-
-**Networking** → **Generate Domain** → copiá la URL, ej. `https://dashboardapp-production-xxxx.up.railway.app`
-
-Probá: `https://TU-URL/health` → debe responder `"ok": true`
-
-## 4. Conectar Vercel
-
-En tu Mac, desde `dashboard-react`:
-
-```bash
-chmod +x scripts/set-production-api.sh
-./scripts/set-production-api.sh https://TU-URL.up.railway.app
+```env
+NODE_ENV=production
+DATABASE_URL=postgresql://...
+FRONTEND_URL=https://dashboard-react-rust-eight.vercel.app
+FIREBASE_SERVICE_ACCOUNT_JSON={"type":"service_account",...}
 ```
 
-O manual en Vercel → **dashboard-react** → **Environment Variables**:
+### 4. Networking
+- **Settings** del **servicio** → **Networking** → **Generate Domain**
+- Ejemplo: `https://aplicacion-dashboard-production.up.railway.app`
 
-`VITE_API_URL` = `https://TU-URL.up.railway.app/api`
+### 5. Redeploy
+Build logs deben mostrar **Docker**, no Railpack.  
+Deploy logs: `[server] Dashboard API en 0.0.0.0:...`
 
-Luego **Redeploy**.
+### 6. Probar
+`GET https://TU-DOMINIO.up.railway.app/health` → `{"ok":true,...}`
 
-## 5. Verificar
+### 7. Vercel
+`VITE_API_URL=https://TU-DOMINIO.up.railway.app/api` → **Redeploy**
 
-Recargá https://dashboard-react-rust-eight.vercel.app/app — las citas deberían cargar.
+```bash
+cd dashboard-react
+./scripts/set-production-api.sh https://TU-DOMINIO.up.railway.app
+```
+
+---
+
+## Alternativa: Render (gratis)
+
+Ver **`RENDER.md`** y `render.yaml` en la raíz del repo.
+
+---
+
+## Local
+
+```bash
+npm run dev
+```
+
+→ http://localhost:5173/app · API http://localhost:3001/health

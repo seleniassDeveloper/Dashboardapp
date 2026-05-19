@@ -15,10 +15,12 @@ router.get("/", async (_req, res) => {
   }
 
   try {
-    if (process.env.AUTH_DISABLED !== "true") {
+    if (process.env.AUTH_DISABLED === "true") {
+      checks.firebase = true;
+    } else {
       ensureFirebaseAdmin();
+      checks.firebase = true;
     }
-    checks.firebase = process.env.AUTH_DISABLED === "true" || true;
   } catch (e) {
     console.error("[health] firebase:", e?.message);
     checks.firebase = false;

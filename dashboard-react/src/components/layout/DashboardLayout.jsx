@@ -7,6 +7,7 @@ import ServiceModal from "../../header/services/ServiceModal";
 import WorkerModal from "../../header/workers/WorkerModal";
 import UsersAdminModal from "../../admin/UsersAdminModal.jsx";
 import { useBrand } from "../../header/name/BrandProvider";
+import ProductionApiBanner from "./ProductionApiBanner.jsx";
 
 // ABM modales (lazy load)
 const WorkersABMModal = lazy(() => import("../../header/workers/WorkersABMModal.jsx"));
@@ -49,7 +50,8 @@ export default function DashboardLayout({ children }) {
           onMenuClick={() => setIsMobileOpen(true)} 
           onEditBrand={() => setShowBrandModal(true)}
         />
-        <div className="content-inner">
+        <motion.div className="content-inner">
+          <ProductionApiBanner />
           <AnimatePresence mode="wait">
             <motion.div
               key={window.location.pathname}
@@ -61,7 +63,7 @@ export default function DashboardLayout({ children }) {
               {children}
             </motion.div>
           </AnimatePresence>
-        </div>
+        </motion.div>
       </motion.main>
 
       {/* --- Modales del Sistema --- */}

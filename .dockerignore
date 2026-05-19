@@ -1,14 +1,14 @@
 node_modules
 **/node_modules
-.env
-.env.*
-!.env.example
 .git
+.env
+**/.env
+*.md
 dashboard-react
 Aplicacion Dashboard
-DashboardWeb
-Capturas de Dashboards
-ideas DIseno
-img:videos WWW.
-*.md
-!backend/**/*.md
+.vscode
+.cursor
+dist
+**/dist
+coverage
+**/*.test.js
