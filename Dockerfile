@@ -18,9 +18,10 @@ COPY backend/prisma ./prisma/
 COPY backend/src ./src/
 COPY backend/scripts ./scripts/
 
-RUN chmod +x scripts/start-prod.sh && npx prisma generate
+RUN npx prisma generate
 
 # Railway inyecta PORT en runtime (ej. 8080)
 EXPOSE 8080
 
-CMD ["sh", "scripts/start-prod.sh"]
+# Un solo proceso Node (evita doble start / EADDRINUSE)
+CMD ["node", "src/server.js"]

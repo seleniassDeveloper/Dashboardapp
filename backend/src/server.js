@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { spawn } from "node:child_process";
 import app from "./app.js";
 import prisma from "./prisma.js";
 import { assertProductionEnv } from "./config/env.js";
@@ -11,8 +12,27 @@ console.log("PORT:", PORT);
 
 assertProductionEnv();
 
-app.listen(PORT, "0.0.0.0", () => {
+const server = app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
+
+  if (process.env.DATABASE_URL) {
+    console.log("[server] prisma migrate deploy (background)…");
+    const migrate = spawn("npx", ["prisma", "migrate", "deploy"], {
+      stdio: "inherit",
+      detached: true,
+    });
+    migrate.unref();
+    migrate.on("exit", (code) => {
+      console.log(`[server] migrations finished code=${code}`);
+    });
+  } else {
+    console.log("[server] DATABASE_URL not set — skip migrations");
+  }
+});
+
+server.on("error", (err) => {
+  console.error("[server] listen error:", err);
+  process.exit(1);
 });
 
 if (process.env.ENABLE_REMINDERS_JOB === "true") {
@@ -22,8 +42,10 @@ if (process.env.ENABLE_REMINDERS_JOB === "true") {
 
 async function shutdown(signal) {
   console.log(`[server] ${signal} — cerrando…`);
-  await prisma.$disconnect();
-  process.exit(0);
+  server.close(async () => {
+    await prisma.$disconnect();
+    process.exit(0);
+  });
 }
 
 process.on("SIGTERM", () => shutdown("SIGTERM"));

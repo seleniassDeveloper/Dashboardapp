@@ -18,8 +18,8 @@ COPY prisma ./prisma/
 COPY src ./src/
 COPY scripts ./scripts/
 
-RUN chmod +x scripts/start-prod.sh && npx prisma generate
+RUN npx prisma generate
 
 EXPOSE 8080
 
-CMD ["sh", "scripts/start-prod.sh"]
+CMD ["node", "src/server.js"]
