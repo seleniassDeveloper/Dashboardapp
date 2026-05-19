@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import api from "../../lib/api.js";
+import { useAuth } from "../../auth/AuthProvider.jsx";
 const AppointmentsContext = createContext(null);
 
 export function AppointmentsProvider({ children }) {
@@ -32,10 +33,15 @@ export function AppointmentsProvider({ children }) {
     }
   }, []);
 
+  const { user } = useAuth();
+
   useEffect(() => {
+    // Solo disparar request si auth está listo y hay usuario
+    if (!user) return;
+    
     fetchAppointments();
     fetchServices();
-  }, [fetchAppointments, fetchServices]);
+  }, [user, fetchAppointments, fetchServices]);
 
   const upsertAppointment = useCallback((appointment) => {
     if (!appointment?.id) return;

@@ -127,22 +127,26 @@ export function AuthProvider({ children }) {
     if (AUTH_DISABLED || !firebaseAuth) return;
     const reqId = api.interceptors.request.use(async (config) => {
       const url = String(config.url || "");
+      console.log("Axios request:", url, "isApi:", isApiRequest(url));
+      
       if (!isApiRequest(url)) return config;
-      // Esperamos a que Firebase restaure la sesión inicial (onAuthStateChanged interno)
+
+      // Esperar a que auth esté listo
       if (firebaseAuth.authStateReady) {
         await firebaseAuth.authStateReady();
       }
-      
+
       const u = firebaseAuth.currentUser;
+      console.log("currentUser in interceptor:", u?.uid || "null");
+
       if (u) {
-        // Fuerza el token refresh (true) para asegurar que no esté expirado y tenga los claims
         const token = await u.getIdToken(true);
-        if (config.headers && typeof config.headers.set === "function") {
-          config.headers.set("Authorization", `Bearer ${token}`);
-        } else {
-          config.headers = config.headers || {};
-          config.headers.Authorization = `Bearer ${token}`;
-        }
+        console.log("sending token:", !!token);
+        
+        // Forzar asignación de header como solicitó el usuario
+        config.headers.Authorization = `Bearer ${token}`;
+      } else {
+        console.log("No hay currentUser en interceptor. Se enviará request sin token.");
       }
       return config;
     });
