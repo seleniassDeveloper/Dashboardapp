@@ -7,15 +7,16 @@ import admin from "firebase-admin";
  * o archivo en FIREBASE_SERVICE_ACCOUNT_PATH (ruta relativa al cwd del backend, por defecto firebase-service-account.json).
  */
 export function ensureFirebaseAdmin() {
-  if (admin.apps.length > 0) {
-    return admin;
-  }
-
   const inline = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
   console.log("Firebase env exists:", !!process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
   console.log("Type of inline:", typeof inline);
   console.log("Preview of inline string (first 80 chars):", inline?.slice(0, 80));
-  
+
+  if (admin.apps.length > 0) {
+    console.log("Firebase already initialized, returning existing app.");
+    return admin;
+  }
+
   if (inline?.trim()) {
     try {
       const cred = JSON.parse(inline);

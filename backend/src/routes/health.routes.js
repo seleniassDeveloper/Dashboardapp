@@ -28,11 +28,11 @@ router.get("/ready", async (_req, res) => {
     if (process.env.AUTH_DISABLED === "true") {
       checks.firebase = true;
     } else {
-      ensureFirebaseAdmin();
-      checks.firebase = true;
+      const adminApp = ensureFirebaseAdmin();
+      checks.firebase = !!adminApp.apps?.length || !!adminApp;
     }
   } catch (e) {
-    console.error("[health/ready] firebase:", e?.message);
+    console.error("[health/ready] Firebase check failed:", e.message);
     checks.firebase = false;
   }
 
