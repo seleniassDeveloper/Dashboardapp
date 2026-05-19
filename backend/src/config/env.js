@@ -10,11 +10,14 @@ export function getFrontendOrigins() {
     .map((s) => normalizeOrigin(s.trim()))
     .filter(Boolean);
 
-  const devDefaults = ["http://localhost:5173", "http://127.0.0.1:5173"];
+  const defaults = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:5173",
+    "https://dashboard-react-rust-eight.vercel.app"
+  ];
 
-  if (isProd) return fromEnv;
-
-  return [...new Set([...fromEnv, ...devDefaults])];
+  return [...new Set([...fromEnv, ...defaults])];
 }
 
 /**

@@ -1,20 +1,13 @@
-# Render (plan free) — API Express
-# https://render.com → New → Blueprint → conectar repo Dashboardapp
 services:
   - type: web
     name: dashboard-api
-    runtime: docker
-    plan: free
-    dockerfilePath: ./Dockerfile
+    env: node
+    rootDir: backend
+    buildCommand: npm ci
+    startCommand: npm run start:prod
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production
-      - key: HOST
-        value: 0.0.0.0
-      - key: FRONTEND_URL
-        value: https://dashboard-react-rust-eight.vercel.app
-      - key: DATABASE_URL
-        sync: false
-      - key: FIREBASE_SERVICE_ACCOUNT_JSON
-        sync: false
+      - key: PORT
+        value: 3001

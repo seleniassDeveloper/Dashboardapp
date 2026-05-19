@@ -20,8 +20,7 @@ COPY backend/scripts ./scripts/
 
 RUN npx prisma generate
 
-# Railway inyecta PORT en runtime (ej. 8080)
-EXPOSE 8080
+# Railway inyecta PORT en runtime
+EXPOSE 3001
 
-# Un solo proceso Node (evita doble start / EADDRINUSE)
-CMD ["node", "src/server.js"]
+CMD ["npm", "run", "start:prod"]

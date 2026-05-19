@@ -6,7 +6,11 @@ const router = Router();
 
 /** Liveness — Railway healthcheck (siempre 200 si el proceso está arriba). */
 router.get("/", (_req, res) => {
-  res.status(200).json({ ok: true });
+  res.status(200).json({
+    ok: true,
+    service: "dashboard-api",
+    timestamp: new Date().toISOString()
+  });
 });
 
 /** Readiness — DB y Firebase (opcional para monitoreo). */

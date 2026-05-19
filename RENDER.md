@@ -1,29 +1,38 @@
-# Backend en Render (gratis)
+# Despliegue en Render
 
-Si Railway sigue con Railpack o 502, usá **Render** con el mismo Dockerfile.
+Si Railway sigue dando problemas, Render es una excelente alternativa para tu backend Express + Prisma.
 
-## Pasos
+## Pasos para desplegar en Render
 
-1. https://render.com → **New** → **Web Service**
-2. Conectá **`seleniassDeveloper/Dashboardapp`**
-3. **Runtime:** Docker
-4. **Dockerfile path:** `./Dockerfile`
-5. **Root directory:** vacío
-6. **Environment variables** (mismas que Railway, ver `backend/.env.production.example`)
-7. **Health Check Path:** `/health`
-8. **Create Web Service**
+1. Entra a [Render](https://render.com) y crea una cuenta o inicia sesión.
+2. Haz clic en **New +** y selecciona **Web Service**.
+3. Conecta tu repositorio de GitHub `Dashboardapp`.
+4. Render leerá automáticamente el archivo `render.yaml` y configurará todo.
 
-Cuando esté live, copiá la URL (ej. `https://dashboard-api-xxxx.onrender.com`).
+## Configuración manual (si no usas `render.yaml`)
 
-## Vercel
+Si prefieres configurarlo a mano, usa estos valores:
 
-```bash
-cd dashboard-react
-./scripts/set-production-api.sh https://dashboard-api-xxxx.onrender.com
-```
+- **Name**: `dashboard-api` (o el que prefieras)
+- **Environment**: `Node`
+- **Root Directory**: `backend`
+- **Build Command**: `npm ci`
+- **Start Command**: `npm run start:prod`
 
-O en Vercel: `VITE_API_URL` = `https://....onrender.com/api` → Redeploy.
+## Variables de Entorno (Environment Variables)
 
-## Blueprint
+Asegúrate de agregar estas variables en la sección **Environment**:
 
-También podés usar **New → Blueprint** y el archivo `render.yaml` del repo (completá `DATABASE_URL` y Firebase en el panel).
+- `NODE_ENV`: `production`
+- `PORT`: `3001` (Opcional, Render suele inyectar su propio PORT)
+- `DATABASE_URL`: `(tu string de conexión a PostgreSQL)`
+- `FRONTEND_URL`: `https://dashboard-react-rust-eight.vercel.app`
+- `FIREBASE_SERVICE_ACCOUNT_JSON`: `(tu JSON de Firebase minificado)`
+
+## Health Check Path
+
+Render te permite configurar un endpoint de Health Check (sección "Advanced").
+
+- **Health Check Path**: `/health`
+
+Con esto, Render no marcará el servicio como exitoso hasta que tu API responda con un 200 en `/health`. Ya configuramos el endpoint para que lo haga sin depender de la base de datos o Firebase, así que nunca fallará por problemas externos.

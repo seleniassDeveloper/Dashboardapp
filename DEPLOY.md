@@ -1,208 +1,69 @@
-# Deploy en producción — Dashboard SaaS
+# Guía Definitiva de Despliegue (Dashboard SaaS)
 
-Arquitectura objetivo:
+Esta guía contiene los pasos exactos para desplegar el backend (Railway o Render) y el frontend (Vercel) de forma exitosa y sin errores de CORS o 502.
 
-| Capa | Servicio | Carpeta |
-|------|----------|---------|
-| Frontend | [Vercel](https://vercel.com) | `dashboard-react/` |
-| API | [Railway](https://railway.app) | `backend/` |
-| Base de datos | [Neon](https://neon.tech) o [Supabase](https://supabase.com) | PostgreSQL |
-| Auth | [Firebase](https://console.firebase.google.com) | Cliente + Admin |
+## 1. Despliegue del Backend
 
----
+El backend está diseñado para responder `200 OK` en el endpoint `/health` de forma independiente a la base de datos o Firebase. Esto garantiza que plataformas como Railway o Render puedan levantar el contenedor sin quedarse atascados en "Performing healthchecks".
 
-## 1. Base de datos (Neon o Supabase)
+### Opción A: Railway (Recomendado)
 
-1. Creá un proyecto PostgreSQL.
-2. Copiá la **connection string** con SSL (`?sslmode=require`).
-3. Guardala como `DATABASE_URL` (la usarás en Railway).
+1. En Railway, crea un **New Project** -> **Deploy from GitHub repo**.
+2. Selecciona tu repositorio `Dashboardapp`.
+3. Ve a los **Settings** del servicio recién creado.
+4. En la sección **Service**, asegúrate de que Railway use el `Dockerfile` que está en la raíz del proyecto.
+   - Root Directory: `(vacío)`
+   - Dockerfile Path: `Dockerfile`
+5. En la sección **Variables**, agrega lo siguiente:
+   - `NODE_ENV=production`
+   - `PORT=3001` (Opcional, Railway inyecta el suyo, pero es buena práctica).
+   - `DATABASE_URL=(tu connection string de Postgres, ej. Supabase o Neon)`
+   - `FRONTEND_URL=https://dashboard-react-rust-eight.vercel.app`
+   - `FIREBASE_SERVICE_ACCOUNT_JSON=(tu JSON minificado de Firebase)`
+6. Espera a que termine el build. El healthcheck en `/health` responderá inmediatamente con `{"ok":true,"service":"dashboard-api"}` en cuanto Node arranque.
+7. Una vez desplegado, copia el dominio público generado por Railway (ej. `https://tu-api.up.railway.app`).
 
-En Neon/Supabase podés ejecutar migraciones desde tu máquina:
+### Opción B: Render (Alternativa si Railway falla)
 
-```bash
-cd backend
-cp .env.example .env
-# Pegá DATABASE_URL en .env
-npm ci
-npx prisma migrate deploy
-```
+Si Railway sigue dando problemas, usa Render. El repositorio ya incluye el archivo `render.yaml` que configura todo automáticamente.
 
----
-
-## 2. Firebase
-
-### Cliente (frontend)
-
-1. Firebase Console → tu proyecto → **Project settings** → **Your apps** → Web.
-2. Copiá las variables `VITE_FIREBASE_*` (ver `dashboard-react/.env.production.example`).
-
-### Dominios autorizados
-
-**Authentication → Settings → Authorized domains**, agregá:
-
-- `localhost` (desarrollo)
-- Tu dominio de Vercel: `tu-app.vercel.app`
-- Dominio custom si usás uno
-
-Habilitá **Google** y/o **Email/Password** en **Sign-in method**.
-
-### Admin (backend)
-
-1. **Project settings → Service accounts → Generate new private key**.
-2. En Railway, pegá el JSON completo en la variable `FIREBASE_SERVICE_ACCOUNT_JSON` (una sola línea).
-3. **No** subas ese archivo a GitHub.
+1. En Render, haz clic en **New +** -> **Web Service**.
+2. Conecta tu repositorio de GitHub `Dashboardapp`.
+3. Render leerá `render.yaml` automáticamente. Si decides hacerlo manual:
+   - Build Command: `npm ci`
+   - Start Command: `npm run start:prod`
+   - Root Directory: `backend`
+   - Health Check Path: `/health`
+4. Agrega las variables de entorno (`NODE_ENV`, `DATABASE_URL`, `FRONTEND_URL`, `FIREBASE_SERVICE_ACCOUNT_JSON`).
+5. Despliega y copia el dominio público generado por Render (ej. `https://tu-api.onrender.com`).
 
 ---
 
-## 3. Backend en Railway
+## 2. Despliegue del Frontend (Vercel)
 
-### Conectar el repositorio
+El frontend está configurado para consumir la API usando la variable `VITE_API_URL`.
 
-1. [railway.app](https://railway.app) → **New Project** → **Deploy from GitHub repo**.
-2. Elegí `seleniassDeveloper/Dashboardapp` (o tu repo).
-3. **Root Directory:** vacío (raíz del monorepo, **no** `backend`)
-4. **Builder:** **Dockerfile** · path `Dockerfile` (ver `RAILWAY.md`)
-5. **NO** uses Railpack ni el repo `Aplicacion-Dashboard` para el API.
-
-### Variables de entorno (Production)
-
-| Variable | Ejemplo |
-|----------|---------|
-| `NODE_ENV` | `production` |
-| `PORT` | `3001` (Railway suele inyectar `PORT` automáticamente) |
-| `DATABASE_URL` | `postgresql://...?sslmode=require` |
-| `FRONTEND_URL` | `https://tu-app.vercel.app` |
-| `FIREBASE_SERVICE_ACCOUNT_JSON` | `{"type":"service_account",...}` |
-| `ENABLE_REMINDERS_JOB` | `true` (opcional) |
-| `EMAIL_*` | Si usás recordatorios por email |
-| `OPENAI_API_KEY` | Si usás IA |
-
-**Importante:** `AUTH_DISABLED` debe estar **sin definir** o en `false` en producción.
-
-### Dominio público del API
-
-1. Railway → tu servicio → **Settings** → **Networking** → **Generate Domain**.
-2. Obtendrás algo como: `https://dashboard-api-production.up.railway.app`
-3. La URL del API para el frontend es: `https://TU-DOMINIO-RAILWAY/api`
-
-### Health check
-
-Railway usa `GET /health`. Debe responder `{"ok":true,...}`.
-
-### Deploy automático
-
-Cada push a `main` en GitHub vuelve a desplegar si activaste **Auto Deploy** en Railway.
+1. En Vercel, crea un **New Project** y selecciona el repositorio `Dashboardapp`.
+2. En la configuración del Framework Preset, selecciona **Vite**.
+3. En **Root Directory**, selecciona `dashboard-react`.
+4. En **Environment Variables**, debes agregar obligatoriamente:
+   - `VITE_API_URL=https://DOMINIO_BACKEND/api`
+     *(Reemplaza `DOMINIO_BACKEND` por la URL que copiaste de Railway o Render, asegúrate de NO poner `/api` dos veces ni barra final. Ej: `https://tu-api.up.railway.app/api`)*
+5. Haz clic en **Deploy**.
 
 ---
 
-## 4. Frontend en Vercel
+## 3. Validación y Pruebas
 
-### Conectar el repositorio
+Una vez desplegados ambos, realiza las siguientes pruebas:
 
-1. [vercel.com](https://vercel.com) → **Add New Project** → importá el repo de GitHub.
-2. **Root Directory:** `dashboard-react`
-3. Framework: **Vite** (detectado por `vercel.json`).
-
-### Variables de entorno (Production)
-
-| Variable | Valor |
-|----------|--------|
-| `VITE_API_URL` | `https://TU-DOMINIO-RAILWAY/api` |
-| `VITE_AUTH_DISABLED` | `false` |
-| `VITE_FIREBASE_API_KEY` | (Firebase) |
-| `VITE_FIREBASE_AUTH_DOMAIN` | |
-| `VITE_FIREBASE_PROJECT_ID` | |
-| `VITE_FIREBASE_STORAGE_BUCKET` | |
-| `VITE_FIREBASE_MESSAGING_SENDER_ID` | |
-| `VITE_FIREBASE_APP_ID` | |
-
-### Deploy automático
-
-Cada push a `main` despliega en Vercel si el proyecto está vinculado.
-
-### PWA
-
-La app es instalable (service worker + `manifest`). Reemplazá `public/pwa-192.png` y `public/pwa-512.png` por tu logo cuando tengas branding final.
-
----
-
-## 5. Orden recomendado de deploy
-
-```
-1. Base de datos + migraciones Prisma
-2. Railway (backend) → copiar URL pública
-3. Vercel (frontend) con VITE_API_URL apuntando al backend
-4. Firebase: dominios autorizados (Vercel + localhost)
-5. Railway: FRONTEND_URL = URL de Vercel
-6. Probar login, citas, equipo
-```
-
----
-
-## 6. Desarrollo local
-
-```bash
-# Raíz del repo
-cp backend/.env.example backend/.env
-cp dashboard-react/.env.example dashboard-react/.env
-npm install
-cd backend && npm ci && cd ..
-cd dashboard-react && npm ci && cd ..
-cd backend && npx prisma migrate deploy && cd ..
-npm run dev
-```
-
-- Frontend: http://localhost:5173  
-- API: http://localhost:3001  
-- Health: http://localhost:3001/health  
-
----
-
-## 7. Checklist post-deploy
-
-- [ ] `GET https://TU-API/health` → `ok: true`
-- [ ] Login con email y Google en la URL de Vercel
-- [ ] Crear cita / ver equipo sin errores CORS
-- [ ] Token Bearer en peticiones (Network tab → Authorization header)
-- [ ] `AUTH_DISABLED` no está en `true` en Railway ni Vercel
-- [ ] Migraciones aplicadas (`prisma migrate deploy` en el start de Railway)
-
----
-
-## 8. Estructura del monorepo
-
-```
-Dashboard/
-├── backend/           → Railway (API Express + Prisma)
-│   ├── Dockerfile
-│   ├── railway.toml
-│   └── prisma/
-├── dashboard-react/   → Vercel (React + Vite + PWA)
-│   ├── vercel.json
-│   └── src/lib/api.js → cliente HTTP central (VITE_API_URL)
-├── DEPLOY.md
-└── package.json       → scripts dev locales
-```
-
----
-
-## 9. Solución de problemas
-
-| Síntoma | Causa probable | Solución |
-|---------|----------------|----------|
-| CORS error | API caído (502) o `FRONTEND_URL` mal | Primero `/health` OK; luego `FRONTEND_URL=https://tu-app.vercel.app` sin `/` final |
-| 502 Bad Gateway | Railpack/Vite en Railway | Repo `Dashboardapp` + builder **Dockerfile** |
-| Build: vite static site | Repo `Aplicacion-Dashboard` | Cambiar source a `Dashboardapp` |
-| 401 en todas las rutas | Token no enviado | Revisá `VITE_API_URL` y Firebase |
-| Firebase Admin 500 | JSON de cuenta de servicio | `FIREBASE_SERVICE_ACCOUNT_JSON` en Railway |
-| DB connection | SSL / URL incorrecta | `?sslmode=require` en Neon/Supabase |
-| Página en blanco tras login Google | Dominio no autorizado | Firebase Authorized domains |
-| Migraciones fallan | DB vacía o sin permisos | Ejecutá `npx prisma migrate deploy` con la misma `DATABASE_URL` |
-
----
-
-## 10. Dominio propio (opcional)
-
-**Vercel:** Settings → Domains → agregá `app.tudominio.com`.  
-**Railway:** Settings → Custom Domain → `api.tudominio.com`.  
-Actualizá `FRONTEND_URL`, `VITE_API_URL` y Firebase Authorized domains.
+1. **Prueba de Health Básica**: Entra a `https://DOMINIO_BACKEND/health`. Debe devolver:
+   ```json
+   {
+     "ok": true,
+     "service": "dashboard-api",
+     "timestamp": "..."
+   }
+   ```
+2. **Prueba de Readiness**: Entra a `https://DOMINIO_BACKEND/health/ready`. Esto validará que la base de datos y Firebase estén conectados correctamente.
+3. **Prueba Frontend**: Abre la URL de Vercel. El dashboard debería cargar sin alertas de API en localhost y sin errores de CORS en la consola.
