@@ -128,11 +128,21 @@ export function AuthProvider({ children }) {
     const reqId = api.interceptors.request.use(async (config) => {
       const url = String(config.url || "");
       if (!isApiRequest(url)) return config;
+      // Esperamos a que Firebase restaure la sesión inicial (onAuthStateChanged interno)
+      if (firebaseAuth.authStateReady) {
+        await firebaseAuth.authStateReady();
+      }
+      
       const u = firebaseAuth.currentUser;
       if (u) {
-        const token = await u.getIdToken();
-        config.headers = config.headers || {};
-        config.headers.Authorization = `Bearer ${token}`;
+        // Fuerza el token refresh (true) para asegurar que no esté expirado y tenga los claims
+        const token = await u.getIdToken(true);
+        if (config.headers && typeof config.headers.set === "function") {
+          config.headers.set("Authorization", `Bearer ${token}`);
+        } else {
+          config.headers = config.headers || {};
+          config.headers.Authorization = `Bearer ${token}`;
+        }
       }
       return config;
     });
