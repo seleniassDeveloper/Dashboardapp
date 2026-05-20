@@ -239,16 +239,19 @@ export default function WorkersABMModal({ show, onHide }) {
           {error ? <Alert variant="danger">{error}</Alert> : null}
           {okMsg ? <Alert variant="success">{okMsg}</Alert> : null}
 
-          <div className="d-flex align-items-center justify-content-between gap-3 mb-3">
-            <Form.Control
-              placeholder="Buscar por nombre o servicio…"
-              value={q}
-              onChange={(e) => {
-                setQ(e.target.value);
-                setPage(1);
-              }}
-              style={{ maxWidth: 460 }}
-            />
+          <div className="d-flex align-items-end justify-content-between gap-3 mb-3">
+            <Form.Group className="flex-grow-1 custom-form" style={{ maxWidth: 460 }}>
+              <Form.Label htmlFor="workers-abm-search">Buscar profesional o servicio</Form.Label>
+              <Form.Control
+                id="workers-abm-search"
+                placeholder="Nombre, apellido o servicio…"
+                value={q}
+                onChange={(e) => {
+                  setQ(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </Form.Group>
 
             <div className="text-muted" style={{ fontSize: 12 }}>
               Página <b>{pageSafe}</b> de <b>{totalPages}</b>

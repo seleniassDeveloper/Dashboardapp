@@ -273,16 +273,19 @@ export default function WorkersListModal({ show, onHide }) {
           {error ? <Alert variant="danger">{error}</Alert> : null}
           {okMsg ? <Alert variant="success">{okMsg}</Alert> : null}
 
-          <div className="d-flex align-items-center justify-content-between gap-3 mb-3">
-            <Form.Control
-              placeholder="Buscar por nombre o servicio…"
-              value={q}
-              onChange={(e) => {
-                setQ(e.target.value);
-                setPage(1);
-              }}
-              style={{ maxWidth: 420 }}
-            />
+          <div className="d-flex align-items-end justify-content-between gap-3 mb-3">
+            <Form.Group className="flex-grow-1 custom-form" style={{ maxWidth: 420 }}>
+              <Form.Label htmlFor="workers-list-search">Buscar profesional o servicio</Form.Label>
+              <Form.Control
+                id="workers-list-search"
+                placeholder="Nombre, apellido o servicio…"
+                value={q}
+                onChange={(e) => {
+                  setQ(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </Form.Group>
 
             <Button variant="outline-secondary" onClick={fetchAll} disabled={loading}>
               {loading ? (

@@ -484,8 +484,11 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
                 <Row className="g-3">
                   <Col md={6}>
                     <Form.Group>
-                      <Form.Label className="small-label">Nombre *</Form.Label>
+                      <Form.Label className="small-label" htmlFor="appt-client-first">
+                        Nombre del cliente *
+                      </Form.Label>
                       <Form.Control
+                        id="appt-client-first"
                         className="modern-input"
                         placeholder="Ej: María"
                         value={form.clientFirstName}
@@ -502,8 +505,11 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
                   </Col>
                   <Col md={6}>
                     <Form.Group>
-                      <Form.Label className="small-label">Apellido *</Form.Label>
+                      <Form.Label className="small-label" htmlFor="appt-client-last">
+                        Apellido del cliente *
+                      </Form.Label>
                       <Form.Control
+                        id="appt-client-last"
                         className="modern-input"
                         placeholder="Ej: García"
                         value={form.clientLastName}
@@ -592,8 +598,11 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
                 <Row className="g-3">
                   <Col md={6}>
                     <Form.Group>
-                      <Form.Label className="small-label">Profesional que atiende *</Form.Label>
+                      <Form.Label className="small-label" htmlFor="appt-worker">
+                        Profesional que atiende *
+                      </Form.Label>
                       <Form.Select
+                        id="appt-worker"
                         className="modern-input"
                         value={form.workerId}
                         onChange={(e) => {
@@ -617,8 +626,11 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
                   </Col>
                   <Col md={6}>
                     <Form.Group>
-                      <Form.Label className="small-label">Servicio *</Form.Label>
+                      <Form.Label className="small-label" htmlFor="appt-service">
+                        Servicio a realizar *
+                      </Form.Label>
                       <Form.Select
+                        id="appt-service"
                         className="modern-input"
                         value={form.serviceId}
                         onChange={(e) => setField("serviceId", e.target.value)}
@@ -633,8 +645,11 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
                   </Col>
                   <Col md={6}>
                     <Form.Group>
-                      <Form.Label className="small-label">Fecha y Hora *</Form.Label>
+                      <Form.Label className="small-label" htmlFor="appt-starts-at">
+                        Fecha y hora de la cita *
+                      </Form.Label>
                       <Form.Control
+                        id="appt-starts-at"
                         className="modern-input"
                         type="datetime-local"
                         value={form.startsAt}
@@ -644,13 +659,18 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
                   </Col>
                   <Col md={6}>
                     <Form.Group>
-                      <Form.Label className="small-label">Inversión / Precio</Form.Label>
+                      <Form.Label className="small-label" htmlFor="appt-price">
+                        Precio del servicio ($)
+                      </Form.Label>
                       <InputGroup className="modern-input-group">
-                        <InputGroup.Text className="bg-transparent border-0">$</InputGroup.Text>
-                        <Form.Control 
-                          className="border-0 ps-1"
-                          value={form.price} 
-                          onChange={(e) => setField("price", e.target.value)} 
+                        <InputGroup.Text className="bg-transparent border-0 text-muted ps-3">$</InputGroup.Text>
+                        <Form.Control
+                          id="appt-price"
+                          className="border-0 ps-1 py-3 bg-transparent shadow-none"
+                          placeholder="0.00"
+                          inputMode="decimal"
+                          value={form.price}
+                          onChange={(e) => setField("price", e.target.value)}
                         />
                       </InputGroup>
                     </Form.Group>
@@ -665,17 +685,45 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
                 <Row className="g-3">
                   <Col md={6}>
                     <Form.Group>
-                      <Form.Label className="small-label">WhatsApp / Teléfono</Form.Label>
-                      <Form.Control className="modern-input" value={form.phone} onChange={(e) => setField("phone", e.target.value)} />
+                      <Form.Label className="small-label" htmlFor="appt-phone">
+                        WhatsApp / Teléfono de contacto
+                      </Form.Label>
+                      <Form.Control
+                        id="appt-phone"
+                        className="modern-input"
+                        type="tel"
+                        placeholder="Ej: +54 9 11..."
+                        value={form.phone}
+                        onChange={(e) => setField("phone", e.target.value)}
+                      />
                     </Form.Group>
                   </Col>
                   <Col md={6}>
                     <Form.Group>
-                      <Form.Label className="small-label">Notas o Indicaciones</Form.Label>
+                      <Form.Label className="small-label" htmlFor="appt-email">
+                        Correo electrónico
+                      </Form.Label>
                       <Form.Control
+                        id="appt-email"
+                        className="modern-input"
+                        type="email"
+                        placeholder="cliente@email.com"
+                        value={form.email}
+                        onChange={(e) => setField("email", e.target.value)}
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={12}>
+                    <Form.Group>
+                      <Form.Label className="small-label" htmlFor="appt-notes">
+                        Notas o indicaciones para la cita
+                      </Form.Label>
+                      <Form.Control
+                        id="appt-notes"
                         className="modern-input"
                         as="textarea"
-                        rows={1}
+                        rows={2}
+                        placeholder="Preferencias, alergias, recordatorios..."
                         value={form.notes}
                         onChange={(e) => setField("notes", e.target.value)}
                       />

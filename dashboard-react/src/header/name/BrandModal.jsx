@@ -112,7 +112,7 @@ const handleSave = () => {
       </Modal.Header>
 
       <Modal.Body>
-        <Form className="d-grid gap-3">
+        <Form className="custom-form d-grid gap-3">
           <Form.Group>
             <Form.Label>Nombre de la empresa *</Form.Label>
             <Form.Control
@@ -150,6 +150,7 @@ const handleSave = () => {
               </Button>
             </InputGroup>
 
+            <Form.Label className="small text-muted mb-1">O subir imagen desde archivo</Form.Label>
             <Form.Control type="file" accept="image/*" onChange={handleFileChange} />
 
             {preview && (

@@ -172,45 +172,69 @@ export default function WorkflowBuilderModal({
       <Modal.Body>
         {error && <Alert variant="danger">{error}</Alert>}
 
+        <Form className="custom-form">
         <Row className="g-3 mb-3">
           <Col md={8}>
-            <Form.Label>Nombre *</Form.Label>
-            <Form.Control value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej: Recordatorio 24h" />
+            <Form.Group>
+              <Form.Label htmlFor="wf-name">Nombre del workflow *</Form.Label>
+              <Form.Control
+                id="wf-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Ej: Recordatorio 24h antes de la cita"
+              />
+            </Form.Group>
           </Col>
           <Col md={4}>
-            <Form.Label>Estado</Form.Label>
-            <Form.Select value={status} onChange={(e) => setStatus(e.target.value)}>
-              <option value="DRAFT">Borrador</option>
-              <option value="ACTIVE">Activo</option>
-              <option value="PAUSED">Pausado</option>
-            </Form.Select>
+            <Form.Group>
+              <Form.Label htmlFor="wf-status">Estado de publicación</Form.Label>
+              <Form.Select id="wf-status" value={status} onChange={(e) => setStatus(e.target.value)}>
+                <option value="DRAFT">Borrador</option>
+                <option value="ACTIVE">Activo</option>
+                <option value="PAUSED">Pausado</option>
+              </Form.Select>
+            </Form.Group>
           </Col>
           <Col md={12}>
-            <Form.Label>Modelo de negocio *</Form.Label>
-            <Form.Select value={businessModelId} onChange={(e) => setBusinessModelId(e.target.value)}>
-              <option value="">Seleccionar…</option>
-              {businessModels.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
-            </Form.Select>
-            {model?.description && <Form.Text muted>{model.description}</Form.Text>}
+            <Form.Group>
+              <Form.Label htmlFor="wf-business-model">Modelo de negocio *</Form.Label>
+              <Form.Select
+                id="wf-business-model"
+                value={businessModelId}
+                onChange={(e) => setBusinessModelId(e.target.value)}
+              >
+                <option value="">Seleccionar…</option>
+                {businessModels.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </Form.Select>
+              {model?.description && <Form.Text muted>{model.description}</Form.Text>}
+            </Form.Group>
           </Col>
           <Col md={12}>
-            <Form.Label>Descripción</Form.Label>
-            <Form.Control
-              as="textarea"
-              rows={2}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
+            <Form.Group>
+              <Form.Label htmlFor="wf-description">Descripción del flujo</Form.Label>
+              <Form.Control
+                id="wf-description"
+                as="textarea"
+                rows={2}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Qué hace este workflow y cuándo usarlo..."
+              />
+            </Form.Group>
           </Col>
         </Row>
 
         <div className="p-3 rounded-3 border mb-3 bg-light">
-          <h6 className="fw-bold small text-uppercase text-muted mb-2">Disparador (cuándo corre)</h6>
+          <Form.Group>
+            <Form.Label htmlFor="wf-trigger" className="fw-bold small text-uppercase text-muted">
+              Disparador (cuándo se ejecuta) *
+            </Form.Label>
           <Form.Select
+            id="wf-trigger"
             value={triggerType}
             onChange={(e) => {
               const t = e.target.value;
@@ -231,6 +255,7 @@ export default function WorkflowBuilderModal({
               </option>
             ))}
           </Form.Select>
+          </Form.Group>
           {triggerType && (
             <>
               <p className="small text-muted mb-2">{TRIGGER_META[triggerType]?.description}</p>
@@ -335,7 +360,7 @@ export default function WorkflowBuilderModal({
             <div key={tr.id} className="p-3 border rounded-3 mb-2 bg-white">
               <Row className="g-2 align-items-end">
                 <Col md={3}>
-                  <Form.Label className="small">Desde</Form.Label>
+                  <Form.Label className="small">Nodo de origen</Form.Label>
                   <Form.Select
                     size="sm"
                     value={tr.from}
@@ -353,7 +378,7 @@ export default function WorkflowBuilderModal({
                   </Form.Select>
                 </Col>
                 <Col md={3}>
-                  <Form.Label className="small">Hacia</Form.Label>
+                  <Form.Label className="small">Nodo de destino</Form.Label>
                   <Form.Select
                     size="sm"
                     value={tr.to}
@@ -370,7 +395,7 @@ export default function WorkflowBuilderModal({
                   </Form.Select>
                 </Col>
                 <Col md={4}>
-                  <Form.Label className="small">Etiqueta</Form.Label>
+                  <Form.Label className="small">Texto de la transición</Form.Label>
                   <Form.Control
                     size="sm"
                     value={tr.label || ""}
@@ -424,7 +449,7 @@ export default function WorkflowBuilderModal({
             <div key={scr.id} className="p-3 border rounded-3 mb-2 bg-light">
               <Row className="g-2">
                 <Col md={6}>
-                  <Form.Label className="small">Título</Form.Label>
+                  <Form.Label className="small">Título de la pantalla</Form.Label>
                   <Form.Control
                     size="sm"
                     value={scr.title}
@@ -434,7 +459,7 @@ export default function WorkflowBuilderModal({
                   />
                 </Col>
                 <Col md={6}>
-                  <Form.Label className="small">Mostrar en transición</Form.Label>
+                  <Form.Label className="small">Transición donde se muestra</Form.Label>
                   <Form.Select
                     size="sm"
                     value={scr.transitionId || ""}
@@ -453,7 +478,7 @@ export default function WorkflowBuilderModal({
                   </Form.Select>
                 </Col>
                 <Col md={12}>
-                  <Form.Label className="small">Mensaje</Form.Label>
+                  <Form.Label className="small">Mensaje de la pantalla</Form.Label>
                   <Form.Control
                     as="textarea"
                     rows={2}
@@ -465,7 +490,7 @@ export default function WorkflowBuilderModal({
                   />
                 </Col>
                 <Col md={12}>
-                  <Form.Label className="small">Campos (catálogo workflow)</Form.Label>
+                  <Form.Label className="small">Campos del formulario en pantalla</Form.Label>
                   <div className="d-flex flex-wrap gap-2">
                     {screenFieldOptions.map((f) => (
                       <Form.Check
@@ -502,6 +527,7 @@ export default function WorkflowBuilderModal({
             </div>
           ))
         )}
+        </Form>
       </Modal.Body>
       <Modal.Footer>
         <Button variant="outline-secondary" onClick={onHide} disabled={saving}>

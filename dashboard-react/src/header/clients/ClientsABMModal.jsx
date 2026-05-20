@@ -159,13 +159,16 @@ export default function ClientsABMModal({ show, onHide }) {
           {error ? <Alert variant="danger">{error}</Alert> : null}
           {okMsg ? <Alert variant="success">{okMsg}</Alert> : null}
 
-          <div className="d-flex gap-2 align-items-center justify-content-between mb-3">
-            <Form.Control
-              placeholder="Buscar cliente…"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              style={{ maxWidth: 420 }}
-            />
+          <div className="d-flex gap-2 align-items-end justify-content-between mb-3">
+            <Form.Group className="flex-grow-1 custom-form" style={{ maxWidth: 420 }}>
+              <Form.Label htmlFor="clients-abm-search">Buscar en la lista de clientes</Form.Label>
+              <Form.Control
+                id="clients-abm-search"
+                placeholder="Nombre, email o teléfono…"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+              />
+            </Form.Group>
 
             <Stack direction="horizontal" gap={2}>
               <Button variant="outline-secondary" onClick={fetchClients} disabled={loading}>

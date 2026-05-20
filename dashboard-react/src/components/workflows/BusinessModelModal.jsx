@@ -45,15 +45,28 @@ export default function BusinessModelModal({ show, onHide, onSaved }) {
       </Modal.Header>
       <Modal.Body>
         {error && <Alert variant="danger">{error}</Alert>}
+        <Form className="custom-form">
         <Form.Group className="mb-3">
-          <Form.Label>Nombre *</Form.Label>
-          <Form.Control value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej: Veterinaria" />
+          <Form.Label htmlFor="bm-name">Nombre del modelo de negocio *</Form.Label>
+          <Form.Control
+            id="bm-name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Ej: Veterinaria, Peluquería"
+          />
         </Form.Group>
         <Form.Group className="mb-3">
-          <Form.Label>Descripción</Form.Label>
-          <Form.Control as="textarea" rows={2} value={description} onChange={(e) => setDescription(e.target.value)} />
+          <Form.Label htmlFor="bm-description">Descripción del rubro</Form.Label>
+          <Form.Control
+            id="bm-description"
+            as="textarea"
+            rows={2}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Breve descripción del tipo de negocio..."
+          />
         </Form.Group>
-        <Form.Label className="small fw-semibold">Disparadores permitidos</Form.Label>
+        <Form.Label className="small fw-semibold">Disparadores permitidos en workflows</Form.Label>
         <div className="d-flex flex-wrap gap-2 mb-3">
           {Object.keys(TRIGGER_META).map((t) => (
             <Form.Check
@@ -66,7 +79,7 @@ export default function BusinessModelModal({ show, onHide, onSaved }) {
             />
           ))}
         </div>
-        <Form.Label className="small fw-semibold">Acciones permitidas</Form.Label>
+        <Form.Label className="small fw-semibold">Acciones permitidas en workflows</Form.Label>
         <div className="d-flex flex-wrap gap-2">
           {Object.keys(ACTION_META).map((a) => (
             <Form.Check
@@ -79,6 +92,7 @@ export default function BusinessModelModal({ show, onHide, onSaved }) {
             />
           ))}
         </div>
+        </Form>
       </Modal.Body>
       <Modal.Footer>
         <Button variant="outline-secondary" onClick={onHide}>

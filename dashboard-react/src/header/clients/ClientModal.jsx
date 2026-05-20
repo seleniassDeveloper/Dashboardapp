@@ -84,31 +84,70 @@ export default function ClientModal({
       <Modal.Body>
         {error ? <Alert variant="danger">{error}</Alert> : null}
 
-        <Form>
+        <Form className="custom-form">
           <Row className="g-3">
             <Col md={6}>
-              <Form.Label>Nombre *</Form.Label>
-              <Form.Control value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+              <Form.Group>
+                <Form.Label htmlFor="client-first">Nombre del cliente *</Form.Label>
+                <Form.Control
+                  id="client-first"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  placeholder="Ej: María"
+                />
+              </Form.Group>
             </Col>
 
             <Col md={6}>
-              <Form.Label>Apellido *</Form.Label>
-              <Form.Control value={lastName} onChange={(e) => setLastName(e.target.value)} />
+              <Form.Group>
+                <Form.Label htmlFor="client-last">Apellido del cliente *</Form.Label>
+                <Form.Control
+                  id="client-last"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  placeholder="Ej: García"
+                />
+              </Form.Group>
             </Col>
 
             <Col md={6}>
-              <Form.Label>Teléfono</Form.Label>
-              <Form.Control value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Ej: +54 11..." />
+              <Form.Group>
+                <Form.Label htmlFor="client-phone">Teléfono / WhatsApp</Form.Label>
+                <Form.Control
+                  id="client-phone"
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="Ej: +54 11..."
+                />
+              </Form.Group>
             </Col>
 
             <Col md={6}>
-              <Form.Label>Email</Form.Label>
-              <Form.Control value={email} onChange={(e) => setEmail(e.target.value)} placeholder="cliente@email.com" />
+              <Form.Group>
+                <Form.Label htmlFor="client-email">Correo electrónico</Form.Label>
+                <Form.Control
+                  id="client-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="cliente@email.com"
+                />
+              </Form.Group>
             </Col>
 
             <Col md={12}>
-              <Form.Label>Notas</Form.Label>
-              <Form.Control as="textarea" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
+              <Form.Group>
+                <Form.Label htmlFor="client-notes">Notas internas</Form.Label>
+                <Form.Control
+                  id="client-notes"
+                  as="textarea"
+                  rows={3}
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Preferencias, historial, observaciones..."
+                />
+              </Form.Group>
             </Col>
           </Row>
         </Form>

@@ -171,19 +171,35 @@ export default function WorkerModal({
       <Modal.Body className="workerModalBody">
         {error ? <Alert variant="danger">{error}</Alert> : null}
 
+        <Form className="custom-form">
         <Row className="g-3">
           <Col md={6}>
-            <Form.Label>Nombre *</Form.Label>
-            <Form.Control value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+            <Form.Group>
+              <Form.Label htmlFor="worker-first">Nombre del profesional *</Form.Label>
+              <Form.Control
+                id="worker-first"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                placeholder="Ej: Juan"
+              />
+            </Form.Group>
           </Col>
 
           <Col md={6}>
-            <Form.Label>Apellido *</Form.Label>
-            <Form.Control value={lastName} onChange={(e) => setLastName(e.target.value)} />
+            <Form.Group>
+              <Form.Label htmlFor="worker-last">Apellido del profesional *</Form.Label>
+              <Form.Control
+                id="worker-last"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                placeholder="Ej: Pérez"
+              />
+            </Form.Group>
           </Col>
 
           <Col md={6}>
-            <Form.Label>Servicios *</Form.Label>
+            <Form.Group>
+            <Form.Label>Servicios que realiza *</Form.Label>
             <div className="workerServicesBox">
               {safeArray(services)
                 .filter((s) => s?.isActive !== false)
@@ -208,12 +224,13 @@ export default function WorkerModal({
             <div className="text-muted mt-1" style={{ fontSize: 12 }}>
               Seleccionados: <b>{selectedCount}</b>
             </div>
+            </Form.Group>
           </Col>
 
           <Col md={6}>
-            <Form.Label>Horario *</Form.Label>
+            <Form.Group>
+            <Form.Label>Horario laboral semanal *</Form.Label>
 
-            {/* ✅ GRID que NO se rompe */}
             <div className="workerScheduleGrid">
               {schedule.map((d) => (
                 <div key={d.dayOfWeek} className={`workerScheduleRow ${d.active ? "" : "isOff"}`}>
@@ -228,19 +245,27 @@ export default function WorkerModal({
                   </div>
 
                   <div className="workerScheduleRight">
-                    <Form.Control
-                      type="time"
-                      value={d.startTime}
-                      disabled={!d.active}
-                      onChange={(e) => setDayTime(d.dayOfWeek, "startTime", e.target.value)}
-                    />
+                    <div className="workerScheduleTimeField">
+                      <span className="workerScheduleTimeLabel">Desde</span>
+                      <Form.Control
+                        type="time"
+                        aria-label={`${DAYS.find((x) => x.key === d.dayOfWeek)?.label} — hora de inicio`}
+                        value={d.startTime}
+                        disabled={!d.active}
+                        onChange={(e) => setDayTime(d.dayOfWeek, "startTime", e.target.value)}
+                      />
+                    </div>
                     <span className="text-muted">—</span>
-                    <Form.Control
-                      type="time"
-                      value={d.endTime}
-                      disabled={!d.active}
-                      onChange={(e) => setDayTime(d.dayOfWeek, "endTime", e.target.value)}
-                    />
+                    <div className="workerScheduleTimeField">
+                      <span className="workerScheduleTimeLabel">Hasta</span>
+                      <Form.Control
+                        type="time"
+                        aria-label={`${DAYS.find((x) => x.key === d.dayOfWeek)?.label} — hora de fin`}
+                        value={d.endTime}
+                        disabled={!d.active}
+                        onChange={(e) => setDayTime(d.dayOfWeek, "endTime", e.target.value)}
+                      />
+                    </div>
                   </div>
                 </div>
               ))}
@@ -249,8 +274,10 @@ export default function WorkerModal({
             <div className="text-muted mt-1" style={{ fontSize: 12 }}>
               Debe quedar al menos un día activo.
             </div>
+            </Form.Group>
           </Col>
         </Row>
+        </Form>
       </Modal.Body>
 
       <Modal.Footer>

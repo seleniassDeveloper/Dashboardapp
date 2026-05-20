@@ -187,25 +187,39 @@ export default function UsersAdminModal({ show, onHide }) {
 
           <div className="col-lg-5">
             <div className="fw-semibold mb-2">Crear usuario</div>
-            <Form onSubmit={onCreate} className="mb-4">
+            <Form onSubmit={onCreate} className="custom-form mb-4">
               <Form.Group className="mb-2">
-                <Form.Label className="small">Email</Form.Label>
-                <Form.Control value={createEmail} onChange={(e) => setCreateEmail(e.target.value)} required />
+                <Form.Label htmlFor="admin-create-email">Correo electrónico del usuario *</Form.Label>
+                <Form.Control
+                  id="admin-create-email"
+                  type="email"
+                  value={createEmail}
+                  onChange={(e) => setCreateEmail(e.target.value)}
+                  placeholder="usuario@empresa.com"
+                  required
+                />
               </Form.Group>
               <Form.Group className="mb-2">
-                <Form.Label className="small">Contraseña</Form.Label>
+                <Form.Label htmlFor="admin-create-password">Contraseña inicial *</Form.Label>
                 <Form.Control
+                  id="admin-create-password"
                   type="password"
                   minLength={6}
                   value={createPassword}
                   onChange={(e) => setCreatePassword(e.target.value)}
+                  placeholder="Mínimo 6 caracteres"
                   required
                 />
                 <Form.Text className="text-muted">Mínimo 6 caracteres (Firebase).</Form.Text>
               </Form.Group>
               <Form.Group className="mb-2">
-                <Form.Label className="small">Nombre (opcional)</Form.Label>
-                <Form.Control value={createName} onChange={(e) => setCreateName(e.target.value)} />
+                <Form.Label htmlFor="admin-create-name">Nombre para mostrar (opcional)</Form.Label>
+                <Form.Control
+                  id="admin-create-name"
+                  value={createName}
+                  onChange={(e) => setCreateName(e.target.value)}
+                  placeholder="Ej: María García"
+                />
               </Form.Group>
               <Button type="submit" variant="success" className="w-100" disabled={loading}>
                 Crear
@@ -216,30 +230,42 @@ export default function UsersAdminModal({ show, onHide }) {
             {!editUid ? (
               <div className="text-muted small">Seleccioná un usuario de la tabla.</div>
             ) : (
-              <Form onSubmit={onSave}>
+              <Form onSubmit={onSave} className="custom-form">
                 <div className="text-muted small mb-2">
                   UID: <code>{editUid}</code>
                 </div>
                 <Form.Group className="mb-2">
-                  <Form.Label className="small">Email</Form.Label>
-                  <Form.Control value={editEmail} onChange={(e) => setEditEmail(e.target.value)} />
+                  <Form.Label htmlFor="admin-edit-email">Correo electrónico</Form.Label>
+                  <Form.Control
+                    id="admin-edit-email"
+                    type="email"
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    placeholder="usuario@empresa.com"
+                  />
                 </Form.Group>
                 <Form.Group className="mb-2">
-                  <Form.Label className="small">Nombre</Form.Label>
-                  <Form.Control value={editName} onChange={(e) => setEditName(e.target.value)} />
+                  <Form.Label htmlFor="admin-edit-name">Nombre para mostrar</Form.Label>
+                  <Form.Control
+                    id="admin-edit-name"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    placeholder="Nombre visible en la app"
+                  />
                 </Form.Group>
                 <Form.Group className="mb-2">
                   <Form.Check
                     type="switch"
                     id="user-disabled"
-                    label="Usuario deshabilitado"
+                    label="Usuario deshabilitado (no puede iniciar sesión)"
                     checked={editDisabled}
                     onChange={(e) => setEditDisabled(e.target.checked)}
                   />
                 </Form.Group>
                 <Form.Group className="mb-3">
-                  <Form.Label className="small">Nueva contraseña (opcional)</Form.Label>
+                  <Form.Label htmlFor="admin-edit-password">Nueva contraseña (opcional)</Form.Label>
                   <Form.Control
+                    id="admin-edit-password"
                     type="password"
                     minLength={6}
                     value={editPassword}

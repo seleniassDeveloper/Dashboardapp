@@ -87,32 +87,36 @@ export default function PaymentModal({ show, onHide, appt }) {
       <Modal.Body>
         {copied ? <Alert variant="success">{copied}</Alert> : null}
 
-        <div className="mb-2">
-          <div className="text-muted" style={{ fontSize: 12 }}>Cliente</div>
-          <div className="fw-semibold">{clientName}</div>
-        </div>
-
-        <Row className="g-2">
+        <Form className="custom-form">
+        <Row className="g-3 mb-2">
           <Col md={6}>
-            <div className="text-muted" style={{ fontSize: 12 }}>Servicio</div>
+            <Form.Label>Cliente a cobrar</Form.Label>
+            <div className="fw-semibold">{clientName}</div>
+          </Col>
+
+          <Col md={6}>
+            <Form.Label>Servicio de la cita</Form.Label>
             <div className="fw-semibold">{serviceName}</div>
           </Col>
 
-          <Col md={6}>
-            <Form.Label className="text-muted" style={{ fontSize: 12 }}>Total</Form.Label>
+          <Col md={12}>
+            <Form.Label htmlFor="payment-amount">Monto total a cobrar ($)</Form.Label>
             <Form.Control
+              id="payment-amount"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              inputMode="numeric"
+              inputMode="decimal"
+              placeholder="0.00"
             />
           </Col>
         </Row>
+        </Form>
 
         <hr />
 
         <div className="d-flex align-items-center justify-content-between gap-2">
           <div>
-            <div className="text-muted" style={{ fontSize: 12 }}>Alias</div>
+            <Form.Label className="mb-1">Alias de transferencia</Form.Label>
             <div className="fw-semibold">{alias}</div>
           </div>
           <Button size="sm" variant="outline-dark" onClick={() => copy(alias, "Alias copiado ✅")}>
@@ -123,7 +127,7 @@ export default function PaymentModal({ show, onHide, appt }) {
         {cbu ? (
           <div className="d-flex align-items-center justify-content-between gap-2 mt-2">
             <div>
-              <div className="text-muted" style={{ fontSize: 12 }}>CBU</div>
+              <Form.Label className="mb-1">CBU para transferencia</Form.Label>
               <div className="fw-semibold">{cbu}</div>
             </div>
             <Button size="sm" variant="outline-dark" onClick={() => copy(cbu, "CBU copiado ✅")}>
@@ -135,7 +139,7 @@ export default function PaymentModal({ show, onHide, appt }) {
         {qrUrl ? (
           <>
             <hr />
-            <div className="text-muted" style={{ fontSize: 12 }}>QR (Mercado Pago)</div>
+            <Form.Label className="mb-2">Código QR (Mercado Pago)</Form.Label>
             <img src={qrUrl} alt="QR de pago" style={{ width: "100%", borderRadius: 12, marginTop: 8 }} />
           </>
         ) : null}

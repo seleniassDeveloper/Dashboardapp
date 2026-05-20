@@ -49,8 +49,23 @@
 
 .workerScheduleRight {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 8px;
+}
+
+.workerScheduleTimeField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.workerScheduleTimeLabel {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  line-height: 1;
 }
 
 .workerScheduleRight input[type="time"] {

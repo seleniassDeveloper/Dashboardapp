@@ -292,19 +292,27 @@ export default function DynamicForm({ enabledFields, values, onChange, errors = 
                   <div className="fw-semibold">{DAYS.find((x) => x.key === d.dayOfWeek)?.label}</div>
                 </div>
                 <div className="workerScheduleRight">
-                  <Form.Control
-                    type="time"
-                    value={d.startTime}
-                    disabled={!d.active}
-                    onChange={(e) => setDayTime(d.dayOfWeek, "startTime", e.target.value)}
-                  />
+                  <div className="workerScheduleTimeField">
+                    <span className="workerScheduleTimeLabel">Desde</span>
+                    <Form.Control
+                      type="time"
+                      aria-label={`${DAYS.find((x) => x.key === d.dayOfWeek)?.label} — hora de inicio`}
+                      value={d.startTime}
+                      disabled={!d.active}
+                      onChange={(e) => setDayTime(d.dayOfWeek, "startTime", e.target.value)}
+                    />
+                  </div>
                   <span className="text-muted">—</span>
-                  <Form.Control
-                    type="time"
-                    value={d.endTime}
-                    disabled={!d.active}
-                    onChange={(e) => setDayTime(d.dayOfWeek, "endTime", e.target.value)}
-                  />
+                  <div className="workerScheduleTimeField">
+                    <span className="workerScheduleTimeLabel">Hasta</span>
+                    <Form.Control
+                      type="time"
+                      aria-label={`${DAYS.find((x) => x.key === d.dayOfWeek)?.label} — hora de fin`}
+                      value={d.endTime}
+                      disabled={!d.active}
+                      onChange={(e) => setDayTime(d.dayOfWeek, "endTime", e.target.value)}
+                    />
+                  </div>
                 </div>
               </div>
             ))}
@@ -365,7 +373,7 @@ export default function DynamicForm({ enabledFields, values, onChange, errors = 
   }
 
   return (
-    <div className="dynamic-form">
+    <div className="dynamic-form custom-form">
       {sectionOrder.map((sec) => {
         const fields = bySection[sec];
         if (!fields?.length) return null;

@@ -74,29 +74,41 @@ export default function ServiceModal({ show, onHide, editService = null }) {
       <Modal.Body>
         {error ? <Alert variant="danger">{error}</Alert> : null}
 
-        <Form>
+        <Form className="custom-form">
           <Row className="g-3">
             <Col md={12}>
               <Form.Group>
-                <Form.Label>Nombre *</Form.Label>
-                <Form.Control value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej: Corte, Uñas..." />
+                <Form.Label htmlFor="service-name">Nombre del servicio *</Form.Label>
+                <Form.Control
+                  id="service-name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Ej: Corte, Uñas..."
+                />
               </Form.Group>
             </Col>
 
             <Col md={6}>
               <Form.Group>
-                <Form.Label>Precio *</Form.Label>
+                <Form.Label htmlFor="service-price">Precio de lista ($) *</Form.Label>
                 <InputGroup>
                   <InputGroup.Text>$</InputGroup.Text>
-                  <Form.Control value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Ej: 10" />
+                  <Form.Control
+                    id="service-price"
+                    inputMode="decimal"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                    placeholder="Ej: 10000"
+                  />
                 </InputGroup>
               </Form.Group>
             </Col>
 
             <Col md={6}>
               <Form.Group>
-                <Form.Label>Duración (min) *</Form.Label>
+                <Form.Label htmlFor="service-duration">Duración estimada (minutos) *</Form.Label>
                 <Form.Control
+                  id="service-duration"
                   type="number"
                   min={1}
                   value={duration}
