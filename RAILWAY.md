@@ -12,6 +12,14 @@ API en **Railway**: solo el repo **`seleniassDeveloper/Dashboardapp`**.
 | **502** en `/health` | El servicio no corre Express (Railpack desplegó Vite + Caddy) |
 | **CORS** en el navegador | El 502 no trae cabeceras CORS; al arreglar el API desaparece |
 | Build log: `railpack` + `vite static site` | Repo o builder incorrectos |
+| Build log: `npm run build` + alias `@appdash` | **Root Directory = `dashboard-react`** (mal). Railway intenta el front, no el API |
+
+### Si ves `@appdash` o `vite build` en los logs
+
+1. **Settings → Source → Root Directory** debe estar **vacío** (recomendado) o `backend`.
+2. **Nunca** uses `dashboard-react` como Root Directory en Railway.
+3. **Settings → Build → Builder** = **Dockerfile** (no Railpack).
+4. **Redeploy** el último commit de `main`.
 
 ---
 

@@ -1,7 +1,10 @@
-# Railway — API Express (repo Dashboardapp, Root Directory VACÍO)
+# Railway — SOLO API Express (NO construir Vite aquí; el front va en Vercel)
+# Root Directory del servicio: vacío (raíz) O "backend" — NUNCA "dashboard-react"
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
+# Evita que Railway ejecute "npm run build" del frontend (Railpack/Vite)
+buildCommand = ""
 
 [deploy]
 healthcheckPath = "/health"

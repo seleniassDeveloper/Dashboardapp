@@ -1,7 +1,8 @@
 # Railway: Root Directory = "backend" · Dockerfile path = Dockerfile
-FROM node:20-alpine AS base
+FROM node:20-slim AS base
 WORKDIR /app
-RUN apk add --no-cache openssl
+RUN apt-get update -y && apt-get install -y --no-install-recommends openssl ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
 
 FROM base AS deps
 COPY package.json package-lock.json ./
@@ -22,4 +23,7 @@ RUN npx prisma generate
 
 EXPOSE 3001
 
-CMD ["npm", "run", "start:prod"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3001)+'/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+
+CMD ["node", "src/server.js"]

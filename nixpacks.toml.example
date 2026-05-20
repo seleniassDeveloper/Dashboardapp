@@ -1,4 +1,5 @@
-# Si Railway usa Nixpacks (sin Docker), solo construye el backend — NO el frontend Vite.
+# Solo si Railway usa Nixpacks en lugar de Docker (no recomendado).
+# Copiá a nixpacks.toml solo si no usás Dockerfile.
 [phases.setup]
 nixPkgs = ["nodejs_20", "openssl"]
 
