@@ -16,6 +16,11 @@ export function getCorsOptions() {
         return;
       }
 
+      if (origin.endsWith(".vercel.app")) {
+        callback(null, true);
+        return;
+      }
+
       console.warn(`[cors] bloqueado: ${origin}`);
       callback(null, false);
     },

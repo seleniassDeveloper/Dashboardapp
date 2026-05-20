@@ -57,5 +57,8 @@ process.on("unhandledRejection", (reason) => {
 
 process.on("uncaughtException", (err) => {
   console.error("[server] uncaughtException:", err);
-  process.exit(1);
+  // No salir de inmediato: Railway marca 502 si el proceso muere antes del healthcheck
+  if (!server?.listening) {
+    process.exit(1);
+  }
 });
