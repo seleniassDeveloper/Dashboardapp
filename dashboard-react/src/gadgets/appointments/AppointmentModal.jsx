@@ -12,20 +12,33 @@ const emptyForm = {
   workerFirstName: "",
   workerLastName: "",
   serviceId: "",
-  startsAt: "",
+  appointmentDate: "",
+  appointmentTime: "",
   notes: "",
   price: "",
 };
 
 const safeArray = (x) => (Array.isArray(x) ? x : []);
 
+const pad2 = (n) => String(n).padStart(2, "0");
+
 const toDatetimeLocal = (iso) => {
   if (!iso) return "";
   const d = new Date(iso);
-  const pad = (n) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(
     d.getHours()
-  )}:${pad(d.getMinutes())}`;
+  )}:${pad2(d.getMinutes())}`;
+};
+
+const splitDatetimeLocal = (dtLocal) => {
+  if (!dtLocal) return { date: "", time: "" };
+  const [date, timePart] = dtLocal.split("T");
+  return { date: date || "", time: (timePart || "").slice(0, 5) };
+};
+
+const combineDateTime = (date, time) => {
+  if (!date?.trim() || !time?.trim()) return "";
+  return `${date}T${time}`;
 };
 
 const toISO = (dtLocal) => new Date(dtLocal).toISOString();
@@ -221,7 +234,12 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
     [workerServices, form.serviceId]
   );
 
-  const slotComplete = Boolean(form.workerId) && Boolean(form.serviceId) && Boolean(form.startsAt);
+  const startsAtLocal = useMemo(
+    () => combineDateTime(form.appointmentDate, form.appointmentTime),
+    [form.appointmentDate, form.appointmentTime]
+  );
+
+  const slotComplete = Boolean(form.workerId) && Boolean(form.serviceId) && Boolean(startsAtLocal);
 
   // validación
   const valid = useMemo(() => {
@@ -247,7 +265,7 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
         const params = {
           workerId: form.workerId,
           serviceId: form.serviceId,
-          startsAt: toISO(form.startsAt),
+          startsAt: toISO(startsAtLocal),
         };
         if (isEdit && initialData?.id) params.excludeId = initialData.id;
 
@@ -271,7 +289,7 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
       cancelled = true;
       clearTimeout(t);
     };
-  }, [show, form.workerId, form.serviceId, form.startsAt, slotComplete, isEdit, initialData?.id]);
+  }, [show, form.workerId, form.serviceId, startsAtLocal, slotComplete, isEdit, initialData?.id]);
 
   // hydrate edit
   useEffect(() => {
@@ -294,7 +312,9 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
 
     const email = appt?.client?.email || "";
     const phone = appt?.client?.phone || "";
-    const startsAt = toDatetimeLocal(appt?.startsAt);
+    const { date: appointmentDate, time: appointmentTime } = splitDatetimeLocal(
+      toDatetimeLocal(appt?.startsAt)
+    );
     const notes = appt?.notes || "";
     const price = appt?.service?.price != null ? String(appt.service.price) : "";
 
@@ -314,7 +334,8 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
       workerFirstName,
       workerLastName,
       serviceId: svcId,
-      startsAt,
+      appointmentDate,
+      appointmentTime,
       notes,
       price,
     });
@@ -381,7 +402,7 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
 
   const handleSave = useCallback(async () => {
     setError("");
-    if (!valid) return setError("Completa: Cliente, Trabajador, Servicio y Fecha/Hora.");
+    if (!valid) return setError("Completa: Cliente, Trabajador, Servicio, Fecha y Hora.");
     if (isEdit && !dirty) return setError("No hay cambios para guardar.");
 
     try {
@@ -395,7 +416,7 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
         workerFirstName: form.workerFirstName?.trim() ? form.workerFirstName.trim() : null,
         workerLastName: form.workerLastName?.trim() ? form.workerLastName.trim() : null,
         serviceId: form.serviceId,
-        startsAt: toISO(form.startsAt),
+        startsAt: toISO(startsAtLocal),
         notes: form.notes.trim() || null,
       };
 
@@ -437,7 +458,7 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
     form.workerFirstName,
     form.workerLastName,
     form.serviceId,
-    form.startsAt,
+    startsAtLocal,
     form.notes,
     initialData?.id,
     onSaved,
@@ -445,7 +466,7 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
   ]);
   const attendingLabel = selectedWorker?.name || "Sin asignar";
   const serviceLabel = selectedService?.name || "—";
-  const whenLabel = formatDateTimeLocalLabel(form.startsAt);
+  const whenLabel = formatDateTimeLocalLabel(startsAtLocal);
 
   return (
     <Modal 
@@ -645,15 +666,29 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
                   </Col>
                   <Col md={6}>
                     <Form.Group>
-                      <Form.Label className="small-label" htmlFor="appt-starts-at">
-                        Fecha y hora de la cita *
+                      <Form.Label className="small-label" htmlFor="appt-date">
+                        Fecha de la cita *
                       </Form.Label>
                       <Form.Control
-                        id="appt-starts-at"
+                        id="appt-date"
                         className="modern-input"
-                        type="datetime-local"
-                        value={form.startsAt}
-                        onChange={(e) => setField("startsAt", e.target.value)}
+                        type="date"
+                        value={form.appointmentDate}
+                        onChange={(e) => setField("appointmentDate", e.target.value)}
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="small-label" htmlFor="appt-time">
+                        Hora de la cita *
+                      </Form.Label>
+                      <Form.Control
+                        id="appt-time"
+                        className="modern-input"
+                        type="time"
+                        value={form.appointmentTime}
+                        onChange={(e) => setField("appointmentTime", e.target.value)}
                       />
                     </Form.Group>
                   </Col>
