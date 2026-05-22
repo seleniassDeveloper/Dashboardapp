@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Modal, Button, Form, Row, Col, Alert, Spinner } from "react-bootstrap";
 import api from "../../lib/api.js";
+import { useFormSchema } from "../../hooks/useFormSchema.js";
 
 export default function ClientModal({
   show,
@@ -11,9 +12,15 @@ export default function ClientModal({
   onSaved,
 }) {
   const isEdit = mode === "edit" && Boolean(initialData?.id);
+  const schemaKey = isEdit ? "assign.client.form.edit" : "assign.client.form.create";
+
+  const { enabledFields, loading: schemaLoading, error: schemaError } = useFormSchema(schemaKey, {
+    enabled: show,
+  });
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [errors, setErrors] = useState({});
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -21,10 +28,17 @@ export default function ClientModal({
   const [email, setEmail] = useState("");
   const [notes, setNotes] = useState("");
 
+  const firstNameField = useMemo(() => enabledFields.find((f) => f.id === "firstName"), [enabledFields]);
+  const lastNameField = useMemo(() => enabledFields.find((f) => f.id === "lastName"), [enabledFields]);
+  const phoneField = useMemo(() => enabledFields.find((f) => f.id === "phone"), [enabledFields]);
+  const emailField = useMemo(() => enabledFields.find((f) => f.id === "email"), [enabledFields]);
+  const notesField = useMemo(() => enabledFields.find((f) => f.id === "notes"), [enabledFields]);
+
   useEffect(() => {
     if (!show) return;
 
     setError("");
+    setErrors({});
     setSaving(false);
 
     if (isEdit) {
@@ -44,22 +58,53 @@ export default function ClientModal({
   }, [show, isEdit, initialData?.id]);
 
   const valid = useMemo(() => {
-    return firstName.trim().length > 0 && lastName.trim().length > 0;
-  }, [firstName, lastName]);
+    for (const field of enabledFields) {
+      let value = "";
+      if (field.id === "firstName") value = firstName;
+      else if (field.id === "lastName") value = lastName;
+      else if (field.id === "phone") value = phone;
+      else if (field.id === "email") value = email;
+      else if (field.id === "notes") value = notes;
+
+      if (field.required && !value.trim()) {
+        return false;
+      }
+    }
+    return true;
+  }, [enabledFields, firstName, lastName, phone, email, notes]);
 
   const handleSave = async () => {
     try {
       setError("");
-      if (!valid) return setError("Nombre y Apellido son obligatorios.");
+      setErrors({});
+
+      const fieldErrors = {};
+      for (const field of enabledFields) {
+        let value = "";
+        if (field.id === "firstName") value = firstName;
+        else if (field.id === "lastName") value = lastName;
+        else if (field.id === "phone") value = phone;
+        else if (field.id === "email") value = email;
+        else if (field.id === "notes") value = notes;
+
+        if (field.required && !value.trim()) {
+          fieldErrors[field.id] = "Este campo es obligatorio.";
+        }
+      }
+
+      if (Object.keys(fieldErrors).length > 0) {
+        setErrors(fieldErrors);
+        return setError("Revisá los campos marcados.");
+      }
 
       setSaving(true);
 
       const payload = {
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        phone: phone.trim() || null,
-        email: email.trim() || null,
-        notes: notes.trim() || null,
+        firstName: firstNameField ? firstName.trim() : null,
+        lastName: lastNameField ? lastName.trim() : null,
+        phone: phoneField ? (phone.trim() || null) : null,
+        email: emailField ? (email.trim() || null) : null,
+        notes: notesField ? (notes.trim() || null) : null,
       };
 
       const url = isEdit ? `/clients/${initialData.id}` : `/clients`;
@@ -82,82 +127,120 @@ export default function ClientModal({
       </Modal.Header>
 
       <Modal.Body>
-        {error ? <Alert variant="danger">{error}</Alert> : null}
+        {schemaError && <Alert variant="warning">{schemaError}</Alert>}
+        {error && <Alert variant="danger">{error}</Alert>}
 
-        <Form className="custom-form">
-          <Row className="g-3">
-            <Col md={6}>
-              <Form.Group>
-                <Form.Label htmlFor="client-first">Nombre del cliente *</Form.Label>
-                <Form.Control
-                  id="client-first"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  placeholder="Ej: María"
-                />
-              </Form.Group>
-            </Col>
+        {schemaLoading ? (
+          <div className="text-center py-5">
+            <Spinner animation="border" />
+            <p className="text-muted mt-2 small">Cargando formulario…</p>
+          </div>
+        ) : (
+          <Form className="custom-form">
+            <Row className="g-3">
+              {firstNameField && (
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label htmlFor="client-first">
+                      {firstNameField.label} {firstNameField.required && "*"}
+                    </Form.Label>
+                    <Form.Control
+                      id="client-first"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      placeholder={firstNameField.placeholder || "Ej: María"}
+                      isInvalid={Boolean(errors.firstName)}
+                    />
+                    {errors.firstName && <div className="text-danger small mt-1">{errors.firstName}</div>}
+                  </Form.Group>
+                </Col>
+              )}
 
-            <Col md={6}>
-              <Form.Group>
-                <Form.Label htmlFor="client-last">Apellido del cliente *</Form.Label>
-                <Form.Control
-                  id="client-last"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  placeholder="Ej: García"
-                />
-              </Form.Group>
-            </Col>
+              {lastNameField && (
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label htmlFor="client-last">
+                      {lastNameField.label} {lastNameField.required && "*"}
+                    </Form.Label>
+                    <Form.Control
+                      id="client-last"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      placeholder={lastNameField.placeholder || "Ej: García"}
+                      isInvalid={Boolean(errors.lastName)}
+                    />
+                    {errors.lastName && <div className="text-danger small mt-1">{errors.lastName}</div>}
+                  </Form.Group>
+                </Col>
+              )}
 
-            <Col md={6}>
-              <Form.Group>
-                <Form.Label htmlFor="client-phone">Teléfono / WhatsApp</Form.Label>
-                <Form.Control
-                  id="client-phone"
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="Ej: +54 11..."
-                />
-              </Form.Group>
-            </Col>
+              {phoneField && (
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label htmlFor="client-phone">
+                      {phoneField.label} {phoneField.required && "*"}
+                    </Form.Label>
+                    <Form.Control
+                      id="client-phone"
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder={phoneField.placeholder || "Ej: +54 11..."}
+                      isInvalid={Boolean(errors.phone)}
+                    />
+                    {errors.phone && <div className="text-danger small mt-1">{errors.phone}</div>}
+                  </Form.Group>
+                </Col>
+              )}
 
-            <Col md={6}>
-              <Form.Group>
-                <Form.Label htmlFor="client-email">Correo electrónico</Form.Label>
-                <Form.Control
-                  id="client-email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="cliente@email.com"
-                />
-              </Form.Group>
-            </Col>
+              {emailField && (
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label htmlFor="client-email">
+                      {emailField.label} {emailField.required && "*"}
+                    </Form.Label>
+                    <Form.Control
+                      id="client-email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder={emailField.placeholder || "cliente@email.com"}
+                      isInvalid={Boolean(errors.email)}
+                    />
+                    {errors.email && <div className="text-danger small mt-1">{errors.email}</div>}
+                  </Form.Group>
+                </Col>
+              )}
 
-            <Col md={12}>
-              <Form.Group>
-                <Form.Label htmlFor="client-notes">Notas internas</Form.Label>
-                <Form.Control
-                  id="client-notes"
-                  as="textarea"
-                  rows={3}
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Preferencias, historial, observaciones..."
-                />
-              </Form.Group>
-            </Col>
-          </Row>
-        </Form>
+              {notesField && (
+                <Col md={12}>
+                  <Form.Group>
+                    <Form.Label htmlFor="client-notes">
+                      {notesField.label} {notesField.required && "*"}
+                    </Form.Label>
+                    <Form.Control
+                      id="client-notes"
+                      as="textarea"
+                      rows={3}
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder={notesField.placeholder || "Preferencias, historial, observaciones..."}
+                      isInvalid={Boolean(errors.notes)}
+                    />
+                    {errors.notes && <div className="text-danger small mt-1">{errors.notes}</div>}
+                  </Form.Group>
+                </Col>
+              )}
+            </Row>
+          </Form>
+        )}
       </Modal.Body>
 
       <Modal.Footer>
         <Button variant="outline-secondary" onClick={onHide} disabled={saving}>
           Cancelar
         </Button>
-        <Button variant="dark" onClick={handleSave} disabled={!valid || saving}>
+        <Button variant="dark" onClick={handleSave} disabled={!valid || saving || schemaLoading}>
           {saving ? (
             <>
               <Spinner size="sm" className="me-2" />

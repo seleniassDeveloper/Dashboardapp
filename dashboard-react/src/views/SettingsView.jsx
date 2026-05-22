@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Container, Nav, Tab } from "react-bootstrap";
 import FieldRegistryEditor from "../components/configurable-fields/FieldRegistryEditor.jsx";
 import ComponentAssignmentEditor from "../components/configurable-fields/ComponentAssignmentEditor.jsx";
+import ActiveModulesEditor from "../components/configurable-fields/ActiveModulesEditor.jsx";
 
 export default function SettingsView() {
   const [tab, setTab] = useState("assign");
@@ -11,7 +12,7 @@ export default function SettingsView() {
       <header className="mb-4">
         <h1 className="fw-bold h3">Configuración</h1>
         <p className="text-muted mb-0">
-          Catálogo de campos, asignación a cada pantalla de la app y reglas de workflows.
+          Catálogo de campos, asignación a cada pantalla de la app, reglas de workflows y módulos activos.
         </p>
       </header>
 
@@ -27,6 +28,11 @@ export default function SettingsView() {
               Asignar a componentes
             </Nav.Link>
           </Nav.Item>
+          <Nav.Item>
+            <Nav.Link eventKey="modules" className="rounded-pill px-4">
+              Módulos activos
+            </Nav.Link>
+          </Nav.Item>
         </Nav>
 
         <Tab.Content>
@@ -35,6 +41,9 @@ export default function SettingsView() {
           </Tab.Pane>
           <Tab.Pane eventKey="assign">
             <ComponentAssignmentEditor />
+          </Tab.Pane>
+          <Tab.Pane eventKey="modules">
+            <ActiveModulesEditor />
           </Tab.Pane>
         </Tab.Content>
       </Tab.Container>

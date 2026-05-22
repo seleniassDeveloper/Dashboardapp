@@ -22,6 +22,49 @@ const FONT_OPTIONS = [
   { label: "Georgia (serif)", value: "Georgia, serif" },
 ];
 
+const THEME_PRESETS = [
+  {
+    name: "Classic Minimal (Por defecto)",
+    textColor: "#10b981",
+    dashboardBg: "#f8f9fa",
+    menuSelectionColor: "#10b981",
+    darkMode: false,
+    fontFamily: 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial',
+  },
+  {
+    name: "Spas & Wellness (Esmeralda)",
+    textColor: "#059669",
+    dashboardBg: "#f4fbf7",
+    menuSelectionColor: "#059669",
+    darkMode: false,
+    fontFamily: 'Poppins, system-ui, -apple-system, "Segoe UI", Roboto, Arial',
+  },
+  {
+    name: "Barber & Wood (Ámbar)",
+    textColor: "#d97706",
+    dashboardBg: "#111827",
+    menuSelectionColor: "#d97706",
+    darkMode: true,
+    fontFamily: 'Montserrat, system-ui, -apple-system, "Segoe UI", Roboto, Arial',
+  },
+  {
+    name: "Clinical Blue (Médico)",
+    textColor: "#2563eb",
+    dashboardBg: "#f0fdfa",
+    menuSelectionColor: "#2563eb",
+    darkMode: false,
+    fontFamily: 'Roboto, system-ui, -apple-system, "Segoe UI", Arial',
+  },
+  {
+    name: "Creative Violet (Gimnasios / Fitness)",
+    textColor: "#8b5cf6",
+    dashboardBg: "#0f172a",
+    menuSelectionColor: "#8b5cf6",
+    darkMode: true,
+    fontFamily: 'Montserrat, system-ui, -apple-system, "Segoe UI", Roboto, Arial',
+  },
+];
+
 export default function BrandModal({ show, onHide, forceRequired = false }) {
   const { brand, setBrand } = useBrand();
 
@@ -113,6 +156,34 @@ const handleSave = () => {
 
       <Modal.Body>
         <Form className="custom-form d-grid gap-3">
+          <Form.Group>
+            <Form.Label className="fw-semibold">Tema preestablecido de diseño</Form.Label>
+            <Form.Select
+              onChange={(e) => {
+                const idx = Number(e.target.value);
+                if (isNaN(idx)) return;
+                const preset = THEME_PRESETS[idx];
+                if (!preset) return;
+                setTextColor(preset.textColor);
+                setDashboardBg(preset.dashboardBg);
+                setMenuSelectionColor(preset.menuSelectionColor);
+                setDarkMode(preset.darkMode);
+                setFontFamily(preset.fontFamily);
+              }}
+              defaultValue=""
+            >
+              <option value="" disabled>Seleccionar paleta sugerida...</option>
+              {THEME_PRESETS.map((p, idx) => (
+                <option key={idx} value={idx}>
+                  {p.name} {p.darkMode ? "🌙" : "☀️"}
+                </option>
+              ))}
+            </Form.Select>
+            <Form.Text className="text-muted">
+              Al elegir un tema se autocompletarán los colores y la tipografía sugeridos para ese nicho.
+            </Form.Text>
+          </Form.Group>
+
           <Form.Group>
             <Form.Label>Nombre de la empresa *</Form.Label>
             <Form.Control

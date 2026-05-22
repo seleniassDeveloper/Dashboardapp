@@ -21,12 +21,32 @@ const DEFAULT_BRAND = {
   accentColor: "#10b981",
   dashboardBg: "#f8f9fa",
   menuSelectionColor: "#10b981",
+  activeModules: {
+    finances: true,
+    workflows: true,
+    automations: true,
+    team: true,
+    services: true,
+  },
 };
 
 export function BrandProvider({ children }) {
   const [brand, setBrand] = useState(() => {
     const saved = localStorage.getItem("brand");
-    return saved ? { ...DEFAULT_BRAND, ...JSON.parse(saved) } : DEFAULT_BRAND;
+    if (!saved) return DEFAULT_BRAND;
+    try {
+      const parsed = JSON.parse(saved);
+      return {
+        ...DEFAULT_BRAND,
+        ...parsed,
+        activeModules: {
+          ...DEFAULT_BRAND.activeModules,
+          ...(parsed.activeModules || {}),
+        },
+      };
+    } catch {
+      return DEFAULT_BRAND;
+    }
   });
 
   useEffect(() => {

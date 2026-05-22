@@ -83,7 +83,7 @@ export default function Sidebar({
       </div>
 
       <nav className="sidebar__nav">
-        {MENU_ITEMS.map((item) => {
+        {MENU_ITEMS.filter((item) => brand.activeModules?.[item.id] ?? true).map((item) => {
           const isActive = location.pathname === item.path || (item.path !== "/app" && location.pathname.startsWith(item.path));
           
           const handleClick = () => {

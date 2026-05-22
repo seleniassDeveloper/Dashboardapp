@@ -1,6 +1,7 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import DashboardLayout from "./components/layout/DashboardLayout";
+import { useBrand } from "./header/name/BrandProvider";
 
 // Vistas
 import DashboardView from "./views/DashboardView";
@@ -15,17 +16,40 @@ import HowItWorks from "./views/HowItWorks";
 import SettingsView from "./views/SettingsView";
 
 export default function App() {
+  const { brand } = useBrand();
+
+  const isModuleActive = (moduleId) => {
+    return brand.activeModules?.[moduleId] ?? true;
+  };
+
   return (
     <DashboardLayout>
       <Routes>
         <Route path="/" element={<DashboardView />} />
         <Route path="/calendar" element={<CalendarView />} />
         <Route path="/clients" element={<ClientsView />} />
-        <Route path="/services" element={<ServicesView />} />
-        <Route path="/team" element={<TeamView />} />
-        <Route path="/finances" element={<FinancesView />} />
-        <Route path="/workflows" element={<WorkflowsView />} />
-        <Route path="/automations" element={<AutomationsView />} />
+        
+        <Route
+          path="/services"
+          element={isModuleActive("services") ? <ServicesView /> : <Navigate to="/" replace />}
+        />
+        <Route
+          path="/team"
+          element={isModuleActive("team") ? <TeamView /> : <Navigate to="/" replace />}
+        />
+        <Route
+          path="/finances"
+          element={isModuleActive("finances") ? <FinancesView /> : <Navigate to="/" replace />}
+        />
+        <Route
+          path="/workflows"
+          element={isModuleActive("workflows") ? <WorkflowsView /> : <Navigate to="/" replace />}
+        />
+        <Route
+          path="/automations"
+          element={isModuleActive("automations") ? <AutomationsView /> : <Navigate to="/" replace />}
+        />
+        
         <Route path="/guide" element={<HowItWorks />} />
         <Route path="/settings" element={<SettingsView />} />
         

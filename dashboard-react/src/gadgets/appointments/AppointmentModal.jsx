@@ -2,6 +2,7 @@
 import React, { useEffect, useCallback, useMemo, useRef, useState } from "react";
 import { Modal, Button, Form, Row, Col, Alert, Spinner, InputGroup } from "react-bootstrap";
 import api from "../../lib/api.js";
+import { useFormSchema } from "../../hooks/useFormSchema.js";
 const emptyForm = {
   clientFirstName: "",
   clientLastName: "",
@@ -102,11 +103,17 @@ function formatDateTimeLocalLabel(dtLocal) {
 export default function AppointmentModal({ show, onHide, onSaved, initialData = null }) {
   const isEdit = Boolean(initialData?.id);
 
+  const { enabledFields, loading: schemaLoading, error: schemaError } = useFormSchema(
+    "assign.appointment.form.modal",
+    { enabled: show }
+  );
+
   const [form, setForm] = useState(emptyForm);
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loadingRefs, setLoadingRefs] = useState(false);
   const [error, setError] = useState("");
+  const [errors, setErrors] = useState({});
 
   const [workers, setWorkers] = useState([]);
   const [servicesCatalog, setServicesCatalog] = useState([]);
@@ -138,6 +145,15 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
       return acc;
     }, {});
   }, [servicesCatalog]);
+
+  const clientFirstNameField = useMemo(() => enabledFields.find((f) => f.id === "clientFirstName"), [enabledFields]);
+  const clientLastNameField = useMemo(() => enabledFields.find((f) => f.id === "clientLastName"), [enabledFields]);
+  const workerIdField = useMemo(() => enabledFields.find((f) => f.id === "workerId"), [enabledFields]);
+  const serviceIdField = useMemo(() => enabledFields.find((f) => f.id === "serviceId"), [enabledFields]);
+  const startsAtField = useMemo(() => enabledFields.find((f) => f.id === "startsAt"), [enabledFields]);
+  const priceField = useMemo(() => enabledFields.find((f) => f.id === "price"), [enabledFields]);
+  const notesField = useMemo(() => enabledFields.find((f) => f.id === "notes"), [enabledFields]);
+  const phoneField = useMemo(() => enabledFields.find((f) => f.id === "phone"), [enabledFields]);
 
   // cerrar dropdown click afuera
   useEffect(() => {
@@ -243,10 +259,26 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
 
   // validación
   const valid = useMemo(() => {
-    const hasClient = form.clientFirstName.trim() && form.clientLastName.trim();
+    for (const field of enabledFields) {
+      let val = "";
+      if (field.id === "clientFirstName") val = form.clientFirstName;
+      else if (field.id === "clientLastName") val = form.clientLastName;
+      else if (field.id === "workerId") val = form.workerId;
+      else if (field.id === "serviceId") val = form.serviceId;
+      else if (field.id === "startsAt") {
+        val = form.appointmentDate && form.appointmentTime ? "ok" : "";
+      }
+      else if (field.id === "price") val = form.price;
+      else if (field.id === "notes") val = form.notes;
+      else if (field.id === "phone") val = form.phone;
+
+      if (field.required && !String(val || "").trim()) {
+        return false;
+      }
+    }
     const slotOk = availability.available !== false;
-    return Boolean(hasClient) && slotComplete && slotOk;
-  }, [form, slotComplete, availability.available]);
+    return slotOk;
+  }, [enabledFields, form, availability.available]);
 
   const saveDisabled =
     !valid || saving || (isEdit && !dirty) || availability.loading || (slotComplete && availability.available === false);
@@ -296,6 +328,7 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
     if (!show) return;
 
     setError("");
+    setErrors({});
     setSaving(false);
     setDirty(false);
 
@@ -379,12 +412,13 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
 
     if (!firstName || !lastName) throw new Error("Completa nombre y apellido del cliente.");
 
+    const phoneVal = phoneField ? (form.phone.trim() || null) : undefined;
+
     if (form.clientId) {
       await api.put(`/clients/${form.clientId}`, {
         firstName,
         lastName,
-        email: form.email.trim() || null,
-        phone: form.phone.trim() || null,
+        phone: phoneVal,
       });
       return { id: form.clientId };
     }
@@ -392,17 +426,42 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
     const res = await api.post(`/clients`, {
       firstName,
       lastName,
-      email: form.email.trim() || null,
-      phone: form.phone.trim() || null,
+      phone: phoneVal,
       notes: null,
     });
 
     return res.data;
-  }, [form.clientFirstName, form.clientLastName, form.clientId, form.email, form.phone]);
+  }, [form.clientFirstName, form.clientLastName, form.clientId, form.phone, phoneField]);
 
   const handleSave = useCallback(async () => {
     setError("");
-    if (!valid) return setError("Completa: Cliente, Trabajador, Servicio, Fecha y Hora.");
+    setErrors({});
+
+    const fieldErrors = {};
+    for (const field of enabledFields) {
+      let val = "";
+      if (field.id === "clientFirstName") val = form.clientFirstName;
+      else if (field.id === "clientLastName") val = form.clientLastName;
+      else if (field.id === "workerId") val = form.workerId;
+      else if (field.id === "serviceId") val = form.serviceId;
+      else if (field.id === "startsAt") {
+        val = form.appointmentDate && form.appointmentTime ? "ok" : "";
+      }
+      else if (field.id === "price") val = form.price;
+      else if (field.id === "notes") val = form.notes;
+      else if (field.id === "phone") val = form.phone;
+
+      if (field.required && !String(val || "").trim()) {
+        fieldErrors[field.id] = "Este campo es obligatorio.";
+      }
+    }
+
+    if (Object.keys(fieldErrors).length > 0) {
+      setErrors(fieldErrors);
+      setError("Revisá los campos marcados.");
+      return;
+    }
+
     if (isEdit && !dirty) return setError("No hay cambios para guardar.");
 
     try {
@@ -417,7 +476,7 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
         workerLastName: form.workerLastName?.trim() ? form.workerLastName.trim() : null,
         serviceId: form.serviceId,
         startsAt: toISO(startsAtLocal),
-        notes: form.notes.trim() || null,
+        notes: notesField ? (form.notes.trim() || null) : null,
       };
 
       const url = isEdit ? `/appointments/${initialData.id}` : `/appointments`;
@@ -450,6 +509,7 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
       setSaving(false);
     }
   }, [
+    enabledFields,
     valid,
     isEdit,
     dirty,
@@ -460,6 +520,7 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
     form.serviceId,
     startsAtLocal,
     form.notes,
+    notesField,
     initialData?.id,
     onSaved,
     onHide,
@@ -485,288 +546,316 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
       </Modal.Header>
 
       <Modal.Body className="pt-4">
-        {error ? (
+        {schemaError && <Alert variant="warning">{schemaError}</Alert>}
+        {error && (
           <Alert variant="danger" className="rounded-xl border-0 shadow-sm mb-4">
             <div className="fw-bold mb-1">Hubo un problema:</div>
             {error}
           </Alert>
-        ) : null}
+        )}
 
-        {loadingRefs ? (
+        {loadingRefs || schemaLoading ? (
           <div className="py-5 text-center text-muted">
             <Spinner animation="border" variant="primary" className="mb-3" />
             <p className="fw-medium">Preparando agenda...</p>
           </div>
         ) : (
           <Form className="custom-form">
-            <div className="form-section mb-4">
-              <h6 className="form-section-title">Información del Cliente</h6>
-              <div className="form-section-content" ref={clientBoxRef}>
-                <Row className="g-3">
-                  <Col md={6}>
-                    <Form.Group>
-                      <Form.Label className="small-label" htmlFor="appt-client-first">
-                        Nombre del cliente *
-                      </Form.Label>
-                      <Form.Control
-                        id="appt-client-first"
-                        className="modern-input"
-                        placeholder="Ej: María"
-                        value={form.clientFirstName}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          setDirty(true);
-                          setClientOpen(true);
-                          setForm((p) => ({ ...p, clientFirstName: v, clientId: "" }));
-                        }}
-                        onFocus={() => setClientOpen(true)}
-                        autoComplete="off"
-                      />
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <Form.Group>
-                      <Form.Label className="small-label" htmlFor="appt-client-last">
-                        Apellido del cliente *
-                      </Form.Label>
-                      <Form.Control
-                        id="appt-client-last"
-                        className="modern-input"
-                        placeholder="Ej: García"
-                        value={form.clientLastName}
-                        onChange={(e) => {
-                          setField("clientLastName", e.target.value);
-                          setForm((p) => ({ ...p, clientId: "" }));
-                          setClientOpen(true);
-                        }}
-                        onFocus={() => setClientOpen(true)}
-                        autoComplete="off"
-                      />
-                    </Form.Group>
-                  </Col>
-                </Row>
-
-                {/* Dropdown de Sugerencias mejorado */}
-                {clientOpen && (clientLoading || clientSug.length > 0) && (
-                  <div className="client-autocomplete-dropdown shadow-premium">
-                    {clientLoading ? (
-                      <div className="p-3 text-center text-muted small">
-                        <Spinner size="sm" className="me-2" /> Buscando...
-                      </div>
-                    ) : (
-                      clientSug.map((c) => (
-                        <button key={c.id} type="button" onClick={() => pickClient(c)} className="suggestion-item">
-                          <div className="fw-bold text-dark">{c.firstName} {c.lastName}</div>
-                          <div className="text-muted smaller">{c.phone || "Sin teléfono"} · {c.email || "Sin email"}</div>
-                        </button>
-                      ))
+            {(clientFirstNameField || clientLastNameField) && (
+              <div className="form-section mb-4">
+                <h6 className="form-section-title">Información del Cliente</h6>
+                <div className="form-section-content" ref={clientBoxRef}>
+                  <Row className="g-3">
+                    {clientFirstNameField && (
+                      <Col md={6}>
+                        <Form.Group>
+                          <Form.Label className="small-label" htmlFor="appt-client-first">
+                            {clientFirstNameField.label} {clientFirstNameField.required && "*"}
+                          </Form.Label>
+                          <Form.Control
+                            id="appt-client-first"
+                            className="modern-input"
+                            placeholder={clientFirstNameField.placeholder || "Ej: María"}
+                            value={form.clientFirstName}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              setDirty(true);
+                              setClientOpen(true);
+                              setForm((p) => ({ ...p, clientFirstName: v, clientId: "" }));
+                            }}
+                            onFocus={() => setClientOpen(true)}
+                            autoComplete="off"
+                            isInvalid={Boolean(errors.clientFirstName)}
+                          />
+                          {errors.clientFirstName && <div className="text-danger small mt-1">{errors.clientFirstName}</div>}
+                        </Form.Group>
+                      </Col>
                     )}
-                  </div>
-                )}
-              </div>
-            </div>
+                    {clientLastNameField && (
+                      <Col md={6}>
+                        <Form.Group>
+                          <Form.Label className="small-label" htmlFor="appt-client-last">
+                            {clientLastNameField.label} {clientLastNameField.required && "*"}
+                          </Form.Label>
+                          <Form.Control
+                            id="appt-client-last"
+                            className="modern-input"
+                            placeholder={clientLastNameField.placeholder || "Ej: García"}
+                            value={form.clientLastName}
+                            onChange={(e) => {
+                              setField("clientLastName", e.target.value);
+                              setForm((p) => ({ ...p, clientId: "" }));
+                              setClientOpen(true);
+                            }}
+                            onFocus={() => setClientOpen(true)}
+                            autoComplete="off"
+                            isInvalid={Boolean(errors.clientLastName)}
+                          />
+                          {errors.clientLastName && <div className="text-danger small mt-1">{errors.clientLastName}</div>}
+                        </Form.Group>
+                      </Col>
+                    )}
+                  </Row>
 
-            <div className="form-section mb-4">
-              <h6 className="form-section-title">Detalles del Servicio</h6>
-              <div className="form-section-content">
-                {slotComplete && (
-                  <div
-                    className="mb-3 p-3 rounded-3"
-                    style={{
-                      background:
-                        availability.available === false
-                          ? "rgba(220,53,69,0.08)"
-                          : "rgba(25,135,84,0.08)",
-                      border: `1px solid ${
-                        availability.available === false
-                          ? "rgba(220,53,69,0.25)"
-                          : "rgba(25,135,84,0.25)"
-                      }`,
-                    }}
-                  >
-                    <div className="text-muted small mb-1">Resumen de la cita</div>
-                    <div className="fw-semibold">
-                      Atiende: <span className="text-dark">{attendingLabel}</span>
+                  {/* Dropdown de Sugerencias mejorado */}
+                  {clientOpen && (clientLoading || clientSug.length > 0) && (
+                    <div className="client-autocomplete-dropdown shadow-premium">
+                      {clientLoading ? (
+                        <div className="p-3 text-center text-muted small">
+                          <Spinner size="sm" className="me-2" /> Buscando...
+                        </div>
+                      ) : (
+                        clientSug.map((c) => (
+                          <button key={c.id} type="button" onClick={() => pickClient(c)} className="suggestion-item">
+                            <div className="fw-bold text-dark">{c.firstName} {c.lastName}</div>
+                            <div className="text-muted smaller">{c.phone || "Sin teléfono"} · {c.email || "Sin email"}</div>
+                          </button>
+                        ))
+                      )}
                     </div>
-                    <div className="small text-muted mt-1">
-                      {serviceLabel} · {whenLabel}
-                      {selectedService?.duration ? ` · ${selectedService.duration} min` : ""}
+                  )}
+                </div>
+              </div>
+            )}
+
+            {(workerIdField || serviceIdField || startsAtField || priceField) && (
+              <div className="form-section mb-4">
+                <h6 className="form-section-title">Detalles del Servicio</h6>
+                <div className="form-section-content">
+                  {slotComplete && (
+                    <div
+                      className="mb-3 p-3 rounded-3"
+                      style={{
+                        background:
+                          availability.available === false
+                            ? "rgba(220,53,69,0.08)"
+                            : "rgba(25,135,84,0.08)",
+                        border: `1px solid ${
+                          availability.available === false
+                            ? "rgba(220,53,69,0.25)"
+                            : "rgba(25,135,84,0.25)"
+                        }`,
+                      }}
+                    >
+                      <div className="text-muted small mb-1">Resumen de la cita</div>
+                      <div className="fw-semibold">
+                        Atiende: <span className="text-dark">{attendingLabel}</span>
+                      </div>
+                      <div className="small text-muted mt-1">
+                        {serviceLabel} · {whenLabel}
+                        {selectedService?.duration ? ` · ${selectedService.duration} min` : ""}
+                      </div>
+                      {availability.loading && (
+                        <div className="small text-muted mt-2 d-flex align-items-center gap-2">
+                          <Spinner size="sm" /> Verificando disponibilidad…
+                        </div>
+                      )}
+                      {!availability.loading && availability.available === false && (
+                        <div className="small text-danger mt-2 fw-medium">
+                          {availability.reason || "No disponible en ese horario."}
+                          {availability.availableWorkers.length > 0 && (
+                            <div className="mt-1 fw-normal">
+                              Disponibles:{" "}
+                              {availability.availableWorkers.map((w) => w.name).join(", ")}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      {!availability.loading && availability.available === true && (
+                        <div className="small text-success mt-2">
+                          Horario disponible para este profesional.
+                        </div>
+                      )}
                     </div>
-                    {availability.loading && (
-                      <div className="small text-muted mt-2 d-flex align-items-center gap-2">
-                        <Spinner size="sm" /> Verificando disponibilidad…
-                      </div>
-                    )}
-                    {!availability.loading && availability.available === false && (
-                      <div className="small text-danger mt-2 fw-medium">
-                        {availability.reason || "No disponible en ese horario."}
-                        {availability.availableWorkers.length > 0 && (
-                          <div className="mt-1 fw-normal">
-                            Disponibles:{" "}
-                            {availability.availableWorkers.map((w) => w.name).join(", ")}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    {!availability.loading && availability.available === true && (
-                      <div className="small text-success mt-2">
-                        Horario disponible para este profesional.
-                      </div>
-                    )}
-                  </div>
-                )}
+                  )}
 
-                <Row className="g-3">
-                  <Col md={6}>
-                    <Form.Group>
-                      <Form.Label className="small-label" htmlFor="appt-worker">
-                        Profesional que atiende *
-                      </Form.Label>
-                      <Form.Select
-                        id="appt-worker"
-                        className="modern-input"
-                        value={form.workerId}
-                        onChange={(e) => {
-                          const id = e.target.value;
-                          const selected = workers.find((w) => w.id === id);
-                          setDirty(true);
-                          setForm((p) => ({
-                            ...p,
-                            workerId: id,
-                            workerFirstName: selected?.firstName || "",
-                            workerLastName: selected?.lastName || "",
-                          }));
-                        }}
-                      >
-                        <option value="">Seleccionar...</option>
-                        {workers.map((w) => (
-                          <option key={w.id} value={w.id}>{w.name}</option>
-                        ))}
-                      </Form.Select>
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <Form.Group>
-                      <Form.Label className="small-label" htmlFor="appt-service">
-                        Servicio a realizar *
-                      </Form.Label>
-                      <Form.Select
-                        id="appt-service"
-                        className="modern-input"
-                        value={form.serviceId}
-                        onChange={(e) => setField("serviceId", e.target.value)}
-                        disabled={!form.workerId}
-                      >
-                        <option value="">{form.workerId ? "Seleccionar..." : "Elige trabajador primero"}</option>
-                        {workerServices.map((s) => (
-                          <option key={s.id} value={s.id}>{s.name}</option>
-                        ))}
-                      </Form.Select>
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <Form.Group>
-                      <Form.Label className="small-label" htmlFor="appt-date">
-                        Fecha de la cita *
-                      </Form.Label>
-                      <Form.Control
-                        id="appt-date"
-                        className="modern-input"
-                        type="date"
-                        value={form.appointmentDate}
-                        onChange={(e) => setField("appointmentDate", e.target.value)}
-                      />
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <Form.Group>
-                      <Form.Label className="small-label" htmlFor="appt-time">
-                        Hora de la cita *
-                      </Form.Label>
-                      <Form.Control
-                        id="appt-time"
-                        className="modern-input"
-                        type="time"
-                        value={form.appointmentTime}
-                        onChange={(e) => setField("appointmentTime", e.target.value)}
-                      />
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <Form.Group>
-                      <Form.Label className="small-label" htmlFor="appt-price">
-                        Precio del servicio ($)
-                      </Form.Label>
-                      <InputGroup className="modern-input-group">
-                        <InputGroup.Text className="bg-transparent border-0 text-muted ps-3">$</InputGroup.Text>
-                        <Form.Control
-                          id="appt-price"
-                          className="border-0 ps-1 py-3 bg-transparent shadow-none"
-                          placeholder="0.00"
-                          inputMode="decimal"
-                          value={form.price}
-                          onChange={(e) => setField("price", e.target.value)}
-                        />
-                      </InputGroup>
-                    </Form.Group>
-                  </Col>
-                </Row>
+                  <Row className="g-3">
+                    {workerIdField && (
+                      <Col md={6}>
+                        <Form.Group>
+                          <Form.Label className="small-label" htmlFor="appt-worker">
+                            {workerIdField.label} {workerIdField.required && "*"}
+                          </Form.Label>
+                          <Form.Select
+                            id="appt-worker"
+                            className="modern-input"
+                            value={form.workerId}
+                            onChange={(e) => {
+                              const id = e.target.value;
+                              const selected = workers.find((w) => w.id === id);
+                              setDirty(true);
+                              setForm((p) => ({
+                                ...p,
+                                workerId: id,
+                                workerFirstName: selected?.firstName || "",
+                                workerLastName: selected?.lastName || "",
+                              }));
+                            }}
+                            isInvalid={Boolean(errors.workerId)}
+                          >
+                            <option value="">Seleccionar...</option>
+                            {workers.map((w) => (
+                              <option key={w.id} value={w.id}>{w.name}</option>
+                            ))}
+                          </Form.Select>
+                          {errors.workerId && <div className="text-danger small mt-1">{errors.workerId}</div>}
+                        </Form.Group>
+                      </Col>
+                    )}
+                    {serviceIdField && (
+                      <Col md={6}>
+                        <Form.Group>
+                          <Form.Label className="small-label" htmlFor="appt-service">
+                            {serviceIdField.label} {serviceIdField.required && "*"}
+                          </Form.Label>
+                          <Form.Select
+                            id="appt-service"
+                            className="modern-input"
+                            value={form.serviceId}
+                            onChange={(e) => setField("serviceId", e.target.value)}
+                            disabled={!form.workerId}
+                            isInvalid={Boolean(errors.serviceId)}
+                          >
+                            <option value="">{form.workerId ? "Seleccionar..." : "Elige trabajador primero"}</option>
+                            {workerServices.map((s) => (
+                              <option key={s.id} value={s.id}>{s.name}</option>
+                            ))}
+                          </Form.Select>
+                          {errors.serviceId && <div className="text-danger small mt-1">{errors.serviceId}</div>}
+                        </Form.Group>
+                      </Col>
+                    )}
+                    {startsAtField && (
+                      <>
+                        <Col md={6}>
+                          <Form.Group>
+                            <Form.Label className="small-label" htmlFor="appt-date">
+                              Fecha de la cita *
+                            </Form.Label>
+                            <Form.Control
+                              id="appt-date"
+                              className="modern-input"
+                              type="date"
+                              value={form.appointmentDate}
+                              onChange={(e) => setField("appointmentDate", e.target.value)}
+                              isInvalid={Boolean(errors.startsAt)}
+                            />
+                            {errors.startsAt && <div className="text-danger small mt-1">{errors.startsAt}</div>}
+                          </Form.Group>
+                        </Col>
+                        <Col md={6}>
+                          <Form.Group>
+                            <Form.Label className="small-label" htmlFor="appt-time">
+                              Hora de la cita *
+                            </Form.Label>
+                            <Form.Control
+                              id="appt-time"
+                              className="modern-input"
+                              type="time"
+                              value={form.appointmentTime}
+                              onChange={(e) => setField("appointmentTime", e.target.value)}
+                              isInvalid={Boolean(errors.startsAt)}
+                            />
+                            {errors.startsAt && <div className="text-danger small mt-1">{errors.startsAt}</div>}
+                          </Form.Group>
+                        </Col>
+                      </>
+                    )}
+                    {priceField && (
+                      <Col md={6}>
+                        <Form.Group>
+                          <Form.Label className="small-label" htmlFor="appt-price">
+                            {priceField.label} {priceField.required && "*"}
+                          </Form.Label>
+                          <InputGroup className="modern-input-group">
+                            <InputGroup.Text className="bg-transparent border-0 text-muted ps-3">$</InputGroup.Text>
+                            <Form.Control
+                              id="appt-price"
+                              className="border-0 ps-1 py-3 bg-transparent shadow-none"
+                              placeholder="0.00"
+                              inputMode="decimal"
+                              value={form.price}
+                              onChange={(e) => setField("price", e.target.value)}
+                              isInvalid={Boolean(errors.price)}
+                            />
+                          </InputGroup>
+                          {errors.price && <div className="text-danger small mt-1">{errors.price}</div>}
+                        </Form.Group>
+                      </Col>
+                    )}
+                  </Row>
+                </div>
               </div>
-            </div>
+            )}
 
-            <div className="form-section">
-              <h6 className="form-section-title">Información Adicional</h6>
-              <div className="form-section-content">
-                <Row className="g-3">
-                  <Col md={6}>
-                    <Form.Group>
-                      <Form.Label className="small-label" htmlFor="appt-phone">
-                        WhatsApp / Teléfono de contacto
-                      </Form.Label>
-                      <Form.Control
-                        id="appt-phone"
-                        className="modern-input"
-                        type="tel"
-                        placeholder="Ej: +54 9 11..."
-                        value={form.phone}
-                        onChange={(e) => setField("phone", e.target.value)}
-                      />
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <Form.Group>
-                      <Form.Label className="small-label" htmlFor="appt-email">
-                        Correo electrónico
-                      </Form.Label>
-                      <Form.Control
-                        id="appt-email"
-                        className="modern-input"
-                        type="email"
-                        placeholder="cliente@email.com"
-                        value={form.email}
-                        onChange={(e) => setField("email", e.target.value)}
-                      />
-                    </Form.Group>
-                  </Col>
-                  <Col md={12}>
-                    <Form.Group>
-                      <Form.Label className="small-label" htmlFor="appt-notes">
-                        Notas o indicaciones para la cita
-                      </Form.Label>
-                      <Form.Control
-                        id="appt-notes"
-                        className="modern-input"
-                        as="textarea"
-                        rows={2}
-                        placeholder="Preferencias, alergias, recordatorios..."
-                        value={form.notes}
-                        onChange={(e) => setField("notes", e.target.value)}
-                      />
-                    </Form.Group>
-                  </Col>
-                </Row>
+            {(phoneField || notesField) && (
+              <div className="form-section">
+                <h6 className="form-section-title">Información Adicional</h6>
+                <div className="form-section-content">
+                  <Row className="g-3">
+                    {phoneField && (
+                      <Col md={6}>
+                        <Form.Group>
+                          <Form.Label className="small-label" htmlFor="appt-phone">
+                            {phoneField.label} {phoneField.required && "*"}
+                          </Form.Label>
+                          <Form.Control
+                            id="appt-phone"
+                            className="modern-input"
+                            type="tel"
+                            placeholder={phoneField.placeholder || "Ej: +54 9 11..."}
+                            value={form.phone}
+                            onChange={(e) => setField("phone", e.target.value)}
+                            isInvalid={Boolean(errors.phone)}
+                          />
+                          {errors.phone && <div className="text-danger small mt-1">{errors.phone}</div>}
+                        </Form.Group>
+                      </Col>
+                    )}
+                    {notesField && (
+                      <Col md={12}>
+                        <Form.Group>
+                          <Form.Label className="small-label" htmlFor="appt-notes">
+                            {notesField.label} {notesField.required && "*"}
+                          </Form.Label>
+                          <Form.Control
+                            id="appt-notes"
+                            className="modern-input"
+                            as="textarea"
+                            rows={2}
+                            placeholder={notesField.placeholder || "Preferencias, recordatorios..."}
+                            value={form.notes}
+                            onChange={(e) => setField("notes", e.target.value)}
+                            isInvalid={Boolean(errors.notes)}
+                          />
+                          {errors.notes && <div className="text-danger small mt-1">{errors.notes}</div>}
+                        </Form.Group>
+                      </Col>
+                    )}
+                  </Row>
+                </div>
               </div>
-            </div>
+            )}
           </Form>
         )}
       </Modal.Body>
@@ -780,7 +869,7 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
           variant="dark" 
           className="btn-premium px-5 py-3"
           onClick={handleSave} 
-          disabled={saveDisabled || loadingRefs}
+          disabled={saveDisabled || loadingRefs || schemaLoading}
         >
           {saving ? (
             <>
