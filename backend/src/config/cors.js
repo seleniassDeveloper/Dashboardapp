@@ -11,7 +11,13 @@ export function getCorsOptions() {
 
   return {
     origin(origin, callback) {
-      if (!origin || allowed.includes(origin)) {
+      if (
+        !origin || 
+        allowed.includes(origin) || 
+        origin.startsWith("http://192.168.") || 
+        origin.startsWith("http://172.") || 
+        origin.startsWith("http://10.")
+      ) {
         callback(null, true);
         return;
       }
