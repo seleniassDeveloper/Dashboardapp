@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Container, Card, Button, Form, Spinner, Alert, Row, Col } from "react-bootstrap";
 import { Calendar, User, Clock, CheckCircle2, Search, Plus, UserPlus, Sparkles, Home } from "lucide-react";
 import api from "../../lib/api.js";
@@ -15,6 +15,8 @@ function currency(n) {
 export default function QuickAddBookingPage() {
   const { businessSlug } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const linkToken = searchParams.get("token") || searchParams.get("key");
 
   // Estados de carga y catálogos
   const [loading, setLoading] = useState(true);
@@ -54,6 +56,10 @@ export default function QuickAddBookingPage() {
       try {
         setLoading(true);
         setError("");
+
+        if (linkToken) {
+          api.defaults.headers.common["Authorization"] = `Bearer ${linkToken}`;
+        }
 
         const bizRes = await api.get(`/public/business/${businessSlug}`);
         setBusiness(bizRes.data);
