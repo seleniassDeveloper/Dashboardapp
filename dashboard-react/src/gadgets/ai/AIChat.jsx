@@ -1,461 +1,249 @@
 import React, { useMemo, useState } from "react";
-import {
-  CALCULATION_OPERATION_OPTIONS,
-  CALCULATION_REASON_PRESETS,
-  CALCULATION_TOGGLE_OPTIONS,
-  GADGET_CONTENT_FOCUS_OPTIONS,
-  GADGET_PRESENTATION_OPTIONS,
-  GADGET_PURPOSE_OPTIONS,
-  buildGadgetIntentPayload,
-  normalizeViewPreferences,
-  validateGadgetCalculationForAiMessage,
-  viewsFromPresentationPreset,
-} from "./gadgetViewPreferences";
+import { Button, Form, Spinner, Alert } from "react-bootstrap";
+import { Sparkles, MessageSquare, Plus, HelpCircle, ChevronRight } from "lucide-react";
 import { postGadgetAiReport } from "./gadgetReportApi";
 import { useAiAssistantTheme } from "./useAiAssistantTheme";
 
-export default function AIChat({ embedded = false, onReportAdded }) {
-  void embedded;
+const PRESET_PROMPTS = [
+  "Analiza mis ingresos de este mes",
+  "¿Cuáles son mis profesionales con más citas?",
+  "Agrega un gráfico de torta con citas por servicio",
+  "Genera un KPI con la tasa de cancelaciones",
+];
+
+export default function AIChat({ onAddWidget }) {
   const t = useAiAssistantTheme();
 
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
-  const [report, setReport] = useState(null);
+  const [chatHistory, setChatHistory] = useState([]);
+  const [suggestedWidget, setSuggestedWidget] = useState(null);
   const [error, setError] = useState("");
-  const [gadgetViewsPanelOpen, setGadgetViewsPanelOpen] = useState(false);
 
-  const [gadgetPurpose, setGadgetPurpose] = useState("explore");
-  const [contentFocus, setContentFocus] = useState("auto");
-  const [presentationPreset, setPresentationPreset] = useState("full");
-  const [calculationToggle, setCalculationToggle] = useState("no");
-  const [calculationOperation, setCalculationOperation] = useState("none");
-  const [calculationReasonPreset, setCalculationReasonPreset] = useState(
-    "explain_in_message"
-  );
-
-  const calculationEnabled = calculationToggle === "yes";
-
-  const selectGadgetStyle = useMemo(
-    () => ({
-      width: "100%",
-      padding: "8px 10px",
-      borderRadius: 10,
-      border: `1px solid ${t.inputBorder}`,
-      marginBottom: 10,
-      fontSize: 13,
-      background: t.inputBg,
-      color: t.panelFg,
-      boxSizing: "border-box",
-    }),
-    [t]
-  );
-
-  const chipBtn = (active) => ({
-    border: `1px solid ${active ? t.accentBorder : t.chipOutline}`,
-    background: active ? t.tabActiveBg : t.inputBg,
-    color: t.panelFg,
-    borderRadius: 999,
-    padding: "8px 12px",
-    cursor: "pointer",
-    fontWeight: active ? 700 : 400,
-    fontSize: 13,
-    fontFamily: t.fontFamily,
-  });
-
-  const cardDyn = useMemo(
-    () => ({
-      border: `1px solid ${t.borderSubtle}`,
-      borderRadius: 12,
-      padding: 12,
-      marginBottom: 12,
-      background: t.cardMutedBg,
-      color: t.panelFg,
-    }),
-    [t]
-  );
-
-  const kpiCardDyn = useMemo(
-    () => ({
-      border: `1px solid ${t.borderSubtle}`,
-      borderRadius: 10,
-      padding: 10,
-      background: t.inputBg,
-      color: t.panelFg,
-    }),
-    [t]
-  );
-
-  const viewPreferences = useMemo(
-    () =>
-      normalizeViewPreferences(viewsFromPresentationPreset(presentationPreset)),
-    [presentationPreset]
-  );
-
-  const gadgetIntent = useMemo(
-    () =>
-      buildGadgetIntentPayload({
-        purpose: gadgetPurpose,
-        contentFocus,
-        presentationPreset,
-        calculationEnabled,
-        calculationOperation,
-        calculationReasonPreset,
-      }),
-    [
-      gadgetPurpose,
-      contentFocus,
-      presentationPreset,
-      calculationEnabled,
-      calculationOperation,
-      calculationReasonPreset,
-    ]
-  );
-
-  const sendPreset = async (preset) => {
-    setQuestion(preset);
-    await handleSend(preset);
-  };
-
-  const handleSend = async (customQuestion) => {
-    const q = (customQuestion ?? question).trim();
+  const handleSend = async (queryText) => {
+    const q = (queryText || question).trim();
     if (!q) return;
 
-    const calcErr = validateGadgetCalculationForAiMessage({
-      calculationEnabled,
-      calculationOperation,
-      calculationReasonPreset,
-      aiMessageText: q,
-    });
-    if (calcErr) {
-      setError(calcErr);
-      return;
-    }
+    setError("");
+    setLoading(true);
+    setSuggestedWidget(null);
+
+    // Agregar mensaje del usuario al historial
+    const userMsg = { role: "user", content: q };
+    setChatHistory((prev) => [...prev, userMsg]);
 
     try {
-      setLoading(true);
-      setError("");
-
       const payload = await postGadgetAiReport({
         question: q,
-        viewPreferences,
-        gadgetIntent,
+        viewPreferences: {
+          showSummary: true,
+          showInsights: true,
+          showKpis: true,
+          showChart: true,
+          showActions: true,
+        },
       });
-      onReportAdded?.({
-        question: q,
-        report: payload,
-        viewPreferences,
-        gadgetIntent,
-      });
-      setReport(payload);
+
+      // Agregar respuesta de la IA al historial
+      const aiMsg = {
+        role: "assistant",
+        content: payload.summary,
+        insights: payload.insights || [],
+        kpis: payload.kpis || [],
+        chart: payload.chart || null,
+        actions: payload.actions || [],
+      };
+
+      setChatHistory((prev) => [...prev, aiMsg]);
+
+      // Si la IA sugiere crear un widget, guardarlo en el estado sugerido
+      if (payload.widgetToCreate) {
+        setSuggestedWidget(payload.widgetToCreate);
+      }
     } catch (e) {
-      console.error("AI chat error:", e?.response?.data || e);
-      setError(e?.response?.data?.error || "No se pudo generar el reporte.");
+      console.error("Error en chat IA:", e);
+      setError(e?.response?.data?.error || "No se pudo conectar con el agente IA.");
     } finally {
       setLoading(false);
       setQuestion("");
     }
   };
 
+  const cardStyle = useMemo(
+    () => ({
+      border: `1px solid ${t.borderSubtle}`,
+      borderRadius: 12,
+      padding: 12,
+      marginBottom: 10,
+      background: t.cardMutedBg,
+      color: t.panelFg,
+    }),
+    [t]
+  );
+
   return (
-    <div
-      style={{
-        height: "100%",
-        display: "flex",
-        flexDirection: "column",
-        padding: 12,
-        color: t.panelFg,
-        fontFamily: t.fontFamily,
-      }}
-    >
-      <div style={{ marginBottom: 12, display: "flex", flexWrap: "wrap", gap: 8 }}>
-        <button
-          type="button"
-          onClick={() => setGadgetViewsPanelOpen((v) => !v)}
-          style={chipBtn(gadgetViewsPanelOpen)}
-        >
-          Opciones del gadget (listas)
-        </button>
-        <button type="button" onClick={() => sendPreset("Analiza mis ingresos")} style={chipBtn(false)}>
-          Analiza mis ingresos
-        </button>
-        <button type="button" onClick={() => sendPreset("Detecta problemas operativos")} style={chipBtn(false)}>
-          Detecta problemas operativos
-        </button>
-        <button type="button" onClick={() => sendPreset("Dame decisiones para esta semana")} style={chipBtn(false)}>
-          Decisiones semanales
-        </button>
-        <button
-          type="button"
-          onClick={() =>
-            sendPreset(
-              "Quiero ver la lista de citas como en mi dashboard y consejos sobre cancelaciones."
-            )
-          }
-          style={chipBtn(false)}
-        >
-          Lista + consejos
-        </button>
-      </div>
-
-      {gadgetViewsPanelOpen ? (
-        <div
-          style={{
-            border: `1px solid ${t.accentBorder}`,
-            borderRadius: 12,
-            padding: 12,
-            marginBottom: 12,
-            background: t.cardMutedBg,
-          }}
-        >
-          <div style={{ fontWeight: 600, marginBottom: 6, fontSize: 14 }}>
-            Configuración rápida (solo listas)
-          </div>
-          <div style={{ fontSize: 12, color: t.muted, marginBottom: 12 }}>
-            Elegí todo con menús desplegables. Abajo escribís solo lo que querés que haga la
-            IA. ¿Más guiado? Usá{" "}
-            <strong style={{ color: t.panelFg }}>Configurar gadget · paso a paso</strong>{" "}
-            arriba.
-          </div>
-
-          <label style={{ fontSize: 12, fontWeight: 600, display: "block", marginBottom: 4 }}>
-            Para qué es el gadget
-          </label>
-          <select
-            value={gadgetPurpose}
-            onChange={(e) => setGadgetPurpose(e.target.value)}
-            style={selectGadgetStyle}
-          >
-            {GADGET_PURPOSE_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-
-          <label style={{ fontSize: 12, fontWeight: 600, display: "block", marginBottom: 4 }}>
-            Qué datos priorizar
-          </label>
-          <select
-            value={contentFocus}
-            onChange={(e) => setContentFocus(e.target.value)}
-            style={selectGadgetStyle}
-          >
-            {GADGET_CONTENT_FOCUS_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-
-          <label style={{ fontSize: 12, fontWeight: 600, display: "block", marginBottom: 4 }}>
-            Cómo presentarlo
-          </label>
-          <select
-            value={presentationPreset}
-            onChange={(e) => setPresentationPreset(e.target.value)}
-            style={selectGadgetStyle}
-          >
-            {GADGET_PRESENTATION_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-
-          <div
-            style={{
-              marginTop: 12,
-              paddingTop: 12,
-              borderTop: `1px solid ${t.borderSubtle}`,
-            }}
-          >
-            <label style={{ fontSize: 12, fontWeight: 600, display: "block", marginBottom: 4 }}>
-              Cálculo con números
-            </label>
-            <select
-              value={calculationToggle}
-              onChange={(e) => {
-                const v = e.target.value;
-                setCalculationToggle(v);
-                if (v === "no") {
-                  setCalculationOperation("none");
-                  setCalculationReasonPreset("explain_in_message");
-                }
-              }}
-              style={selectGadgetStyle}
-            >
-              {CALCULATION_TOGGLE_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
+    <div className="d-flex flex-column h-100" style={{ fontFamily: t.fontFamily, color: t.panelFg }}>
+      {/* Historial de Chat */}
+      <div className="flex-grow-1 overflow-auto px-3 py-2" style={{ maxHeight: "calc(100vh - 200px)" }}>
+        {chatHistory.length === 0 ? (
+          <div className="text-muted text-center py-5">
+            <Sparkles size={36} className="text-primary mb-3" />
+            <h5 className="fw-bold text-dark mb-2">Asistente Inteligente</h5>
+            <p className="small mb-4" style={{ padding: "0 20px" }}>
+              Preguntame sobre ingresos, ocupación de agendas o pedime que configure widgets en tu pantalla.
+            </p>
+            <div className="d-grid gap-2 px-3">
+              {PRESET_PROMPTS.map((p, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handleSend(p)}
+                  className="btn btn-outline-secondary btn-sm text-start d-flex align-items-center justify-content-between rounded-pill py-2 px-3 hover-scale"
+                  style={{ fontSize: "12px" }}
+                >
+                  <span>{p}</span>
+                  <ChevronRight size={14} />
+                </button>
               ))}
-            </select>
-
-            {calculationEnabled ? (
-              <>
-                <label
-                  style={{ fontSize: 12, fontWeight: 600, display: "block", marginBottom: 4 }}
+            </div>
+          </div>
+        ) : (
+          <div className="d-flex flex-column gap-3 mb-3">
+            {chatHistory.map((msg, index) => (
+              <div
+                key={index}
+                className={`d-flex flex-column ${
+                  msg.role === "user" ? "align-items-end" : "align-items-start"
+                }`}
+              >
+                <div
+                  className={`p-3 rounded-4 shadow-sm ${
+                    msg.role === "user"
+                      ? "bg-dark text-white rounded-br-none"
+                      : "bg-light text-dark rounded-bl-none border"
+                  }`}
+                  style={{ maxWidth: "85%", fontSize: "13px" }}
                 >
-                  Operación
-                </label>
-                <select
-                  value={calculationOperation}
-                  onChange={(e) => setCalculationOperation(e.target.value)}
-                  style={selectGadgetStyle}
-                >
-                  {CALCULATION_OPERATION_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-                <label
-                  style={{ fontSize: 12, fontWeight: 600, display: "block", marginBottom: 4 }}
-                >
-                  Para qué es el cálculo
-                </label>
-                <select
-                  value={calculationReasonPreset}
-                  onChange={(e) => setCalculationReasonPreset(e.target.value)}
-                  style={{ ...selectGadgetStyle, marginBottom: 0 }}
-                >
-                  {CALCULATION_REASON_PRESETS.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-                {calculationOperation !== "none" &&
-                calculationReasonPreset === "explain_in_message" ? (
-                  <div style={{ fontSize: 11, color: t.muted, marginTop: 8 }}>
-                    Contá el motivo del cálculo en tu mensaje para la IA (abajo).
+                  <div className="fw-semibold small mb-1 opacity-75">
+                    {msg.role === "user" ? "Tú" : "Aura Copilot"}
                   </div>
-                ) : null}
-              </>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
+                  <div>{msg.content}</div>
 
-      <div style={{ flex: 1, overflow: "auto", paddingRight: 4 }}>
-        {error ? (
-          <div style={{ color: "#f87171", marginBottom: 12 }}>{error}</div>
-        ) : null}
-
-        {!report && !loading ? (
-          <div style={{ color: t.muted, fontSize: 13 }}>
-            <div style={{ marginBottom: 8 }}>Habiale a la IA en el campo de abajo.</div>
-            <ul style={{ paddingLeft: 18, margin: 0 }}>
-              <li>¿Qué servicio genera más ingresos?</li>
-              <li>¿Qué trabajador está más cargado?</li>
-              <li>¿Qué decisiones debería tomar esta semana?</li>
-            </ul>
-          </div>
-        ) : null}
-
-        {loading ? <div style={{ color: t.muted }}>Generando reporte...</div> : null}
-
-        {report ? (
-          onReportAdded ? (
-            <div style={cardDyn}>
-              <h4 style={{ marginTop: 0 }}>Listo</h4>
-              <p style={{ marginBottom: 8 }}>{report.summary}</p>
-              <div style={{ fontSize: 13, color: t.muted }}>
-                Se agregó un bloque nuevo debajo del dashboard con el detalle completo,
-                gráfico y acciones.
-              </div>
-            </div>
-          ) : (
-            <div>
-              <section style={cardDyn}>
-                <h4 style={{ marginTop: 0 }}>Resumen</h4>
-                <p style={{ marginBottom: 0 }}>{report.summary}</p>
-              </section>
-
-              <section style={cardDyn}>
-                <h4 style={{ marginTop: 0 }}>Insights</h4>
-                <ul>
-                  {(report.insights || []).map((x, i) => (
-                    <li key={i}>{x}</li>
-                  ))}
-                </ul>
-              </section>
-
-              <section style={cardDyn}>
-                <h4 style={{ marginTop: 0 }}>KPIs</h4>
-                <div style={{ display: "grid", gap: 8 }}>
-                  {(report.kpis || []).map((kpi, i) => (
-                    <div key={i} style={kpiCardDyn}>
-                      <strong>{kpi.label}</strong>
-                      <div>{kpi.value}</div>
-                      <small style={{ color: t.muted }}>{kpi.delta}</small>
+                  {/* Renderizado de KPIs sugeridos por la IA */}
+                  {msg.role === "assistant" && msg.kpis.length > 0 && (
+                    <div className="row g-2 mt-2">
+                      {msg.kpis.map((kpi, kIdx) => (
+                        <div className="col-6" key={kIdx}>
+                          <div className="p-2 border rounded bg-white text-dark">
+                            <span className="text-muted d-block" style={{ fontSize: "9px" }}>
+                              {kpi.label}
+                            </span>
+                            <strong style={{ fontSize: "13px" }}>{kpi.value}</strong>
+                            {kpi.delta && <span className="text-success ms-1" style={{ fontSize: "9px" }}>{kpi.delta}</span>}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
+
+                  {/* Insights */}
+                  {msg.role === "assistant" && msg.insights.length > 0 && (
+                    <div className="mt-3 border-top pt-2" style={{ fontSize: "11px" }}>
+                      <div className="fw-bold mb-1">Análisis clave:</div>
+                      <ul className="ps-3 mb-0">
+                        {msg.insights.map((ins, iIdx) => (
+                          <li key={iIdx} className="mb-1">{ins}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Acciones */}
+                  {msg.role === "assistant" && msg.actions.length > 0 && (
+                    <div className="mt-2 border-top pt-2" style={{ fontSize: "11px" }}>
+                      <div className="fw-bold text-success mb-1">Acciones sugeridas:</div>
+                      <ul className="ps-3 mb-0">
+                        {msg.actions.map((act, aIdx) => (
+                          <li key={aIdx} className="mb-1">{act}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
-              </section>
+              </div>
+            ))}
+          </div>
+        )}
 
-              <section style={cardDyn}>
-                <h4 style={{ marginTop: 0 }}>{report.chart?.title || "Gráfico"}</h4>
-                {(report.chart?.data || []).length === 0 ? (
-                  <div style={{ color: t.muted }}>Sin datos para graficar.</div>
-                ) : (
-                  <ul>
-                    {report.chart.data.map((item, i) => (
-                      <li key={i}>
-                        {item.name}: {item.value}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </section>
+        {loading && (
+          <div className="d-flex align-items-center gap-2 text-muted px-3 small py-2">
+            <Spinner animation="border" size="sm" />
+            <span>Aura está analizando los datos...</span>
+          </div>
+        )}
 
-              <section style={cardDyn}>
-                <h4 style={{ marginTop: 0 }}>Acciones recomendadas</h4>
-                <ul>
-                  {(report.actions || []).map((x, i) => (
-                    <li key={i}>{x}</li>
-                  ))}
-                </ul>
-              </section>
+        {error && <Alert variant="danger" className="mx-3 mt-2 py-2 small">{error}</Alert>}
+
+        {/* Sugerencia de Widget */}
+        {suggestedWidget && (
+          <div className="mx-3 p-3 border rounded-3 bg-light shadow-sm" style={{ borderLeft: `4px solid ${t.accentBorder || "#10b981"}` }}>
+            <div className="fw-bold small text-success d-flex align-items-center gap-1 mb-1">
+              <Sparkles size={14} /> ¿Añadir Widget al Dashboard?
             </div>
-          )
-        ) : null}
+            <div className="small text-muted mb-3">
+              La IA configuró un widget de tipo <strong>{suggestedWidget.type === "chart" ? `Gráfico (${suggestedWidget.config?.chartType})` : suggestedWidget.type}</strong> llamado <strong>"{suggestedWidget.title}"</strong> para monitorear esta métrica.
+            </div>
+            <div className="d-flex gap-2">
+              <Button
+                size="sm"
+                variant="dark"
+                className="btn-premium rounded-pill px-3"
+                onClick={() => {
+                  onAddWidget?.(suggestedWidget);
+                  setSuggestedWidget(null);
+                }}
+              >
+                Aceptar y Agregar
+              </Button>
+              <Button
+                size="sm"
+                variant="outline-secondary"
+                className="rounded-pill px-3"
+                onClick={() => setSuggestedWidget(null)}
+              >
+                Descartar
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
-      <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-        <input
-          value={question}
-          onChange={(e) => setQuestion(e.target.value)}
-          placeholder="Escribí lo que querés que haga la IA (tono, foco, preguntas)…"
-          style={{
-            flex: 1,
-            padding: 10,
-            borderRadius: 10,
-            border: `1px solid ${t.inputBorder}`,
-            fontSize: 14,
-            background: t.inputBg,
-            color: t.panelFg,
-            fontFamily: t.fontFamily,
+      {/* Input de Chat */}
+      <div className="p-3 border-top bg-white">
+        <Form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSend();
           }}
-        />
-        <button
-          type="button"
-          onClick={() => handleSend()}
-          disabled={!question.trim() || loading}
-          style={{
-            padding: "10px 14px",
-            borderRadius: 10,
-            border: `1px solid ${t.accentBorder}`,
-            background: t.primaryBg,
-            color: t.primaryFg,
-            cursor: question.trim() && !loading ? "pointer" : "not-allowed",
-            opacity: !question.trim() || loading ? 0.55 : 1,
-            fontFamily: t.fontFamily,
-            fontWeight: 600,
-          }}
+          className="d-flex gap-2"
         >
-          {loading ? "..." : "Enviar"}
-        </button>
+          <Form.Control
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            placeholder="Preguntame algo o pedime agregar un widget..."
+            disabled={loading}
+            className="rounded-pill"
+            style={{ fontSize: "13px" }}
+          />
+          <Button
+            type="submit"
+            disabled={loading || !question.trim()}
+            variant="dark"
+            className="btn-premium rounded-circle p-2 d-flex align-items-center justify-content-center"
+            style={{ width: "36px", height: "36px" }}
+          >
+            <MessageSquare size={16} />
+          </Button>
+        </Form>
       </div>
     </div>
   );

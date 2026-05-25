@@ -351,7 +351,7 @@ export default function LoginScreen() {
         {errorCode === "auth/unauthorized-domain" && (
           <div className="error-msg mt-3" style={{ background: "rgba(251, 191, 36, 0.1)", color: "#fbbf24", borderColor: "rgba(251, 191, 36, 0.2)" }}>
             En Firebase Console → Authentication → Settings → Authorized domains, agregá{" "}
-            <strong>localhost</strong>. Usá siempre http://localhost:5173
+            <strong>localhost</strong>. Abrí la app en http://localhost:5175 (o el puerto que use Vite).
           </div>
         )}
 

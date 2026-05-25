@@ -27,32 +27,23 @@ export function withAlphaHex(hex, alpha) {
   return `rgba(${rgb.r},${rgb.g},${rgb.b},${alpha})`;
 }
 
-/**
- * Estilos del asistente IA alineados con la marca del header (accent, modo oscuro, fuente).
- */
+/** Estilos del asistente IA (tema claro, alineado con la marca). */
 export function useAiAssistantTheme() {
   const { brand } = useBrand();
 
   return useMemo(() => {
     const accentRaw = brand.accentColor || brand.textColor || "#111827";
     const accent = hexToRgb(accentRaw) ? accentRaw : "#111827";
-    const darkPanel = Boolean(brand.darkMode);
 
-    const panelBg = darkPanel ? "#0f172a" : "#ffffff";
-    const panelFg = darkPanel ? "#f1f5f9" : "#111827";
-    const muted = darkPanel ? "#94a3b8" : "#64748b";
-    const borderSubtle = darkPanel ? "rgba(148,163,184,0.25)" : "rgba(0,0,0,0.1)";
+    const panelBg = "#ffffff";
+    const panelFg = "#111827";
+    const muted = "#64748b";
+    const borderSubtle = "rgba(0,0,0,0.1)";
 
     const accentLum = luminance(accent);
     const accentVeryLight = accentLum > 0.88;
-    /** Botón principal: si el acento es casi blanco sobre panel claro, usar relleno oscuro con borde acento */
-    const primaryBg =
-      accentVeryLight && !darkPanel ? "#111827"
-      : accentVeryLight && darkPanel ? "#e2e8f0"
-      : accent;
-    const primaryFg =
-      luminance(primaryBg) > 0.55 ? "#111827" : "#ffffff";
-
+    const primaryBg = accentVeryLight ? "#111827" : accent;
+    const primaryFg = luminance(primaryBg) > 0.55 ? "#111827" : "#ffffff";
     const progressFill = accentVeryLight ? primaryBg : accent;
 
     return {
@@ -65,26 +56,17 @@ export function useAiAssistantTheme() {
       primaryBg,
       primaryFg,
       progressFill,
-      accentSoft: withAlphaHex(accent, darkPanel ? 0.2 : 0.14),
-      accentSoftStrong: withAlphaHex(accent, darkPanel ? 0.28 : 0.2),
-      accentBorder: withAlphaHex(accent, darkPanel ? 0.5 : 0.4),
-      tabActiveBg: withAlphaHex(accent, darkPanel ? 0.22 : 0.14),
-      progressTrack: darkPanel ? "rgba(148,163,184,0.22)" : "#e5e7eb",
-      inputBg: darkPanel ? "rgba(15,23,42,0.65)" : "#ffffff",
-      inputBorder: darkPanel ? "rgba(148,163,184,0.35)" : borderSubtle,
-      cardMutedBg: darkPanel ? "rgba(30,41,59,0.55)" : "#f8fafc",
-      chipOutline: darkPanel ? "rgba(148,163,184,0.4)" : borderSubtle,
-      panelShadow: darkPanel ?
-          "0 22px 55px rgba(0,0,0,0.55)"
-        : "0 22px 70px rgba(0,0,0,0.20)",
-      fabShadow: darkPanel ?
-          "0 18px 45px rgba(0,0,0,0.45)"
-        : "0 18px 55px rgba(0,0,0,0.22)",
+      accentSoft: withAlphaHex(accent, 0.14),
+      accentSoftStrong: withAlphaHex(accent, 0.2),
+      accentBorder: withAlphaHex(accent, 0.4),
+      tabActiveBg: withAlphaHex(accent, 0.14),
+      progressTrack: "#e5e7eb",
+      inputBg: "#ffffff",
+      inputBorder: borderSubtle,
+      cardMutedBg: "#f8fafc",
+      chipOutline: borderSubtle,
+      panelShadow: "0 22px 70px rgba(0,0,0,0.12)",
+      fabShadow: "0 18px 55px rgba(0,0,0,0.15)",
     };
-  }, [
-    brand.accentColor,
-    brand.textColor,
-    brand.darkMode,
-    brand.fontFamily,
-  ]);
+  }, [brand.accentColor, brand.textColor, brand.fontFamily]);
 }

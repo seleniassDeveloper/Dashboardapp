@@ -1,6 +1,24 @@
 import prisma from "../prisma.js";
 
 /* =========================
+   VALIDADORES DE FORMATO
+========================= */
+// Email simple pero efectivo: algo@algo.dominio
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function isValidEmail(email) {
+  return EMAIL_RE.test(email);
+}
+
+// Teléfono: permite +, espacios, guiones, paréntesis y puntos.
+// Requiere entre 7 y 15 dígitos (estándar E.164).
+function isValidPhone(phone) {
+  if (!/^[+0-9()\-.\s]+$/.test(phone)) return false;
+  const digits = phone.replace(/\D/g, "");
+  return digits.length >= 7 && digits.length <= 15;
+}
+
+/* =========================
    CREATE CLIENT
 ========================= */
 export async function createClient(req, res) {
@@ -13,6 +31,14 @@ export async function createClient(req, res) {
         .json({ error: "firstName y lastName son obligatorios." });
     }
 
+    if (email?.trim() && !isValidEmail(email.trim())) {
+      return res.status(400).json({ error: "El email no tiene un formato válido." });
+    }
+
+    if (phone?.trim() && !isValidPhone(phone.trim())) {
+      return res.status(400).json({ error: "El teléfono no tiene un formato válido." });
+    }
+
     const created = await prisma.client.create({
       data: {
         firstName: firstName.trim(),
@@ -23,7 +49,7 @@ export async function createClient(req, res) {
       },
     });
 
-    return res.json(created);
+    return res.status(201).json(created);
   } catch (e) {
     console.error("CREATE CLIENT ERROR:", e);
     return res.status(500).json({ error: "Error creando cliente." });
@@ -42,6 +68,14 @@ export async function updateClient(req, res) {
       return res
         .status(400)
         .json({ error: "firstName y lastName son obligatorios." });
+    }
+
+    if (email?.trim() && !isValidEmail(email.trim())) {
+      return res.status(400).json({ error: "El email no tiene un formato válido." });
+    }
+
+    if (phone?.trim() && !isValidPhone(phone.trim())) {
+      return res.status(400).json({ error: "El teléfono no tiene un formato válido." });
     }
 
     const updated = await prisma.client.update({

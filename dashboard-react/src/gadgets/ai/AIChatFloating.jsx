@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { Button } from "react-bootstrap";
+import { motion, AnimatePresence } from "framer-motion";
+import { Sparkles, X } from "lucide-react";
 import AIChat from "./AIChat";
-import GadgetConfigWizard from "./GadgetConfigWizard";
 import { useAiAssistantTheme } from "./useAiAssistantTheme";
 
-export default function AIChatFloating({ onReportAdded }) {
+export default function AIChatFloating({ onAddWidget }) {
   const [open, setOpen] = useState(false);
-  const [mode, setMode] = useState("chat");
   const t = useAiAssistantTheme();
 
+  // Cerrar al presionar Esc
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === "Escape") setOpen(false);
@@ -17,143 +18,117 @@ export default function AIChatFloating({ onReportAdded }) {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  useEffect(() => {
-    if (!open) setMode("chat");
-  }, [open]);
-
-  const headerTitle =
-    mode === "wizard" ? "Asistente de gadgets" : "Chat IA";
-
-  const tabBtn = (active) => ({
-    flex: 1,
-    padding: "8px 6px",
-    border: "none",
-    borderRadius: 8,
-    background: active ? t.tabActiveBg : "transparent",
-    fontWeight: active ? 700 : 500,
-    fontSize: 12,
-    cursor: "pointer",
-    color: t.panelFg,
-  });
-
   return (
     <>
-      {open ? (
-        <div
-          style={{
-            position: "fixed",
-            right: 18,
-            bottom: 86,
-            width: 400,
-            maxWidth: "94vw",
-            height: 620,
-            maxHeight: "88vh",
-            zIndex: 9999,
-            borderRadius: 16,
-            overflow: "hidden",
-            background: t.panelBg,
-            border: `1px solid ${t.borderSubtle}`,
-            boxShadow: t.panelShadow,
-            display: "flex",
-            flexDirection: "column",
-            color: t.panelFg,
-            fontFamily: t.fontFamily,
-          }}
-        >
-          <div
-            style={{
-              flex: "0 0 auto",
-              borderBottom: `1px solid ${t.borderSubtle}`,
-              background: t.panelBg,
-            }}
-          >
-            <div
+      <AnimatePresence>
+        {open && (
+          <>
+            {/* Backdrop / Oscurecimiento de fondo */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.3 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setOpen(false)}
               style={{
-                height: 48,
+                position: "fixed",
+                inset: 0,
+                background: "#000",
+                zIndex: 9998,
+                backdropFilter: "blur(2px)",
+              }}
+            />
+
+            {/* Panel Deslizante Lateral */}
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", stiffness: 320, damping: 30 }}
+              style={{
+                position: "fixed",
+                right: 0,
+                top: 0,
+                bottom: 0,
+                width: "430px",
+                maxWidth: "100vw",
+                height: "100vh",
+                zIndex: 9999,
+                background: "#fff",
+                boxShadow: "-5px 0 25px rgba(0,0,0,0.08)",
                 display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "0 10px",
+                flexDirection: "column",
+                borderLeft: "1px solid #e5e7eb",
               }}
             >
-              <div style={{ fontWeight: 700, fontSize: 15 }}>{headerTitle}</div>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                style={{
-                  border: "none",
-                  background: "transparent",
-                  fontSize: 22,
-                  lineHeight: 1,
-                  cursor: "pointer",
-                  color: t.panelFg,
-                }}
-                aria-label="Cerrar"
-                title="Cerrar"
+              {/* Cabecera del Panel */}
+              <div
+                className="px-4 py-3 d-flex align-items-center justify-content-between border-bottom"
+                style={{ background: "#f9fafb" }}
               >
-                ×
-              </button>
-            </div>
-            <div
-              style={{
-                display: "flex",
-                gap: 6,
-                padding: "0 10px 10px",
-              }}
-            >
-              <button
-                type="button"
-                style={tabBtn(mode === "chat")}
-                onClick={() => setMode("chat")}
-              >
-                Chat libre
-              </button>
-              <button
-                type="button"
-                style={tabBtn(mode === "wizard")}
-                onClick={() => setMode("wizard")}
-              >
-                Configurar gadget · paso a paso
-              </button>
-            </div>
-          </div>
+                <div className="d-flex align-items-center gap-2">
+                  <div
+                    className="p-1.5 rounded-lg text-white d-flex align-items-center justify-content-center"
+                    style={{ background: t.primaryBg }}
+                  >
+                    <Sparkles size={16} />
+                  </div>
+                  <div>
+                    <h5 className="fw-bold m-0 text-dark" style={{ fontSize: "15px" }}>
+                      Asistente IA Copilot
+                    </h5>
+                    <span className="text-muted" style={{ fontSize: "11px" }}>
+                      Analíticas y Configuración del Negocio
+                    </span>
+                  </div>
+                </div>
 
-          <div style={{ flex: "1 1 auto", minHeight: 0, background: t.panelBg }}>
-            {mode === "chat" ? (
-              <AIChat embedded onReportAdded={onReportAdded} />
-            ) : (
-              <GadgetConfigWizard
-                onReportAdded={onReportAdded}
-                onBack={() => setMode("chat")}
-              />
-            )}
-          </div>
-        </div>
-      ) : null}
+                <Button
+                  variant="link"
+                  onClick={() => setOpen(false)}
+                  className="p-1 text-muted hover-scale"
+                  style={{ textDecoration: "none" }}
+                >
+                  <X size={18} />
+                </Button>
+              </div>
 
+              {/* Cuerpo del Chat */}
+              <div className="flex-grow-1 overflow-hidden">
+                <AIChat onAddWidget={(widget) => {
+                  onAddWidget?.(widget);
+                  setOpen(false); // Cerrar panel tras agregar
+                }} />
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Botón Flotante (FAB) */}
       <Button
         onClick={() => setOpen((v) => !v)}
         style={{
           position: "fixed",
-          right: 18,
-          bottom: 18,
+          right: 24,
+          bottom: 24,
           width: 56,
           height: 56,
           borderRadius: 999,
-          zIndex: 9999,
-          display: "grid",
-          placeItems: "center",
-          boxShadow: t.fabShadow,
+          zIndex: 9997,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          boxShadow: "0 8px 30px rgba(0,0,0,0.12)",
           background: t.primaryBg,
           color: t.primaryFg,
           border: `1px solid ${t.accentBorder}`,
-          fontFamily: t.fontFamily,
-          fontWeight: 700,
+          cursor: "pointer",
         }}
-        aria-label="Abrir chat IA"
-        title="Chat IA"
+        className="hover-scale btn-premium"
+        aria-label="Abrir Asistente Copilot"
+        title="Copilot IA"
       >
-        AI
+        <Sparkles size={22} className="animate-pulse" />
       </Button>
     </>
   );

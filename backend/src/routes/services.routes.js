@@ -38,6 +38,12 @@ router.post("/", async (req, res) => {
     res.status(201).json(service);
   } catch (error) {
     console.error("Error creando service:", error);
+
+    // Nombre de servicio duplicado (restricción única) -> 400 con mensaje claro
+    if (error?.code === "P2002") {
+      return res.status(400).json({ error: "Ya existe un servicio con ese nombre." });
+    }
+
     res.status(500).json({ error: "Error creando servicio." });
   }
 });

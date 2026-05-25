@@ -42,6 +42,7 @@ export function isWithinWorkerSchedule(schedules, startsAt, durationMinutes) {
     return {
       ok: false,
       reason: "El profesional no trabaja ese día.",
+      code: "DAY_OFF",
     };
   }
 
@@ -61,6 +62,7 @@ export function isWithinWorkerSchedule(schedules, startsAt, durationMinutes) {
     return {
       ok: false,
       reason: `Fuera del horario laboral (${ranges}).`,
+      code: "OUTSIDE_SCHEDULE",
     };
   }
 
@@ -140,7 +142,7 @@ export async function validateAppointmentSlot({
   });
 
   if (!service) {
-    return { available: false, reason: "Servicio inválido." };
+    return { available: false, reason: "Servicio inválido.", code: "INVALID_SERVICE" };
   }
 
   const worker = await prisma.worker.findUnique({
@@ -155,24 +157,25 @@ export async function validateAppointmentSlot({
   });
 
   if (!worker) {
-    return { available: false, reason: "Profesional inválido." };
+    return { available: false, reason: "Profesional inválido.", code: "INVALID_WORKER" };
   }
 
   if (!worker.services?.length) {
     return {
       available: false,
       reason: "Este profesional no realiza el servicio seleccionado.",
+      code: "WORKER_NOT_SERVICE",
     };
   }
 
   const newStart = new Date(startsAt);
   if (isNaN(newStart.getTime())) {
-    return { available: false, reason: "Fecha/hora inválida." };
+    return { available: false, reason: "Fecha/hora inválida.", code: "INVALID_DATE" };
   }
 
   const scheduleCheck = isWithinWorkerSchedule(worker.schedules, newStart, service.duration);
   if (!scheduleCheck.ok) {
-    return { available: false, reason: scheduleCheck.reason };
+    return { available: false, reason: scheduleCheck.reason, code: scheduleCheck.code };
   }
 
   const newEnd = addMinutes(newStart, service.duration);
@@ -214,6 +217,7 @@ export async function validateAppointmentSlot({
     return {
       available: false,
       reason: `${workerName || "El profesional"} ya tiene una cita con ${conflictClient} en ese horario.`,
+      code: "CONFLICT",
       conflict,
       availableWorkers,
     };

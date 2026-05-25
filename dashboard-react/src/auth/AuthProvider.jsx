@@ -186,10 +186,15 @@ export function AuthProvider({ children }) {
     const provider = googleProvider();
 
     try {
-      // Popup evita perder la sesión al volver del redirect en Vercel/Safari.
+      // Popup evita quedar colgado en firebaseapp.com/__/auth/handler (redirect).
       await signInWithPopup(firebaseAuth, provider);
     } catch (err) {
       const code = err?.code || "";
+      if (import.meta.env.DEV && (code === "auth/popup-blocked" || code === "auth/popup-closed-by-user")) {
+        throw new Error(
+          "El navegador bloqueó la ventana de Google. Permití ventanas emergentes para localhost o activá VITE_AUTH_DISABLED=true en dashboard-react/.env."
+        );
+      }
       if (code === "auth/popup-blocked" || code === "auth/popup-closed-by-user") {
         sessionStorage.setItem("authRedirectPending", "1");
         await signInWithRedirect(firebaseAuth, provider);

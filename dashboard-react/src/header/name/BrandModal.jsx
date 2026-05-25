@@ -26,9 +26,8 @@ const THEME_PRESETS = [
   {
     name: "Classic Minimal (Por defecto)",
     textColor: "#10b981",
-    dashboardBg: "#f8f9fa",
+    dashboardBg: "#fafaf9",
     menuSelectionColor: "#10b981",
-    darkMode: false,
     fontFamily: 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial',
   },
   {
@@ -36,15 +35,13 @@ const THEME_PRESETS = [
     textColor: "#059669",
     dashboardBg: "#f4fbf7",
     menuSelectionColor: "#059669",
-    darkMode: false,
     fontFamily: 'Poppins, system-ui, -apple-system, "Segoe UI", Roboto, Arial',
   },
   {
     name: "Barber & Wood (Ámbar)",
     textColor: "#d97706",
-    dashboardBg: "#111827",
+    dashboardBg: "#fffbeb",
     menuSelectionColor: "#d97706",
-    darkMode: true,
     fontFamily: 'Montserrat, system-ui, -apple-system, "Segoe UI", Roboto, Arial',
   },
   {
@@ -52,15 +49,13 @@ const THEME_PRESETS = [
     textColor: "#2563eb",
     dashboardBg: "#f0fdfa",
     menuSelectionColor: "#2563eb",
-    darkMode: false,
     fontFamily: 'Roboto, system-ui, -apple-system, "Segoe UI", Arial',
   },
   {
     name: "Creative Violet (Gimnasios / Fitness)",
     textColor: "#8b5cf6",
-    dashboardBg: "#0f172a",
+    dashboardBg: "#f5f3ff",
     menuSelectionColor: "#8b5cf6",
-    darkMode: true,
     fontFamily: 'Montserrat, system-ui, -apple-system, "Segoe UI", Roboto, Arial',
   },
 ];
@@ -71,7 +66,6 @@ export default function BrandModal({ show, onHide, forceRequired = false }) {
   const [companyName, setCompanyName] = useState("");
   const [slogan, setSlogan] = useState("");
   const [textColor, setTextColor] = useState("#1a1d24"); // lo usamos como accent
-  const [darkMode, setDarkMode] = useState(false);
   const [coverUrl, setCoverUrl] = useState("");
   const [preview, setPreview] = useState("");
   const [fontFamily, setFontFamily] = useState(FONT_OPTIONS[0].value);
@@ -88,8 +82,6 @@ export default function BrandModal({ show, onHide, forceRequired = false }) {
 
     // ✅ si ya existía textColor lo respetamos, si no usamos accentColor
     setTextColor(brand.accentColor || brand.textColor || "#ffffff");
-
-    setDarkMode(Boolean(brand.darkMode));
 
     const image = brand.coverImage || "";
     setPreview(image);
@@ -133,7 +125,6 @@ const handleSave = () => {
     coverImage: preview || prev.coverImage,
     textColor,
     accentColor: textColor,
-    darkMode,
     fontFamily,
     dashboardBg,
     menuSelectionColor,
@@ -167,7 +158,6 @@ const handleSave = () => {
                 setTextColor(preset.textColor);
                 setDashboardBg(preset.dashboardBg);
                 setMenuSelectionColor(preset.menuSelectionColor);
-                setDarkMode(preset.darkMode);
                 setFontFamily(preset.fontFamily);
               }}
               defaultValue=""
@@ -175,7 +165,7 @@ const handleSave = () => {
               <option value="" disabled>Seleccionar paleta sugerida...</option>
               {THEME_PRESETS.map((p, idx) => (
                 <option key={idx} value={idx}>
-                  {p.name} {p.darkMode ? "🌙" : "☀️"}
+                  {p.name}
                 </option>
               ))}
             </Form.Select>
@@ -291,12 +281,6 @@ const handleSave = () => {
               </div>
             </Form.Group>
 
-          <Form.Check
-            type="switch"
-            label="Dark mode"
-            checked={darkMode}
-            onChange={(e) => setDarkMode(e.target.checked)}
-          />
         </Form>
       </Modal.Body>
 
@@ -306,7 +290,7 @@ const handleSave = () => {
             Cancelar
           </Button>
         )}
-        <Button variant="dark" onClick={handleSave} disabled={!nameIsValid}>
+        <Button variant="primary" onClick={handleSave} disabled={!nameIsValid}>
           Guardar cambios
         </Button>
       </Modal.Footer>

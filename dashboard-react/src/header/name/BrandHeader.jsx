@@ -58,7 +58,7 @@ export default function BrandHeader() {
 
   return (
     <>
-      <header className={`brandHeader ${brand.darkMode ? "brandHeader--dark" : "brandHeader--light"}`}>
+      <header className="brandHeader brandHeader--light">
         <div className="brandHeader__image" style={{ backgroundImage: `url(${brand.coverImage})` }} />
 
         <div className="brandHeader__bar d-flex align-items-center justify-content-between">

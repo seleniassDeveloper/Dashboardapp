@@ -15,6 +15,8 @@ import adminUsersRoutes from "./routes/adminUsers.routes.js";
 import formSchemasRoutes from "./routes/formSchemas.routes.js";
 import businessModelsRoutes from "./routes/businessModels.routes.js";
 import workflowsRoutes from "./routes/workflows.routes.js";
+import dashboardRoutes from "./routes/dashboard.routes.js";
+import publicRoutes from "./routes/public.routes.js";
 import healthRoutes from "./routes/health.routes.js";
 import requireAuth from "./middleware/requireAuth.js";
 import { getCorsOptions } from "./config/cors.js";
@@ -51,6 +53,7 @@ app.use("/health", healthRoutes);
 
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminUsersRoutes);
+app.use("/api/public", publicRoutes);
 
 app.use("/api/appointments", requireAuth, appointmentsRoutes);
 app.use("/api/clients", requireAuth, clientsRoutes);
@@ -60,6 +63,7 @@ app.use("/api/form-schemas", requireAuth, formSchemasRoutes);
 app.use("/api/business-models", requireAuth, businessModelsRoutes);
 app.use("/api/workflows", requireAuth, workflowsRoutes);
 app.use("/api/ai", requireAuth, aiRoutes);
+app.use("/api/dashboard", requireAuth, dashboardRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

@@ -21,7 +21,7 @@ export default class ErrorBoundary extends React.Component {
       return (
         <div
           className="d-flex min-vh-100 align-items-center justify-content-center px-3"
-          style={{ background: "linear-gradient(160deg, #1a1d24 0%, #2d3340 100%)" }}
+          className="auth-loading-screen"
         >
           <div className="bg-white rounded shadow p-4" style={{ width: "100%", maxWidth: 720 }}>
             <div className="fw-semibold mb-2">Se rompió la pantalla al cargar el dashboard</div>

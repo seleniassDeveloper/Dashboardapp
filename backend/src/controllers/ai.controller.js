@@ -574,6 +574,21 @@ Si el usuario pide ver **la misma vista que ya existe en el dashboard**, elegí 
 - analisis_servicio → métricas / análisis por servicio
 Si no pide duplicar ninguno de esos bloques, mirrorGadget debe ser "none".
 
+Si la pregunta del usuario indica que quiere agregar, guardar, registrar o tener un widget persistente de alguna métrica en su dashboard (ejemplo: "Quiero ver los ingresos semanales", "Agrega un gráfico de citas por profesional"), o si detectas que es de alta utilidad guardar el reporte resultante como widget, genera el objeto "widgetToCreate" correspondiente. Si no quiere agregar ningún widget o es solo una consulta informativa, "widgetToCreate" debe ser null.
+
+El objeto "widgetToCreate" debe tener la siguiente estructura:
+- title: Título del widget (ej: "Ingresos Semanales")
+- type: Uno de "kpi" | "chart" | "calendar" | "activity" | "workflows" | "table" | "ai_insight"
+- config: Objeto JSON con:
+  - metric: Métrica a medir (ej: "revenue", "appointments", "clients", "cancellations", "occupancy")
+  - entity: Entidad de origen (ej: "appointments", "clients", "services", "workers")
+  - chartType: Uno de "bar" | "line" | "pie" | "area" | "none" (usar "none" si no es tipo "chart")
+  - range: Rango de fecha por defecto, ej: "TODAY", "THIS_WEEK", "THIS_MONTH", "LAST_30_DAYS", "THIS_YEAR"
+  - color: Color del widget o acento en formato HEX (ej: "#10b981", "#8b5cf6", "#d97706")
+- layout: Dimensiones del widget en la cuadrícula de 12 columnas:
+  - w: Ancho sugerido (número del 3 al 12, ej: 4 para KPI, 6 o 8 para gráfico grande, 12 para tabla completa)
+  - h: Alto sugerido (número del 2 al 6, ej: 2 para KPI, 4 para gráfico standard)
+
 Cuando mirrorGadget no sea "none", igualmente completá summary, insights, kpis, chart y actions para contextualizar y dar consejos sobre esa vista.
 
 chart.type debe ser "pie" o "bar" según lo que mejor ilustre la pregunta (el cliente puede mostrar ambos tipos y una tabla usando los mismos datos de chart.data).
@@ -665,6 +680,63 @@ ${JSON.stringify(metrics, null, 2)}
                   "analisis_servicio",
                 ],
               },
+              widgetToCreate: {
+                anyOf: [
+                  {
+                    type: "object",
+                    additionalProperties: false,
+                    properties: {
+                      title: { type: "string" },
+                      type: {
+                        type: "string",
+                        enum: [
+                          "kpi",
+                          "chart",
+                          "calendar",
+                          "activity",
+                          "workflows",
+                          "table",
+                          "ai_insight",
+                        ],
+                      },
+                      config: {
+                        type: "object",
+                        additionalProperties: false,
+                        properties: {
+                          metric: { type: "string" },
+                          entity: { type: "string" },
+                          chartType: {
+                            type: "string",
+                            enum: ["bar", "line", "pie", "area", "none"],
+                          },
+                          range: { type: "string" },
+                          color: { type: "string" },
+                        },
+                        required: [
+                          "metric",
+                          "entity",
+                          "chartType",
+                          "range",
+                          "color",
+                        ],
+                      },
+                      layout: {
+                        type: "object",
+                        additionalProperties: false,
+                        properties: {
+                          w: { type: "number" },
+                          h: { type: "number" },
+                        },
+                        required: ["w", "h"],
+                      },
+                    },
+                    required: ["title", "type", "config", "layout"],
+                  },
+                  {
+                    type: "null",
+                  },
+                ],
+              },
             },
             required: [
               "summary",
@@ -673,6 +745,7 @@ ${JSON.stringify(metrics, null, 2)}
               "chart",
               "actions",
               "mirrorGadget",
+              "widgetToCreate",
             ],
           },
         },
@@ -688,6 +761,7 @@ ${JSON.stringify(metrics, null, 2)}
     return res.json({
       ...parsed,
       mirrorGadget: parsed.mirrorGadget || "none",
+      widgetToCreate: parsed.widgetToCreate || null,
     });
   } catch (error) {
     console.error("AI report error FULL:", {
@@ -768,6 +842,7 @@ ${JSON.stringify(metrics, null, 2)}
           "Reduce cancelaciones en los bloques con más ausencias.",
         ],
         mirrorGadget: "none",
+        widgetToCreate: null,
       });
     } catch (fallbackError) {
       console.error("Fallback metrics error:", fallbackError);
@@ -792,6 +867,7 @@ ${JSON.stringify(metrics, null, 2)}
           "Usa el análisis local como respaldo.",
         ],
         mirrorGadget: "none",
+        widgetToCreate: null,
       });
     }
   }

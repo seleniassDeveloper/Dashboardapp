@@ -1,0 +1,10 @@
+{
+  "name": "prueba-local-salon",
+  "private": true,
+  "type": "module",
+  "description": "Base de datos local desechable (PGlite) + lanzador para probar el sistema sin instalar Postgres.",
+  "dependencies": {
+    "@electric-sql/pglite": "^0.4.5",
+    "@electric-sql/pglite-socket": "^0.1.5"
+  }
+}

@@ -4,6 +4,28 @@ import {
   findAvailableWorkers,
 } from "../services/appointmentAvailability.js";
 
+/**
+ * Traduce el motivo por el que un horario no está disponible a un código HTTP:
+ *  - 404: el servicio o el profesional no existen
+ *  - 400: el profesional no realiza ese servicio / fecha inválida
+ *  - 409: el horario no es reservable (fuera de horario, día no laboral o solapamiento)
+ */
+function slotErrorStatus(code) {
+  switch (code) {
+    case "INVALID_SERVICE":
+    case "INVALID_WORKER":
+      return 404;
+    case "WORKER_NOT_SERVICE":
+    case "INVALID_DATE":
+      return 400;
+    case "OUTSIDE_SCHEDULE":
+    case "DAY_OFF":
+    case "CONFLICT":
+    default:
+      return 409;
+  }
+}
+
 export async function getAppointments(req, res) {
   try {
     const appointments = await prisma.appointment.findMany({
@@ -79,8 +101,9 @@ export async function createAppointment(req, res) {
     });
 
     if (!slot.available) {
-      return res.status(409).json({
+      return res.status(slotErrorStatus(slot.code)).json({
         error: slot.reason || "El profesional no está disponible en ese horario.",
+        code: slot.code || null,
         conflict: slot.conflict || null,
         availableWorkers: slot.availableWorkers || [],
       });
@@ -145,8 +168,9 @@ export async function updateAppointment(req, res) {
     });
 
     if (!slot.available) {
-      return res.status(409).json({
+      return res.status(slotErrorStatus(slot.code)).json({
         error: slot.reason || "El profesional no está disponible en ese horario.",
+        code: slot.code || null,
         conflict: slot.conflict || null,
         availableWorkers: slot.availableWorkers || [],
       });
@@ -202,3 +226,77 @@ export async function deleteAppointment(req, res) {
     });
   }
 }
+
+export async function getBusinessConfig(req, res) {
+  try {
+    let biz = await prisma.business.findFirst();
+    if (!biz) {
+      biz = await prisma.business.create({
+        data: {
+          name: "Aura Studio",
+          slug: "mi-negocio",
+          description: "Estudio de bienestar, estética y servicios profesionales.",
+          bookingEnabled: true,
+          bookingPrimaryColor: "#10b981",
+          bookingConfirmationMessage: "¡Tu reserva ha sido confirmada con éxito!",
+        },
+      });
+    }
+    return res.json(biz);
+  } catch (error) {
+    console.error("Error obteniendo config del negocio:", error);
+    return res.status(500).json({ error: "Error obteniendo configuración del negocio." });
+  }
+}
+
+export async function updateBusinessConfig(req, res) {
+  try {
+    const {
+      name,
+      slug,
+      logo,
+      description,
+      bookingEnabled,
+      bookingPrimaryColor,
+      bookingConfirmationMessage,
+    } = req.body;
+
+    if (!name || !slug) {
+      return res.status(400).json({ error: "El nombre y el slug del negocio son obligatorios." });
+    }
+
+    let biz = await prisma.business.findFirst();
+    if (!biz) {
+      biz = await prisma.business.create({
+        data: {
+          name,
+          slug,
+          logo: logo || null,
+          description: description || null,
+          bookingEnabled: bookingEnabled ?? true,
+          bookingPrimaryColor: bookingPrimaryColor || "#10b981",
+          bookingConfirmationMessage: bookingConfirmationMessage || "¡Tu reserva ha sido confirmada con éxito!",
+        },
+      });
+    } else {
+      biz = await prisma.business.update({
+        where: { id: biz.id },
+        data: {
+          name,
+          slug,
+          logo: logo !== undefined ? logo : biz.logo,
+          description: description !== undefined ? description : biz.description,
+          bookingEnabled: bookingEnabled !== undefined ? bookingEnabled : biz.bookingEnabled,
+          bookingPrimaryColor: bookingPrimaryColor !== undefined ? bookingPrimaryColor : biz.bookingPrimaryColor,
+          bookingConfirmationMessage: bookingConfirmationMessage !== undefined ? bookingConfirmationMessage : biz.bookingConfirmationMessage,
+        },
+      });
+    }
+
+    return res.json(biz);
+  } catch (error) {
+    console.error("Error actualizando config del negocio:", error);
+    return res.status(500).json({ error: "Error actualizando configuración del negocio." });
+  }
+}
+

@@ -26,7 +26,7 @@ export default defineConfig({
         name: "Dashboard — organiza tu negocio",
         short_name: "Dashboard",
         description: "Citas, equipo, clientes y automatizaciones para tu negocio.",
-        theme_color: "#0f172a",
+        theme_color: "#fafaf9",
         background_color: "#f8fafc",
         display: "standalone",
         orientation: "portrait-primary",

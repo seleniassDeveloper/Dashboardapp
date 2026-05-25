@@ -8,6 +8,7 @@ import WorkerModal from "../../header/workers/WorkerModal";
 import UsersAdminModal from "../../admin/UsersAdminModal.jsx";
 import { useBrand } from "../../header/name/BrandProvider";
 import ProductionApiBanner from "./ProductionApiBanner.jsx";
+import OnboardingModal from "../onboarding/OnboardingModal";
 
 // ABM modales (lazy load)
 const WorkersABMModal = lazy(() => import("../../header/workers/WorkersABMModal.jsx"));
@@ -21,7 +22,13 @@ export default function DashboardLayout({ children }) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   // Modal states
-  const [showBrandModal, setShowBrandModal] = useState(!hasCompanyName);
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    return localStorage.getItem("onboardingCompleted") !== "true";
+  });
+  const [showBrandModal, setShowBrandModal] = useState(() => {
+    const onboardingDone = localStorage.getItem("onboardingCompleted") === "true";
+    return onboardingDone && !hasCompanyName;
+  });
   const [showWorkerModal, setShowWorkerModal] = useState(false);
   const [showServiceModal, setShowServiceModal] = useState(false);
   const [showWorkersABM, setShowWorkersABM] = useState(false);
@@ -67,6 +74,12 @@ export default function DashboardLayout({ children }) {
       </motion.main>
 
       {/* --- Modales del Sistema --- */}
+      <OnboardingModal
+        show={showOnboarding}
+        onHide={() => setShowOnboarding(false)}
+        onEditBrand={() => setShowBrandModal(true)}
+      />
+
       <BrandModal
         show={showBrandModal}
         forceRequired={!hasCompanyName}

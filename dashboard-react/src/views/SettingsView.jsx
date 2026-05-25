@@ -3,6 +3,7 @@ import { Container, Nav, Tab } from "react-bootstrap";
 import FieldRegistryEditor from "../components/configurable-fields/FieldRegistryEditor.jsx";
 import ComponentAssignmentEditor from "../components/configurable-fields/ComponentAssignmentEditor.jsx";
 import ActiveModulesEditor from "../components/configurable-fields/ActiveModulesEditor.jsx";
+import BookingSettings from "../components/configurable-fields/BookingSettings.jsx";
 
 export default function SettingsView() {
   const [tab, setTab] = useState("assign");
@@ -33,6 +34,11 @@ export default function SettingsView() {
               Módulos activos
             </Nav.Link>
           </Nav.Item>
+          <Nav.Item>
+            <Nav.Link eventKey="booking" className="rounded-pill px-4">
+              Reservas Online
+            </Nav.Link>
+          </Nav.Item>
         </Nav>
 
         <Tab.Content>
@@ -44,6 +50,9 @@ export default function SettingsView() {
           </Tab.Pane>
           <Tab.Pane eventKey="modules">
             <ActiveModulesEditor />
+          </Tab.Pane>
+          <Tab.Pane eventKey="booking">
+            <BookingSettings />
           </Tab.Pane>
         </Tab.Content>
       </Tab.Container>

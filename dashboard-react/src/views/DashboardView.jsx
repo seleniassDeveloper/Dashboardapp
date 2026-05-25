@@ -1,55 +1,462 @@
-import React from "react";
-import { Container, Row, Col } from "react-bootstrap";
-import AnalisisServicio from "../gadgets/appointments/Metricas/analisisServicio";
-import AppointmentsList from "../gadgets/appointments/AppointmentsList";
-import { Button } from "react-bootstrap";
-import { Plus } from "lucide-react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
+import { Button, Container, Row, Col, Spinner, Alert, Form, InputGroup } from "react-bootstrap";
+import {
+  Calendar,
+  CreditCard,
+  Users,
+  XCircle,
+  Percent,
+  Award,
+  Search,
+  Plus,
+  LayoutGrid,
+  Sparkles,
+  Bell,
+} from "lucide-react";
+import api from "../lib/api.js";
+import { useBrand } from "../header/name/BrandProvider";
+
+// Componentes
+import DashboardGrid from "../components/dashboard/DashboardGrid";
+import WidgetSettingsModal from "../components/dashboard/WidgetSettingsModal";
+import AIChatFloating from "../gadgets/ai/AIChatFloating";
+import KPIWidget from "../components/dashboard/KPIWidget";
+import SaaSMetricsGrid from "../components/dashboard/SaaSMetricsGrid";
 import AppointmentModal from "../gadgets/appointments/AppointmentModal";
-import { useState } from "react";
+import ClientModal from "../header/clients/ClientModal";
+
+// Formato de moneda ARS
+function currency(n) {
+  return new Intl.NumberFormat("es-AR", {
+    style: "currency",
+    currency: "ARS",
+    maximumFractionDigits: 0,
+  }).format(n || 0);
+}
 
 export default function DashboardView() {
-  const [showModal, setShowModal] = useState(false);
+  const { brand } = useBrand();
+
+  const [widgets, setWidgets] = useState([]);
+  const [appointments, setAppointments] = useState([]);
+  const [clients, setClients] = useState([]);
+  const [workers, setWorkers] = useState([]);
+  const [services, setServices] = useState([]);
+
+  // Estados de carga y modal
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [showConfigModal, setShowConfigModal] = useState(false);
+  const [selectedWidget, setSelectedWidget] = useState(null);
+
+  // Búsqueda global
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Modales de creación
+  const [showAppointmentModal, setShowAppointmentModal] = useState(false);
+  const [showClientModal, setShowClientModal] = useState(false);
+
+  // --- Carga unificada de datos del negocio y widgets ---
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const [wRes, apptRes, clientRes, workerRes, serviceRes] = await Promise.all([
+        api.get("/dashboard/widgets"),
+        api.get("/appointments"),
+        api.get("/clients"),
+        api.get("/workers"),
+        api.get("/services"),
+      ]);
+
+      setWidgets(Array.isArray(wRes.data) ? wRes.data : []);
+      setAppointments(Array.isArray(apptRes.data) ? apptRes.data : []);
+      setClients(Array.isArray(clientRes.data) ? clientRes.data : []);
+      setWorkers(Array.isArray(workerRes.data) ? workerRes.data : []);
+      setServices(Array.isArray(serviceRes.data) ? serviceRes.data : []);
+    } catch (e) {
+      console.error("Error cargando datos del dashboard:", e);
+      setError("No se pudieron cargar los datos del dashboard. Verificá la conexión.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // --- Saludo Dinámico y Fecha ---
+  const getGreeting = () => {
+    const hrs = new Date().getHours();
+    if (hrs < 12) return "Buenos días";
+    if (hrs < 19) return "Buenas tardes";
+    return "Buenas noches";
+  };
+
+  const getFormattedDate = () => {
+    return new Date().toLocaleDateString("es-AR", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  };
+
+  // --- Cálculos de KPIs Superiores ---
+  const stats = useMemo(() => {
+    // Helper para obtener string YYYY-MM-DD en hora local
+    const getLocalDateStr = (d) => {
+      const dateObj = new Date(d);
+      const year = dateObj.getFullYear();
+      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+      const day = String(dateObj.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    };
+
+    const todayStr = getLocalDateStr(new Date());
+
+    // Citas de hoy
+    const todayAppts = appointments.filter((a) => {
+      const date = getLocalDateStr(a.startsAt);
+      return date === todayStr;
+    });
+
+    // Citas ayer (para comparación de tendencia)
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = getLocalDateStr(yesterday);
+    const yesterdayAppts = appointments.filter((a) => {
+      const date = getLocalDateStr(a.startsAt);
+      return date === yesterdayStr;
+    });
+
+    // 1. Citas Hoy
+    const apptsTodayCount = todayAppts.filter((a) => a.status !== "CANCELLED").length;
+    const apptsYesterdayCount = yesterdayAppts.filter((a) => a.status !== "CANCELLED").length;
+    let apptsTrend = "neutral";
+    let apptsDiffPercent = 0;
+    if (apptsYesterdayCount > 0) {
+      apptsDiffPercent = Math.round(((apptsTodayCount - apptsYesterdayCount) / apptsYesterdayCount) * 100);
+      apptsTrend = apptsDiffPercent > 0 ? "up" : apptsDiffPercent < 0 ? "down" : "neutral";
+    } else if (apptsTodayCount > 0) {
+      apptsDiffPercent = 100;
+      apptsTrend = "up";
+    }
+
+    // 2. Ingresos Hoy
+    const revenueToday = todayAppts.filter((a) => a.status !== "CANCELLED").reduce((sum, a) => sum + Number(a.service?.price || 0), 0);
+    const revenueYesterday = yesterdayAppts.filter((a) => a.status !== "CANCELLED").reduce((sum, a) => sum + Number(a.service?.price || 0), 0);
+    let revTrend = "neutral";
+    let revDiffPercent = 0;
+    if (revenueYesterday > 0) {
+      revDiffPercent = Math.round(((revenueToday - revenueYesterday) / revenueYesterday) * 100);
+      revTrend = revDiffPercent > 0 ? "up" : revDiffPercent < 0 ? "down" : "neutral";
+    } else if (revenueToday > 0) {
+      revDiffPercent = 100;
+      revTrend = "up";
+    }
+
+    // 3. Clientes Activos
+    const uniqueClientsCount = clients.length;
+
+    // 4. Cancelaciones Hoy
+    const cancellationsToday = todayAppts.filter((a) => a.status === "CANCELLED").length;
+
+    // 5. Ocupación Estimada Hoy
+    const totalToday = todayAppts.length;
+    const activeToday = todayAppts.filter((a) => ["CONFIRMED", "DONE", "IN_PROCESS"].includes(a.status)).length;
+    const occupancyRate = totalToday > 0 ? Math.round((activeToday / totalToday) * 100) : 0;
+
+    // 6. Profesional top
+    const workerApptCounts = {};
+    appointments.filter((a) => a.status !== "CANCELLED").forEach((a) => {
+      const name = a.worker ? `${a.worker.firstName} ${a.worker.lastName}`.trim() : null;
+      if (name) {
+        workerApptCounts[name] = (workerApptCounts[name] || 0) + 1;
+      }
+    });
+    let topWorkerName = "Ninguno";
+    let topWorkerCount = 0;
+    Object.entries(workerApptCounts).forEach(([name, count]) => {
+      if (count > topWorkerCount) {
+        topWorkerCount = count;
+        topWorkerName = name;
+      }
+    });
+
+    return {
+      apptsTodayCount,
+      apptsDiffPercent: Math.abs(apptsDiffPercent),
+      apptsTrend,
+      revenueToday,
+      revDiffPercent: Math.abs(revDiffPercent),
+      revTrend,
+      uniqueClientsCount,
+      cancellationsToday,
+      occupancyRate,
+      topWorkerName,
+      topWorkerCount,
+    };
+  }, [appointments, clients]);
+
+  // --- Filtrado Reactivo de Citas y Clientes por Búsqueda ---
+  const filteredAppointments = useMemo(() => {
+    if (!searchQuery.trim()) return appointments;
+    const q = searchQuery.toLowerCase();
+    return appointments.filter((a) => {
+      const clientName = `${a.client?.firstName || ""} ${a.client?.lastName || ""}`.toLowerCase();
+      const serviceName = (a.service?.name || "").toLowerCase();
+      const workerName = `${a.worker?.firstName || ""} ${a.worker?.lastName || ""}`.toLowerCase();
+      return clientName.includes(q) || serviceName.includes(q) || workerName.includes(q);
+    });
+  }, [appointments, searchQuery]);
+
+  const filteredClients = useMemo(() => {
+    if (!searchQuery.trim()) return clients;
+    const q = searchQuery.toLowerCase();
+    return clients.filter((c) => {
+      const clientName = `${c.firstName || ""} ${c.lastName || ""}`.toLowerCase();
+      const email = (c.email || "").toLowerCase();
+      const phone = (c.phone || "").toLowerCase();
+      return clientName.includes(q) || email.includes(q) || phone.includes(q);
+    });
+  }, [clients, searchQuery]);
+
+  // --- Operaciones de Widgets ---
+  const handleSaveWidget = async (widgetData) => {
+    try {
+      if (widgetData.id) {
+        const res = await api.put(`/dashboard/widgets/${widgetData.id}`, widgetData);
+        setWidgets((prev) => prev.map((w) => (w.id === widgetData.id ? res.data : w)));
+      } else {
+        const res = await api.post("/dashboard/widgets", widgetData);
+        setWidgets((prev) => [...prev, res.data]);
+      }
+    } catch (e) {
+      console.error("Error guardando widget:", e);
+      alert("No se pudo guardar la configuración del widget.");
+    }
+  };
+
+  const handleAddAiSuggestedWidget = async (aiWidget) => {
+    try {
+      const res = await api.post("/dashboard/widgets", {
+        title: aiWidget.title,
+        type: aiWidget.type,
+        config: aiWidget.config,
+        layout: aiWidget.layout || { w: 6, h: 4 },
+      });
+      setWidgets((prev) => [...prev, res.data]);
+    } catch (e) {
+      console.error("Error al agregar widget de IA:", e);
+      alert("No se pudo agregar el widget sugerido por la IA.");
+    }
+  };
+
+  const handleUpdateLayouts = async (reorderedWidgets, saveToBackend = true) => {
+    setWidgets(reorderedWidgets);
+    if (!saveToBackend) return;
+    try {
+      const layoutsPayload = reorderedWidgets.map((w) => ({
+        id: w.id,
+        layout: w.layout,
+      }));
+      await api.put("/dashboard/widgets/layout", { layouts: layoutsPayload });
+    } catch (e) {
+      console.error("Error guardando layouts:", e);
+    }
+  };
+
+  const handleDeleteWidget = async (id) => {
+    if (!window.confirm("¿Estás seguro de que deseas eliminar este widget?")) return;
+    try {
+      await api.delete(`/dashboard/widgets/${id}`);
+      setWidgets((prev) => prev.filter((w) => w.id !== id));
+    } catch (e) {
+      console.error("Error eliminando widget:", e);
+      alert("No se pudo eliminar el widget.");
+    }
+  };
+
+  // --- Lógica del Estado de Citas ---
+  const handleUpdateAppointmentStatus = async (apptId, newStatus) => {
+    try {
+      const appt = appointments.find((a) => a.id === apptId);
+      if (!appt) return;
+
+      await api.put(`/appointments/${apptId}`, {
+        clientId: appt.clientId,
+        serviceId: appt.serviceId,
+        workerId: appt.workerId,
+        startsAt: appt.startsAt,
+        notes: appt.notes,
+        status: newStatus,
+      });
+
+      setAppointments((prev) =>
+        prev.map((a) => (a.id === apptId ? { ...a, status: newStatus } : a))
+      );
+    } catch (e) {
+      console.error("Error actualizando estado de la cita:", e);
+      alert("No se pudo actualizar el estado.");
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="d-flex flex-column align-items-center justify-content-center py-5" style={{ minHeight: "80vh" }}>
+        <Spinner animation="border" className="text-primary mb-3" />
+        <p className="text-muted small">Cargando tu centro de control inteligente…</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="dashboard-view">
-      <header className="mb-4 d-flex justify-content-between align-items-end">
+    <div className="dashboard-view pb-5">
+      {/* 1. HEADER PRINCIPAL */}
+      <header
+        className="mb-4 bg-white rounded-4 p-4 border shadow-sm d-flex flex-column gap-3 d-md-flex flex-md-row justify-content-md-between align-items-md-center"
+        style={{ borderLeft: `4px solid ${brand.accentColor || "#10b981"}` }}
+      >
         <div>
-          <h1 className="section-title">Resumen de Hoy</h1>
+          <div className="d-flex align-items-center gap-2 mb-1.5">
+            <span className="fw-black text-muted uppercase smaller" style={{ tracking: "0.1em" }}>
+              {brand.companyName || "Aura Studio"}
+            </span>
+            <div className="rounded-circle bg-success" style={{ width: "6px", height: "6px" }} />
+            <span className="text-success small" style={{ fontSize: "11px", fontWeight: "600" }}>Operativo</span>
+          </div>
+          <h1 className="fw-black text-dark h3 mb-1" style={{ letterSpacing: "-0.03em" }}>
+            {getGreeting()}, Selenia
+          </h1>
+          <p className="text-muted small mb-0 text-capitalize">
+            {getFormattedDate()}
+          </p>
         </div>
-        <Button 
-          variant="dark" 
-          className="btn-premium d-flex align-items-center gap-2 px-4 py-3"
-          onClick={() => setShowModal(true)}
-        >
-          <Plus size={20} />
-          Nueva Cita
-        </Button>
+
+        <div className="d-flex align-items-center gap-3 flex-wrap">
+          {/* Búsqueda Global */}
+          <InputGroup style={{ maxWidth: "240px" }} className="modern-input-group shadow-sm">
+            <InputGroup.Text className="bg-transparent border-0 pe-0 text-muted">
+              <Search size={15} />
+            </InputGroup.Text>
+            <Form.Control
+              type="text"
+              placeholder="Buscar cita o cliente..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="bg-transparent border-0 py-1.5 shadow-none small"
+              style={{ fontSize: "12.5px" }}
+            />
+          </InputGroup>
+
+          {/* Acciones Rápidas */}
+          <div className="d-flex align-items-center gap-2">
+            <Button
+              variant="outline-dark"
+              onClick={() => setShowClientModal(true)}
+              className="rounded-pill px-3 py-2 small fw-bold d-flex align-items-center gap-1.5 hover-scale border"
+              style={{ fontSize: "12px" }}
+            >
+              <Plus size={14} />
+              <span>Cliente</span>
+            </Button>
+            
+            <Button
+              variant="outline-dark"
+              onClick={() => setShowAppointmentModal(true)}
+              className="rounded-pill px-3 py-2 small fw-bold d-flex align-items-center gap-1.5 hover-scale border"
+              style={{ fontSize: "12px" }}
+            >
+              <Plus size={14} />
+              <span>Cita</span>
+            </Button>
+
+            <Button
+              variant="dark"
+              onClick={() => {
+                setSelectedWidget(null);
+                setShowConfigModal(true);
+              }}
+              className="rounded-pill px-3 py-2 small fw-bold d-flex align-items-center gap-1.5 hover-scale btn-premium"
+              style={{ fontSize: "12px", background: brand.accentColor || "#10b981" }}
+            >
+              <Plus size={14} />
+              <span>Widget</span>
+            </Button>
+          </div>
+        </div>
       </header>
 
-      <Row className="g-4">
-        {/* Lado Izquierdo: Métricas y Análisis */}
-        <Col xl={8} lg={7}>
-          <div className="d-flex flex-column gap-5">
-            {/* Métricas Principales */}
-            <div className="card-premium shadow-premium">
-              <AnalisisServicio />
-            </div>
-          </div>
-        </Col>
+      {error && <Alert variant="danger" className="mb-4">{error}</Alert>}
 
-        {/* Lado Derecho: Agenda */}
-        <Col xl={4} lg={5}>
-          <div className="card-premium h-100">
-            <h3 className="h4 fw-bold mb-4">Agenda del Día</h3>
-            <AppointmentsList />
-          </div>
-        </Col>
-      </Row>
-
-      <AppointmentModal 
-        show={showModal} 
-        onHide={() => setShowModal(false)} 
+      {/* 2. KPIs SUPERIORES (SaaSMetricsGrid con diseño oscuro premium) */}
+      <SaaSMetricsGrid
+        stats={stats}
+        brand={brand}
+        appointments={appointments}
+        clients={clients}
+        workers={workers}
       />
+
+      {/* 3-7. GRID DE WIDGETS CONFIGURABLES */}
+      <Container fluid className="px-0">
+        <DashboardGrid
+          widgets={widgets}
+          appointments={filteredAppointments}
+          clients={filteredClients}
+          workers={workers}
+          services={services}
+          onUpdateLayouts={handleUpdateLayouts}
+          onEditWidget={(w) => {
+            setSelectedWidget(w);
+            setShowConfigModal(true);
+          }}
+          onDeleteWidget={handleDeleteWidget}
+          onOpenAddModal={() => {
+            setSelectedWidget(null);
+            setShowConfigModal(true);
+          }}
+          onUpdateAppointmentStatus={handleUpdateAppointmentStatus}
+          onConfirmAppointment={(id) => handleUpdateAppointmentStatus(id, "CONFIRMED")}
+          onViewCalendar={() => {
+            // Desplazar a la agenda o similar
+            const calendarWidgetEl = document.querySelector(".custom-table");
+            if (calendarWidgetEl) {
+              calendarWidgetEl.scrollIntoView({ behavior: "smooth" });
+            }
+          }}
+          onEditWorker={(id) => {
+            alert(`Para configurar el horario del profesional, ingresá a la vista de Equipo.`);
+          }}
+        />
+      </Container>
+
+      {/* MODAL DE AJUSTES DE WIDGET */}
+      <WidgetSettingsModal
+        show={showConfigModal}
+        onHide={() => setShowConfigModal(false)}
+        onSave={handleSaveWidget}
+        widget={selectedWidget}
+      />
+
+      {/* MODALES DE ACCIÓN RÁPIDA (CREACIÓN) */}
+      <AppointmentModal
+        show={showAppointmentModal}
+        onHide={() => setShowAppointmentModal(false)}
+        onSaved={fetchData}
+      />
+
+      <ClientModal
+        show={showClientModal}
+        onHide={() => setShowClientModal(false)}
+        onSaved={fetchData}
+      />
+
+      {/* PANEL IA COPILOT FLOTANTE */}
+      <AIChatFloating onAddWidget={handleAddAiSuggestedWidget} />
     </div>
   );
 }

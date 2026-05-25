@@ -18,12 +18,16 @@ import ErrorBoundary from "./ErrorBoundary.jsx";
 import LandingPage from "./landing/LandingPage.jsx";
 import DashboardAppRoute from "./DashboardAppRoute.jsx";
 import HowItWorks from "./views/HowItWorks";
+import PublicBookingPage from "./views/booking/PublicBookingPage.jsx";
+import BookingSuccess from "./views/booking/BookingSuccess.jsx";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <BrowserRouter>
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/guide" element={<HowItWorks />} />
+      <Route path="/booking/:businessSlug" element={<PublicBookingPage />} />
+      <Route path="/booking/:businessSlug/success" element={<BookingSuccess />} />
       <Route
         path="/app/*"
         element={

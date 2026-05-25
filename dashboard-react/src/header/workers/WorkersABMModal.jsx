@@ -189,7 +189,7 @@ export default function WorkersABMModal({ show, onHide }) {
   const pillStyle = {
     background: withAlpha(accent, 0.10),
     border: `1px solid ${withAlpha(accent, 0.22)}`,
-    color: brand?.darkMode ? "#fff" : "#111827",
+    color: "#111827",
     borderRadius: 999,
     padding: "6px 10px",
     fontSize: 12,

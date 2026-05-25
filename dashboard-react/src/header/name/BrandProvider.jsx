@@ -15,11 +15,10 @@ const DEFAULT_BRAND = {
   companyName: "",
   slogan: "",
   coverImage: "",
-  darkMode: false,
   fontFamily: 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial',
   textColor: "#1a1d24",
   accentColor: "#10b981",
-  dashboardBg: "#f8f9fa",
+  dashboardBg: "#fafaf9",
   menuSelectionColor: "#10b981",
   activeModules: {
     finances: true,
@@ -30,20 +29,31 @@ const DEFAULT_BRAND = {
   },
 };
 
+/** Migra brand guardado: quita darkMode y fondos oscuros legacy. */
+function normalizeBrand(saved) {
+  if (!saved || typeof saved !== "object") return DEFAULT_BRAND;
+  const { darkMode: _removed, ...rest } = saved;
+  const merged = {
+    ...DEFAULT_BRAND,
+    ...rest,
+    activeModules: {
+      ...DEFAULT_BRAND.activeModules,
+      ...(rest.activeModules || {}),
+    },
+  };
+  const bg = String(merged.dashboardBg || "");
+  if (bg === "#111827" || bg === "#0f172a" || bg === "#0f0f10") {
+    merged.dashboardBg = DEFAULT_BRAND.dashboardBg;
+  }
+  return merged;
+}
+
 export function BrandProvider({ children }) {
   const [brand, setBrand] = useState(() => {
     const saved = localStorage.getItem("brand");
     if (!saved) return DEFAULT_BRAND;
     try {
-      const parsed = JSON.parse(saved);
-      return {
-        ...DEFAULT_BRAND,
-        ...parsed,
-        activeModules: {
-          ...DEFAULT_BRAND.activeModules,
-          ...(parsed.activeModules || {}),
-        },
-      };
+      return normalizeBrand(JSON.parse(saved));
     } catch {
       return DEFAULT_BRAND;
     }
@@ -68,9 +78,7 @@ export function BrandProvider({ children }) {
     root.style.setProperty("--brand-menu-active", menuActive);
     root.style.setProperty("--brand-menu-active-soft", hexToRgba(menuActive, 0.1));
 
-    // opcional: dark mode token
-    root.style.setProperty("--brand-dark", brand.darkMode ? "1" : "0");
-  }, [brand.accentColor, brand.textColor, brand.fontFamily, brand.darkMode, brand.dashboardBg, brand.menuSelectionColor]);
+  }, [brand.accentColor, brand.textColor, brand.fontFamily, brand.dashboardBg, brand.menuSelectionColor]);
 
   const value = useMemo(() => ({ brand, setBrand }), [brand]);
 
