@@ -227,3 +227,17 @@ a { text-decoration: none !important; color: inherit; }
 
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
+
+/* Responsive Main Layout Overrides */
+@media (max-width: 768px) {
+  .main-content {
+    margin-left: 0 !important;
+  }
+  .content-inner {
+    padding: 16px;
+  }
+}
+
+.gap-1\.5 {
+  gap: 6px !important;
+}

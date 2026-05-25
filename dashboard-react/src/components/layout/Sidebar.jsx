@@ -124,7 +124,7 @@ export default function Sidebar({
         })}
 
         {isAdmin && (
-          <button className="sidebar__item" onClick={openUsersAdmin}>
+          <button className="sidebar__item" onClick={() => { openUsersAdmin(); onClose(); }}>
             <div className="sidebar__item-icon">
               <Settings size={20} />
             </div>

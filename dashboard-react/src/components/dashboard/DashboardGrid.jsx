@@ -100,16 +100,26 @@ export default function DashboardGrid({
   }
 
   return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(12, 1fr)",
-        gridAutoRows: "minmax(110px, auto)",
-        gap: "20px",
-        gridAutoFlow: "row dense",
-        paddingBottom: "40px",
-      }}
-    >
+    <div className="dashboard-widgets-grid">
+      <style>{`
+        .dashboard-widgets-grid {
+          display: grid;
+          grid-template-columns: repeat(12, 1fr);
+          grid-auto-rows: minmax(110px, auto);
+          gap: 20px;
+          grid-auto-flow: row dense;
+          padding-bottom: 40px;
+        }
+        @media (max-width: 768px) {
+          .dashboard-widgets-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .dashboard-widgets-grid > div {
+            grid-column: span 1 !important;
+            grid-row: span 2 !important; /* Standardize card height on mobile */
+          }
+        }
+      `}</style>
       <AnimatePresence>
         {widgets.map((w, idx) => {
           const colSpan = w.layout?.w || 4;

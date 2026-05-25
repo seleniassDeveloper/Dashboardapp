@@ -21,6 +21,9 @@ export default function TopBar({ onMenuClick, onEditBrand }) {
       style={brand.coverImage ? { backgroundImage: `url(${brand.coverImage})` } : {}}
     >
       <div className="topbar__left">
+        <button className="topbar__menu-btn" onClick={onMenuClick} aria-label="Abrir Menú">
+          <Menu size={20} />
+        </button>
         <div className="topbar__brand-wrap">
           <h2 className="topbar__brand-name">{brand.companyName || "Mi Negocio"}</h2>
           {brand.slogan && <p className="topbar__brand-slogan">{brand.slogan}</p>}

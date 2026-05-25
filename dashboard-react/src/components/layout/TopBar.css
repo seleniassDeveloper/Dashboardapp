@@ -91,3 +91,29 @@
   cursor: pointer;
   transition: all 0.2s ease;
 }
+
+.topbar__menu-btn {
+  display: none;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: white;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin-right: 12px;
+}
+
+@media (max-width: 768px) {
+  .topbar {
+    padding: 0 16px;
+  }
+  .topbar__menu-btn {
+    display: flex;
+  }
+  .topbar__search {
+    display: none; /* Hide search input on mobile topbar for space */
+  }
+}

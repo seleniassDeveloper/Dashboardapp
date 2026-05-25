@@ -20,6 +20,7 @@ import DashboardAppRoute from "./DashboardAppRoute.jsx";
 import HowItWorks from "./views/HowItWorks";
 import PublicBookingPage from "./views/booking/PublicBookingPage.jsx";
 import BookingSuccess from "./views/booking/BookingSuccess.jsx";
+import QuickAddBookingPage from "./views/booking/QuickAddBookingPage.jsx";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <BrowserRouter>
@@ -28,6 +29,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
       <Route path="/guide" element={<HowItWorks />} />
       <Route path="/booking/:businessSlug" element={<PublicBookingPage />} />
       <Route path="/booking/:businessSlug/success" element={<BookingSuccess />} />
+      <Route path="/booking/:businessSlug/add" element={<QuickAddBookingPage />} />
       <Route
         path="/app/*"
         element={
