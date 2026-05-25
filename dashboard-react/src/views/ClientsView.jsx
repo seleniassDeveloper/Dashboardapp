@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Container, Row, Col, Button, Table, Spinner, Alert, Form, Stack, Pagination } from "react-bootstrap";
-import { Search, UserPlus, RefreshCw, Edit2, Trash2 } from "lucide-react";
+import { Search, UserPlus, RefreshCw, Edit2, Trash2, BookOpen } from "lucide-react";
 import ClientModal from "../header/clients/ClientModal.jsx";
+import ClientDetailModal from "../components/clients/ClientDetailModal.jsx";
 import api from "../lib/api.js";
 
 const safeArray = (x) => (Array.isArray(x) ? x : []);
@@ -22,12 +23,24 @@ export default function ClientsView() {
   const [okMsg, setOkMsg] = useState("");
 
   const [clients, setClients] = useState([]);
+  const [appointments, setAppointments] = useState([]);
   const [q, setQ] = useState("");
+
+  // Ficha detallada
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [selectedDetailClient, setSelectedDetailClient] = useState(null);
 
   // modal create/edit
   const [showClientModal, setShowClientModal] = useState(false);
   const [clientMode, setClientMode] = useState("create"); // create | edit
   const [editingClient, setEditingClient] = useState(null);
+
+  // Cargar citas para la ficha técnica
+  useEffect(() => {
+    api.get("/appointments")
+      .then(res => setAppointments(safeArray(res.data)))
+      .catch(e => console.error("Error cargando citas para fichas:", e));
+  }, []);
 
   // paginado
   const PAGE_SIZE = 12;
@@ -204,8 +217,19 @@ export default function ClientsView() {
                           variant="light" 
                           size="sm" 
                           className="rounded-lg p-2" 
+                          onClick={() => { setSelectedDetailClient(c); setShowDetailModal(true); }}
+                          disabled={busyId === c.id}
+                          title="Ficha Técnica"
+                        >
+                          <BookOpen size={16} className="text-primary" />
+                        </Button>
+                        <Button 
+                          variant="light" 
+                          size="sm" 
+                          className="rounded-lg p-2" 
                           onClick={() => openEdit(c)}
                           disabled={busyId === c.id}
+                          title="Editar"
                         >
                           <Edit2 size={16} className="text-muted" />
                         </Button>
@@ -215,6 +239,7 @@ export default function ClientsView() {
                           className="rounded-lg p-2 hover-danger" 
                           onClick={() => handleDelete(c)}
                           disabled={busyId === c.id}
+                          title="Eliminar"
                         >
                           <Trash2 size={16} className="text-danger" />
                         </Button>
@@ -262,6 +287,13 @@ export default function ClientsView() {
         mode={clientMode}
         initialData={editingClient}
         onSaved={handleSaved}
+      />
+
+      <ClientDetailModal
+        show={showDetailModal}
+        onHide={() => { setShowDetailModal(false); setSelectedDetailClient(null); }}
+        client={selectedDetailClient}
+        appointments={appointments}
       />
     </div>
   );

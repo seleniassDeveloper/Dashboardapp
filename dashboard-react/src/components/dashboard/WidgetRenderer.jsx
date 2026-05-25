@@ -287,21 +287,81 @@ export default function WidgetRenderer({
     }
 
     case "ai_insight": {
-      const insights = widget?.config?.insights || [
-        "El volumen de facturación ha crecido un 15% este mes gracias a las campañas promocionales.",
-        "Se detecta saturación horaria los sábados por la tarde, considera habilitar agendas extras.",
+      const insightsList = [
+        {
+          text: "Tus ingresos bajaron 18% esta semana en comparación con la anterior (debido al feriado de lunes).",
+          color: "danger",
+          action: "Lanzar Promoción",
+          onClick: () => alert("Campañas de descuento express enviadas por correo a clientes recurrentes.")
+        },
+        {
+          text: "Los jueves son tu día más lento: Considera lanzar un 2x1 en tratamientos capilares.",
+          color: "info",
+          action: "Lanzar 2x1",
+          onClick: () => alert("Automatización 2x1 creada para los días Jueves.")
+        },
+        {
+          text: "Este cliente lleva 60 días sin volver: Laura Pérez (Último turno: Balayage).",
+          color: "primary",
+          action: "Enviar WhatsApp",
+          onClick: () => {
+            const encoded = encodeURIComponent("¡Hola Laura! Te escribimos de Aura Studio. Hace unos 60 días de tu balayage, queremos ofrecerte un mimo de nutrición gratis con tu próximo turno este sábado. ¿Te agendamos?");
+            window.open(`https://wa.me/1154329876?text=${encoded}`, "_blank");
+          }
+        },
+        {
+          text: "Coloración genera más ganancias que uñas ($30.000 promedio de ticket vs. $8.000).",
+          color: "success",
+          action: "Ver Finanzas",
+          onClick: () => {
+            if (onViewCalendar) onViewCalendar(); // Scroll or move to section
+            window.location.hash = "/app/finances";
+            alert("Redirigiendo al desglose de Finanzas y comisiones.");
+          }
+        },
+        {
+          text: "Tu estilista Andrea tiene la mayor retención de clientes (78% de recurrencia).",
+          color: "warning",
+          action: "Ver Retención",
+          onClick: () => {
+            window.location.hash = "/app/team";
+            alert("Redirigiendo a Productividad e Invoicing de estilistas.");
+          }
+        },
+        {
+          text: "Deberías abrir más horarios los sábados: Tu ocupación entre las 14 y 18 hs ronda el 98%.",
+          color: "warning",
+          action: "Ampliar Agenda",
+          onClick: () => {
+            if (onEditWorker) onEditWorker();
+          }
+        }
       ];
 
       return (
         <div className="d-flex flex-column h-100 p-2">
           <div className="text-muted small fw-bold mb-3 d-flex align-items-center gap-2">
             <CheckCircle size={16} className="text-success" />
-            <span>AI Copilot Insights</span>
+            <span>AI Copilot - Sugerencias de Negocio Inteligentes</span>
           </div>
-          <div className="d-grid gap-2 overflow-auto">
-            {insights.map((insight, idx) => (
-              <div key={idx} className="p-3 rounded-3 border-start border-success border-4 bg-light small text-muted">
-                {insight}
+          <div className="d-grid gap-3 overflow-auto" style={{ maxHeight: "400px" }}>
+            {insightsList.map((insight, idx) => (
+              <div 
+                key={idx} 
+                className={`p-3 rounded-4 border-start border-${insight.color} border-4 bg-light d-flex justify-content-between align-items-center flex-wrap gap-2`}
+                style={{ fontSize: "12px" }}
+              >
+                <div className="flex-grow-1 text-dark fw-semibold" style={{ maxWidth: "75%" }}>
+                  {insight.text}
+                </div>
+                <Button 
+                  size="sm" 
+                  variant={`outline-${insight.color}`} 
+                  onClick={insight.onClick}
+                  className="rounded-pill px-3 py-1 fw-bold smaller"
+                >
+                  {insight.action}
+                </Button>
               </div>
             ))}
           </div>

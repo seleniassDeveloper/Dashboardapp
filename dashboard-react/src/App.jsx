@@ -10,6 +10,8 @@ import ClientsView from "./views/ClientsView";
 import ServicesView from "./views/ServicesView";
 import TeamView from "./views/TeamView";
 import FinancesView from "./views/FinancesView";
+import InventoryView from "./views/InventoryView";
+import GoogleSheetsSyncView from "./views/GoogleSheetsSyncView";
 import WorkflowsView from "./views/WorkflowsView";
 import AutomationsView from "./views/AutomationsView";
 import HowItWorks from "./views/HowItWorks";
@@ -40,6 +42,14 @@ export default function App() {
         <Route
           path="/finances"
           element={isModuleActive("finances") ? <FinancesView /> : <Navigate to="/" replace />}
+        />
+        <Route
+          path="/inventory"
+          element={isModuleActive("inventory") ? <InventoryView /> : <Navigate to="/" replace />}
+        />
+        <Route
+          path="/sheets-sync"
+          element={isModuleActive("sheets_sync") ? <GoogleSheetsSyncView /> : <Navigate to="/" replace />}
         />
         <Route
           path="/workflows"

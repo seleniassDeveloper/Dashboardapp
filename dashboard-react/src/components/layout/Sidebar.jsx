@@ -14,12 +14,14 @@ import {
   GitBranch,
   Zap,
   LogOut,
-  CalendarCheck
+  CalendarCheck,
+  Package,
+  FileSpreadsheet
 } from "lucide-react";
 import { useAuth } from "../../auth/AuthProvider";
 import { useBrand } from "../../header/name/BrandProvider";
 import "./Sidebar.css";
-
+ 
 const MENU_ITEMS = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, path: "/app" },
   { id: "appointments", label: "Agenda", icon: CalendarCheck, path: "/app/calendar" }, 
@@ -27,6 +29,8 @@ const MENU_ITEMS = [
   { id: "services", label: "Servicios", icon: Scissors, path: "/app/services" },
   { id: "team", label: "Equipo", icon: Briefcase, path: "/app/team" },
   { id: "finances", label: "Finanzas", icon: CreditCard, path: "/app/finances" },
+  { id: "inventory", label: "Inventario", icon: Package, path: "/app/inventory" },
+  { id: "sheets_sync", label: "Planillas Sheets", icon: FileSpreadsheet, path: "/app/sheets-sync" },
   { id: "workflows", label: "Workflows", icon: GitBranch, path: "/app/workflows" },
   { id: "automations", label: "Automatizaciones", icon: Zap, path: "/app/automations" },
   { id: "config", label: "Configuración", icon: Settings, path: "/app/settings" },

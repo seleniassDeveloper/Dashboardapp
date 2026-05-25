@@ -1,7 +1,7 @@
 import React from "react";
 import { Card, Form, Row, Col } from "react-bootstrap";
 import { useBrand } from "../../header/name/BrandProvider";
-import { Scissors, Briefcase, CreditCard, GitBranch, Zap } from "lucide-react";
+import { Scissors, Briefcase, CreditCard, GitBranch, Zap, Package, FileSpreadsheet } from "lucide-react";
 
 const MODULES_META = [
   {
@@ -21,6 +21,18 @@ const MODULES_META = [
     label: "Finanzas e Ingresos",
     desc: "Visualiza gráficos de facturación, caja diaria y análisis de ingresos.",
     icon: CreditCard,
+  },
+  {
+    id: "inventory",
+    label: "Control de Inventario",
+    desc: "Gestioná insumos, stock crítico, costos y consumos automáticos en servicios.",
+    icon: Package,
+  },
+  {
+    id: "sheets_sync",
+    label: "Sincronizador Google Sheets",
+    desc: "Importá y convertí tus planillas de Google Drive en paneles visuales al instante.",
+    icon: FileSpreadsheet,
   },
   {
     id: "workflows",
