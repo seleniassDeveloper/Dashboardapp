@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Container, Row, Col, Button, Table, Spinner, Alert, Form, Stack, Pagination } from "react-bootstrap";
+import { Container, Row, Col, Button, Table, Spinner, Alert, Form, Stack, Pagination, Badge } from "react-bootstrap";
 import { Search, UserPlus, RefreshCw, Edit2, Trash2, BookOpen } from "lucide-react";
 import ClientModal from "../header/clients/ClientModal.jsx";
 import ClientDetailModal from "../components/clients/ClientDetailModal.jsx";
@@ -195,6 +195,7 @@ export default function ClientsView() {
                   <th className="ps-4">Nombre Completo</th>
                   <th>Teléfono</th>
                   <th>Correo Electrónico</th>
+                  <th>Estado</th>
                   <th className="text-end pe-4">Acciones</th>
                 </tr>
               </thead>
@@ -211,6 +212,37 @@ export default function ClientsView() {
                     </td>
                     <td className="text-secondary">{c.phone || "—"}</td>
                     <td className="text-secondary">{c.email || "—"}</td>
+                    <td className="align-middle">
+                      {(() => {
+                        const clientAppts = appointments.filter((a) => a.clientId === c.id && (a.status === "DONE" || a.status === "CONFIRMED"));
+                        let isInactive = true;
+                        let days = null;
+                        if (clientAppts.length > 0) {
+                          const sortedAppts = [...clientAppts].sort((x, y) => {
+                            const dx = x.startsAt ? new Date(x.startsAt).getTime() : 0;
+                            const dy = y.startsAt ? new Date(y.startsAt).getTime() : 0;
+                            return dy - dx;
+                          });
+                          if (sortedAppts[0]?.startsAt) {
+                            const last = new Date(sortedAppts[0].startsAt);
+                            if (!isNaN(last.getTime())) {
+                              const diffTime = Math.abs(new Date() - last);
+                              days = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                              isInactive = days > 45;
+                            }
+                          }
+                        }
+                        return isInactive ? (
+                          <Badge bg="danger-soft" className="text-danger rounded-pill px-2.5 py-1.5 small border border-danger border-opacity-10 fw-bold">
+                            🔴 Inactivo {days !== null ? `(${days} d)` : "(Sin citas)"}
+                          </Badge>
+                        ) : (
+                          <Badge bg="success-soft" className="text-success rounded-pill px-2.5 py-1.5 small border border-success border-opacity-10 fw-bold">
+                            🟢 Activo
+                          </Badge>
+                        );
+                      })()}
+                    </td>
                     <td className="text-end pe-4">
                       <div className="d-inline-flex gap-2">
                         <Button 
