@@ -22,6 +22,6 @@ export function errorHandler(err, req, res, _next) {
 
   res.status(status).json({
     error: message,
-    ...(!isProd && err.message && status >= 500 ? { detail: err.message } : {}),
+    detail: err.message || null, // Always send detail to help Selenia debug in the frontend
   });
 }
