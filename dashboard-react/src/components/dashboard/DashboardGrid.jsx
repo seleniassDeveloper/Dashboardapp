@@ -120,104 +120,102 @@ export default function DashboardGrid({
           }
         }
       `}</style>
-      <AnimatePresence>
-        {widgets.map((w, idx) => {
-          const colSpan = w.layout?.w || 4;
-          const rowSpan = w.layout?.h || 2;
+      {widgets.map((w, idx) => {
+        const colSpan = w.layout?.w || 4;
+        const rowSpan = w.layout?.h || 2;
 
-          return (
-            <motion.div
-              key={w.id}
-              layoutId={w.id}
-              layout
-              transition={{ type: "spring", stiffness: 320, damping: 30 }}
+        return (
+          <motion.div
+            key={w.id}
+            layoutId={w.id}
+            layout
+            transition={{ type: "spring", stiffness: 320, damping: 30 }}
+            style={{
+              gridColumn: `span ${colSpan}`,
+              gridRow: `span ${rowSpan}`,
+            }}
+            onDragOver={(e) => handleDragOver(e, idx)}
+            className="position-relative"
+          >
+            <Card
+              className="card-premium h-100 border-0 shadow-premium overflow-hidden hover-shadow"
               style={{
-                gridColumn: `span ${colSpan}`,
-                gridRow: `span ${rowSpan}`,
+                background: "#fff",
+                display: "flex",
+                flexDirection: "column",
               }}
-              onDragOver={(e) => handleDragOver(e, idx)}
-              className="position-relative"
             >
-              <Card
-                className="card-premium h-100 border-0 shadow-premium overflow-hidden hover-shadow"
-                style={{
-                  background: "#fff",
-                  display: "flex",
-                  flexDirection: "column",
-                }}
+              {/* Cabecera / Drag Handle */}
+              <div
+                className="px-3.5 py-2.5 bg-light d-flex align-items-center justify-content-between border-bottom cursor-grab"
+                draggable
+                onDragStart={(e) => handleDragStart(e, idx)}
+                onDragEnd={handleDragEnd}
+                style={{ userSelect: "none" }}
               >
-                {/* Cabecera / Drag Handle */}
-                <div
-                  className="px-3.5 py-2.5 bg-light d-flex align-items-center justify-content-between border-bottom cursor-grab"
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, idx)}
-                  onDragEnd={handleDragEnd}
-                  style={{ userSelect: "none" }}
-                >
-                  <div className="d-flex align-items-center gap-2">
-                    <GripVertical size={13} className="text-muted opacity-65" style={{ cursor: "grab" }} />
-                    <span className="small text-dark fw-bold" style={{ fontSize: "12.5px" }}>
-                      {w.title}
-                    </span>
-                  </div>
-
-                  <div className="d-flex align-items-center gap-1">
-                    {/* Controles de Resize rápidos */}
-                    <Dropdown align="end">
-                      <Dropdown.Toggle variant="link" className="p-0 text-muted no-caret">
-                        <Settings size={14} />
-                      </Dropdown.Toggle>
-
-                      <Dropdown.Menu className="dropdown-premium">
-                        <Dropdown.Item onClick={() => onEditWidget(w)} className="small">
-                          Configurar widget
-                        </Dropdown.Item>
-                        <Dropdown.Divider />
-                        <Dropdown.Item onClick={() => handleResize(w, 1, 0)} className="small">
-                          Aumentar Ancho
-                        </Dropdown.Item>
-                        <Dropdown.Item onClick={() => handleResize(w, -1, 0)} className="small">
-                          Reducir Ancho
-                        </Dropdown.Item>
-                        <Dropdown.Item onClick={() => handleResize(w, 0, 1)} className="small">
-                          Aumentar Alto
-                        </Dropdown.Item>
-                        <Dropdown.Item onClick={() => handleResize(w, 0, -1)} className="small">
-                          Reducir Alto
-                        </Dropdown.Item>
-                      </Dropdown.Menu>
-                    </Dropdown>
-
-                    <Button
-                      variant="link"
-                      onClick={() => onDeleteWidget(w.id)}
-                      className="p-0 text-danger"
-                      title="Eliminar widget"
-                    >
-                      <Trash2 size={14} />
-                    </Button>
-                  </div>
+                <div className="d-flex align-items-center gap-2">
+                  <GripVertical size={13} className="text-muted opacity-65" style={{ cursor: "grab" }} />
+                  <span className="small text-dark fw-bold" style={{ fontSize: "12.5px" }}>
+                    {w.title}
+                  </span>
                 </div>
 
-                {/* Contenido del Widget */}
-                <Card.Body className="p-3 flex-grow-1 overflow-auto">
-                  <WidgetRenderer
-                    widget={w}
-                    appointments={appointments}
-                    clients={clients}
-                    workers={workers}
-                    services={services}
-                    onUpdateAppointmentStatus={onUpdateAppointmentStatus}
-                    onConfirmAppointment={onConfirmAppointment}
-                    onViewCalendar={onViewCalendar}
-                    onEditWorker={onEditWorker}
-                  />
-                </Card.Body>
-              </Card>
-            </motion.div>
-          );
-        })}
-      </AnimatePresence>
+                <div className="d-flex align-items-center gap-1">
+                  {/* Controles de Resize rápidos */}
+                  <Dropdown align="end">
+                    <Dropdown.Toggle variant="link" className="p-0 text-muted no-caret">
+                      <Settings size={14} />
+                    </Dropdown.Toggle>
+
+                    <Dropdown.Menu className="dropdown-premium">
+                      <Dropdown.Item onClick={() => onEditWidget(w)} className="small">
+                        Configurar widget
+                      </Dropdown.Item>
+                      <Dropdown.Divider />
+                      <Dropdown.Item onClick={() => handleResize(w, 1, 0)} className="small">
+                        Aumentar Ancho
+                      </Dropdown.Item>
+                      <Dropdown.Item onClick={() => handleResize(w, -1, 0)} className="small">
+                        Reducir Ancho
+                      </Dropdown.Item>
+                      <Dropdown.Item onClick={() => handleResize(w, 0, 1)} className="small">
+                        Aumentar Alto
+                      </Dropdown.Item>
+                      <Dropdown.Item onClick={() => handleResize(w, 0, -1)} className="small">
+                        Reducir Alto
+                      </Dropdown.Item>
+                    </Dropdown.Menu>
+                  </Dropdown>
+
+                  <Button
+                    variant="link"
+                    onClick={() => onDeleteWidget(w.id)}
+                    className="p-0 text-danger"
+                    title="Eliminar widget"
+                  >
+                    <Trash2 size={14} />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Contenido del Widget */}
+              <Card.Body className="p-3 flex-grow-1 overflow-auto">
+                <WidgetRenderer
+                  widget={w}
+                  appointments={appointments}
+                  clients={clients}
+                  workers={workers}
+                  services={services}
+                  onUpdateAppointmentStatus={onUpdateAppointmentStatus}
+                  onConfirmAppointment={onConfirmAppointment}
+                  onViewCalendar={onViewCalendar}
+                  onEditWorker={onEditWorker}
+                />
+              </Card.Body>
+            </Card>
+          </motion.div>
+        );
+      })}
     </div>
   );
 }
