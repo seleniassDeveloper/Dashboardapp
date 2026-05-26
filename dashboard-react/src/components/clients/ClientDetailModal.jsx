@@ -35,7 +35,11 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
   const clientAppts = useMemo(() => {
     return appointments
       .filter((a) => a.clientId === client.id)
-      .sort((a, b) => new Date(b.startsAt) - new Date(a.startsAt));
+      .sort((a, b) => {
+        const da = a.startsAt ? new Date(a.startsAt).getTime() : 0;
+        const db = b.startsAt ? new Date(b.startsAt).getTime() : 0;
+        return db - da;
+      });
   }, [appointments, client.id]);
 
   // Citas concretadas (para métricas financieras)
@@ -53,15 +57,18 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
     let isInactive = false;
     let daysSinceLastVisit = 0;
 
-    if (visitsCount > 0) {
+    if (visitsCount > 0 && doneAppts[0]?.startsAt) {
       const last = new Date(doneAppts[0].startsAt);
-      lastVisitDate = last.toLocaleDateString("es-AR", { day: "numeric", month: "long", year: "numeric" });
-      
-      const diffTime = Math.abs(new Date() - last);
-      daysSinceLastVisit = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-      
-      // Si tiene más de 45 días sin ir, se clasifica como Inactivo
-      if (daysSinceLastVisit > 45) {
+      if (!isNaN(last.getTime())) {
+        lastVisitDate = last.toLocaleDateString("es-AR", { day: "numeric", month: "long", year: "numeric" });
+        const diffTime = Math.abs(new Date() - last);
+        daysSinceLastVisit = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        
+        // Si tiene más de 45 días sin ir, se clasifica como Inactivo
+        if (daysSinceLastVisit > 45) {
+          isInactive = true;
+        }
+      } else {
         isInactive = true;
       }
     } else {
@@ -79,10 +86,13 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
   }, [doneAppts]);
 
   const handleSendWhatsApp = () => {
-    const text = `¡Hola ${client.firstName}! Te escribimos de Aura Studio. Notamos que pasaron unos ${stats.daysSinceLastVisit || 60} días desde tu último servicio de ${doneAppts[0]?.service?.name || "Balayage"}. Queremos ofrecerte un 15% de descuento en tu próximo tratamiento para volver a mimar tu cabello. ¿Te reservamos un turno para este sábado?`;
+    const text = `¡Hola ${client.firstName || ""}! Te escribimos de Aura Studio. Notamos que pasaron unos ${stats.daysSinceLastVisit || 60} días desde tu último servicio de ${doneAppts[0]?.service?.name || "Balayage"}. Queremos ofrecerte un 15% de descuento en tu próximo tratamiento para volver a mimar tu cabello. ¿Te reservamos un turno para este sábado?`;
     const encoded = encodeURIComponent(text);
     window.open(`https://wa.me/${client.phone ? client.phone.replace(/\D/g, "") : ""}?text=${encoded}`, "_blank");
   };
+
+  const initialFirst = (client.firstName?.[0] || "").toUpperCase();
+  const initialLast = (client.lastName?.[0] || "").toUpperCase();
 
   return (
     <Modal show={show} onHide={onHide} size="lg" centered className="hegemonic-modal">
@@ -98,10 +108,10 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
         <div className="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3 pb-3 border-bottom">
           <div className="d-flex align-items-center gap-3">
             <div className="rounded-circle bg-primary-soft text-primary d-flex align-items-center justify-content-center fw-bold" style={{ width: 56, height: 56, fontSize: 20 }}>
-              {client.firstName[0]}{client.lastName[0]}
+              {initialFirst}{initialLast || "C"}
             </div>
             <div>
-              <h2 className="h5 fw-bold text-dark m-0">{client.firstName} {client.lastName}</h2>
+              <h2 className="h5 fw-bold text-dark m-0">{client.firstName || ""} {client.lastName || ""}</h2>
               <p className="text-muted small mb-0">{client.email || "Sin correo"} · {client.phone || "Sin teléfono"}</p>
             </div>
           </div>
@@ -130,7 +140,7 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
             <div className="d-flex align-items-center gap-2.5">
               <AlertTriangle size={20} />
               <div className="small">
-                <strong>Oportunidad de Reactivación:</strong> {client.firstName} no visita el salón hace <strong>{stats.daysSinceLastVisit || 60} días</strong>.
+                <strong>Oportunidad de Reactivación:</strong> {client.firstName || ""} no visita el salón hace <strong>{stats.daysSinceLastVisit || 60} días</strong>.
               </div>
             </div>
             <Button variant="danger" size="sm" onClick={handleSendWhatsApp} className="rounded-pill d-flex align-items-center gap-1.5 px-3 py-1.5 fw-bold border-0 bg-danger text-white">
@@ -250,7 +260,14 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
                     <tbody style={{ fontSize: "12.5px" }}>
                       {clientAppts.map((a) => (
                         <tr key={a.id}>
-                          <td className="text-secondary">{new Date(a.startsAt).toLocaleString("es-AR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })} hs</td>
+                          <td className="text-secondary">
+                            {(() => {
+                              if (!a.startsAt) return "—";
+                              const d = new Date(a.startsAt);
+                              if (isNaN(d.getTime())) return "—";
+                              return d.toLocaleString("es-AR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) + " hs";
+                            })()}
+                          </td>
                           <td className="fw-semibold text-dark">{a.service?.name}</td>
                           <td className="text-muted">{a.worker?.firstName}</td>
                           <td className="fw-bold text-dark">{currency(a.service?.price)}</td>
