@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { Modal, Row, Col, Card, Badge, Table, Button, Form } from "react-bootstrap";
+import { Modal, Row, Col, Card, Badge, Table, Button, Form, Alert } from "react-bootstrap";
 import { Calendar, CreditCard, Clock, MessageCircle, Cake, Sparkles, AlertTriangle, ArrowRight, BookOpen } from "lucide-react";
 
 // Fotos mock antes/después para simular el registro estético del salón
@@ -91,8 +91,8 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
     window.open(`https://wa.me/${client.phone ? client.phone.replace(/\D/g, "") : ""}?text=${encoded}`, "_blank");
   };
 
-  const initialFirst = (client.firstName?.[0] || "").toUpperCase();
-  const initialLast = (client.lastName?.[0] || "").toUpperCase();
+  const initialFirst = (client.firstName && typeof client.firstName === "string" && client.firstName.length > 0) ? client.firstName.charAt(0).toUpperCase() : "";
+  const initialLast = (client.lastName && typeof client.lastName === "string" && client.lastName.length > 0) ? client.lastName.charAt(0).toUpperCase() : "";
 
   return (
     <Modal show={show} onHide={onHide} size="lg" centered className="hegemonic-modal">
