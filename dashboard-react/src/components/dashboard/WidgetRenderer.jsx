@@ -10,7 +10,7 @@ import ActivityFeedWidget from "./ActivityFeedWidget";
 import AttentionWidget from "./AttentionWidget";
 
 // Mantenemos soporte a tablas e insights simulados
-import { Table, Badge } from "react-bootstrap";
+import { Table, Badge, Button } from "react-bootstrap";
 import { AlertCircle, CheckCircle } from "lucide-react";
 
 // Formato de moneda ARS
