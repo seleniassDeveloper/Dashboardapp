@@ -119,13 +119,17 @@ export async function deleteService(req, res) {
   try {
     const { id } = req.params;
 
-    const count = await prisma.appointment.count({ where: { serviceId: id } });
-    if (count > 0) {
-      return res.status(400).json({
-        error: "No se puede eliminar: hay citas usando este servicio.",
-      });
-    }
+    // Primero eliminamos en cascada las citas asociadas para evitar conflictos de clave foránea
+    await prisma.appointment.deleteMany({
+      where: { serviceId: id },
+    });
 
+    // Eliminamos los vínculos con colaboradores
+    await prisma.workerService.deleteMany({
+      where: { serviceId: id },
+    });
+
+    // Finalmente eliminamos el servicio
     await prisma.service.delete({ where: { id } });
     return res.json({ ok: true });
   } catch (e) {
