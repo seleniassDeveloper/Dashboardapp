@@ -1,6 +1,17 @@
 import axios from "axios";
 
 function normalizeBaseUrl(url) {
+  // Runtime smart override: force Render API when running on Vercel production
+  if (
+    typeof window !== "undefined" && 
+    !window.location.hostname.includes("localhost") && 
+    !window.location.hostname.includes("127.0.0.1") && 
+    !window.location.hostname.startsWith("192.168.") &&
+    !window.location.hostname.startsWith("172.") &&
+    !window.location.hostname.startsWith("10.")
+  ) {
+    return "https://dashboard-api-r6j9.onrender.com/api";
+  }
   const base = (url || "http://localhost:3001/api").trim();
   return base.replace(/\/+$/, "");
 }
