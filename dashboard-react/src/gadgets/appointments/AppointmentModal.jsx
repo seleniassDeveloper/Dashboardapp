@@ -333,7 +333,19 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
     setDirty(false);
 
     if (!isEdit) {
-      setForm(emptyForm);
+      if (initialData?.startsAt) {
+        const { date: appointmentDate, time: appointmentTime } = splitDatetimeLocal(
+          toDatetimeLocal(initialData.startsAt)
+        );
+        const cleanTime = appointmentTime === "00:00" ? "" : appointmentTime;
+        setForm({
+          ...emptyForm,
+          appointmentDate: appointmentDate || "",
+          appointmentTime: cleanTime || "",
+        });
+      } else {
+        setForm(emptyForm);
+      }
       return;
     }
 

@@ -16,6 +16,7 @@ import interactionPlugin from "@fullcalendar/interaction";
 
 import { useBrand } from "../../header/name/BrandProvider";
 import { useAppointmentsStore } from "./AppointmentsProvider.jsx";
+import AppointmentModal from "./AppointmentModal.jsx";
 
 import "./styles/fullcalendar-fix.css";
 
@@ -57,7 +58,7 @@ export default function AppointmentsCalendar() {
   const { brand } = useBrand();
   const accent = brand?.accentColor || brand?.textColor || "#d32f2f";
 
-  const { appointments, loading, error } = useAppointmentsStore();
+  const { appointments, loading, error, fetchAppointments } = useAppointmentsStore();
 
   // console.log("appointments", appointments);
 
@@ -69,6 +70,10 @@ export default function AppointmentsCalendar() {
 
   const [selected, setSelected] = useState(null);
   const [showDetail, setShowDetail] = useState(false);
+
+  // Modal para agregar cita
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [initialAddData, setInitialAddData] = useState(null);
 
   const events = useMemo(() => {
     return (appointments || [])
@@ -120,6 +125,11 @@ export default function AppointmentsCalendar() {
     if (!appt) return;
     setSelected(appt);
     setShowDetail(true);
+  }, []);
+
+  const onDateClick = useCallback((info) => {
+    setInitialAddData({ startsAt: info.dateStr });
+    setShowAddModal(true);
   }, []);
 
   // ✅ helpers para controlar FullCalendar desde el header
@@ -214,6 +224,7 @@ export default function AppointmentsCalendar() {
                 height="100%"
                 events={events}
                 eventClick={onEventClick}
+                dateClick={onDateClick}
                 eventDisplay="block"
                 // ✅ IMPORTANTÍSIMO: quitamos el header interno para evitar duplicados
                 headerToolbar={false}
@@ -348,6 +359,16 @@ export default function AppointmentsCalendar() {
           </Button>
         </Modal.Footer>
       </Modal>
+
+      <AppointmentModal
+        show={showAddModal}
+        onHide={() => setShowAddModal(false)}
+        initialData={initialAddData}
+        onSaved={() => {
+          setShowAddModal(false);
+          fetchAppointments();
+        }}
+      />
     </>
   );
 }
