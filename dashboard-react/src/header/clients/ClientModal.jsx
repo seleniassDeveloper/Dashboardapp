@@ -44,9 +44,9 @@ export default function ClientModal({
     if (isEdit) {
       setFirstName(initialData?.firstName || "");
       setLastName(initialData?.lastName || "");
-      setPhone(initialData?.phone || "");
-      setEmail(initialData?.email || "");
-      setNotes(initialData?.notes || "");
+      setPhone((initialData?.phone === "—" ? "" : initialData?.phone) || "");
+      setEmail((initialData?.email === "—" ? "" : initialData?.email) || "");
+      setNotes((initialData?.notes === "—" ? "" : initialData?.notes) || "");
     } else {
       setFirstName("");
       setLastName("");

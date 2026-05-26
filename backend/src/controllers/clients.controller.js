@@ -31,11 +31,15 @@ export async function createClient(req, res) {
         .json({ error: "firstName y lastName son obligatorios." });
     }
 
-    if (email?.trim() && !isValidEmail(email.trim())) {
+    const emailVal = (email?.trim() && email.trim() !== "—") ? email.trim() : null;
+    const phoneVal = (phone?.trim() && phone.trim() !== "—") ? phone.trim() : null;
+    const notesVal = (notes?.trim() && notes.trim() !== "—") ? notes.trim() : null;
+
+    if (emailVal && !isValidEmail(emailVal)) {
       return res.status(400).json({ error: "El email no tiene un formato válido." });
     }
 
-    if (phone?.trim() && !isValidPhone(phone.trim())) {
+    if (phoneVal && !isValidPhone(phoneVal)) {
       return res.status(400).json({ error: "El teléfono no tiene un formato válido." });
     }
 
@@ -43,9 +47,9 @@ export async function createClient(req, res) {
       data: {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
-        phone: phone?.trim() || null,
-        email: email?.trim() || null,
-        notes: notes?.trim() || null,
+        phone: phoneVal,
+        email: emailVal,
+        notes: notesVal,
       },
     });
 
@@ -70,11 +74,15 @@ export async function updateClient(req, res) {
         .json({ error: "firstName y lastName son obligatorios." });
     }
 
-    if (email?.trim() && !isValidEmail(email.trim())) {
+    const emailVal = (email?.trim() && email.trim() !== "—") ? email.trim() : null;
+    const phoneVal = (phone?.trim() && phone.trim() !== "—") ? phone.trim() : null;
+    const notesVal = (notes?.trim() && notes.trim() !== "—") ? notes.trim() : null;
+
+    if (emailVal && !isValidEmail(emailVal)) {
       return res.status(400).json({ error: "El email no tiene un formato válido." });
     }
 
-    if (phone?.trim() && !isValidPhone(phone.trim())) {
+    if (phoneVal && !isValidPhone(phoneVal)) {
       return res.status(400).json({ error: "El teléfono no tiene un formato válido." });
     }
 
@@ -83,9 +91,9 @@ export async function updateClient(req, res) {
       data: {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
-        phone: phone?.trim() || null,
-        email: email?.trim() || null,
-        notes: notes?.trim() || null,
+        phone: phoneVal,
+        email: emailVal,
+        notes: notesVal,
       },
     });
 
@@ -137,17 +145,12 @@ export async function deleteClient(req, res) {
   try {
     const { id } = req.params;
 
-    const apptCount = await prisma.appointment.count({
+    // Primero eliminamos en cascada las citas para evitar bloqueos de clave foránea
+    await prisma.appointment.deleteMany({
       where: { clientId: id },
     });
 
-    if (apptCount > 0) {
-      return res.status(400).json({
-        error:
-          "No se puede eliminar: el cliente tiene citas. Elimina sus citas primero.",
-      });
-    }
-
+    // Luego eliminamos el cliente
     await prisma.client.delete({ where: { id } });
 
     return res.json({ ok: true });
