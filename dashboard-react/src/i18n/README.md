@@ -1,21 +1,15 @@
 # i18n — Sistema de internacionalización (EN / ES)
 
-Este proyecto usa **react-i18next** para soportar inglés y español.
+Este proyecto usa una **implementación propia** de i18n (no requiere paquetes externos), pero expone una API compatible con `react-i18next` para que el código se vea/lea igual que en proyectos estándar.
 
-## Instalación (una sola vez)
+## Cómo funciona
 
-Después de hacer `git pull`, instalá las nuevas dependencias:
-
-```bash
-cd dashboard-react
-npm install
-```
-
-Las dependencias agregadas a `package.json` son:
-
-- `i18next`
-- `react-i18next`
-- `i18next-browser-languagedetector`
+- `src/i18n/index.js` exporta `useTranslation`, `Trans`, e `i18n`.
+- En `vite.config.js` hay aliases que redirigen los imports clásicos al shim:
+  - `react-i18next` → `src/i18n/index.js`
+  - `i18next` → `src/i18n/index.js`
+  - `i18next-browser-languagedetector` → `src/i18n/index.js`
+- No hace falta `npm install` de paquetes extra. El sistema funciona sólo con React y los JSON de `locales/`.
 
 ## Estructura
 
