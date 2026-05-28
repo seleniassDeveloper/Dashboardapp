@@ -1,0 +1,205 @@
+{
+  "calendar": {
+    "title": "Agenda de Citas",
+    "subtitle": "Gestiona tus horarios, recordatorios y optimiza el tiempo de tus estilistas.",
+    "newAppointment": "Nueva cita",
+    "today": "Hoy",
+    "week": "Semana",
+    "month": "Mes",
+    "day": "Día",
+    "noAppointments": "No hay citas en este período"
+  },
+  "clients": {
+    "title": "Gestión de Clientes",
+    "subtitle": "Base de datos centralizada de tus clientes y pacientes.",
+    "newClient": "Nuevo Cliente",
+    "search": "Buscar por nombre, email o teléfono…",
+    "table": {
+      "fullName": "Nombre Completo",
+      "phone": "Teléfono",
+      "email": "Correo Electrónico",
+      "status": "Estado",
+      "actions": "Acciones"
+    },
+    "statuses": {
+      "vip": "VIP",
+      "active": "Activo",
+      "inactive": "Inactivo",
+      "new": "Nuevo",
+      "daysShort": "d",
+      "visitsShort": "v"
+    },
+    "actions": {
+      "view": "Ficha Técnica",
+      "edit": "Editar",
+      "delete": "Eliminar"
+    },
+    "errors": {
+      "load": "No se pudieron cargar los clientes.",
+      "delete": "No se pudo eliminar."
+    },
+    "success": {
+      "created": "Cliente creado.",
+      "updated": "Cliente actualizado.",
+      "deleted": "Cliente eliminado."
+    },
+    "confirmDelete": "¿Eliminar a {{name}}?",
+    "loading": "Cargando base de datos…",
+    "empty": "No se encontraron clientes.",
+    "pagination": "Mostrando {{from}} a {{to}} de {{total}} clientes"
+  },
+  "services": {
+    "title": "Gestión de Servicios",
+    "subtitle": "Configura los tratamientos y precios que ofreces.",
+    "newService": "Nuevo Servicio",
+    "confirmDelete": "¿Estás seguro de eliminar este servicio?",
+    "deleteError": "Error eliminando servicio",
+    "minShort": "min",
+    "noWorkers": "Ninguno vinculado",
+    "table": {
+      "service": "Servicio",
+      "duration": "Duración",
+      "price": "Precio",
+      "professionals": "Profesionales",
+      "status": "Estado",
+      "actions": "Acciones"
+    },
+    "statusActive": "Activo",
+    "empty": "No hay servicios configurados aún."
+  },
+  "team": {
+    "title": "Gestión de Personal",
+    "subtitle": "Monitorea la facturación individual, liquidación de comisiones automáticas y rankings de retención.",
+    "newWorker": "Añadir Miembro",
+    "empty": "Aún no hay profesionales agregados."
+  },
+  "finances": {
+    "title": "Centro de Control ERP Financiero",
+    "subtitle": "Contabilidad integral multi-sucursal, conciliación y auditorías de liquidez en tiempo real.",
+    "newExpense": "Registrar Egreso",
+    "reportsCenter": "Centro de Reportes",
+    "tabs": {
+      "dashboard": "Panel",
+      "cashClosing": "Cierre de caja",
+      "expenses": "Gastos",
+      "salaries": "Salarios",
+      "reconciliation": "Conciliación",
+      "profitability": "Rentabilidad",
+      "reports": "Reportes",
+      "audit": "Auditoría",
+      "simulator": "Simulador"
+    }
+  },
+  "inventory": {
+    "title": "Centro de Control de Inventario ERP",
+    "subtitle": "Control automatizado de insumos, trazabilidad por lote FIFO, cálculo de ROI por uso y reposiciones.",
+    "newProduct": "Nuevo producto",
+    "tabs": {
+      "dashboard": "Panel",
+      "products": "Productos",
+      "movements": "Movimientos",
+      "suppliers": "Proveedores",
+      "orders": "Órdenes de compra",
+      "branches": "Sucursales",
+      "batches": "Lotes",
+      "rules": "Reglas de consumo",
+      "scanner": "Escáner",
+      "aiInsights": "Análisis IA",
+      "simulator": "Simulador"
+    }
+  },
+  "workflows": {
+    "title": "Centro de Automatizaciones (ERP Workflows)",
+    "subtitle": "Diseña, simula y pon en marcha flujos condicionales de negocio para tu salón, estética o clínica.",
+    "newWorkflow": "Nueva Automatización",
+    "empty": "Aún no hay workflows creados."
+  },
+  "automations": {
+    "title": "Centro de Automatización",
+    "subtitle": "Conecta tus herramientas favoritas y automatiza la comunicación.",
+    "newAutomation": "Nueva automatización",
+    "empty": "No hay automatizaciones configuradas.",
+    "services": {
+      "whatsapp": { "name": "WhatsApp Automático", "desc": "Envía confirmaciones y recordatorios por WhatsApp." },
+      "email": { "name": "Email Marketing", "desc": "Campañas automáticas de cumpleaños y promociones." },
+      "push": { "name": "Notificaciones Push", "desc": "Avisos directos al móvil de tus clientes." },
+      "bot": { "name": "Bot de Reservas 24/7", "desc": "Un asistente IA que agenda citas por ti." }
+    },
+    "comingSoonTitle": "Próximamente: Integración con Instagram & TikTok",
+    "comingSoonDesc": "Agenda citas directamente desde tus redes sociales con nuestro botón de reserva oficial.",
+    "comingSoonBadge": "Próxima Actualización"
+  },
+  "settings": {
+    "title": "Configuración",
+    "subtitle": "Catálogo de campos, asignación a cada pantalla de la app, reglas de workflows y módulos activos.",
+    "tabs": {
+      "registry": "Catálogo de campos",
+      "assign": "Asignar a componentes",
+      "modules": "Módulos activos",
+      "booking": "Reservas Online"
+    },
+    "workflowHint": {
+      "title": "Workflows con transiciones y pantallas",
+      "p1": "En <strong>Workflows</strong> podés definir transiciones entre pasos y pantallas intermedias (formularios que el usuario o el cliente completa durante el flujo). Las pantallas usan los campos del catálogo con entidad <code>workflow</code>.",
+      "p2": "Configurá primero los campos en la pestaña \"Catálogo\" y asignalos en \"Workflow — pantallas\" si querés personalizar qué se muestra en cada paso."
+    }
+  },
+  "sheetsSync": {
+    "title": "Sincronizador Google Sheets",
+    "subtitle": "Portal bidireccional contable para importar, exportar y descargar archivos del salón."
+  },
+  "howItWorks": {
+    "title": "Cómo funciona",
+    "back": "Volver al panel",
+    "badge": "Guía de Onboarding",
+    "heroTitle": "Domina tu Dashboard OS",
+    "heroSubtitle": "Aprende a gestionar tu negocio como las mejores empresas del mundo. Una guía completa para dueños, administradores y equipos.",
+    "section1": {
+      "tag": "01. INTRODUCCIÓN",
+      "title": "¿Qué es Dashboard OS?",
+      "body": "Es el sistema operativo definitivo para negocios basados en servicios. Centralizamos tu agenda, finanzas y clientes en una sola interfaz premium diseñada para la velocidad y la claridad.",
+      "li1": "Gestión centralizada de citas y clientes.",
+      "li2": "Análisis de rentabilidad en tiempo real.",
+      "li3": "Automatización de recordatorios y seguimientos.",
+      "placeholder": "[Screenshot del Dashboard Principal con leyendas: \"Vista General\", \"KPIs\", \"Agenda\"]"
+    },
+    "section2": {
+      "tag": "02. NAVEGACIÓN",
+      "title": "Todo a un clic de distancia",
+      "card1Title": "Agenda Viva",
+      "card1Desc": "Control visual de tus reservas diarias, semanales y mensuales.",
+      "card2Title": "Métricas Real-Time",
+      "card2Desc": "KPIs de ingresos y ocupación actualizados al instante.",
+      "card3Title": "Gestión de Staff",
+      "card3Desc": "Controla el rendimiento y horarios de todo tu equipo."
+    },
+    "section3": {
+      "tag": "03. FLUJO DE TRABAJO",
+      "title": "El Ciclo de éxito",
+      "step1Title": "Crear Cliente",
+      "step1Desc": "Registra los datos básicos y preferencias del cliente.",
+      "step2Title": "Agendar Cita",
+      "step2Desc": "Selecciona servicio, trabajador y hora en el calendario.",
+      "step3Title": "Finalizar y Cobrar",
+      "step3Desc": "El sistema registra el pago y actualiza tus finanzas."
+    },
+    "section4": {
+      "title": "Automatización de Nivel Superior",
+      "body": "Reduce las inasistencias en un 40% con recordatorios automáticos por WhatsApp y Email. El sistema se encarga del seguimiento mientras tú te enfocas en el servicio.",
+      "previewTitle": "Previsualización de Alerta:",
+      "preview": "\"Hola [Nombre], te recordamos tu cita de [Servicio] para mañana a las [Hora]. ¡Te esperamos!\""
+    },
+    "faq": {
+      "title": "Preguntas Frecuentes",
+      "q1": "¿Cómo personalizo mis colores?",
+      "a1": "Ve a Configuración > Marca. Selecciona tu color y el dashboard se adaptará automáticamente.",
+      "q2": "¿Puedo exportar mis datos?",
+      "a2": "Sí, todos tus listados de clientes y finanzas pueden exportarse a Excel o PDF en un clic."
+    },
+    "footer": {
+      "title": "¿Listo para escalar?",
+      "subtitle": "Dashboard OS está diseñado para crecer contigo.",
+      "cta": "Empezar ahora"
+    }
+  }
+}

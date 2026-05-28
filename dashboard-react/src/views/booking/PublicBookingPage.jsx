@@ -2,17 +2,23 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Container, Row, Col, Card, Button, Form, Spinner, Alert } from "react-bootstrap";
 import { Calendar, User, Clock, CheckCircle2, ChevronRight, ArrowLeft, Heart } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import LanguageSwitcher from "../../components/language/LanguageSwitcher.jsx";
 import api from "../../lib/api.js";
 
-function currency(n) {
-  return new Intl.NumberFormat("es-AR", {
-    style: "currency",
-    currency: "ARS",
-    maximumFractionDigits: 0,
-  }).format(n || 0);
+function useCurrency() {
+  const { i18n } = useTranslation();
+  return (n) =>
+    new Intl.NumberFormat(i18n.language === "es" ? "es-AR" : "en-US", {
+      style: "currency",
+      currency: i18n.language === "es" ? "ARS" : "USD",
+      maximumFractionDigits: 0,
+    }).format(n || 0);
 }
 
 export default function PublicBookingPage() {
+  const { t } = useTranslation("booking");
+  const currency = useCurrency();
   const { businessSlug } = useParams();
   const navigate = useNavigate();
 
@@ -69,7 +75,7 @@ export default function PublicBookingPage() {
         setProfessionals(professionalsRes.data);
       } catch (e) {
         console.error(e);
-        setError(e?.response?.data?.error || "No se pudo cargar la página de reservas.");
+        setError(e?.response?.data?.error || t("errors.load"));
       } finally {
         setLoading(false);
       }
@@ -153,14 +159,14 @@ export default function PublicBookingPage() {
       // Ir a la pantalla de éxito
       navigate(`/booking/${businessSlug}/success`, {
         state: {
-          message: res.data.message || "¡Turno agendado con éxito!",
+          message: res.data.message || t("form.successFallback"),
           booking: res.data.booking,
           color: business.bookingPrimaryColor,
         },
       });
     } catch (e) {
       console.error(e);
-      setError(e?.response?.data?.error || "Error al completar tu reserva. Intentalo de nuevo.");
+      setError(e?.response?.data?.error || t("form.bookingError"));
     } finally {
       setSubmitting(false);
     }
@@ -170,7 +176,7 @@ export default function PublicBookingPage() {
     return (
       <div className="d-flex flex-column align-items-center justify-content-center" style={{ minHeight: "100vh", background: "#fafafa" }}>
         <Spinner animation="border" className="text-primary mb-3" />
-        <p className="text-muted small">Cargando agenda de turnos…</p>
+        <p className="text-muted small">{t("public.loading")}</p>
       </div>
     );
   }
@@ -182,7 +188,7 @@ export default function PublicBookingPage() {
           {error}
         </Alert>
         <Button variant="link" onClick={() => navigate("/")} className="text-muted">
-          Volver al Inicio
+          {t("public.backHome")}
         </Button>
       </Container>
     );
@@ -193,7 +199,10 @@ export default function PublicBookingPage() {
   return (
     <div style={{ background: "#f3f4f6", minHeight: "100vh" }} className="py-5">
       <Container style={{ maxWidth: "720px" }}>
-        
+        <div className="d-flex justify-content-end mb-3">
+          <LanguageSwitcher />
+        </div>
+
         {/* Encabezado del Negocio */}
         <div className="text-center mb-4">
           {business.logo && (
@@ -206,14 +215,14 @@ export default function PublicBookingPage() {
           )}
           <h1 className="fw-black h3 mb-1">{business.name || "Aura Studio"}</h1>
           <p className="text-muted small mx-auto" style={{ maxWidth: "480px" }}>
-            {business.description || "Agendá tu turno online en simples pasos."}
+            {business.description || t("public.defaultDescription")}
           </p>
         </div>
 
         <Card className="border-0 shadow-sm rounded-4 overflow-hidden bg-white">
           {/* Barra de Progreso */}
           <div className="px-4 py-2 border-bottom bg-light d-flex align-items-center justify-content-between">
-            <span className="small text-muted fw-bold">Paso {step} de 4</span>
+            <span className="small text-muted fw-bold">{t("form.stepOf", { step, total: 4 })}</span>
             <div className="d-flex gap-1">
               {[1, 2, 3, 4].map((i) => (
                 <div
@@ -238,7 +247,7 @@ export default function PublicBookingPage() {
               <div>
                 <h2 className="h6 fw-bold mb-3 d-flex align-items-center gap-2">
                   <Heart size={16} style={{ color: primaryColor }} />
-                  <span>Selecciona un Servicio</span>
+                  <span>{t("form.selectService")}</span>
                 </h2>
                 <div className="d-flex flex-column gap-2">
                   {services.map((s) => (
@@ -256,7 +265,7 @@ export default function PublicBookingPage() {
                     >
                       <div>
                         <div className="fw-bold text-dark">{s.name}</div>
-                        <div className="text-muted small">{s.duration} min de servicio</div>
+                        <div className="text-muted small">{s.duration} {t("form.minutesService")}</div>
                       </div>
                       <div className="d-flex align-items-center gap-3">
                         <span className="fw-black text-dark" style={{ fontSize: "15px" }}>
@@ -275,7 +284,7 @@ export default function PublicBookingPage() {
               <div>
                 <h2 className="h6 fw-bold mb-3 d-flex align-items-center gap-2">
                   <User size={16} style={{ color: primaryColor }} />
-                  <span>Elige un Profesional</span>
+                  <span>{t("form.selectProfessional")}</span>
                 </h2>
 
                 {/* Filtro: Solo mostrar los profesionales que hagan el servicio seleccionado */}
@@ -293,8 +302,8 @@ export default function PublicBookingPage() {
                     }}
                   >
                     <div>
-                      <div className="fw-bold">Cualquier profesional disponible</div>
-                      <div className="text-muted small">Asignaremos al profesional con agenda libre</div>
+                      <div className="fw-bold">{t("form.anyProfessional")}</div>
+                      <div className="text-muted small">{t("form.anyProfessionalHint")}</div>
                     </div>
                     <ChevronRight size={18} className="text-muted" />
                   </div>
@@ -330,13 +339,13 @@ export default function PublicBookingPage() {
               <div>
                 <h2 className="h6 fw-bold mb-3 d-flex align-items-center gap-2">
                   <Clock size={16} style={{ color: primaryColor }} />
-                  <span>Selecciona Fecha y Hora</span>
+                  <span>{t("form.selectDateAndTime")}</span>
                 </h2>
 
                 <Row className="g-3">
                   <Col md={6}>
                     <Form.Group>
-                      <Form.Label className="fw-semibold small">Fecha del turno</Form.Label>
+                      <Form.Label className="fw-semibold small">{t("form.appointmentDate")}</Form.Label>
                       <Form.Control
                         type="date"
                         value={selDate}
@@ -352,18 +361,18 @@ export default function PublicBookingPage() {
 
                   <Col md={6}>
                     <Form.Group>
-                      <Form.Label className="fw-semibold small">Horarios disponibles</Form.Label>
-                      
+                      <Form.Label className="fw-semibold small">{t("form.availableTimes")}</Form.Label>
+
                       {!selDate ? (
-                        <div className="text-muted small py-2">Elegí una fecha para ver disponibilidad.</div>
+                        <div className="text-muted small py-2">{t("form.pickDateHint")}</div>
                       ) : loadingSlots ? (
                         <div className="d-flex align-items-center gap-2 text-muted small py-2">
                           <Spinner size="sm" />
-                          <span>Buscando turnos libres…</span>
+                          <span>{t("form.searchingSlots")}</span>
                         </div>
                       ) : slots.length === 0 ? (
                         <div className="text-danger small py-2">
-                          No hay turnos disponibles para este profesional o día. Probá con otra fecha.
+                          {t("form.noSlots")}
                         </div>
                       ) : (
                         <div
@@ -397,30 +406,30 @@ export default function PublicBookingPage() {
               <Form onSubmit={handleBook} className="d-grid gap-3">
                 <h2 className="h6 fw-bold mb-3 d-flex align-items-center gap-2">
                   <CheckCircle2 size={16} style={{ color: primaryColor }} />
-                  <span>Completa tus Datos Personales</span>
+                  <span>{t("form.yourInfo")}</span>
                 </h2>
 
                 <Row className="g-3">
                   <Col md={6}>
                     <Form.Group>
-                      <Form.Label className="fw-semibold small">Nombre *</Form.Label>
+                      <Form.Label className="fw-semibold small">{t("form.firstNameRequired")}</Form.Label>
                       <Form.Control
                         name="firstName"
                         value={clientForm.firstName}
                         onChange={handleFormChange}
-                        placeholder="Ej: María"
+                        placeholder={t("form.firstNamePlaceholder")}
                         required
                       />
                     </Form.Group>
                   </Col>
                   <Col md={6}>
                     <Form.Group>
-                      <Form.Label className="fw-semibold small">Apellido *</Form.Label>
+                      <Form.Label className="fw-semibold small">{t("form.lastNameRequired")}</Form.Label>
                       <Form.Control
                         name="lastName"
                         value={clientForm.lastName}
                         onChange={handleFormChange}
-                        placeholder="Ej: García"
+                        placeholder={t("form.lastNamePlaceholder")}
                         required
                       />
                     </Form.Group>
@@ -430,55 +439,55 @@ export default function PublicBookingPage() {
                 <Row className="g-3">
                   <Col md={6}>
                     <Form.Group>
-                      <Form.Label className="fw-semibold small">Teléfono / WhatsApp *</Form.Label>
+                      <Form.Label className="fw-semibold small">{t("form.phone")}</Form.Label>
                       <Form.Control
                         type="tel"
                         name="phone"
                         value={clientForm.phone}
                         onChange={handleFormChange}
-                        placeholder="Ej: 1123456789"
+                        placeholder={t("form.phonePlaceholder")}
                         required
                       />
                     </Form.Group>
                   </Col>
                   <Col md={6}>
                     <Form.Group>
-                      <Form.Label className="fw-semibold small">Correo electrónico</Form.Label>
+                      <Form.Label className="fw-semibold small">{t("form.email")}</Form.Label>
                       <Form.Control
                         type="email"
                         name="email"
                         value={clientForm.email}
                         onChange={handleFormChange}
-                        placeholder="ejemplo@email.com"
+                        placeholder={t("form.emailPlaceholder")}
                       />
                     </Form.Group>
                   </Col>
                 </Row>
 
                 <Form.Group>
-                  <Form.Label className="fw-semibold small">Notas aclaratorias (Opcional)</Form.Label>
+                  <Form.Label className="fw-semibold small">{t("form.notes")}</Form.Label>
                   <Form.Control
                     name="notes"
                     as="textarea"
                     rows={2}
                     value={clientForm.notes}
                     onChange={handleFormChange}
-                    placeholder="Preferencias, alergias o algún comentario para el profesional..."
+                    placeholder={t("form.notesPlaceholder")}
                   />
                 </Form.Group>
 
                 <div className="mt-3 p-3 bg-light rounded-3 small">
-                  <div className="fw-bold mb-1">Resumen del Turno:</div>
+                  <div className="fw-bold mb-1">{t("form.summary")}</div>
                   <div className="text-muted">
-                    Servicio: <strong>{selService.name}</strong> ({currency(selService.price)})<br />
-                    Profesional: <strong>{selProfessional ? selProfessional.name : "Cualquier disponible"}</strong><br />
-                    Fecha/Hora: <strong>{selDate} a las {selTime} hs</strong>
+                    {t("form.summaryService")} <strong>{selService.name}</strong> ({currency(selService.price)})<br />
+                    {t("form.summaryProfessional")} <strong>{selProfessional ? selProfessional.name : t("form.anyAvailable")}</strong><br />
+                    {t("form.summaryDate")} <strong>{selDate} {selTime}</strong>
                   </div>
                 </div>
 
                 <div className="d-flex justify-content-end mt-4 pt-3 border-top gap-2">
                   <Button variant="outline-secondary" onClick={handleBackStep} className="rounded-pill px-4">
-                    Atrás
+                    {t("form.back")}
                   </Button>
                   <Button
                     type="submit"
@@ -487,7 +496,7 @@ export default function PublicBookingPage() {
                     className="rounded-pill px-4 btn-premium"
                     style={{ background: primaryColor, borderColor: primaryColor }}
                   >
-                    {submitting ? "Procesando..." : "Confirmar Turno"}
+                    {submitting ? t("form.submitting") : t("form.submit")}
                   </Button>
                 </div>
               </Form>
@@ -498,7 +507,7 @@ export default function PublicBookingPage() {
               <div className="d-flex justify-content-between mt-4 pt-3 border-top">
                 {step > 1 ? (
                   <Button variant="outline-secondary" onClick={handleBackStep} className="rounded-pill px-4">
-                    Atrás
+                    {t("form.back")}
                   </Button>
                 ) : (
                   <div />
@@ -512,7 +521,7 @@ export default function PublicBookingPage() {
                     className="rounded-pill px-4 btn-premium"
                     style={{ background: primaryColor, borderColor: primaryColor }}
                   >
-                    Siguiente
+                    {t("form.next", { defaultValue: "Next" })}
                   </Button>
                 )}
               </div>

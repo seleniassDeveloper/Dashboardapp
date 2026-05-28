@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState, useMemo } from "react";
-import { Container, Row, Col, Button, Spinner, Alert, Tabs, Tab, Table, Badge, ProgressBar } from "react-bootstrap";
+import { Container, Row, Col, Button, Spinner, Alert, Tabs, Tab, Table, Badge, ProgressBar, Card } from "react-bootstrap";
 import { UserPlus, Mail, Phone, Calendar, Pencil, Award, TrendingUp, Percent } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import WorkerFormModal from "../header/workers/WorkerFormModal.jsx";
 import api from "../lib/api.js";
 
@@ -27,6 +28,7 @@ function currency(n) {
 }
 
 export default function TeamView() {
+  const { t } = useTranslation("views");
   const [workers, setWorkers] = useState([]);
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -123,8 +125,8 @@ export default function TeamView() {
     <Container fluid className="p-0 pb-4">
       <header className="mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
         <div>
-          <h1 className="fw-bold h3">Gestión de Personal</h1>
-          <p className="text-muted mb-0">Monitorea la facturación individual, liquidación de comisiones automáticas y rankings de retención.</p>
+          <h1 className="fw-bold h3">{t("team.title")}</h1>
+          <p className="text-muted mb-0">{t("team.subtitle")}</p>
         </div>
         <Button
           variant="dark"
@@ -132,7 +134,7 @@ export default function TeamView() {
           onClick={openCreate}
         >
           <UserPlus size={18} />
-          Añadir Miembro
+          {t("team.newWorker")}
         </Button>
       </header>
 

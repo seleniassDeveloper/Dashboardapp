@@ -1,0 +1,70 @@
+{
+  "header": {
+    "operational": "Operativo",
+    "greetingMorning": "Buenos días",
+    "greetingAfternoon": "Buenas tardes",
+    "greetingEvening": "Buenas noches",
+    "defaultUserName": "Usuario",
+    "searchPlaceholder": "Buscar cita o cliente...",
+    "quickActions": {
+      "client": "Cliente",
+      "appointment": "Cita",
+      "widget": "Widget"
+    }
+  },
+  "loading": "Cargando tu centro de control inteligente…",
+  "errors": {
+    "loadData": "No se pudieron cargar los datos del dashboard. Verificá la conexión.",
+    "saveWidget": "No se pudo guardar la configuración del widget.",
+    "aiWidget": "No se pudo agregar el widget sugerido por la IA.",
+    "deleteWidget": "No se pudo eliminar el widget.",
+    "updateStatus": "No se pudo actualizar el estado.",
+    "configureScheduleHint": "Para configurar el horario del profesional, ingresá a la vista de Equipo."
+  },
+  "confirm": {
+    "deleteWidget": "¿Estás seguro de que deseas eliminar este widget?"
+  },
+  "kpis": {
+    "appointmentsToday": "Citas hoy",
+    "revenueToday": "Ingresos hoy",
+    "activeClients": "Clientes activos",
+    "cancellationsToday": "Cancelaciones hoy",
+    "occupancy": "Ocupación",
+    "topProfessional": "Profesional top",
+    "none": "Ninguno",
+    "vsYesterday": "vs. ayer"
+  },
+  "widgets": {
+    "title": "Widget",
+    "noWidgets": "Aún no hay widgets configurados",
+    "addWidget": "Agregar widget",
+    "editWidget": "Editar widget",
+    "deleteWidget": "Eliminar widget",
+    "settings": "Ajustes del widget",
+    "type": "Tipo de widget",
+    "name": "Nombre del widget",
+    "size": "Tamaño",
+    "small": "Pequeño",
+    "medium": "Mediano",
+    "large": "Grande",
+    "kpi": "KPI",
+    "chart": "Gráfico",
+    "calendar": "Calendario",
+    "list": "Lista",
+    "table": "Tabla"
+  },
+  "ai": {
+    "openChat": "Abrir asistente IA",
+    "closeChat": "Cerrar",
+    "title": "Copilot IA",
+    "subtitle": "Preguntá lo que quieras sobre tu negocio",
+    "placeholder": "Escribí tu pregunta...",
+    "send": "Enviar",
+    "thinking": "Pensando...",
+    "suggestions": "Sugerencias",
+    "requests": {
+      "title": "Pedidos desde IA",
+      "help": "Cada consulta agrega un bloque nuevo. Configurás el gadget con listas en <strong>Opciones del gadget</strong> o con el <strong>Asistente · paso a paso</strong>; solo escribís lo que debe hacer la IA en el mensaje final."
+    }
+  }
+}

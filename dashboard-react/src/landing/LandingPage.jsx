@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Container, Row, Col, Badge, Nav, Navbar } from "react-bootstrap";
-import { 
-  Users, 
-  Calendar, 
-  Zap, 
-  CheckCircle, 
+import {
+  Users,
+  Calendar,
+  Zap,
+  CheckCircle,
   ArrowRight,
   BarChart3,
   Globe
 } from "lucide-react";
+import LanguageSwitcher from "../components/language/LanguageSwitcher.jsx";
 import "./styles/landing.css";
 
 import dashHome from "../assets/c1.png";
@@ -49,8 +51,8 @@ function HeroImageStack() {
   return (
     <div className="hero-carousel card-premium p-1 shadow-extreme">
       {images.map((img, idx) => (
-        <img 
-          key={idx} 
+        <img
+          key={idx}
           src={img}
           alt={`Dashboard View ${idx + 1}`}
           className={`hero-carousel__item ${idx === index ? 'active' : ''}`}
@@ -65,12 +67,13 @@ import { X } from "lucide-react";
 
 // Componente del Modal Explicativo
 function HowItWorksModal({ show, onHide }) {
+  const { t } = useTranslation("landing");
   const steps = [
-    { title: "Panel Principal", img: dashHome, desc: "Vista 360° de tu negocio con métricas en tiempo real." },
-    { title: "Agenda Inteligente", img: dashCalendar, desc: "Calendario dinámico con estados por colores y recordatorios." },
-    { title: "CRM de Clientes", img: dashClients, desc: "Base de datos centralizada con historial y búsqueda rápida." },
-    { title: "Gestión de Equipo", img: dashTeam, desc: "Administra colaboradores, especialidades y horarios." },
-    { title: "Módulo Financiero", img: dashFinance, desc: "Control total de ingresos, pagos y metas mensuales." }
+    { title: t("howItWorks.step1.title"), img: dashHome, desc: t("howItWorks.step1.desc") },
+    { title: t("howItWorks.step2.title"), img: dashCalendar, desc: t("howItWorks.step2.desc") },
+    { title: t("howItWorks.step3.title"), img: dashClients, desc: t("howItWorks.step3.desc") },
+    { title: t("howItWorks.step4.title"), img: dashTeam, desc: t("howItWorks.step4.desc") },
+    { title: t("howItWorks.step5.title"), img: dashFinance, desc: t("howItWorks.step5.desc") }
   ];
 
   return (
@@ -78,12 +81,12 @@ function HowItWorksModal({ show, onHide }) {
       <div className="premium-how-it-works shadow-extreme">
         <div className="modal-header-custom">
           <div>
-            <h2 className="fw-black h3 mb-1">¿Cómo funciona Dashboard OS?</h2>
-            <p className="text-muted small mb-0">Explora la potencia de tu nueva herramienta de gestión.</p>
+            <h2 className="fw-black h3 mb-1">{t("howItWorks.title")}</h2>
+            <p className="text-muted small mb-0">{t("howItWorks.subtitle")}</p>
           </div>
           <button className="btn-close-custom" onClick={onHide}><X size={24} /></button>
         </div>
-        
+
         <div className="modal-body-custom scroll-custom">
           {steps.map((step, idx) => (
             <div key={idx} className="manual-step-item mb-5">
@@ -98,10 +101,10 @@ function HowItWorksModal({ show, onHide }) {
             </div>
           ))}
         </div>
-        
+
         <div className="modal-footer-custom">
           <Link to="/app" className="btn-premium px-5 py-3 text-decoration-none">
-            Empezar ahora mismo
+            {t("howItWorks.cta")}
           </Link>
         </div>
       </div>
@@ -110,6 +113,7 @@ function HowItWorksModal({ show, onHide }) {
 }
 
 function MainNavbar({ onHowItWorks }) {
+  const { t } = useTranslation("landing");
   return (
     <Navbar bg="transparent" expand="lg" className="py-4">
       <Container>
@@ -121,12 +125,13 @@ function MainNavbar({ onHowItWorks }) {
         <Navbar.Collapse id="basic-navbar-nav">
           <Nav className="ms-auto align-items-center gap-4">
             <Nav.Link onClick={onHowItWorks} className="fw-semibold text-dark" style={{ cursor: 'pointer' }}>
-              ¿Cómo funciona?
+              {t("nav.howItWorks")}
             </Nav.Link>
-            <Nav.Link href="#funcionalidades" className="fw-semibold">Funcionalidades</Nav.Link>
-            <Nav.Link href="#precios" className="fw-semibold">Precios</Nav.Link>
+            <Nav.Link href="#funcionalidades" className="fw-semibold">{t("nav.features")}</Nav.Link>
+            <Nav.Link href="#precios" className="fw-semibold">{t("nav.pricing")}</Nav.Link>
+            <LanguageSwitcher variant="landing" />
             <Link to="/app" className="btn-premium px-4 py-2 text-decoration-none">
-              Entrar al sistema
+              {t("nav.enterApp")}
             </Link>
           </Nav>
         </Navbar.Collapse>
@@ -137,50 +142,65 @@ function MainNavbar({ onHowItWorks }) {
 
 export default function LandingPage() {
   useScrollReveal();
+  const { t } = useTranslation("landing");
   const [showManual, setShowManual] = useState(false);
+
+  const featureCards = [
+    { key: "appointments", icon: <Calendar size={24}/>, color: "text-success" },
+    { key: "clients", icon: <Users size={24}/>, color: "text-primary" },
+    { key: "automation", icon: <Zap size={24}/>, color: "text-warning" },
+    { key: "metrics", icon: <BarChart3 size={24}/>, color: "text-danger" },
+    { key: "multiDevice", icon: <Globe size={24}/>, color: "text-info" },
+    { key: "aiSupport", icon: <Zap size={24}/>, color: "text-accent" },
+  ];
+
+  const plans = [
+    { key: "individual", price: "$5", featured: false },
+    { key: "professional", price: "$7", featured: true },
+    { key: "business", price: "$10", featured: false }
+  ];
 
   return (
     <div className="landing-premium">
       <MainNavbar onHowItWorks={() => setShowManual(true)} />
-      
+
       <main>
         {/* HERO SECTION */}
         <section className="hero-section py-5 reveal">
           <Container>
             <Row className="align-items-center g-5">
               <Col lg={6}>
-                <Badge bg="dark" className="mb-4 px-3 py-2 rounded-pill fw-bold">NUEVA VERSIÓN 2.0</Badge>
+                <Badge bg="dark" className="mb-4 px-3 py-2 rounded-pill fw-bold">{t("hero.badge")}</Badge>
                 <h1 className="display-3 fw-black mb-4">
-                  Tu negocio, <br/> 
-                  <span className="text-accent">bajo control.</span>
+                  {t("hero.titleLine1")} <br/>
+                  <span className="text-accent">{t("hero.titleLine2")}</span>
                 </h1>
                 <p className="lead text-muted mb-5 pe-lg-5">
-                  Gestiona citas, clientes y equipo en una interfaz diseñada para la máxima velocidad. 
-                  Sin distracciones, solo lo que importa para tu crecimiento.
+                  {t("hero.subtitle")}
                 </p>
                 <div className="d-flex gap-3">
                   <Link to="/app" className="btn-premium px-5 py-3 text-decoration-none shadow-lg">
-                    Empezar ahora
+                    {t("hero.ctaPrimary")}
                   </Link>
                   <button onClick={() => setShowManual(true)} className="btn-outline-premium px-5 py-3">
-                    ¿Cómo funciona?
+                    {t("hero.ctaSecondary")}
                   </button>
                 </div>
               </Col>
               <Col lg={6}>
                 <div className="hero-product-shot">
                   <HeroImageStack />
-                  
+
                   {/* Floating Callouts para dar profundidad */}
                   <div className="floating-card metrics-card card-premium shadow-lg">
                     <BarChart3 size={20} className="text-accent mb-2" />
                     <div className="fw-bold">+24%</div>
-                    <div className="text-muted smaller">Eficiencia</div>
+                    <div className="text-muted smaller">{t("hero.metricsEfficiency")}</div>
                   </div>
                   <div className="floating-card users-card card-premium shadow-lg">
                     <Users size={20} className="text-primary mb-2" />
                     <div className="fw-bold">540+</div>
-                    <div className="text-muted smaller">Clientes</div>
+                    <div className="text-muted smaller">{t("hero.metricsClients")}</div>
                   </div>
                 </div>
               </Col>
@@ -192,25 +212,18 @@ export default function LandingPage() {
         <section id="funcionalidades" className="features-section py-120 bg-soft-grey reveal">
           <Container>
             <div className="text-center mb-5 pb-4">
-              <h2 className="fw-black h1 mb-3">Diseñado para la acción</h2>
+              <h2 className="fw-black h1 mb-3">{t("features.title")}</h2>
               <p className="text-muted mx-auto" style={{ maxWidth: '600px' }}>
-                Hemos eliminado el ruido para que puedas gestionar tu día a día con total claridad.
+                {t("features.subtitle")}
               </p>
             </div>
             <Row className="g-4">
-              {[
-                { title: "Gestión de Citas", desc: "Calendario dinámico e intuitivo con estados personalizables.", icon: <Calendar size={24}/>, color: "text-success" },
-                { title: "Base de Clientes", desc: "CRM completo para fidelizar y gestionar tu comunidad.", icon: <Users size={24}/>, color: "text-primary" },
-                { title: "Automatización", desc: "Flujos de trabajo que te ahorran horas de administración.", icon: <Zap size={24}/>, color: "text-warning" },
-                { title: "Métricas Reales", desc: "Gráficos limpios para entender el rendimiento de tu negocio.", icon: <BarChart3 size={24}/>, color: "text-danger" },
-                { title: "Multi-dispositivo", desc: "Accede desde cualquier lugar con una interfaz optimizada.", icon: <Globe size={24}/>, color: "text-info" },
-                { title: "IA de Soporte", desc: "Asistencia inteligente para optimizar tus horarios y tareas.", icon: <Zap size={24}/>, color: "text-accent" },
-              ].map((feat, idx) => (
+              {featureCards.map((feat, idx) => (
                 <Col md={4} key={idx}>
                   <div className="card-premium h-100 feature-card-hover p-4 border-0">
                     <div className={`${feat.color} mb-3`}>{feat.icon}</div>
-                    <h3 className="h5 fw-bold mb-3">{feat.title}</h3>
-                    <p className="text-muted small mb-0">{feat.desc}</p>
+                    <h3 className="h5 fw-bold mb-3">{t(`features.${feat.key}.title`)}</h3>
+                    <p className="text-muted small mb-0">{t(`features.${feat.key}.desc`)}</p>
                   </div>
                 </Col>
               ))}
@@ -222,29 +235,25 @@ export default function LandingPage() {
         <section id="precios" className="pricing-section py-120 reveal">
           <Container>
             <div className="text-center mb-5 pb-4">
-              <h2 className="fw-black h1 mb-3">Precios Transparentes</h2>
-              <p className="text-muted">Elige el plan que mejor se adapte a tu crecimiento.</p>
+              <h2 className="fw-black h1 mb-3">{t("pricing.title")}</h2>
+              <p className="text-muted">{t("pricing.subtitle")}</p>
             </div>
             <Row className="g-4 justify-content-center">
-              {[
-                { name: "Individual", price: "$5", features: ["1 Usuario", "Gestión de Citas", "Base de Clientes"] },
-                { name: "Professional", price: "$7", featured: true, features: ["3 Usuarios", "Métricas Avanzadas", "Notificaciones WA"] },
-                { name: "Business", price: "$10", features: ["Ilimitado", "IA Support", "Soporte Prioritario"] }
-              ].map((plan, idx) => (
+              {plans.map((plan, idx) => (
                 <Col lg={4} md={6} key={idx}>
                   <div className={`card-premium h-100 p-5 text-center ${plan.featured ? 'border-accent shadow-accent' : 'border-0'}`}>
-                    {plan.featured && <Badge bg="warning" className="text-dark mb-3">MÁS POPULAR</Badge>}
-                    <h3 className="h5 fw-bold text-muted uppercase mb-2">{plan.name}</h3>
-                    <div className="display-4 fw-black mb-4">{plan.price}<span className="h6 text-muted">/mes</span></div>
+                    {plan.featured && <Badge bg="warning" className="text-dark mb-3">{t("pricing.popular")}</Badge>}
+                    <h3 className="h5 fw-bold text-muted uppercase mb-2">{t(`pricing.${plan.key}.name`)}</h3>
+                    <div className="display-4 fw-black mb-4">{plan.price}<span className="h6 text-muted">{t("pricing.perMonth")}</span></div>
                     <ul className="list-unstyled mb-5 text-start d-inline-block mx-auto">
-                      {plan.features.map((f, i) => (
-                        <li key={i} className="mb-2 small fw-medium d-flex align-items-center gap-2">
-                          <CheckCircle size={16} className="text-accent" /> {f}
+                      {["f1", "f2", "f3"].map((fk) => (
+                        <li key={fk} className="mb-2 small fw-medium d-flex align-items-center gap-2">
+                          <CheckCircle size={16} className="text-accent" /> {t(`pricing.${plan.key}.${fk}`)}
                         </li>
                       ))}
                     </ul>
                     <Link to="/app" className={`btn w-100 rounded-pill py-3 fw-bold ${plan.featured ? 'btn-dark' : 'btn-outline-dark'}`}>
-                      Contratar ahora
+                      {t("pricing.cta")}
                     </Link>
                   </div>
                 </Col>
@@ -259,11 +268,11 @@ export default function LandingPage() {
       <footer className="py-5 border-top bg-white">
         <Container>
           <div className="d-flex flex-column flex-md-row justify-content-between align-items-center gap-4 text-muted small">
-            <div className="fw-bold text-dark">Dashboard OS &copy; 2026</div>
+            <div className="fw-bold text-dark">{t("footer.copyright")}</div>
             <div className="d-flex gap-4">
-              <a href="#">Privacidad</a>
-              <a href="#">Términos</a>
-              <a href="#">Contacto</a>
+              <a href="#">{t("footer.privacy")}</a>
+              <a href="#">{t("footer.terms")}</a>
+              <a href="#">{t("footer.contact")}</a>
             </div>
           </div>
         </Container>

@@ -3,7 +3,7 @@ import prisma from "../prisma.js";
 // POST /api/services
 export async function createService(req, res) {
   try {
-    const { name, price, duration, isActive } = req.body;
+    const { name, price, duration, isActive, workerIds } = req.body;
 
     if (!name?.trim()) {
       return res.status(400).json({ error: "El nombre del servicio es obligatorio." });
@@ -26,7 +26,19 @@ export async function createService(req, res) {
         price: parsedPrice,
         duration: parsedDuration,
         isActive: typeof isActive === "boolean" ? isActive : true,
+        workers: workerIds && Array.isArray(workerIds) ? {
+          create: workerIds.map(wId => ({
+            workerId: wId
+          }))
+        } : undefined
       },
+      include: {
+        workers: {
+          include: {
+            worker: true
+          }
+        }
+      }
     });
 
     return res.json(created);
@@ -54,6 +66,13 @@ export async function listServices(req, res) {
 
     const services = await prisma.service.findMany({
       where,
+      include: {
+        workers: {
+          include: {
+            worker: true
+          }
+        }
+      },
       orderBy: { createdAt: "desc" },
     });
 
@@ -68,7 +87,7 @@ export async function listServices(req, res) {
 export async function updateService(req, res) {
   try {
     const { id } = req.params;
-    const { name, price, duration, isActive } = req.body;
+    const { name, price, duration, isActive, workerIds } = req.body;
 
     const data = {};
 
@@ -97,9 +116,32 @@ export async function updateService(req, res) {
       data.isActive = Boolean(isActive);
     }
 
+    if (workerIds !== undefined && Array.isArray(workerIds)) {
+      // Borrar antiguos vínculos
+      await prisma.workerService.deleteMany({
+        where: { serviceId: id }
+      });
+      
+      // Crear nuevos vínculos
+      if (workerIds.length > 0) {
+        data.workers = {
+          create: workerIds.map(wId => ({
+            workerId: wId
+          }))
+        };
+      }
+    }
+
     const updated = await prisma.service.update({
       where: { id },
       data,
+      include: {
+        workers: {
+          include: {
+            worker: true
+          }
+        }
+      }
     });
 
     return res.json(updated);

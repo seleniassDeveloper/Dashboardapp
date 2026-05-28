@@ -1,10 +1,13 @@
 import React, { useState } from "react";
 import { Container, Row, Col, Button, Card, Table, Badge } from "react-bootstrap";
 import { Plus, Edit2, Trash2, Scissors, Clock, Tag } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useAppointmentsStore } from "../gadgets/appointments/AppointmentsProvider";
 import ServiceModal from "../header/services/ServiceModal";
 import api from "../lib/api.js";
+
 export default function ServicesView() {
+  const { t } = useTranslation("views");
   const { services, fetchServices } = useAppointmentsStore();
   const [showModal, setShowModal] = useState(false);
   const [editingService, setEditingService] = useState(null);
@@ -20,12 +23,12 @@ export default function ServicesView() {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("¿Estás seguro de eliminar este servicio?")) return;
+    if (!window.confirm(t("services.confirmDelete"))) return;
     try {
       await api.delete(`/services/${id}`);
       fetchServices();
     } catch (e) {
-      alert("Error eliminando servicio");
+      alert(t("services.deleteError"));
     }
   };
 
@@ -33,17 +36,17 @@ export default function ServicesView() {
     <Container fluid className="p-0">
       <header className="mb-4 d-flex justify-content-between align-items-center">
         <div>
-          <h1 className="fw-bold h3">Gestión de Servicios</h1>
-          <p className="text-muted">Configura los tratamientos y precios que ofreces.</p>
+          <h1 className="fw-bold h3">{t("services.title")}</h1>
+          <p className="text-muted">{t("services.subtitle")}</p>
         </div>
-        <Button 
-          variant="dark" 
+        <Button
+          variant="dark"
           className="d-flex align-items-center gap-2 px-4 py-2"
           onClick={handleAdd}
           style={{ borderRadius: '10px' }}
         >
           <Plus size={18} />
-          Nuevo Servicio
+          {t("services.newService")}
         </Button>
       </header>
 
@@ -51,11 +54,12 @@ export default function ServicesView() {
         <Table hover responsive className="mb-0 align-middle">
           <thead className="bg-light">
             <tr>
-              <th className="px-4 py-3 border-0">Servicio</th>
-              <th className="py-3 border-0">Duración</th>
-              <th className="py-3 border-0">Precio</th>
-              <th className="py-3 border-0">Estado</th>
-              <th className="py-3 border-0 text-end px-4">Acciones</th>
+              <th className="px-4 py-3 border-0">{t("services.table.service")}</th>
+              <th className="py-3 border-0">{t("services.table.duration")}</th>
+              <th className="py-3 border-0">{t("services.table.price")}</th>
+              <th className="py-3 border-0">{t("services.table.professionals")}</th>
+              <th className="py-3 border-0">{t("services.table.status")}</th>
+              <th className="py-3 border-0 text-end px-4">{t("services.table.actions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -72,7 +76,7 @@ export default function ServicesView() {
                 <td className="py-3">
                   <div className="d-flex align-items-center gap-2 text-muted">
                     <Clock size={16} />
-                    {s.duration} min
+                    {s.duration} {t("services.minShort")}
                   </div>
                 </td>
                 <td className="py-3">
@@ -82,8 +86,31 @@ export default function ServicesView() {
                   </div>
                 </td>
                 <td className="py-3">
+                  <div className="d-flex flex-wrap gap-1" style={{ maxWidth: "250px" }}>
+                    {s.workers && s.workers.length > 0 ? (
+                      s.workers.map(({ worker }) => (
+                        <span
+                          key={worker.id}
+                          className="rounded-pill px-2.5 py-1 fw-bold border"
+                          style={{
+                            fontSize: "11.5px",
+                            backgroundColor: "#f3e8ff",
+                            color: "#6b21a8",
+                            borderColor: "#d8b4fe",
+                            display: "inline-block"
+                          }}
+                        >
+                          {worker.firstName} {worker.lastName?.charAt(0) || ""}.
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-muted smaller italic">{t("services.noWorkers")}</span>
+                    )}
+                  </div>
+                </td>
+                <td className="py-3">
                   <Badge bg="success" className="px-2 py-1" style={{ borderRadius: '6px', fontWeight: '500' }}>
-                    Activo
+                    {t("services.statusActive")}
                   </Badge>
                 </td>
                 <td className="py-3 text-end px-4">
@@ -100,8 +127,8 @@ export default function ServicesView() {
             ))}
             {services.length === 0 && (
               <tr>
-                <td colSpan="5" className="text-center py-5 text-muted">
-                  No hay servicios configurados aún.
+                <td colSpan="6" className="text-center py-5 text-muted">
+                  {t("services.empty")}
                 </td>
               </tr>
             )}
@@ -109,12 +136,12 @@ export default function ServicesView() {
         </Table>
       </div>
 
-      <ServiceModal 
-        show={showModal} 
+      <ServiceModal
+        show={showModal}
         onHide={() => {
           setShowModal(false);
           fetchServices();
-        }} 
+        }}
         editService={editingService}
       />
     </Container>

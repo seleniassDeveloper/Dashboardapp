@@ -1,0 +1,205 @@
+{
+  "calendar": {
+    "title": "Appointments Schedule",
+    "subtitle": "Manage your schedule, reminders and optimize your stylists' time.",
+    "newAppointment": "New appointment",
+    "today": "Today",
+    "week": "Week",
+    "month": "Month",
+    "day": "Day",
+    "noAppointments": "No appointments for this period"
+  },
+  "clients": {
+    "title": "Clients Management",
+    "subtitle": "Centralized database of your clients and patients.",
+    "newClient": "New client",
+    "search": "Search by name, email or phone…",
+    "table": {
+      "fullName": "Full Name",
+      "phone": "Phone",
+      "email": "Email Address",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "statuses": {
+      "vip": "VIP",
+      "active": "Active",
+      "inactive": "Inactive",
+      "new": "New",
+      "daysShort": "d",
+      "visitsShort": "v"
+    },
+    "actions": {
+      "view": "Client profile",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "errors": {
+      "load": "Could not load clients.",
+      "delete": "Could not delete the client."
+    },
+    "success": {
+      "created": "Client created.",
+      "updated": "Client updated.",
+      "deleted": "Client deleted."
+    },
+    "confirmDelete": "Delete {{name}}?",
+    "loading": "Loading database…",
+    "empty": "No clients found.",
+    "pagination": "Showing {{from}} to {{to}} of {{total}} clients"
+  },
+  "services": {
+    "title": "Services Management",
+    "subtitle": "Configure the treatments and prices you offer.",
+    "newService": "New Service",
+    "confirmDelete": "Are you sure you want to delete this service?",
+    "deleteError": "Error deleting service",
+    "minShort": "min",
+    "noWorkers": "No professionals linked",
+    "table": {
+      "service": "Service",
+      "duration": "Duration",
+      "price": "Price",
+      "professionals": "Professionals",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "statusActive": "Active",
+    "empty": "No services configured yet."
+  },
+  "team": {
+    "title": "Staff Management",
+    "subtitle": "Track individual revenue, automatic commission settlement and retention rankings.",
+    "newWorker": "Add Member",
+    "empty": "No workers added yet."
+  },
+  "finances": {
+    "title": "ERP Financial Control Center",
+    "subtitle": "Comprehensive multi-branch accounting, reconciliation and real-time liquidity audits.",
+    "newExpense": "Record Expense",
+    "reportsCenter": "Reports Center",
+    "tabs": {
+      "dashboard": "Dashboard",
+      "cashClosing": "Cash closing",
+      "expenses": "Expenses",
+      "salaries": "Salaries",
+      "reconciliation": "Reconciliation",
+      "profitability": "Profitability",
+      "reports": "Reports",
+      "audit": "Audit",
+      "simulator": "Simulator"
+    }
+  },
+  "inventory": {
+    "title": "ERP Inventory Control Center",
+    "subtitle": "Automated supply control, FIFO batch traceability, ROI calculation per use and replenishment.",
+    "newProduct": "New product",
+    "tabs": {
+      "dashboard": "Dashboard",
+      "products": "Products",
+      "movements": "Movements",
+      "suppliers": "Suppliers",
+      "orders": "Purchase orders",
+      "branches": "Branches",
+      "batches": "Batches",
+      "rules": "Consumption rules",
+      "scanner": "Scanner",
+      "aiInsights": "AI Insights",
+      "simulator": "Simulator"
+    }
+  },
+  "workflows": {
+    "title": "Automation Center (ERP Workflows)",
+    "subtitle": "Design, simulate and launch conditional business flows for your salon, clinic or studio.",
+    "newWorkflow": "New Automation",
+    "empty": "No workflows created yet."
+  },
+  "automations": {
+    "title": "Automation Center",
+    "subtitle": "Connect your favorite tools and automate communication.",
+    "newAutomation": "New automation",
+    "empty": "No automations configured.",
+    "services": {
+      "whatsapp": { "name": "Automatic WhatsApp", "desc": "Send confirmations and reminders via WhatsApp." },
+      "email": { "name": "Email Marketing", "desc": "Automated birthday and promo campaigns." },
+      "push": { "name": "Push Notifications", "desc": "Direct alerts to your clients' mobile devices." },
+      "bot": { "name": "24/7 Booking Bot", "desc": "An AI assistant that books appointments for you." }
+    },
+    "comingSoonTitle": "Coming soon: Instagram & TikTok integration",
+    "comingSoonDesc": "Book appointments directly from your social media with our official booking button.",
+    "comingSoonBadge": "Next update"
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Field catalog, screen assignment, workflow rules and active modules.",
+    "tabs": {
+      "registry": "Field catalog",
+      "assign": "Assign to components",
+      "modules": "Active modules",
+      "booking": "Online bookings"
+    },
+    "workflowHint": {
+      "title": "Workflows with transitions and screens",
+      "p1": "In <strong>Workflows</strong> you can define transitions between steps and intermediate screens (forms that the user or client fills out during the flow). The screens use fields from the catalog with entity <code>workflow</code>.",
+      "p2": "First configure the fields in the \"Catalog\" tab and assign them in \"Workflow — screens\" if you want to customize what is shown at each step."
+    }
+  },
+  "sheetsSync": {
+    "title": "Google Sheets Sync",
+    "subtitle": "Two-way accounting portal to import, export and download files from your business."
+  },
+  "howItWorks": {
+    "title": "How it works",
+    "back": "Back to dashboard",
+    "badge": "Onboarding Guide",
+    "heroTitle": "Master your Dashboard OS",
+    "heroSubtitle": "Learn to manage your business like the world's best companies. A complete guide for owners, admins and teams.",
+    "section1": {
+      "tag": "01. INTRODUCTION",
+      "title": "What is Dashboard OS?",
+      "body": "It's the definitive operating system for service-based businesses. We centralize your schedule, finances and clients in a single premium interface designed for speed and clarity.",
+      "li1": "Centralized appointment and client management.",
+      "li2": "Real-time profitability analysis.",
+      "li3": "Automated reminders and follow-ups.",
+      "placeholder": "[Screenshot of main Dashboard with captions: \"Overview\", \"KPIs\", \"Schedule\"]"
+    },
+    "section2": {
+      "tag": "02. NAVIGATION",
+      "title": "Everything one click away",
+      "card1Title": "Live Schedule",
+      "card1Desc": "Visual control of daily, weekly and monthly bookings.",
+      "card2Title": "Real-Time Metrics",
+      "card2Desc": "Revenue and occupancy KPIs updated instantly.",
+      "card3Title": "Staff Management",
+      "card3Desc": "Control performance and schedules of your entire team."
+    },
+    "section3": {
+      "tag": "03. WORKFLOW",
+      "title": "The success cycle",
+      "step1Title": "Create Client",
+      "step1Desc": "Register basic data and client preferences.",
+      "step2Title": "Book Appointment",
+      "step2Desc": "Pick service, worker and time on the calendar.",
+      "step3Title": "Complete and Charge",
+      "step3Desc": "The system records the payment and updates your finances."
+    },
+    "section4": {
+      "title": "Next-level Automation",
+      "body": "Reduce no-shows by 40% with automatic WhatsApp and Email reminders. The system handles follow-ups while you focus on the service.",
+      "previewTitle": "Alert preview:",
+      "preview": "\"Hi [Name], this is a reminder for your [Service] appointment tomorrow at [Time]. See you soon!\""
+    },
+    "faq": {
+      "title": "Frequently Asked Questions",
+      "q1": "How do I customize my colors?",
+      "a1": "Go to Settings > Brand. Pick your color and the dashboard will adapt automatically.",
+      "q2": "Can I export my data?",
+      "a2": "Yes, all your client and finance lists can be exported to Excel or PDF in one click."
+    },
+    "footer": {
+      "title": "Ready to scale?",
+      "subtitle": "Dashboard OS is designed to grow with you.",
+      "cta": "Get started"
+    }
+  }
+}

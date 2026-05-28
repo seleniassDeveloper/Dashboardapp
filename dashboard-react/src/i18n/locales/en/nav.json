@@ -1,0 +1,24 @@
+{
+  "menu": {
+    "dashboard": "Dashboard",
+    "appointments": "Schedule",
+    "clients": "Clients",
+    "services": "Services",
+    "team": "Team",
+    "finances": "Finances",
+    "inventory": "Inventory",
+    "sheets_sync": "Sheets Sync",
+    "workflows": "Workflows",
+    "automations": "Automations",
+    "config": "Settings",
+    "usersAdmin": "Users (Admin)"
+  },
+  "topbar": {
+    "openMenu": "Open menu",
+    "myBusiness": "My Business",
+    "searchPlaceholder": "Search appointments, clients or actions... (⌘K)",
+    "notifications": "Notifications",
+    "brandSettings": "Brand settings",
+    "logout": "Log out"
+  }
+}

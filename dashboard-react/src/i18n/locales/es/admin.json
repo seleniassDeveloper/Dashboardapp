@@ -1,0 +1,56 @@
+{
+  "users": {
+    "title": "Administración de Usuarios",
+    "subtitle": "Gestioná los usuarios y sus permisos",
+    "addUser": "Agregar usuario",
+    "table": {
+      "name": "Nombre",
+      "email": "Email",
+      "role": "Rol",
+      "status": "Estado",
+      "created": "Creado",
+      "actions": "Acciones"
+    },
+    "roles": {
+      "admin": "Administrador",
+      "owner": "Propietario",
+      "manager": "Gerente",
+      "staff": "Personal",
+      "user": "Usuario"
+    },
+    "confirmDelete": "¿Estás seguro de que querés eliminar este usuario?",
+    "errors": {
+      "load": "No se pudieron cargar los usuarios.",
+      "save": "No se pudo guardar el usuario.",
+      "delete": "No se pudo eliminar el usuario."
+    }
+  },
+  "brand": {
+    "title": "Ajustes de Marca",
+    "companyName": "Nombre de la empresa",
+    "slogan": "Eslogan",
+    "primaryColor": "Color primario",
+    "accentColor": "Color de acento",
+    "logo": "Logo",
+    "coverImage": "Imagen de portada",
+    "uploadLogo": "Subir logo",
+    "uploadCover": "Subir imagen de portada",
+    "save": "Guardar cambios",
+    "saved": "Marca actualizada con éxito.",
+    "error": "No se pudo guardar la marca."
+  },
+  "modules": {
+    "title": "Módulos activos",
+    "subtitle": "Habilitá o deshabilitá módulos en toda la app",
+    "dashboard": "Panel",
+    "appointments": "Agenda",
+    "clients": "Clientes",
+    "services": "Servicios",
+    "team": "Equipo",
+    "finances": "Finanzas",
+    "inventory": "Inventario",
+    "sheets_sync": "Sincronización Sheets",
+    "workflows": "Workflows",
+    "automations": "Automatizaciones"
+  }
+}

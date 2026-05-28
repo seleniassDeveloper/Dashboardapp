@@ -2,6 +2,7 @@ import React, { useCallback, useMemo, useState } from "react";
 import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
+import { Trans, useTranslation } from "react-i18next";
 
 import AppointmentsList from "./gadgets/appointments/AppointmentsList";
 import AppointmentsCalendar from "./gadgets/appointments/AppointmentsCalendar";
@@ -29,6 +30,7 @@ function normalizeAiReport(raw) {
 }
 
 export default function Body() {
+  const { t } = useTranslation("dashboard");
   const [range, setRange] = useState("ALL");
   const [status, setStatus] = useState("ALL");
 
@@ -162,12 +164,12 @@ export default function Body() {
       {aiGadgets.length > 0 ? (
         <Row className="g-3 mt-4">
           <Col xs={12}>
-            <div className="fw-semibold mb-1">Pedidos desde IA</div>
+            <div className="fw-semibold mb-1">{t("ai.requests.title")}</div>
             <div className="text-muted small mb-2">
-              Cada consulta agrega un bloque nuevo. Configurás el gadget con listas en{" "}
-              <strong>Opciones del gadget</strong> o con el{" "}
-              <strong>Asistente · paso a paso</strong>; solo escribís lo que debe hacer la
-              IA en el mensaje final.
+              <Trans
+                i18nKey="dashboard:ai.requests.help"
+                components={{ strong: <strong /> }}
+              />
             </div>
           </Col>
           {aiGadgets.map((g) => (

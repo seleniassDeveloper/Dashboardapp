@@ -1,0 +1,70 @@
+{
+  "header": {
+    "operational": "Operational",
+    "greetingMorning": "Good morning",
+    "greetingAfternoon": "Good afternoon",
+    "greetingEvening": "Good evening",
+    "defaultUserName": "User",
+    "searchPlaceholder": "Search appointment or client...",
+    "quickActions": {
+      "client": "Client",
+      "appointment": "Appointment",
+      "widget": "Widget"
+    }
+  },
+  "loading": "Loading your smart control center…",
+  "errors": {
+    "loadData": "Could not load dashboard data. Check the connection.",
+    "saveWidget": "Could not save the widget configuration.",
+    "aiWidget": "Could not add the AI-suggested widget.",
+    "deleteWidget": "Could not delete the widget.",
+    "updateStatus": "Could not update the status.",
+    "configureScheduleHint": "To configure the professional's schedule, go to the Team view."
+  },
+  "confirm": {
+    "deleteWidget": "Are you sure you want to delete this widget?"
+  },
+  "kpis": {
+    "appointmentsToday": "Appointments today",
+    "revenueToday": "Revenue today",
+    "activeClients": "Active clients",
+    "cancellationsToday": "Cancellations today",
+    "occupancy": "Occupancy",
+    "topProfessional": "Top professional",
+    "none": "None",
+    "vsYesterday": "vs. yesterday"
+  },
+  "widgets": {
+    "title": "Widget",
+    "noWidgets": "No widgets configured yet",
+    "addWidget": "Add widget",
+    "editWidget": "Edit widget",
+    "deleteWidget": "Delete widget",
+    "settings": "Widget settings",
+    "type": "Widget type",
+    "name": "Widget name",
+    "size": "Size",
+    "small": "Small",
+    "medium": "Medium",
+    "large": "Large",
+    "kpi": "KPI",
+    "chart": "Chart",
+    "calendar": "Calendar",
+    "list": "List",
+    "table": "Table"
+  },
+  "ai": {
+    "openChat": "Open AI assistant",
+    "closeChat": "Close",
+    "title": "AI Copilot",
+    "subtitle": "Ask anything about your business",
+    "placeholder": "Type your question...",
+    "send": "Send",
+    "thinking": "Thinking...",
+    "suggestions": "Suggestions",
+    "requests": {
+      "title": "AI Requests",
+      "help": "Each query adds a new block. You configure the gadget with lists in <strong>Gadget options</strong> or with the <strong>Step-by-step assistant</strong>; just write what the AI should do in the final message."
+    }
+  }
+}

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Container, Row, Col, Button, Table, Spinner, Alert, Form, Stack, Pagination, Badge } from "react-bootstrap";
 import { Search, UserPlus, RefreshCw, Edit2, Trash2, BookOpen } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import ClientModal from "../header/clients/ClientModal.jsx";
 import ClientDetailModal from "../components/clients/ClientDetailModal.jsx";
 import api from "../lib/api.js";
@@ -17,6 +18,7 @@ function displayName(c) {
 }
 
 export default function ClientsView() {
+  const { t } = useTranslation("views");
   const [loading, setLoading] = useState(false);
   const [busyId, setBusyId] = useState("");
   const [error, setError] = useState("");
@@ -60,7 +62,7 @@ export default function ClientsView() {
       setPage(1);
     } catch (e) {
       console.error(e);
-      setError(e?.response?.data?.error || "No se pudieron cargar los clientes.");
+      setError(e?.response?.data?.error || t("clients.errors.load"));
       setClients([]);
     } finally {
       setLoading(false);
@@ -114,12 +116,12 @@ export default function ClientsView() {
       if (exists) return prev.map((c) => (c.id === id ? saved : c));
       return [saved, ...prev];
     });
-    setOkMsg(clientMode === "edit" ? "Cliente actualizado." : "Cliente creado.");
+    setOkMsg(clientMode === "edit" ? t("clients.success.updated") : t("clients.success.created"));
   };
 
   const handleDelete = async (client) => {
     if (!client?.id) return;
-    const ok = window.confirm(`¿Eliminar a ${displayName(client)}?`);
+    const ok = window.confirm(t("clients.confirmDelete", { name: displayName(client) }));
     if (!ok) return;
 
     try {
@@ -128,10 +130,10 @@ export default function ClientsView() {
       setBusyId(client.id);
       await api.delete(`/clients/${client.id}`);
       setClients((prev) => prev.filter((c) => c.id !== client.id));
-      setOkMsg("Cliente eliminado.");
+      setOkMsg(t("clients.success.deleted"));
     } catch (e) {
       console.error(e);
-      setError(e?.response?.data?.error || "No se pudo eliminar.");
+      setError(e?.response?.data?.error || t("clients.errors.delete"));
     } finally {
       setBusyId("");
     }
@@ -141,16 +143,16 @@ export default function ClientsView() {
     <div className="clients-view">
       <header className="mb-4 d-flex justify-content-between align-items-end">
         <div>
-          <h1 className="section-title">Gestión de Clientes</h1>
-          <p className="section-subtitle mb-0">Base de datos centralizada de tus clientes y pacientes.</p>
+          <h1 className="section-title">{t("clients.title")}</h1>
+          <p className="section-subtitle mb-0">{t("clients.subtitle")}</p>
         </div>
-        <Button 
-          variant="dark" 
+        <Button
+          variant="dark"
           className="btn-premium d-flex align-items-center gap-2 px-4 py-3"
           onClick={openCreate}
         >
           <UserPlus size={18} />
-          Nuevo Cliente
+          {t("clients.newClient")}
         </Button>
       </header>
 
@@ -160,7 +162,7 @@ export default function ClientsView() {
             <div className="position-relative flex-grow-1" style={{ maxWidth: 500 }}>
               <Search className="position-absolute top-50 start-0 translate-middle-y ms-3 text-muted" size={18} />
               <Form.Control
-                placeholder="Buscar por nombre, email o teléfono…"
+                placeholder={t("clients.search")}
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 className="ps-5 py-2 border-0 bg-light"
@@ -181,22 +183,22 @@ export default function ClientsView() {
         {loading && clients.length === 0 ? (
           <div className="py-5 text-center text-muted">
             <Spinner animation="border" variant="primary" className="mb-2" />
-            <p>Cargando base de datos…</p>
+            <p>{t("clients.loading")}</p>
           </div>
         ) : sorted.length === 0 ? (
           <div className="py-5 text-center text-muted">
-            <p>No se encontraron clientes.</p>
+            <p>{t("clients.empty")}</p>
           </div>
         ) : (
           <>
             <Table hover responsive className="mb-0">
               <thead>
                 <tr>
-                  <th className="ps-4">Nombre Completo</th>
-                  <th>Teléfono</th>
-                  <th>Correo Electrónico</th>
-                  <th>Estado</th>
-                  <th className="text-end pe-4">Acciones</th>
+                  <th className="ps-4">{t("clients.table.fullName")}</th>
+                  <th>{t("clients.table.phone")}</th>
+                  <th>{t("clients.table.email")}</th>
+                  <th>{t("clients.table.status")}</th>
+                  <th className="text-end pe-4">{t("clients.table.actions")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -214,33 +216,60 @@ export default function ClientsView() {
                     <td className="text-secondary">{c.email || "—"}</td>
                     <td className="align-middle">
                       {(() => {
-                        const clientAppts = appointments.filter((a) => a.clientId === c.id && (a.status === "DONE" || a.status === "CONFIRMED"));
-                        let isInactive = true;
+                        const clientAppts = appointments.filter((a) => a.clientId === c.id);
+                        const doneAppts = clientAppts.filter(a => a.status === "DONE" || a.status === "CONFIRMED");
+                        const upcomingAppts = clientAppts.filter(a => new Date(a.startsAt) > new Date() && (a.status === "PENDING" || a.status === "CONFIRMED"));
+                        const totalSpent = doneAppts.reduce((sum, a) => sum + Number(a.service?.price || 0), 0);
+                        
+                        let status = "NUEVO";
                         let days = null;
-                        if (clientAppts.length > 0) {
-                          const sortedAppts = [...clientAppts].sort((x, y) => {
-                            const dx = x.startsAt ? new Date(x.startsAt).getTime() : 0;
-                            const dy = y.startsAt ? new Date(y.startsAt).getTime() : 0;
-                            return dy - dx;
-                          });
-                          if (sortedAppts[0]?.startsAt) {
-                            const last = new Date(sortedAppts[0].startsAt);
-                            if (!isNaN(last.getTime())) {
-                              const diffTime = Math.abs(new Date() - last);
-                              days = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                              isInactive = days > 45;
-                            }
+
+                        if (doneAppts.length > 0) {
+                          const latest = doneAppts.reduce((latest, a) => {
+                            const date = new Date(a.startsAt);
+                            return date > latest ? date : latest;
+                          }, new Date(0));
+                          const diffTime = Math.abs(new Date() - latest);
+                          days = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+                          if (doneAppts.length >= 5 && totalSpent >= 50000) {
+                            status = "VIP";
+                          } else if (days <= 30 || upcomingAppts.length > 0) {
+                            status = "ACTIVO";
+                          } else if (days > 60) {
+                            status = "INACTIVO";
+                          } else {
+                            status = "ACTIVO";
                           }
+                        } else {
+                          status = "NUEVO";
                         }
-                        return isInactive ? (
-                          <Badge bg="danger-soft" className="text-danger rounded-pill px-2.5 py-1.5 small border border-danger border-opacity-10 fw-bold">
-                            🔴 Inactivo {days !== null ? `(${days} d)` : "(Sin citas)"}
-                          </Badge>
-                        ) : (
-                          <Badge bg="success-soft" className="text-success rounded-pill px-2.5 py-1.5 small border border-success border-opacity-10 fw-bold">
-                            🟢 Activo
-                          </Badge>
-                        );
+
+                        if (status === "VIP") {
+                          return (
+                            <Badge bg="warning-soft" className="rounded-pill px-2.5 py-1.5 small fw-bold border border-warning border-opacity-10" style={{ backgroundColor: "#fef3c7", color: "#d97706" }}>
+                              👑 {t("clients.statuses.vip")} ({doneAppts.length} {t("clients.statuses.visitsShort")})
+                            </Badge>
+                          );
+                        } else if (status === "ACTIVO") {
+                          return (
+                            <Badge bg="success-soft" className="rounded-pill px-2.5 py-1.5 small fw-bold border border-success border-opacity-10" style={{ backgroundColor: "#d1fae5", color: "#065f46" }}>
+                              🟢 {t("clients.statuses.active")}
+                            </Badge>
+                          );
+                        } else if (status === "INACTIVO") {
+                          return (
+                            <Badge bg="danger-soft" className="rounded-pill px-2.5 py-1.5 small fw-bold border border-danger border-opacity-10" style={{ backgroundColor: "#fee2e2", color: "#991b1b" }}>
+                              🔴 {t("clients.statuses.inactive")} ({days} {t("clients.statuses.daysShort")})
+                            </Badge>
+                          );
+                        } else {
+                          return (
+                            <Badge bg="info-soft" className="rounded-pill px-2.5 py-1.5 small fw-bold border border-info border-opacity-10" style={{ backgroundColor: "#e0f2fe", color: "#075985" }}>
+                              🔵 {t("clients.statuses.new")}
+                            </Badge>
+                          );
+                        }
                       })()}
                     </td>
                     <td className="text-end pe-4">
@@ -251,27 +280,27 @@ export default function ClientsView() {
                           className="rounded-lg p-2" 
                           onClick={() => { setSelectedDetailClient(c); setShowDetailModal(true); }}
                           disabled={busyId === c.id}
-                          title="Ficha Técnica"
+                          title={t("clients.actions.view")}
                         >
                           <BookOpen size={16} className="text-primary" />
                         </Button>
-                        <Button 
-                          variant="light" 
-                          size="sm" 
-                          className="rounded-lg p-2" 
+                        <Button
+                          variant="light"
+                          size="sm"
+                          className="rounded-lg p-2"
                           onClick={() => openEdit(c)}
                           disabled={busyId === c.id}
-                          title="Editar"
+                          title={t("clients.actions.edit")}
                         >
                           <Edit2 size={16} className="text-muted" />
                         </Button>
-                        <Button 
-                          variant="light" 
-                          size="sm" 
-                          className="rounded-lg p-2 hover-danger" 
+                        <Button
+                          variant="light"
+                          size="sm"
+                          className="rounded-lg p-2 hover-danger"
                           onClick={() => handleDelete(c)}
                           disabled={busyId === c.id}
-                          title="Eliminar"
+                          title={t("clients.actions.delete")}
                         >
                           <Trash2 size={16} className="text-danger" />
                         </Button>
@@ -284,7 +313,11 @@ export default function ClientsView() {
 
             <div className="p-4 border-top d-flex justify-content-between align-items-center">
               <span className="text-muted small">
-                Mostrando {((page - 1) * PAGE_SIZE) + 1} a {Math.min(page * PAGE_SIZE, sorted.length)} de {sorted.length} clientes
+                {t("clients.pagination", {
+                  from: ((page - 1) * PAGE_SIZE) + 1,
+                  to: Math.min(page * PAGE_SIZE, sorted.length),
+                  total: sorted.length,
+                })}
               </span>
               <Pagination className="mb-0 gap-1">
                 <Pagination.Prev 

@@ -1,0 +1,102 @@
+{
+  "nav": {
+    "howItWorks": "¿Cómo funciona?",
+    "features": "Funcionalidades",
+    "pricing": "Precios",
+    "enterApp": "Entrar al sistema"
+  },
+  "hero": {
+    "badge": "NUEVA VERSIÓN 2.0",
+    "titleLine1": "Tu negocio,",
+    "titleLine2": "bajo control.",
+    "subtitle": "Gestiona citas, clientes y equipo en una interfaz diseñada para la máxima velocidad. Sin distracciones, solo lo que importa para tu crecimiento.",
+    "ctaPrimary": "Empezar ahora",
+    "ctaSecondary": "¿Cómo funciona?",
+    "metricsEfficiency": "Eficiencia",
+    "metricsClients": "Clientes"
+  },
+  "features": {
+    "title": "Diseñado para la acción",
+    "subtitle": "Hemos eliminado el ruido para que puedas gestionar tu día a día con total claridad.",
+    "appointments": {
+      "title": "Gestión de Citas",
+      "desc": "Calendario dinámico e intuitivo con estados personalizables."
+    },
+    "clients": {
+      "title": "Base de Clientes",
+      "desc": "CRM completo para fidelizar y gestionar tu comunidad."
+    },
+    "automation": {
+      "title": "Automatización",
+      "desc": "Flujos de trabajo que te ahorran horas de administración."
+    },
+    "metrics": {
+      "title": "Métricas Reales",
+      "desc": "Gráficos limpios para entender el rendimiento de tu negocio."
+    },
+    "multiDevice": {
+      "title": "Multi-dispositivo",
+      "desc": "Accede desde cualquier lugar con una interfaz optimizada."
+    },
+    "aiSupport": {
+      "title": "IA de Soporte",
+      "desc": "Asistencia inteligente para optimizar tus horarios y tareas."
+    }
+  },
+  "pricing": {
+    "title": "Precios Transparentes",
+    "subtitle": "Elige el plan que mejor se adapte a tu crecimiento.",
+    "popular": "MÁS POPULAR",
+    "perMonth": "/mes",
+    "cta": "Contratar ahora",
+    "individual": {
+      "name": "Individual",
+      "f1": "1 Usuario",
+      "f2": "Gestión de Citas",
+      "f3": "Base de Clientes"
+    },
+    "professional": {
+      "name": "Professional",
+      "f1": "3 Usuarios",
+      "f2": "Métricas Avanzadas",
+      "f3": "Notificaciones WhatsApp"
+    },
+    "business": {
+      "name": "Business",
+      "f1": "Ilimitado",
+      "f2": "IA Support",
+      "f3": "Soporte Prioritario"
+    }
+  },
+  "howItWorks": {
+    "title": "¿Cómo funciona Dashboard OS?",
+    "subtitle": "Explora la potencia de tu nueva herramienta de gestión.",
+    "step1": {
+      "title": "Panel Principal",
+      "desc": "Vista 360° de tu negocio con métricas en tiempo real."
+    },
+    "step2": {
+      "title": "Agenda Inteligente",
+      "desc": "Calendario dinámico con estados por colores y recordatorios."
+    },
+    "step3": {
+      "title": "CRM de Clientes",
+      "desc": "Base de datos centralizada con historial y búsqueda rápida."
+    },
+    "step4": {
+      "title": "Gestión de Equipo",
+      "desc": "Administra colaboradores, especialidades y horarios."
+    },
+    "step5": {
+      "title": "Módulo Financiero",
+      "desc": "Control total de ingresos, pagos y metas mensuales."
+    },
+    "cta": "Empezar ahora mismo"
+  },
+  "footer": {
+    "copyright": "Dashboard OS © 2026",
+    "privacy": "Privacidad",
+    "terms": "Términos",
+    "contact": "Contacto"
+  }
+}

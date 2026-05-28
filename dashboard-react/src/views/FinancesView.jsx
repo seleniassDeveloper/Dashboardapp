@@ -1,266 +1,400 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { Container, Row, Col, Card, ProgressBar, Table, Badge, Spinner, Button } from "react-bootstrap";
-import { DollarSign, TrendingUp, ArrowUpRight, CreditCard, Download } from "lucide-react";
-import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
+import React, { useState, useEffect } from "react";
+import { Container, Button, Modal, Form, Row, Col, Spinner, Alert, Badge } from "react-bootstrap";
+import {
+  TrendingUp, TrendingDown, Landmark, ShieldCheck, DollarSign, Sparkles,
+  Download, Plus, Scissors, Award, Clock, FileText
+} from "lucide-react";
+import { useTranslation } from "react-i18next";
 import api from "../lib/api.js";
 
-// Colores para el gráfico de torta
-const COLORS = ["#10b981", "#3b82f6", "#8b5cf6", "#ec4899"];
+// ERP sub-modules
+import FinanceDashboard from "../components/finance/FinanceDashboard.jsx";
+import OperationalExpenses from "../components/finance/OperationalExpenses.jsx";
+import FinancialReports from "../components/finance/FinancialReports.jsx";
+import SalaryManagement from "../components/finance/SalaryManagement.jsx";
+import BankReconciliation from "../components/finance/BankReconciliation.jsx";
+import ServiceProfitability from "../components/finance/ServiceProfitability.jsx";
+import ProfessionalProfitability from "../components/finance/ProfessionalProfitability.jsx";
+import FinancialSimulator from "../components/finance/FinancialSimulator.jsx";
+import DailyCashClosing from "../components/finance/DailyCashClosing.jsx";
+import FinancialAudit from "../components/finance/FinancialAudit.jsx";
 
-function currency(n) {
-  return new Intl.NumberFormat("es-AR", {
-    style: "currency",
-    currency: "ARS",
-    maximumFractionDigits: 0,
-  }).format(n || 0);
-}
 
 export default function FinancesView() {
-  const [appointments, setAppointments] = useState([]);
+  const { t } = useTranslation("views");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  
+  // Tab State
+  const [activeTab, setActiveTab] = useState("resumen");
 
-  // Gastos Fijos del Salón
-  const expensesList = [
-    { name: "Alquiler de Local", amount: 150000 },
-    { name: "Luz y Servicios", amount: 35000 },
-    { name: "Insumos y Tinturas", amount: 45000 },
-    { name: "Marketing y Publicidad", amount: 20000 },
-  ];
+  // Dynamic Dashboard Data loaded from Neon DB
+  const [dashboardData, setDashboardData] = useState(null);
+  
+  // Expense Modal state
+  const [showExpenseModal, setShowExpenseModal] = useState(false);
+  const [expenseName, setExpenseName] = useState("");
+  const [expenseAmount, setExpenseAmount] = useState("");
+  const [expenseCategory, setExpenseCategory] = useState("insumos");
+  const [savingExpense, setSavingExpense] = useState(false);
+  const [expenseBranches, setExpenseBranches] = useState([]);
+  const [selectedBranchId, setSelectedBranchId] = useState("");
 
-  const totalExpenses = expensesList.reduce((sum, e) => sum + e.amount, 0);
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const res = await api.get("/finances/dashboard");
+      setDashboardData(res.data);
+    } catch (err) {
+      console.error(err);
+      setError("No se pudieron calcular las métricas ERP contables.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    api.get("/appointments")
-      .then(res => {
-        setAppointments(Array.isArray(res.data) ? res.data : []);
-      })
-      .catch(e => console.error("Error cargando finanzas:", e))
-      .finally(() => setLoading(false));
+    fetchDashboardData();
+    
+    // Fetch branches for expense select
+    api.get("/finances/branches")
+      .then(res => setExpenseBranches(Array.isArray(res.data) ? res.data : []))
+      .catch(e => console.error(e));
   }, []);
 
-  // Cálculos financieros dinámicos basados en la base de datos real
-  const finData = useMemo(() => {
-    const doneAppts = appointments.filter(a => a.status === "DONE" || a.status === "CONFIRMED");
-    const totalRevenues = doneAppts.reduce((sum, a) => sum + Number(a.service?.price || 0), 0);
-    
-    // Las comisiones de los estilistas son del 40% de la facturación en turnos concretados
-    const commissionsPaid = Math.round(totalRevenues * 0.4);
-    
-    // Ganancia real = ingresos - gastos - comisiones
-    const realProfit = totalRevenues - totalExpenses - commissionsPaid;
+  const handleAddExpense = async (e) => {
+    e.preventDefault();
+    if (!expenseName.trim() || !expenseAmount) return;
 
-    const appointmentsCount = doneAppts.length;
-    const avgTicket = appointmentsCount > 0 ? Math.round(totalRevenues / appointmentsCount) : 0;
+    try {
+      setSavingExpense(true);
+      const payload = {
+        name: expenseName.trim(),
+        amount: Number.parseInt(expenseAmount, 10),
+        category: expenseCategory,
+        branchId: selectedBranchId || null
+      };
 
-    // Métodos de pago ficticios distribuidos de forma realista
-    const paymentMethodsData = [
-      { name: "Efectivo", value: Math.round(totalRevenues * 0.35) },
-      { name: "Visa Débito/Crédito", value: Math.round(totalRevenues * 0.30) },
-      { name: "Mastercard", value: Math.round(totalRevenues * 0.20) },
-      { name: "Transferencia Bancaria", value: Math.round(totalRevenues * 0.15) },
-    ].filter(item => item.value > 0);
+      await api.post("/finances/expenses", payload);
+      setExpenseName("");
+      setExpenseAmount("");
+      setExpenseCategory("insumos");
+      setSelectedBranchId("");
+      setShowExpenseModal(false);
+      
+      // Reload financial data immediately
+      fetchDashboardData();
+    } catch (err) {
+      console.error(err);
+      alert("Error al guardar egreso en base de datos.");
+    } finally {
+      setSavingExpense(false);
+    }
+  };
 
-    return {
-      totalRevenues,
-      commissionsPaid,
-      realProfit,
-      avgTicket,
-      paymentMethodsData,
-      doneAppts
-    };
-  }, [appointments, totalExpenses]);
-
-  if (loading) {
+  if (loading && !dashboardData) {
     return (
       <div className="text-center py-5 text-muted" style={{ minHeight: "60vh" }}>
-        <Spinner animation="border" size="sm" className="me-2" />
-        Analizando libros contables...
+        <Spinner animation="border" size="sm" className="me-2" variant="purple" />
+        Analizando libros contables en Neon Cloud PostgreSQL...
       </div>
     );
   }
 
   return (
-    <Container fluid className="p-0 pb-4">
+    <Container fluid className="px-4 pb-4">
+      {/* HEADER PRINCIPAL */}
       <header className="mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
         <div>
-          <h1 className="fw-bold h3">Finanzas y Caja</h1>
-          <p className="text-muted mb-0">Controla tus ingresos, comisiones de personal, gastos y flujo de caja neto en tiempo real.</p>
+          <h1 className="fw-bold h3 d-flex align-items-center gap-2">
+            <Landmark className="text-purple-600 animate-pulse" size={26} />
+            <span>{t("finances.title")}</span>
+          </h1>
+          <p className="text-muted mb-0">{t("finances.subtitle")}</p>
         </div>
-        <Button variant="dark" className="btn-premium d-flex align-items-center gap-2 px-4 py-2" onClick={() => alert("Reporte financiero PDF/Excel descargado con éxito.")}>
-          <Download size={18} />
-          Exportar Reporte
-        </Button>
+        <div className="d-flex align-items-center gap-2.5">
+          <Button
+            variant="purple"
+            className="rounded-xl px-4 py-2.5 fw-bold text-white bg-purple-600 hover-bg-purple-700 d-flex align-items-center gap-2 shadow-sm"
+            onClick={() => setShowExpenseModal(true)}
+          >
+            <Plus size={18} />
+            <span>{t("finances.newExpense")}</span>
+          </Button>
+          <Button
+            variant="dark"
+            className="rounded-xl px-4 py-2.5 fw-bold text-white bg-gray-900 d-flex align-items-center gap-2"
+            onClick={() => setActiveTab("reportes")}
+          >
+            <Download size={18} />
+            <span>{t("finances.reportsCenter")}</span>
+          </Button>
+        </div>
       </header>
 
-      <Row className="g-4">
-        {/* KPI 1: Facturación Mensual */}
-        <Col md={4}>
-          <div className="card-premium p-4 h-100">
-            <div className="d-flex justify-content-between mb-3 align-items-start">
-              <div className="p-2 rounded bg-primary bg-opacity-10 text-primary"><TrendingUp size={20} /></div>
-              <Badge bg="success-soft" className="text-success rounded-pill px-2.5 py-1 small">+12.5% vs. mes ant</Badge>
-            </div>
-            <div className="text-muted small">Ingresos Totales (Mes)</div>
-            <div className="h2 fw-black text-dark m-0">{currency(finData.totalRevenues)}</div>
-          </div>
-        </Col>
+      {error && <Alert variant="danger" className="rounded-2xl">{error}</Alert>}
 
-        {/* KPI 2: Ganancia Real */}
-        <Col md={4}>
-          <div className="card-premium p-4 h-100" style={{ borderLeft: "4px solid #10b981" }}>
-            <div className="d-flex justify-content-between mb-3 align-items-start">
-              <div className="p-2 rounded bg-success bg-opacity-10 text-success"><DollarSign size={20} /></div>
-              <span className="text-muted smaller">Caja Neta</span>
-            </div>
-            <div className="text-muted small">Ganancia Real (Caja - Gastos - Comisiones)</div>
-            <div className="h2 fw-black text-success m-0">{currency(finData.realProfit)}</div>
-          </div>
-        </Col>
+      {/* PESTAÑAS DEL ERP FINANCIERO */}
+      <div 
+        className="d-flex border-bottom mb-4 gap-2 overflow-auto scrollbar-none py-1.5"
+        style={{ maxWidth: "100%", overflowX: "auto", flexWrap: "nowrap" }}
+      >
+        <button
+          onClick={() => setActiveTab("resumen")}
+          className={`d-flex align-items-center gap-2 px-3.5 py-2 fw-bold rounded-xl border-0 transition-all flex-shrink-0 ${
+            activeTab === "resumen" ? "bg-purple-600 text-white shadow-sm" : "bg-light text-muted hover-bg-gray-100"
+          }`}
+          style={{ fontSize: "13px" }}
+        >
+          <TrendingUp size={15} />
+          <span>Resumen</span>
+        </button>
 
-        {/* KPI 3: Ticket Promedio */}
-        <Col md={4}>
-          <div className="card-premium p-4 h-100">
-            <div className="d-flex justify-content-between mb-3 align-items-start">
-              <div className="p-2 rounded bg-warning bg-opacity-10 text-warning"><CreditCard size={20} /></div>
-              <span className="text-muted smaller">Por Visita</span>
-            </div>
-            <div className="text-muted small">Ticket Promedio del Salón</div>
-            <div className="h2 fw-black text-dark m-0">{currency(finData.avgTicket)}</div>
-          </div>
-        </Col>
+        <button
+          onClick={() => setActiveTab("gastos_operativos")}
+          className={`d-flex align-items-center gap-2 px-3.5 py-2 fw-bold rounded-xl border-0 transition-all flex-shrink-0 ${
+            activeTab === "gastos_operativos" ? "bg-purple-600 text-white shadow-sm" : "bg-light text-muted hover-bg-gray-100"
+          }`}
+          style={{ fontSize: "13px" }}
+        >
+          <TrendingDown size={15} />
+          <span>Gastos</span>
+        </button>
 
-        {/* Gráfico Torta de Métodos de Pago */}
-        <Col lg={4}>
-          <Card className="card-premium border-0 shadow-sm h-100">
-            <Card.Body className="p-4 d-flex flex-column justify-content-between">
-              <div>
-                <h3 className="h6 fw-black text-dark mb-1">Métodos de Pago</h3>
-                <p className="text-muted smaller mb-3">Distribución de facturación del salón.</p>
-              </div>
+        <button
+          onClick={() => setActiveTab("gastos")}
+          className={`d-flex align-items-center gap-2 px-3.5 py-2 fw-bold rounded-xl border-0 transition-all flex-shrink-0 ${
+            activeTab === "gastos" ? "bg-purple-600 text-white shadow-sm" : "bg-light text-muted hover-bg-gray-100"
+          }`}
+          style={{ fontSize: "13px" }}
+        >
+          <ShieldCheck size={15} />
+          <span>Cierre Caja</span>
+        </button>
 
-              {finData.totalRevenues === 0 ? (
-                <div className="text-muted smaller py-4 text-center">Registra turnos finalizados para ver distribución de caja.</div>
-              ) : (
-                <div style={{ width: "100%", height: "200px" }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={finData.paymentMethodsData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={80}
-                        paddingAngle={3}
-                        dataKey="value"
-                      >
-                        {finData.paymentMethodsData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(v) => currency(v)} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
+        <button
+          onClick={() => setActiveTab("sueldos")}
+          className={`d-flex align-items-center gap-2 px-3.5 py-2 fw-bold rounded-xl border-0 transition-all flex-shrink-0 ${
+            activeTab === "sueldos" ? "bg-purple-600 text-white shadow-sm" : "bg-light text-muted hover-bg-gray-100"
+          }`}
+          style={{ fontSize: "13px" }}
+        >
+          <DollarSign size={15} />
+          <span>Nóminas</span>
+        </button>
 
-              <div className="mt-3 small d-grid gap-1">
-                {finData.paymentMethodsData.map((item, idx) => (
-                  <div key={item.name} className="d-flex align-items-center justify-content-between">
-                    <div className="d-flex align-items-center gap-2">
-                      <span className="rounded-circle" style={{ width: 8, height: 8, background: COLORS[idx % COLORS.length] }} />
-                      <span className="text-muted">{item.name}</span>
-                    </div>
-                    <span className="fw-bold text-dark">{currency(item.value)}</span>
-                  </div>
+        <button
+          onClick={() => setActiveTab("conciliacion")}
+          className={`d-flex align-items-center gap-2 px-3.5 py-2 fw-bold rounded-xl border-0 transition-all flex-shrink-0 ${
+            activeTab === "conciliacion" ? "bg-purple-600 text-white shadow-sm" : "bg-light text-muted hover-bg-gray-100"
+          }`}
+          style={{ fontSize: "13px" }}
+        >
+          <Landmark size={15} />
+          <span>Conciliación</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("servicios")}
+          className={`d-flex align-items-center gap-2 px-3.5 py-2 fw-bold rounded-xl border-0 transition-all flex-shrink-0 ${
+            activeTab === "servicios" ? "bg-purple-600 text-white shadow-sm" : "bg-light text-muted hover-bg-gray-100"
+          }`}
+          style={{ fontSize: "13px" }}
+        >
+          <Scissors size={15} />
+          <span>Servicios</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("profesionales")}
+          className={`d-flex align-items-center gap-2 px-3.5 py-2 fw-bold rounded-xl border-0 transition-all flex-shrink-0 ${
+            activeTab === "profesionales" ? "bg-purple-600 text-white shadow-sm" : "bg-light text-muted hover-bg-gray-100"
+          }`}
+          style={{ fontSize: "13px" }}
+        >
+          <Award size={15} />
+          <span>Profesionales</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("simulador")}
+          className={`d-flex align-items-center gap-2 px-3.5 py-2 fw-bold rounded-xl border-0 transition-all flex-shrink-0 ${
+            activeTab === "simulador" ? "bg-purple-600 text-white shadow-sm" : "bg-light text-muted hover-bg-gray-100"
+          }`}
+          style={{ fontSize: "13px" }}
+        >
+          <Sparkles size={15} />
+          <span>Simulador</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("reportes")}
+          className={`d-flex align-items-center gap-2 px-3.5 py-2 fw-bold rounded-xl border-0 transition-all flex-shrink-0 ${
+            activeTab === "reportes" ? "bg-purple-600 text-white shadow-sm" : "bg-light text-muted hover-bg-gray-100"
+          }`}
+          style={{ fontSize: "13px" }}
+        >
+          <FileText size={15} />
+          <span>Reportes</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("auditoria")}
+          className={`d-flex align-items-center gap-2 px-3.5 py-2 fw-bold rounded-xl border-0 transition-all flex-shrink-0 ${
+            activeTab === "auditoria" ? "bg-purple-600 text-white shadow-sm" : "bg-light text-muted hover-bg-gray-100"
+          }`}
+          style={{ fontSize: "13px" }}
+        >
+          <FileText size={15} />
+          <span>Auditoría</span>
+        </button>
+      </div>
+
+      {/* RENDERIZADO ACTIVO DE CADA MODULO ERP */}
+      {dashboardData && (
+        <div className="animate-fade-in">
+          {activeTab === "resumen" && (
+            <FinanceDashboard 
+              summary={dashboardData.summary}
+              paymentMethods={dashboardData.paymentMethods}
+              branchComparison={dashboardData.branchComparison}
+              recentTransactions={dashboardData.recentTransactions}
+              onAddExpenseClick={() => setShowExpenseModal(true)}
+            />
+          )}
+
+          {activeTab === "gastos_operativos" && (
+            <OperationalExpenses 
+              onExpenseAdded={fetchDashboardData}
+            />
+          )}
+
+          {activeTab === "gastos" && (
+            <DailyCashClosing 
+              currentRevenue={dashboardData.summary.totalRevenues}
+            />
+          )}
+
+          {activeTab === "sueldos" && (
+            <SalaryManagement 
+              professionalStats={dashboardData.professionalProfitability}
+            />
+          )}
+
+          {activeTab === "conciliacion" && (
+            <BankReconciliation />
+          )}
+
+          {activeTab === "servicios" && (
+            <ServiceProfitability 
+              serviceStats={dashboardData.serviceProfitability}
+            />
+          )}
+
+          {activeTab === "profesionales" && (
+            <ProfessionalProfitability 
+              professionalStats={dashboardData.professionalProfitability}
+            />
+          )}
+
+          {activeTab === "simulador" && (
+            <FinancialSimulator 
+              baseRevenue={dashboardData.summary.totalRevenues}
+              baseExpenses={dashboardData.summary.totalExpenses}
+            />
+          )}
+
+          {activeTab === "reportes" && (
+            <FinancialReports 
+              recentTransactions={dashboardData.recentTransactions}
+            />
+          )}
+
+          {activeTab === "auditoria" && (
+            <FinancialAudit />
+          )}
+        </div>
+      )}
+
+      {/* MODAL PARA AGREGAR NUEVO EGRESO */}
+      <Modal show={showExpenseModal} onHide={() => setShowExpenseModal(false)} centered className="border-0 shadow-lg">
+        <Modal.Header closeButton className="border-0 bg-light py-3 px-4">
+          <Modal.Title className="fw-bold text-dark d-flex align-items-center gap-2">
+            <Plus className="text-purple-600" size={20} />
+            <span>Registrar Nuevo Egreso Operativo</span>
+          </Modal.Title>
+        </Modal.Header>
+        <Form onSubmit={handleAddExpense}>
+          <Modal.Body className="p-4">
+            <Form.Group className="mb-3">
+              <Form.Label className="smaller text-muted fw-bold">Descripción / Concepto *</Form.Label>
+              <Form.Control
+                type="text"
+                value={expenseName}
+                onChange={(e) => setExpenseName(e.target.value)}
+                placeholder="Ej: Insumos de tintura, Luz, Alquiler..."
+                className="border-gray-200 rounded-xl"
+                required
+              />
+            </Form.Group>
+
+            <Row className="g-3 mb-3">
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label className="smaller text-muted fw-bold">Importe Egresado ($) *</Form.Label>
+                  <Form.Control
+                    type="number"
+                    value={expenseAmount}
+                    onChange={(e) => setExpenseAmount(e.target.value)}
+                    placeholder="Ej: 35000"
+                    className="border-gray-200 rounded-xl"
+                    required
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label className="smaller text-muted fw-bold">Categoría *</Form.Label>
+                  <Form.Select
+                    value={expenseCategory}
+                    onChange={(e) => setExpenseCategory(e.target.value)}
+                    className="border-gray-200 rounded-xl"
+                  >
+                    <option value="alquiler">Alquiler</option>
+                    <option value="servicios">Servicios</option>
+                    <option value="insumos">Insumos y Tinturas</option>
+                    <option value="marketing">Marketing</option>
+                    <option value="otros">Otros Gastos</option>
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <Form.Group className="mb-2">
+              <Form.Label className="smaller text-muted fw-bold">Sucursal Asociada (Opcional)</Form.Label>
+              <Form.Select
+                value={selectedBranchId}
+                onChange={(e) => setSelectedBranchId(e.target.value)}
+                className="border-gray-200 rounded-xl"
+              >
+                <option value="">Ninguna (Gasto General)</option>
+                {expenseBranches.map(b => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
                 ))}
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
-
-        {/* TABLA: Transacciones e Invoicing Clientes */}
-        <Col lg={8}>
-          <div className="card-premium p-0 overflow-hidden shadow-sm h-100">
-            <div className="p-4 border-bottom d-flex justify-content-between align-items-center">
-              <h3 className="h6 fw-black text-dark m-0">Transacciones Recientes (Servicios Cobrados)</h3>
-              <span className="badge bg-light text-dark rounded-pill px-3 py-1.5 small fw-bold">Neon Cloud PostgreSQL</span>
-            </div>
-            {finData.doneAppts.length === 0 ? (
-              <div className="py-5 text-center text-muted smaller">No hay cobros registrados todavía hoy.</div>
-            ) : (
-              <div className="table-responsive" style={{ maxHeight: "380px" }}>
-                <Table hover responsive className="mb-0 align-middle">
-                  <thead>
-                    <tr className="table-header-small" style={{ fontSize: "11px" }}>
-                      <th className="ps-4">Cliente</th>
-                      <th>Servicio</th>
-                      <th>Estilista</th>
-                      <th>Método Simulado</th>
-                      <th>Fecha</th>
-                      <th className="pe-4 text-end">Total Cobrado</th>
-                    </tr>
-                  </thead>
-                  <tbody style={{ fontSize: "13px" }}>
-                    {finData.doneAppts.slice(0, 10).map((a, idx) => (
-                      <tr key={a.id}>
-                        <td className="ps-4 py-2.5">
-                          <div className="fw-bold text-dark">{a.client?.firstName} {a.client?.lastName}</div>
-                          <div className="text-muted smaller">{a.client?.email || "Sin email"}</div>
-                        </td>
-                        <td>
-                          <Badge bg="primary-soft" className="text-primary rounded-pill px-2.5">{a.service?.name}</Badge>
-                        </td>
-                        <td className="text-muted fw-semibold">{a.worker?.firstName}</td>
-                        <td className="text-secondary small">{idx % 3 === 0 ? "Efectivo" : idx % 2 === 0 ? "Visa" : "Mastercard"}</td>
-                        <td className="text-secondary small">{new Date(a.startsAt).toLocaleDateString()}</td>
-                        <td className="pe-4 text-end fw-black text-success">{currency(a.service?.price)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </Table>
-              </div>
-            )}
-          </div>
-        </Col>
-
-        {/* desglose de gastos y progresos de metas */}
-        <Col lg={6}>
-          <Card className="card-premium border-0 shadow-sm h-100">
-            <Card.Body className="p-4">
-              <h3 className="h6 fw-black text-dark mb-4">Meta Mensual de Ventas</h3>
-              <div className="mb-4">
-                <div className="d-flex justify-content-between mb-2">
-                  <span className="small text-muted fw-semibold">Progreso General del Salón</span>
-                  <span className="small fw-bold text-dark">{currency(finData.totalRevenues)} / {currency(500000)}</span>
-                </div>
-                <ProgressBar now={Math.min(100, Math.round((finData.totalRevenues / 500000) * 100))} variant="success" style={{ height: "10px", borderRadius: "10px" }} />
-                <div className="text-end text-muted smaller mt-1.5">Objetivo de salón: Facturar $500.000 pesos</div>
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
-
-        <Col lg={6}>
-          <Card className="card-premium border-0 shadow-sm h-100">
-            <Card.Body className="p-4">
-              <h3 className="h6 fw-black text-dark mb-4">Desglose de Gastos Operativos (Fijos)</h3>
-              <div className="d-grid gap-3">
-                {expensesList.map(exp => (
-                  <div key={exp.name} className="d-flex justify-content-between align-items-center p-3 bg-light rounded-4 border">
-                    <span className="small fw-semibold text-dark">{exp.name}</span>
-                    <span className="fw-black text-danger">{currency(exp.amount)}</span>
-                  </div>
-                ))}
-                <div className="d-flex justify-content-between align-items-center p-3 bg-danger bg-opacity-10 text-danger rounded-4 fw-bold">
-                  <span>Gastos Totales Liquidados</span>
-                  <span>{currency(totalExpenses)}</span>
-                </div>
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
-
-      </Row>
+              </Form.Select>
+            </Form.Group>
+          </Modal.Body>
+          <Modal.Footer className="border-0 bg-light rounded-bottom px-4 py-3">
+            <Button variant="outline-secondary" onClick={() => setShowExpenseModal(false)} className="rounded-xl px-4" disabled={savingExpense}>
+              Cancelar
+            </Button>
+            <Button type="submit" variant="purple" disabled={savingExpense} className="rounded-xl px-5 text-white bg-purple-600 hover-bg-purple-700 fw-bold shadow">
+              {savingExpense ? <Spinner size="sm" /> : "Guardar Gasto"}
+            </Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
     </Container>
   );
 }

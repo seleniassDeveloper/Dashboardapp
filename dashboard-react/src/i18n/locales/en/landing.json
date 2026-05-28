@@ -1,0 +1,102 @@
+{
+  "nav": {
+    "howItWorks": "How it works?",
+    "features": "Features",
+    "pricing": "Pricing",
+    "enterApp": "Enter the system"
+  },
+  "hero": {
+    "badge": "NEW VERSION 2.0",
+    "titleLine1": "Your business,",
+    "titleLine2": "under control.",
+    "subtitle": "Manage appointments, clients and your team in an interface designed for maximum speed. No distractions, just what matters for your growth.",
+    "ctaPrimary": "Get started",
+    "ctaSecondary": "How it works?",
+    "metricsEfficiency": "Efficiency",
+    "metricsClients": "Clients"
+  },
+  "features": {
+    "title": "Designed for action",
+    "subtitle": "We've removed the noise so you can manage your day with total clarity.",
+    "appointments": {
+      "title": "Appointment Management",
+      "desc": "Dynamic and intuitive calendar with customizable statuses."
+    },
+    "clients": {
+      "title": "Client Database",
+      "desc": "Complete CRM to build loyalty and manage your community."
+    },
+    "automation": {
+      "title": "Automation",
+      "desc": "Workflows that save you hours of administration."
+    },
+    "metrics": {
+      "title": "Real Metrics",
+      "desc": "Clean charts to understand your business performance."
+    },
+    "multiDevice": {
+      "title": "Multi-device",
+      "desc": "Access from anywhere with an optimized interface."
+    },
+    "aiSupport": {
+      "title": "AI Support",
+      "desc": "Smart assistance to optimize your schedules and tasks."
+    }
+  },
+  "pricing": {
+    "title": "Transparent Pricing",
+    "subtitle": "Choose the plan that best fits your growth.",
+    "popular": "MOST POPULAR",
+    "perMonth": "/month",
+    "cta": "Get started",
+    "individual": {
+      "name": "Individual",
+      "f1": "1 User",
+      "f2": "Appointment Management",
+      "f3": "Client Database"
+    },
+    "professional": {
+      "name": "Professional",
+      "f1": "3 Users",
+      "f2": "Advanced Metrics",
+      "f3": "WhatsApp Notifications"
+    },
+    "business": {
+      "name": "Business",
+      "f1": "Unlimited",
+      "f2": "AI Support",
+      "f3": "Priority Support"
+    }
+  },
+  "howItWorks": {
+    "title": "How does Dashboard OS work?",
+    "subtitle": "Explore the power of your new management tool.",
+    "step1": {
+      "title": "Main Panel",
+      "desc": "360° view of your business with real-time metrics."
+    },
+    "step2": {
+      "title": "Smart Schedule",
+      "desc": "Dynamic calendar with color statuses and reminders."
+    },
+    "step3": {
+      "title": "Client CRM",
+      "desc": "Centralized database with history and quick search."
+    },
+    "step4": {
+      "title": "Team Management",
+      "desc": "Manage staff, specialties and schedules."
+    },
+    "step5": {
+      "title": "Finance Module",
+      "desc": "Full control of income, payments and monthly goals."
+    },
+    "cta": "Get started now"
+  },
+  "footer": {
+    "copyright": "Dashboard OS © 2026",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "contact": "Contact"
+  }
+}

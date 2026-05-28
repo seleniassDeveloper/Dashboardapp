@@ -1,6 +1,7 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { 
   LayoutDashboard, 
   Calendar, 
@@ -23,17 +24,17 @@ import { useBrand } from "../../header/name/BrandProvider";
 import "./Sidebar.css";
  
 const MENU_ITEMS = [
-  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, path: "/app" },
-  { id: "appointments", label: "Agenda", icon: CalendarCheck, path: "/app/calendar" }, 
-  { id: "clients", label: "Clientes", icon: Users, path: "/app/clients" },
-  { id: "services", label: "Servicios", icon: Scissors, path: "/app/services" },
-  { id: "team", label: "Equipo", icon: Briefcase, path: "/app/team" },
-  { id: "finances", label: "Finanzas", icon: CreditCard, path: "/app/finances" },
-  { id: "inventory", label: "Inventario", icon: Package, path: "/app/inventory" },
-  { id: "sheets_sync", label: "Planillas Sheets", icon: FileSpreadsheet, path: "/app/sheets-sync" },
-  { id: "workflows", label: "Workflows", icon: GitBranch, path: "/app/workflows" },
-  { id: "automations", label: "Automatizaciones", icon: Zap, path: "/app/automations" },
-  { id: "config", label: "Configuración", icon: Settings, path: "/app/settings" },
+  { id: "dashboard", icon: LayoutDashboard, path: "/app" },
+  { id: "appointments", icon: CalendarCheck, path: "/app/calendar" },
+  { id: "clients", icon: Users, path: "/app/clients" },
+  { id: "services", icon: Scissors, path: "/app/services" },
+  { id: "team", icon: Briefcase, path: "/app/team" },
+  { id: "finances", icon: CreditCard, path: "/app/finances" },
+  { id: "inventory", icon: Package, path: "/app/inventory" },
+  { id: "sheets_sync", icon: FileSpreadsheet, path: "/app/sheets-sync" },
+  { id: "workflows", icon: GitBranch, path: "/app/workflows" },
+  { id: "automations", icon: Zap, path: "/app/automations" },
+  { id: "config", icon: Settings, path: "/app/settings" },
 ];
 
 export default function Sidebar({ 
@@ -49,6 +50,7 @@ export default function Sidebar({
   const location = useLocation();
   const { logout, isAdmin } = useAuth();
   const { brand } = useBrand();
+  const { t } = useTranslation(["nav", "common"]);
 
   const sidebarVariants = {
     expanded: { width: "var(--space-sidebar)" },
@@ -106,13 +108,13 @@ export default function Sidebar({
               </div>
               <AnimatePresence>
                 {!isCollapsed && (
-                  <motion.span 
+                  <motion.span
                     className="sidebar__item-label"
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -10 }}
                   >
-                    {item.label}
+                    {t(`menu.${item.id}`)}
                   </motion.span>
                 )}
               </AnimatePresence>
@@ -132,7 +134,7 @@ export default function Sidebar({
             <div className="sidebar__item-icon">
               <Settings size={20} />
             </div>
-            {!isCollapsed && <span className="sidebar__item-label">Usuarios (Admin)</span>}
+            {!isCollapsed && <span className="sidebar__item-label">{t("menu.usersAdmin")}</span>}
           </button>
         )}
       </nav>
@@ -142,7 +144,7 @@ export default function Sidebar({
           <div className="sidebar__item-icon">
             <LogOut size={20} />
           </div>
-          {!isCollapsed && <span className="sidebar__item-label">Salir</span>}
+          {!isCollapsed && <span className="sidebar__item-label">{t("common:actions.exit")}</span>}
         </button>
       </div>
     </motion.aside>

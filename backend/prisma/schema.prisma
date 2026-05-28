@@ -9,32 +9,35 @@ datasource db {
 }
 
 model Client {
-  id           String        @id @default(cuid())
-  firstName    String
-  lastName     String
-  phone        String?
-  email        String?
-  notes        String?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  appointments Appointment[]
+  id                String             @id @default(cuid())
+  firstName         String
+  lastName          String
+  phone             String?
+  email             String?
+  notes             String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  appointments      Appointment[]
+  appointmentPhotos AppointmentPhoto[]
+  clinicalNotes     ClinicalNote[]
 }
 
 model Service {
-  id              String          @id @default(cuid())
-  name            String          @unique
+  id              String                   @id @default(cuid())
+  name            String                   @unique
   price           Int
   duration        Int
-  isActive        Boolean         @default(true)
-  availableOnline Boolean         @default(true)
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  isActive        Boolean                  @default(true)
+  availableOnline Boolean                  @default(true)
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
   appointments    Appointment[]
   workers         WorkerService[]
+  consumptionRules ServiceConsumptionRule[]
 }
 
 model Appointment {
-  id             String    @id @default(cuid())
+  id             String             @id @default(cuid())
   startsAt       DateTime
   status         String
   notes          String?
@@ -43,10 +46,14 @@ model Appointment {
   serviceId      String
   reminderSentAt DateTime?
   reminderType   String?
-  source         String    @default("dashboard") // "dashboard" | "online_booking"
-  client         Client    @relation(fields: [clientId], references: [id])
-  service        Service   @relation(fields: [serviceId], references: [id])
-  worker         Worker    @relation(fields: [workerId], references: [id])
+  source         String             @default("dashboard") // "dashboard" | "online_booking"
+  client         Client             @relation(fields: [clientId], references: [id])
+  service        Service            @relation(fields: [serviceId], references: [id])
+  worker         Worker             @relation(fields: [workerId], references: [id])
+  photos         AppointmentPhoto[]
+  clinicalNotes  ClinicalNote[]
+  branchId       String?
+  branch         Branch?            @relation(fields: [branchId], references: [id])
 }
 
 model Worker {
@@ -64,6 +71,10 @@ model Worker {
   schedules       WorkerSchedule[]
   services        WorkerService[]
   scheduleBlocks  ScheduleBlock[]
+  clinicalNotes   ClinicalNote[]
+  branchId        String?
+  branch          Branch?          @relation(fields: [branchId], references: [id])
+  salaryPayments  SalaryPayment[]
 }
 
 model FormSchema {
@@ -95,24 +106,53 @@ model BusinessModel {
 }
 
 model Workflow {
-  id              String        @id @default(cuid())
+  id              String              @id @default(cuid())
   name            String
   description     String?
-  status          String        @default("DRAFT")
-  businessModelId String
+  status          String              @default("DRAFT")
+  businessModelId String?
   trigger         Json
   steps           Json
-  transitions     Json          @default("[]")
-  screens         Json          @default("[]")
-  runCount        Int           @default(0)
+  transitions     Json                @default("[]")
+  screens         Json                @default("[]")
+  runCount        Int                 @default(0)
   lastRunAt       DateTime?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  businessModel   BusinessModel @relation(fields: [businessModelId], references: [id], onDelete: Cascade)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  businessModel   BusinessModel?      @relation(fields: [businessModelId], references: [id], onDelete: Cascade)
+  executions      WorkflowExecution[]
 
   @@index([businessModelId])
   @@index([status])
 }
+
+model WorkflowExecution {
+  id          String        @id @default(cuid())
+  workflowId  String
+  status      String        @default("PENDING") // SUCCESS | FAILED | RUNNING
+  triggerType String
+  runTimeMs   Int           @default(0)
+  createdAt   DateTime      @default(now())
+  workflow    Workflow      @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  logs        WorkflowLog[]
+
+  @@index([workflowId])
+}
+
+model WorkflowLog {
+  id          String            @id @default(cuid())
+  executionId String
+  nodeName    String
+  nodeType    String
+  status      String            @default("SUCCESS") // SUCCESS | FAILED
+  result      String?
+  error       String?
+  createdAt   DateTime          @default(now())
+  execution   WorkflowExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+
+  @@index([executionId])
+}
+
 
 model WorkerSchedule {
   id        String   @id @default(cuid())
@@ -183,4 +223,234 @@ model ScheduleBlock {
 
   @@index([workerId])
 }
+
+model AppointmentPhoto {
+  id            String      @id @default(cuid())
+  appointmentId String
+  clientId      String
+  type          String      // "before" | "after"
+  imageUrl      String
+  createdAt     DateTime    @default(now())
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  client        Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+model ClinicalNote {
+  id              String      @id @default(cuid())
+  appointmentId   String
+  clientId        String
+  professionalId  String
+  note            String
+  recommendations String?
+  createdAt       DateTime    @default(now())
+  appointment     Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  client          Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  worker          Worker      @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+}
+
+model Branch {
+  id                String            @id @default(cuid())
+  name              String            @unique
+  address           String?
+  phone             String?
+  createdAt         DateTime          @default(now())
+  appointments      Appointment[]
+  workers           Worker[]
+  expenses          Expense[]
+  closings          CashClosing[]
+  stockMovements    StockMovement[]
+  batches           ProductBatch[]
+  branchInventories BranchInventory[]
+  purchaseOrders    PurchaseOrder[]
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  name        String
+  amount      Int
+  category    String   // "alquiler" | "servicios" | "insumos" | "marketing" | "otros"
+  date        DateTime @default(now())
+  branchId    String?
+  branch      Branch?  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+}
+
+model CashClosing {
+  id             String   @id @default(cuid())
+  closingDate    DateTime @default(now())
+  branchId       String?
+  branch         Branch?  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  openedBy       String
+  closedBy       String?
+  initialCash    Int
+  expectedCash   Int
+  actualCash     Int
+  difference     Int
+  notes          String?
+  status         String   // "OPEN" | "CLOSED"
+  transactions   Json?
+  createdAt      DateTime @default(now())
+}
+
+model SalaryPayment {
+  id             String   @id @default(cuid())
+  workerId       String
+  baseSalary     Int
+  commissionPaid Int
+  bonuses        Int      @default(0)
+  advances       Int      @default(0)
+  deductions     Int      @default(0)
+  taxes          Int      @default(0)
+  netPaid        Int
+  paymentDate    DateTime @default(now())
+  notes          String?
+  worker         Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+}
+
+model BankMovement {
+  id             String   @id @default(cuid())
+  date           DateTime
+  description    String
+  amount         Int
+  type           String   // "deposit" | "withdrawal"
+  status         String   // "conciliated" | "pending" | "discrepancy"
+  reference      String?
+  conciliatedAt  DateTime?
+  createdAt      DateTime @default(now())
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  action      String   // "close_cash" | "update_price" | "reopen_cash" | "delete_transaction"
+  actor       String   // Nombre/email del administrador
+  details     String
+  createdAt   DateTime @default(now())
+}
+
+model Product {
+  id                String                   @id @default(cuid())
+  name              String                   @unique
+  category          String
+  providerId        String?
+  provider          Supplier?                @relation(fields: [providerId], references: [id], onDelete: SetNull)
+  costPrice         Int
+  salePrice         Int?
+  stock             Int                      @default(0)
+  minStock          Int                      @default(3)
+  maxStock          Int                      @default(10) // Representa stock ideal
+  unit              String                   @default("unidad") // "unidad" | "ml" | "gr" | "litro" | "caja"
+  barcode           String?
+  location          String?
+  status            String                   @default("active") // "active" | "inactive"
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+  stockMovements    StockMovement[]
+  batches           ProductBatch[]
+  branchInventories BranchInventory[]
+  consumptionRules  ServiceConsumptionRule[]
+  orderItems        PurchaseOrderItem[]
+}
+
+model Supplier {
+  id              String          @id @default(cuid())
+  name            String          @unique
+  contactName     String?
+  phone           String?
+  email           String?
+  address         String?
+  paymentTerms    String?         // "contado", "30d", "65d", etc.
+  avgDeliveryDays Int?            @default(7)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  products        Product[]
+  batches         ProductBatch[]
+  purchaseOrders  PurchaseOrder[]
+}
+
+model StockMovement {
+  id          String   @id @default(cuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  prevQty     Int
+  newQty      Int
+  diff        Int
+  type        String   // "input" | "output" | "adjustment" | "automatic" | "return" | "loss"
+  reason      String
+  observation String?
+  user        String   @default("Admin Aura")
+  branchId    String?
+  branch      Branch?  @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+}
+
+model ProductBatch {
+  id             String    @id @default(cuid())
+  productId      String
+  product        Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  batchNumber    String
+  supplierId     String?
+  supplier       Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  initialQty     Int
+  actualQty      Int
+  purchaseDate   DateTime  @default(now())
+  expirationDate DateTime?
+  costPrice      Int
+  branchId       String?
+  branch         Branch?   @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  qrCode         String?
+  createdAt      DateTime  @default(now())
+}
+
+model BranchInventory {
+  id         String   @id @default(cuid())
+  productId  String
+  branchId   String
+  stock      Int      @default(0)
+  minStock   Int      @default(3)
+  idealStock Int      @default(10)
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  branch     Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([productId, branchId])
+}
+
+model ServiceConsumptionRule {
+  id        String   @id @default(cuid())
+  serviceId String
+  productId String
+  quantity  Int      // Cantidad técnica consumida por tratamiento
+  service   Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([serviceId, productId])
+}
+
+model PurchaseOrder {
+  id          String              @id @default(cuid())
+  supplierId  String
+  supplier    Supplier            @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  branchId    String?
+  branch      Branch?             @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  status      String              @default("DRAFT") // "DRAFT" | "SENT" | "CONFIRMED" | "PARTIAL" | "RECEIVED" | "CANCELLED"
+  totalAmount Int                 @default(0)
+  notes       String?
+  items       PurchaseOrderItem[]
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+}
+
+model PurchaseOrderItem {
+  id          String        @id @default(cuid())
+  orderId     String
+  order       PurchaseOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity    Int
+  price       Int
+  receivedQty Int           @default(0)
+}
+
 

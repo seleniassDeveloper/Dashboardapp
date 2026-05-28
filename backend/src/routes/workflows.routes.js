@@ -77,24 +77,16 @@ router.post("/", async (req, res) => {
   try {
     const { name, description, businessModelId, trigger, steps, transitions, screens, status } = req.body;
     if (!name?.trim()) return res.status(400).json({ error: "Nombre obligatorio." });
-    if (!businessModelId) return res.status(400).json({ error: "Modelo de negocio obligatorio." });
     if (!trigger?.type) return res.status(400).json({ error: "Disparador obligatorio." });
     if (!Array.isArray(steps) || steps.length === 0) {
       return res.status(400).json({ error: "Agregá al menos una acción." });
     }
 
-    const model = await prisma.businessModel.findUnique({ where: { id: String(businessModelId) } });
-    if (!model) return res.status(400).json({ error: "Modelo de negocio inválido." });
-
-    const allowedT = model.allowedTriggers || [];
-    const allowedA = model.allowedActions || [];
-    if (!allowedT.includes(trigger.type)) {
-      return res.status(400).json({ error: "Disparador no permitido para este modelo." });
-    }
-    for (const step of steps) {
-      if (!allowedA.includes(step.type)) {
-        return res.status(400).json({ error: `Acción no permitida: ${step.type}` });
-      }
+    // Resolve model if supplied
+    let actualModelId = businessModelId || null;
+    if (!actualModelId) {
+      const firstModel = await prisma.businessModel.findFirst();
+      actualModelId = firstModel?.id || null;
     }
 
     const row = await prisma.workflow.create({
@@ -102,7 +94,7 @@ router.post("/", async (req, res) => {
         name: name.trim(),
         description: description?.trim() || null,
         status: status || "DRAFT",
-        businessModelId: String(businessModelId),
+        businessModelId: actualModelId,
         trigger,
         steps: steps.map((s, i) => ({ ...s, id: s.id || `step_${i + 1}` })),
         transitions: Array.isArray(transitions) ? transitions : [],
@@ -126,25 +118,6 @@ router.put("/:id", async (req, res) => {
       include: { businessModel: true },
     });
     if (!existing) return res.status(404).json({ error: "Workflow no encontrado." });
-
-    const modelId = businessModelId || existing.businessModelId;
-    const model =
-      modelId === existing.businessModelId
-        ? existing.businessModel
-        : await prisma.businessModel.findUnique({ where: { id: modelId } });
-
-    if (trigger?.type && model) {
-      if (!(model.allowedTriggers || []).includes(trigger.type)) {
-        return res.status(400).json({ error: "Disparador no permitido." });
-      }
-    }
-    if (steps?.length && model) {
-      for (const step of steps) {
-        if (!(model.allowedActions || []).includes(step.type)) {
-          return res.status(400).json({ error: `Acción no permitida: ${step.type}` });
-        }
-      }
-    }
 
     const row = await prisma.workflow.update({
       where: { id: req.params.id },
@@ -182,6 +155,64 @@ router.patch("/:id/status", async (req, res) => {
     res.json(normalizeWorkflow(row));
   } catch (e) {
     res.status(500).json({ error: "Error cambiando estado." });
+  }
+});
+
+// GET /api/workflows/executions - Retrieve automation logs history
+router.get("/executions", async (req, res) => {
+  try {
+    const list = await prisma.workflowExecution.findMany({
+      include: { workflow: true, logs: true },
+      orderBy: { createdAt: "desc" },
+      take: 50
+    });
+    res.json(list);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Error obteniendo ejecuciones de automatización." });
+  }
+});
+
+// POST /api/workflows/executions - Register dynamic execution logs
+router.post("/executions", async (req, res) => {
+  try {
+    const { workflowId, status, triggerType, runTimeMs, logs } = req.body;
+    if (!workflowId || !status || !triggerType) {
+      return res.status(400).json({ error: "Campos requeridos: workflowId, status, triggerType." });
+    }
+
+    const execution = await prisma.workflowExecution.create({
+      data: {
+        workflowId,
+        status,
+        triggerType,
+        runTimeMs: Number(runTimeMs || 0),
+        logs: {
+          create: Array.isArray(logs) ? logs.map(l => ({
+            nodeName: l.nodeName,
+            nodeType: l.nodeType,
+            status: l.status || "SUCCESS",
+            result: l.result || null,
+            error: l.error || null
+          })) : []
+        }
+      },
+      include: { logs: true }
+    });
+
+    // Update workflow run count
+    await prisma.workflow.update({
+      where: { id: workflowId },
+      data: { 
+        runCount: { increment: 1 },
+        lastRunAt: new Date()
+      }
+    });
+
+    res.status(201).json(execution);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Error guardando log de ejecución de workflow." });
   }
 });
 

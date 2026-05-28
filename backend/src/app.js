@@ -18,6 +18,10 @@ import workflowsRoutes from "./routes/workflows.routes.js";
 import dashboardRoutes from "./routes/dashboard.routes.js";
 import publicRoutes from "./routes/public.routes.js";
 import healthRoutes from "./routes/health.routes.js";
+import googleRoutes from "./routes/google.routes.js";
+import crmRoutes from "./routes/crm.routes.js";
+import financesRoutes from "./routes/finances.routes.js";
+import inventoryRoutes from "./routes/inventory.routes.js";
 import requireAuth from "./middleware/requireAuth.js";
 import { getCorsOptions } from "./config/cors.js";
 import { requestLogger } from "./middleware/requestLogger.js";
@@ -37,7 +41,8 @@ app.get("/health", (_req, res) => {
 });
 
 app.use(cors(getCorsOptions()));
-app.use(express.json({ limit: "2mb" }));
+app.use(express.json({ limit: "15mb" }));
+app.use("/uploads", express.static(resolve(process.cwd(), "uploads")));
 app.use(requestLogger);
 
 app.get("/", (_req, res) => {
@@ -63,7 +68,11 @@ app.use("/api/form-schemas", requireAuth, formSchemasRoutes);
 app.use("/api/business-models", requireAuth, businessModelsRoutes);
 app.use("/api/workflows", requireAuth, workflowsRoutes);
 app.use("/api/ai", requireAuth, aiRoutes);
-app.use("/api/dashboard", requireAuth, dashboardRoutes);
+app.use(`\/api\/dashboard`, requireAuth, dashboardRoutes);
+app.use("/api/google", requireAuth, googleRoutes);
+app.use("/api/crm", requireAuth, crmRoutes);
+app.use("/api/finances", requireAuth, financesRoutes);
+app.use("/api/inventory", requireAuth, inventoryRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

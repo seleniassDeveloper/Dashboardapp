@@ -13,6 +13,10 @@ export default function ServiceModal({ show, onHide, editService = null }) {
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [duration, setDuration] = useState("30");
+  
+  // List of professionals (workers)
+  const [workersList, setWorkersList] = useState([]);
+  const [selectedWorkerIds, setSelectedWorkerIds] = useState([]);
 
   const isEditing = Boolean(editService);
 
@@ -22,6 +26,16 @@ export default function ServiceModal({ show, onHide, editService = null }) {
     return name.trim().length > 0 && Number.isFinite(p) && p >= 0 && Number.isFinite(d) && d > 0;
   }, [name, price, duration]);
 
+  // Fetch workers list on show
+  useEffect(() => {
+    if (show) {
+      api.get("/workers")
+        .then(res => setWorkersList(Array.isArray(res.data) ? res.data : []))
+        .catch(err => console.error("Error loading workers:", err));
+    }
+  }, [show]);
+
+  // Setup form fields on mount or change
   useEffect(() => {
     if (!show) return;
     setError("");
@@ -31,10 +45,16 @@ export default function ServiceModal({ show, onHide, editService = null }) {
       setName(editService.name || "");
       setPrice(editService.price || "");
       setDuration(editService.duration || "30");
+      if (editService.workers && Array.isArray(editService.workers)) {
+        setSelectedWorkerIds(editService.workers.map(w => w.workerId));
+      } else {
+        setSelectedWorkerIds([]);
+      }
     } else {
       setName("");
       setPrice("");
       setDuration("30");
+      setSelectedWorkerIds([]);
     }
   }, [show, editService]);
 
@@ -48,6 +68,7 @@ export default function ServiceModal({ show, onHide, editService = null }) {
         name: name.trim(),
         price: Number(String(price).replace(",", ".")),
         duration: Number(duration),
+        workerIds: selectedWorkerIds
       };
 
       if (isEditing) {
@@ -63,7 +84,7 @@ export default function ServiceModal({ show, onHide, editService = null }) {
     } finally {
       setSaving(false);
     }
-  }, [valid, name, price, duration, onHide, refreshAll, isEditing, editService]);
+  }, [valid, name, price, duration, selectedWorkerIds, onHide, refreshAll, isEditing, editService]);
 
   return (
     <Modal show={show} onHide={saving ? undefined : onHide} centered backdrop="static" keyboard={!saving}>
@@ -114,6 +135,42 @@ export default function ServiceModal({ show, onHide, editService = null }) {
                   value={duration}
                   onChange={(e) => setDuration(e.target.value)}
                 />
+              </Form.Group>
+            </Col>
+
+            {/* List of professionals */}
+            <Col md={12}>
+              <Form.Group className="mt-2">
+                <Form.Label className="fw-bold text-gray-700">Profesionales que realizan este servicio</Form.Label>
+                <div 
+                  className="p-3 border rounded-3 bg-light overflow-auto" 
+                  style={{ maxHeight: "160px" }}
+                >
+                  {workersList.length === 0 ? (
+                    <small className="text-muted d-block py-1">No hay profesionales registrados o cargando...</small>
+                  ) : (
+                    workersList.map(worker => {
+                      const isChecked = selectedWorkerIds.includes(worker.id);
+                      return (
+                        <Form.Check 
+                          key={worker.id}
+                          type="checkbox"
+                          id={`worker-checkbox-${worker.id}`}
+                          label={`${worker.firstName} ${worker.lastName}`}
+                          checked={isChecked}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedWorkerIds(prev => [...prev, worker.id]);
+                            } else {
+                              setSelectedWorkerIds(prev => prev.filter(id => id !== worker.id));
+                            }
+                          }}
+                          className="mb-2 cursor-pointer fw-semibold text-gray-700"
+                        />
+                      );
+                    })
+                  )}
+                </div>
               </Form.Group>
             </Col>
           </Row>

@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { registerSW } from "virtual:pwa-register";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./styles/global.css";
+import "./i18n";
 
 if (import.meta.env.PROD) {
   registerSW({ immediate: true });

@@ -15,6 +15,7 @@ import {
   updateProfile,
 } from "firebase/auth";
 import { firebaseAuth, firebaseConfigOk } from "../firebase/client.js";
+import i18n from "../i18n";
 
 const AUTH_DISABLED = import.meta.env.VITE_AUTH_DISABLED === "true";
 const API_HOST = API_BASE_URL.replace(/\/api\/?$/, "");
@@ -22,39 +23,39 @@ const API_HOST = API_BASE_URL.replace(/\/api\/?$/, "");
 const DEV_USER = {
   uid: "dev-user",
   email: "dev@example.com",
-  displayName: "Usuario Dev",
+  displayName: "Dev User",
 };
 
 const AuthContext = createContext(null);
 
 function firebaseErrorMessage(err) {
   const code = err?.code || "";
+  const tt = (key, fallback) => i18n.t(`auth:errors.firebase.${key}`, { defaultValue: fallback });
   const map = {
-    "auth/email-already-in-use": "Ya existe una cuenta con ese email.",
-    "auth/invalid-email": "El email no es válido.",
-    "auth/weak-password": "La contraseña es demasiado débil (usá al menos 6 caracteres).",
-    "auth/user-disabled": "Esta cuenta fue deshabilitada.",
-    "auth/user-not-found": "No hay cuenta con ese email.",
-    "auth/wrong-password": "Contraseña incorrecta.",
-    "auth/invalid-credential": "Email o contraseña incorrectos.",
-    "auth/too-many-requests": "Demasiados intentos. Probá más tarde.",
-    "auth/popup-closed-by-user": "Ventana de Google cerrada antes de completar.",
-    "auth/popup-blocked":
-      "El navegador bloqueó la ventana emergente. Probá de nuevo: usamos redirección automática.",
-    "auth/redirect-cancelled-by-user": "Inicio de sesión con Google cancelado.",
-    "auth/unauthorized-domain":
-      "Este dominio no está autorizado en Firebase. Agregalo en Authentication → Settings → Authorized domains.",
-    "auth/network-request-failed": "Error de red. Revisá tu conexión.",
-    "auth/operation-not-allowed":
-      "Este método de acceso no está habilitado en Firebase (revisá Authentication en la consola).",
-    "auth/configuration": "Firebase no está bien configurado en el proyecto (revisá las variables VITE_FIREBASE_*).",
+    "auth/email-already-in-use": tt("emailInUse", "An account with that email already exists."),
+    "auth/invalid-email": tt("invalidEmail", "The email is not valid."),
+    "auth/weak-password": tt("weakPassword", "Password is too weak (use at least 6 characters)."),
+    "auth/user-disabled": tt("userDisabled", "This account has been disabled."),
+    "auth/user-not-found": tt("userNotFound", "There is no account with that email."),
+    "auth/wrong-password": tt("wrongPassword", "Incorrect password."),
+    "auth/invalid-credential": tt("invalidCredential", "Email or password are incorrect."),
+    "auth/too-many-requests": tt("tooManyRequests", "Too many attempts. Try again later."),
+    "auth/popup-closed-by-user": tt("popupClosed", "Google window was closed before completing."),
+    "auth/popup-blocked": tt("popupBlocked", "The browser blocked the pop-up. Try again — we use automatic redirection."),
+    "auth/redirect-cancelled-by-user": tt("redirectCancelled", "Google sign-in was cancelled."),
+    "auth/unauthorized-domain": tt("unauthorizedDomain", "This domain is not authorized in Firebase. Add it under Authentication → Settings → Authorized domains."),
+    "auth/network-request-failed": tt("networkRequestFailed", "Network error. Check your connection."),
+    "auth/operation-not-allowed": tt("operationNotAllowed", "This sign-in method is not enabled in Firebase (check Authentication in the console)."),
+    "auth/configuration": tt("configuration", "Firebase is not properly configured in the project (check the VITE_FIREBASE_* variables)."),
   };
-  return map[code] || err?.message || "Ocurrió un error de autenticación.";
+  return map[code] || err?.message || tt("generic", "An authentication error occurred.");
 }
 
 function googleProvider() {
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: "select_account" });
+  provider.addScope("https://www.googleapis.com/auth/gmail.send");
+  provider.addScope("https://www.googleapis.com/auth/calendar.events");
   return provider;
 }
 
@@ -80,6 +81,10 @@ export function AuthProvider({ children }) {
         await setPersistence(firebaseAuth, browserLocalPersistence);
         const result = await getRedirectResult(firebaseAuth);
         if (!cancelled && result?.user) {
+          const credential = GoogleAuthProvider.credentialFromResult(result);
+          if (credential?.accessToken) {
+            localStorage.setItem("google_oauth_access_token", credential.accessToken);
+          }
           setUser(result.user);
           setAuthError("");
         }
@@ -167,12 +172,12 @@ export function AuthProvider({ children }) {
   }, []);
 
   const loginWithEmailPassword = useCallback(async (email, password) => {
-    if (!firebaseAuth) throw new Error("Firebase no configurado.");
+    if (!firebaseAuth) throw new Error(i18n.t("auth:errors.firebaseNotConfigured", { defaultValue: "Firebase is not configured." }));
     await signInWithEmailAndPassword(firebaseAuth, email.trim(), password);
   }, []);
 
   const registerWithEmailPassword = useCallback(async ({ firstName, lastName, email, password }) => {
-    if (!firebaseAuth) throw new Error("Firebase no configurado.");
+    if (!firebaseAuth) throw new Error(i18n.t("auth:errors.firebaseNotConfigured", { defaultValue: "Firebase is not configured." }));
     const cred = await createUserWithEmailAndPassword(firebaseAuth, email.trim(), password);
     const name = `${firstName || ""} ${lastName || ""}`.trim();
     if (name && cred.user) {
@@ -181,13 +186,17 @@ export function AuthProvider({ children }) {
   }, []);
 
   const loginWithGoogle = useCallback(async () => {
-    if (!firebaseAuth) throw new Error("Firebase no configurado en el servidor.");
+    if (!firebaseAuth) throw new Error(i18n.t("auth:errors.firebaseNotConfigured", { defaultValue: "Firebase is not configured." }));
     setAuthError("");
     const provider = googleProvider();
 
     try {
       // Popup evita quedar colgado en firebaseapp.com/__/auth/handler (redirect).
-      await signInWithPopup(firebaseAuth, provider);
+      const result = await signInWithPopup(firebaseAuth, provider);
+      const credential = GoogleAuthProvider.credentialFromResult(result);
+      if (credential?.accessToken) {
+        localStorage.setItem("google_oauth_access_token", credential.accessToken);
+      }
     } catch (err) {
       const code = err?.code || "";
       if (import.meta.env.DEV && (code === "auth/popup-blocked" || code === "auth/popup-closed-by-user")) {
@@ -206,7 +215,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const sendPasswordReset = useCallback(async (email) => {
-    if (!firebaseAuth) throw new Error("Firebase no configurado.");
+    if (!firebaseAuth) throw new Error(i18n.t("auth:errors.firebaseNotConfigured", { defaultValue: "Firebase is not configured." }));
     await sendPasswordResetEmail(firebaseAuth, email.trim(), {
       url: window.location.origin,
       handleCodeInApp: false,
@@ -253,7 +262,7 @@ export function AuthProvider({ children }) {
 export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) {
-    throw new Error("useAuth debe usarse dentro de AuthProvider");
+    throw new Error(i18n.t("auth:errors.useAuthOutsideProvider", { defaultValue: "useAuth must be used inside AuthProvider" }));
   }
   return ctx;
 }

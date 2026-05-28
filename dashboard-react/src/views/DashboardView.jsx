@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { Button, Container, Row, Col, Spinner, Alert, Form, InputGroup } from "react-bootstrap";
+import { useTranslation } from "react-i18next";
 import {
   Calendar,
   CreditCard,
@@ -24,6 +25,7 @@ import KPIWidget from "../components/dashboard/KPIWidget";
 import SaaSMetricsGrid from "../components/dashboard/SaaSMetricsGrid";
 import AppointmentModal from "../gadgets/appointments/AppointmentModal";
 import ClientModal from "../header/clients/ClientModal";
+import SmartReports from "../components/dashboard/SmartReports";
 
 // Formato de moneda ARS
 function currency(n) {
@@ -36,6 +38,7 @@ function currency(n) {
 
 export default function DashboardView() {
   const { brand } = useBrand();
+  const { t, i18n } = useTranslation(["dashboard", "common"]);
 
   const [widgets, setWidgets] = useState([]);
   const [appointments, setAppointments] = useState([]);
@@ -77,11 +80,11 @@ export default function DashboardView() {
       setServices(Array.isArray(serviceRes.data) ? serviceRes.data : []);
     } catch (e) {
       console.error("Error cargando datos del dashboard:", e);
-      setError("No se pudieron cargar los datos del dashboard. Verificá la conexión.");
+      setError(t("errors.loadData"));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     fetchData();
@@ -90,13 +93,14 @@ export default function DashboardView() {
   // --- Saludo Dinámico y Fecha ---
   const getGreeting = () => {
     const hrs = new Date().getHours();
-    if (hrs < 12) return "Buenos días";
-    if (hrs < 19) return "Buenas tardes";
-    return "Buenas noches";
+    if (hrs < 12) return t("header.greetingMorning");
+    if (hrs < 19) return t("header.greetingAfternoon");
+    return t("header.greetingEvening");
   };
 
   const getFormattedDate = () => {
-    return new Date().toLocaleDateString("es-AR", {
+    const locale = i18n.language === "es" ? "es-AR" : "en-US";
+    return new Date().toLocaleDateString(locale, {
       weekday: "long",
       day: "numeric",
       month: "long",
@@ -177,7 +181,7 @@ export default function DashboardView() {
         workerApptCounts[name] = (workerApptCounts[name] || 0) + 1;
       }
     });
-    let topWorkerName = "Ninguno";
+    let topWorkerName = t("kpis.none");
     let topWorkerCount = 0;
     Object.entries(workerApptCounts).forEach(([name, count]) => {
       if (count > topWorkerCount) {
@@ -236,7 +240,7 @@ export default function DashboardView() {
       }
     } catch (e) {
       console.error("Error guardando widget:", e);
-      alert("No se pudo guardar la configuración del widget.");
+      alert(t("errors.saveWidget"));
     }
   };
 
@@ -251,7 +255,7 @@ export default function DashboardView() {
       setWidgets((prev) => [...prev, res.data]);
     } catch (e) {
       console.error("Error al agregar widget de IA:", e);
-      alert("No se pudo agregar el widget sugerido por la IA.");
+      alert(t("errors.aiWidget"));
     }
   };
 
@@ -270,13 +274,13 @@ export default function DashboardView() {
   };
 
   const handleDeleteWidget = async (id) => {
-    if (!window.confirm("¿Estás seguro de que deseas eliminar este widget?")) return;
+    if (!window.confirm(t("confirm.deleteWidget"))) return;
     try {
       await api.delete(`/dashboard/widgets/${id}`);
       setWidgets((prev) => prev.filter((w) => w.id !== id));
     } catch (e) {
       console.error("Error eliminando widget:", e);
-      alert("No se pudo eliminar el widget.");
+      alert(t("errors.deleteWidget"));
     }
   };
 
@@ -300,7 +304,7 @@ export default function DashboardView() {
       );
     } catch (e) {
       console.error("Error actualizando estado de la cita:", e);
-      alert("No se pudo actualizar el estado.");
+      alert(t("errors.updateStatus"));
     }
   };
 
@@ -308,7 +312,7 @@ export default function DashboardView() {
     return (
       <div className="d-flex flex-column align-items-center justify-content-center py-5" style={{ minHeight: "80vh" }}>
         <Spinner animation="border" className="text-primary mb-3" />
-        <p className="text-muted small">Cargando tu centro de control inteligente…</p>
+        <p className="text-muted small">{t("loading")}</p>
       </div>
     );
   }
@@ -326,10 +330,10 @@ export default function DashboardView() {
               {brand.companyName || "Aura Studio"}
             </span>
             <div className="rounded-circle bg-success" style={{ width: "6px", height: "6px" }} />
-            <span className="text-success small" style={{ fontSize: "11px", fontWeight: "600" }}>Operativo</span>
+            <span className="text-success small" style={{ fontSize: "11px", fontWeight: "600" }}>{t("header.operational")}</span>
           </div>
           <h1 className="fw-black text-dark h3 mb-1" style={{ letterSpacing: "-0.03em" }}>
-            {getGreeting()}, Selenia
+            {getGreeting()}, {t("header.defaultUserName")}
           </h1>
           <p className="text-muted small mb-0 text-capitalize">
             {getFormattedDate()}
@@ -344,7 +348,7 @@ export default function DashboardView() {
             </InputGroup.Text>
             <Form.Control
               type="text"
-              placeholder="Buscar cita o cliente..."
+              placeholder={t("header.searchPlaceholder")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="bg-transparent border-0 py-1.5 shadow-none small"
@@ -361,9 +365,9 @@ export default function DashboardView() {
               style={{ fontSize: "12px" }}
             >
               <Plus size={14} />
-              <span>Cliente</span>
+              <span>{t("header.quickActions.client")}</span>
             </Button>
-            
+
             <Button
               variant="outline-dark"
               onClick={() => setShowAppointmentModal(true)}
@@ -371,7 +375,7 @@ export default function DashboardView() {
               style={{ fontSize: "12px" }}
             >
               <Plus size={14} />
-              <span>Cita</span>
+              <span>{t("header.quickActions.appointment")}</span>
             </Button>
 
             <Button
@@ -384,7 +388,7 @@ export default function DashboardView() {
               style={{ fontSize: "12px", background: brand.accentColor || "#10b981" }}
             >
               <Plus size={14} />
-              <span>Widget</span>
+              <span>{t("header.quickActions.widget")}</span>
             </Button>
           </div>
         </div>
@@ -400,6 +404,17 @@ export default function DashboardView() {
         clients={clients}
         workers={workers}
       />
+
+      {/* SECCIÓN DE INFORMES INTELIGENTES Y GADGETS DINÁMICOS */}
+      <Container fluid className="px-0">
+        <SmartReports
+          appointments={appointments}
+          clients={clients}
+          workers={workers}
+          services={services}
+          brand={brand}
+        />
+      </Container>
 
       {/* 3-7. GRID DE WIDGETS CONFIGURABLES */}
       <Container fluid className="px-0">
@@ -429,7 +444,7 @@ export default function DashboardView() {
             }
           }}
           onEditWorker={(id) => {
-            alert(`Para configurar el horario del profesional, ingresá a la vista de Equipo.`);
+            alert(t("errors.configureScheduleHint"));
           }}
         />
       </Container>

@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { Container, Row, Col, Card, Button, Form, Badge, ListGroup, Alert } from "react-bootstrap";
 import { MessageCircle, Clock, Users, Plus, Check, Clipboard } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import AppointmentsCalendar from "../gadgets/appointments/AppointmentsCalendar";
 import api from "../lib/api.js";
 
 export default function CalendarView() {
+  const { t } = useTranslation("views");
   const [appointments, setAppointments] = useState([]);
   const [selectedApptId, setSelectedApptId] = useState("");
   const [copied, setCopied] = useState(false);
@@ -52,8 +54,8 @@ export default function CalendarView() {
     <Container fluid className="p-0 pb-4">
       <header className="mb-4">
         <div>
-          <h1 className="fw-bold h3">Agenda de Citas</h1>
-          <p className="text-muted mb-0">Gestiona tus horarios, recordatorios y optimiza el tiempo de tus estilistas.</p>
+          <h1 className="fw-bold h3">{t("calendar.title")}</h1>
+          <p className="text-muted mb-0">{t("calendar.subtitle")}</p>
         </div>
       </header>
 

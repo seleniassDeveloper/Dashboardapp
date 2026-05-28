@@ -1,0 +1,56 @@
+{
+  "users": {
+    "title": "Users Administration",
+    "subtitle": "Manage users and permissions",
+    "addUser": "Add user",
+    "table": {
+      "name": "Name",
+      "email": "Email",
+      "role": "Role",
+      "status": "Status",
+      "created": "Created",
+      "actions": "Actions"
+    },
+    "roles": {
+      "admin": "Admin",
+      "owner": "Owner",
+      "manager": "Manager",
+      "staff": "Staff",
+      "user": "User"
+    },
+    "confirmDelete": "Are you sure you want to delete this user?",
+    "errors": {
+      "load": "Could not load users.",
+      "save": "Could not save the user.",
+      "delete": "Could not delete the user."
+    }
+  },
+  "brand": {
+    "title": "Brand settings",
+    "companyName": "Company name",
+    "slogan": "Slogan",
+    "primaryColor": "Primary color",
+    "accentColor": "Accent color",
+    "logo": "Logo",
+    "coverImage": "Cover image",
+    "uploadLogo": "Upload logo",
+    "uploadCover": "Upload cover image",
+    "save": "Save changes",
+    "saved": "Brand updated successfully.",
+    "error": "Could not save the brand."
+  },
+  "modules": {
+    "title": "Active modules",
+    "subtitle": "Enable or disable modules across the app",
+    "dashboard": "Dashboard",
+    "appointments": "Schedule",
+    "clients": "Clients",
+    "services": "Services",
+    "team": "Team",
+    "finances": "Finances",
+    "inventory": "Inventory",
+    "sheets_sync": "Sheets Sync",
+    "workflows": "Workflows",
+    "automations": "Automations"
+  }
+}

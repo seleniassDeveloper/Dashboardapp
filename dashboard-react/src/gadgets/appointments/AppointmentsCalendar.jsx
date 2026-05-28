@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback, useRef } from "react";
+import React, { useMemo, useState, useCallback, useRef, useEffect } from "react";
 import {
   Card,
   Modal,
@@ -17,6 +17,8 @@ import interactionPlugin from "@fullcalendar/interaction";
 import { useBrand } from "../../header/name/BrandProvider";
 import { useAppointmentsStore } from "./AppointmentsProvider.jsx";
 import AppointmentModal from "./AppointmentModal.jsx";
+import Agenda from "./agenda/Agenda";
+import axiosApi from "../../lib/api.js";
 
 import "./styles/fullcalendar-fix.css";
 
@@ -58,7 +60,15 @@ export default function AppointmentsCalendar() {
   const { brand } = useBrand();
   const accent = brand?.accentColor || brand?.textColor || "#d32f2f";
 
-  const { appointments, loading, error, fetchAppointments } = useAppointmentsStore();
+  const { appointments, services, loading, error, fetchAppointments, upsertAppointment } = useAppointmentsStore();
+
+  const [workers, setWorkers] = useState([]);
+
+  useEffect(() => {
+    axiosApi.get("/workers")
+      .then(res => setWorkers(Array.isArray(res.data) ? res.data : []))
+      .catch(e => console.error("Error loading workers", e));
+  }, []);
 
   // console.log("appointments", appointments);
 
@@ -67,6 +77,7 @@ export default function AppointmentsCalendar() {
   // ✅ controla vista + título arriba (sin depender del toolbar de FullCalendar)
   const [view, setView] = useState("dayGridMonth"); // "dayGridMonth" | "timeGridWeek" | "timeGridDay"
   const [title, setTitle] = useState("");
+  const [selectedDate, setSelectedDate] = useState(() => new Date());
 
   const [selected, setSelected] = useState(null);
   const [showDetail, setShowDetail] = useState(false);
@@ -209,62 +220,77 @@ export default function AppointmentsCalendar() {
               {error}
             </Alert>
           ) : (
-            <div style={{ height: 560 }}>
-              <FullCalendar
-                ref={calRef}
-                key={`cal-${accent}`}
-                plugins={[timeGridPlugin, dayGridPlugin, interactionPlugin]}
-                initialView="dayGridMonth"
-                firstDay={1}
-                nowIndicator
-                allDaySlot={false}
-                slotMinTime="07:00:00"
-                slotMaxTime="22:00:00"
-                expandRows
-                height="100%"
-                events={events}
-                eventClick={onEventClick}
-                dateClick={onDateClick}
-                eventDisplay="block"
-                // ✅ IMPORTANTÍSIMO: quitamos el header interno para evitar duplicados
-                headerToolbar={false}
-                // ✅ actualiza el título arriba cuando cambias de mes/semana/día
-                datesSet={(arg) => setTitle(arg.view.title)}
-                titleFormat={{ year: "numeric", month: "long" }}
-                slotLabelFormat={{
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  hour12: false,
-                }}
-                eventTimeFormat={{
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  hour12: false,
-                }}
-                eventContent={(arg) => (
-                  <div
-                    style={{
-                      padding: "2px 6px",
-                      fontSize: 11,
-                      fontWeight: 500,
-                    }}
-                  >
-                    <div style={{ opacity: 0.85, fontWeight: 700 }}>
-                      {arg.timeText}
-                    </div>
+            <>
+              {view === "timeGridDay" && (
+                <Agenda
+                  selectedDate={selectedDate}
+                  initialAppointments={appointments}
+                  initialServices={services}
+                  initialWorkers={workers}
+                  onSaved={fetchAppointments}
+                  onUpsert={upsertAppointment}
+                />
+              )}
+              <div style={{ display: view !== "timeGridDay" ? "block" : "none", height: 560 }}>
+                <FullCalendar
+                  ref={calRef}
+                  key={`cal-${accent}`}
+                  plugins={[timeGridPlugin, dayGridPlugin, interactionPlugin]}
+                  initialView="dayGridMonth"
+                  firstDay={1}
+                  nowIndicator
+                  allDaySlot={false}
+                  slotMinTime="07:00:00"
+                  slotMaxTime="22:00:00"
+                  expandRows
+                  height="100%"
+                  events={events}
+                  eventClick={onEventClick}
+                  dateClick={onDateClick}
+                  eventDisplay="block"
+                  // ✅ IMPORTANTÍSIMO: quitamos el header interno para evitar duplicados
+                  headerToolbar={false}
+                  // ✅ actualiza el título arriba cuando cambias de mes/semana/día
+                  datesSet={(arg) => {
+                    setTitle(arg.view.title);
+                    setSelectedDate(arg.view.currentStart || arg.start);
+                  }}
+                  titleFormat={{ year: "numeric", month: "long" }}
+                  slotLabelFormat={{
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: false,
+                  }}
+                  eventTimeFormat={{
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: false,
+                  }}
+                  eventContent={(arg) => (
                     <div
                       style={{
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
+                        padding: "2px 6px",
+                        fontSize: 11,
+                        fontWeight: 500,
                       }}
                     >
-                      {arg.event.title}
+                      <div style={{ opacity: 0.85, fontWeight: 700 }}>
+                        {arg.timeText}
+                      </div>
+                      <div
+                        style={{
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
+                        {arg.event.title}
+                      </div>
                     </div>
-                  </div>
-                )}
-              />
-            </div>
+                  )}
+                />
+              </div>
+            </>
           )}
         </Card.Body>
       </Card>

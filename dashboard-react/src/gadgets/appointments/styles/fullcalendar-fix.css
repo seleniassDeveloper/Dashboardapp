@@ -1,7 +1,160 @@
-/* ✅ Fix duplicación de textos (Mes Mes / Febrero...February...) */
+/* ==========================================================================
+   Tema Premium y Modernización del Calendario (FullCalendar - Aura Studio)
+   ========================================================================== */
+
+/* Fix duplicación de textos (Mes Mes / Febrero...February...) */
 .fc .fc-button .fc-button-text::before,
 .fc .fc-button .fc-button-text::after,
 .fc .fc-toolbar-title::before,
 .fc .fc-toolbar-title::after {
   content: "" !important;
+}
+
+/* 1. Grilla y Bordes Modernos y Minimalistas */
+.fc {
+  --fc-border-color: rgba(226, 232, 240, 0.6) !important;
+  --fc-scrollgrid-border-width: 1px;
+  --fc-page-bg-color: #ffffff;
+  font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif !important;
+}
+
+.fc-scrollgrid {
+  border-radius: 16px !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(226, 232, 240, 0.8) !important;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03), 0 2px 8px -1px rgba(0, 0, 0, 0.02) !important;
+}
+
+/* Cabeceras de días de la semana */
+.fc .fc-col-header-cell {
+  background: #f8fafc !important;
+  padding: 12px 0 !important;
+  font-weight: 700 !important;
+  font-size: 13px !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #475569 !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+/* 2. Estilización de Celdas del Calendario */
+.fc-daygrid-day {
+  transition: background-color 0.2s ease, transform 0.2s ease !important;
+}
+
+/* Hover en celdas de días */
+.fc-daygrid-day:hover {
+  background-color: rgba(241, 245, 249, 0.5) !important;
+  cursor: pointer;
+}
+
+/* Celda del día de hoy */
+.fc .fc-day-today {
+  background-color: rgba(248, 250, 252, 0.8) !important;
+}
+
+.fc .fc-day-today .fc-daygrid-day-number {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 50% !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.2) !important;
+}
+
+/* Número de día estándar */
+.fc-daygrid-day-number {
+  padding: 8px 12px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #64748b !important;
+  text-decoration: none !important;
+  display: inline-block !important;
+}
+
+.fc-daygrid-day-top {
+  flex-direction: row-reverse !important;
+}
+
+/* 3. Eventos como Tarjetas Premium */
+.fc-v-event, .fc-h-event {
+  background: none !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 1px 3px !important;
+}
+
+.fc-event {
+  border-radius: 8px !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+  overflow: hidden !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02) !important;
+}
+
+.fc-event:hover {
+  transform: translateY(-1px) scale(1.02) !important;
+  box-shadow: 0 6px 12px -2px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04) !important;
+  z-index: 5 !important;
+}
+
+/* Contenedor del contenido del evento */
+.fc-event-main {
+  padding: 4px 8px !important;
+  font-size: 11px !important;
+  color: #1e293b !important;
+  border-left: 3.5px solid currentColor !important;
+}
+
+/* 4. Estilos Premium para Vista de Semana (TimeGrid) */
+.fc .fc-timegrid-slot {
+  height: 48px !important; /* Altura estilizada por slot */
+  border-bottom: 1px dashed rgba(226, 232, 240, 0.6) !important;
+}
+
+.fc .fc-timegrid-slot-minor {
+  border-bottom: 1px dashed rgba(241, 245, 249, 0.8) !important;
+}
+
+/* Regla lateral de horas */
+.fc .fc-timegrid-axis-cushion,
+.fc .fc-timegrid-slot-label-cushion {
+  color: #64748b !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+}
+
+/* Indicador de hora actual */
+.fc-timegrid-now-indicator-line {
+  border-color: #ef4444 !important;
+  border-width: 2px !important;
+}
+
+.fc-timegrid-now-indicator-arrow {
+  border-left-color: #ef4444 !important;
+  border-width: 6px !important;
+  margin-top: -5px !important;
+}
+
+/* Scrollbar hermoso para el calendario */
+.fc-scroller::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.fc-scroller::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.fc-scroller::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.1);
+  border-radius: 99px;
+}
+
+.fc-scroller::-webkit-scrollbar-thumb:hover {
+  background: rgba(15, 23, 42, 0.2);
 }
