@@ -21,7 +21,7 @@
  *   - detección del idioma del navegador
  */
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 import enCommon from "./locales/en/common.json";
 import enLanding from "./locales/en/landing.json";
@@ -188,20 +188,33 @@ export const initReactI18next = { type: "3rdParty", init() {} };
 export const LanguageDetector = { type: "languageDetector", init() {} };
 
 export function useTranslation(ns) {
-  const [, force] = useState(0);
+  // Tick counter that increments whenever the language changes — used both to
+  // trigger re-renders and as a `useMemo` dependency so `t` stays referentially
+  // stable across renders that DON'T involve a language change.
+  const [tick, setTick] = useState(0);
 
   useEffect(() => {
-    const listener = () => force((n) => n + 1);
+    const listener = () => setTick((n) => n + 1);
     listeners.add(listener);
     return () => {
       listeners.delete(listener);
     };
   }, []);
 
-  const namespaces = Array.isArray(ns) ? ns : ns ? [ns] : [DEFAULT_NS];
-  const defaultNs = namespaces[0] || DEFAULT_NS;
+  // Resolve default namespace as a primitive (string) so `useMemo` can compare it
+  // shallowly even if the caller passes a fresh array literal on every render.
+  const defaultNs = Array.isArray(ns)
+    ? ns[0] || DEFAULT_NS
+    : ns || DEFAULT_NS;
 
-  const t = (key, opts) => translate(key, opts, defaultNs);
+  // `t` keeps the same reference across renders unless the namespace or the
+  // active language changes. This matches react-i18next's behaviour and is
+  // critical for callers that put `t` in dependency arrays of useEffect /
+  // useCallback / useMemo (otherwise you get infinite re-render loops).
+  const t = useMemo(
+    () => (key, opts) => translate(key, opts, defaultNs),
+    [defaultNs, tick]
+  );
 
   return { t, i18n, ready: true };
 }
