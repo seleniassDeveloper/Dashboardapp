@@ -26,6 +26,7 @@ export async function createService(req, res) {
         price: parsedPrice,
         duration: parsedDuration,
         isActive: typeof isActive === "boolean" ? isActive : true,
+        businessId: req.businessId,
         workers: workerIds && Array.isArray(workerIds) ? {
           create: workerIds.map(wId => ({
             workerId: wId
@@ -60,9 +61,9 @@ export async function listServices(req, res) {
     const active = req.query.active;
 
     const where =
-      active === "true" ? { isActive: true } :
-      active === "false" ? { isActive: false } :
-      {};
+      active === "true" ? { isActive: true, businessId: req.businessId } :
+      active === "false" ? { isActive: false, businessId: req.businessId } :
+      { businessId: req.businessId };
 
     const services = await prisma.service.findMany({
       where,
@@ -88,6 +89,11 @@ export async function updateService(req, res) {
   try {
     const { id } = req.params;
     const { name, price, duration, isActive, workerIds } = req.body;
+
+    const existing = await prisma.service.findFirst({
+      where: { id, businessId: req.businessId }
+    });
+    if (!existing) return res.status(404).json({ error: "Servicio no encontrado." });
 
     const data = {};
 
@@ -160,6 +166,11 @@ export async function updateService(req, res) {
 export async function deleteService(req, res) {
   try {
     const { id } = req.params;
+
+    const existing = await prisma.service.findFirst({
+      where: { id, businessId: req.businessId }
+    });
+    if (!existing) return res.status(404).json({ error: "Servicio no encontrado." });
 
     // Primero eliminamos en cascada las citas asociadas para evitar conflictos de clave foránea
     await prisma.appointment.deleteMany({

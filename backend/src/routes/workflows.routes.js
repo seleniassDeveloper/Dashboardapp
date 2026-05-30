@@ -1,11 +1,12 @@
 import { Router } from "express";
 import prisma from "../prisma.js";
 import { ensureBusinessModels, normalizeWorkflow } from "../services/businessModelsSeed.js";
+import { requirePermission } from "../middleware/rbac.middleware.js";
 
 const router = Router();
 
 // GET /api/workflows
-router.get("/", async (req, res) => {
+router.get("/", requirePermission("workflows.view"), async (req, res) => {
   try {
     await ensureBusinessModels();
     const { businessModelId, status } = req.query;
@@ -26,7 +27,7 @@ router.get("/", async (req, res) => {
 });
 
 // GET /api/workflows/stats
-router.get("/stats/summary", async (_req, res) => {
+router.get("/stats/summary", requirePermission("workflows.view"), async (_req, res) => {
   try {
     const [totalRuns, activeCount, total] = await Promise.all([
       prisma.workflow.aggregate({ _sum: { runCount: true } }),
@@ -39,12 +40,12 @@ router.get("/stats/summary", async (_req, res) => {
       totalRuns: totalRuns._sum.runCount || 0,
     });
   } catch (e) {
-    res.status(500).json({ error: "Error obteniendo estadísticas." });
+    res.status(500).json({ error: "Error obtaining statistics." });
   }
 });
 
 // POST /api/workflows/from-template
-router.post("/from-template", async (req, res) => {
+router.post("/from-template", requirePermission("workflows.create"), async (req, res) => {
   try {
     const { businessModelId, templateIndex } = req.body;
     const model = await prisma.businessModel.findUnique({ where: { id: businessModelId } });
@@ -73,7 +74,7 @@ router.post("/from-template", async (req, res) => {
 });
 
 // POST /api/workflows
-router.post("/", async (req, res) => {
+router.post("/", requirePermission("workflows.create"), async (req, res) => {
   try {
     const { name, description, businessModelId, trigger, steps, transitions, screens, status } = req.body;
     if (!name?.trim()) return res.status(400).json({ error: "Nombre obligatorio." });
@@ -110,7 +111,7 @@ router.post("/", async (req, res) => {
 });
 
 // PUT /api/workflows/:id
-router.put("/:id", async (req, res) => {
+router.put("/:id", requirePermission("workflows.edit"), async (req, res) => {
   try {
     const { name, description, trigger, steps, transitions, screens, status, businessModelId } = req.body;
     const existing = await prisma.workflow.findUnique({
@@ -141,7 +142,7 @@ router.put("/:id", async (req, res) => {
 });
 
 // PATCH /api/workflows/:id/status
-router.patch("/:id/status", async (req, res) => {
+router.patch("/:id/status", requirePermission("workflows.edit"), async (req, res) => {
   try {
     const { status } = req.body;
     if (!["ACTIVE", "PAUSED", "DRAFT"].includes(status)) {
@@ -159,7 +160,7 @@ router.patch("/:id/status", async (req, res) => {
 });
 
 // GET /api/workflows/executions - Retrieve automation logs history
-router.get("/executions", async (req, res) => {
+router.get("/executions", requirePermission("workflows.logs.view"), async (req, res) => {
   try {
     const list = await prisma.workflowExecution.findMany({
       include: { workflow: true, logs: true },
@@ -174,7 +175,7 @@ router.get("/executions", async (req, res) => {
 });
 
 // POST /api/workflows/executions - Register dynamic execution logs
-router.post("/executions", async (req, res) => {
+router.post("/executions", requirePermission("workflows.run"), async (req, res) => {
   try {
     const { workflowId, status, triggerType, runTimeMs, logs } = req.body;
     if (!workflowId || !status || !triggerType) {
@@ -217,7 +218,7 @@ router.post("/executions", async (req, res) => {
 });
 
 // DELETE /api/workflows/:id
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", requirePermission("workflows.delete"), async (req, res) => {
   try {
     await prisma.workflow.delete({ where: { id: req.params.id } });
     res.json({ ok: true });

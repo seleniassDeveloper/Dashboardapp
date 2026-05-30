@@ -91,7 +91,7 @@ export default function BookingSuccess() {
               </div>
             </div>
 
-            <div className="p-3 bg-light rounded-3 mb-4">
+            <div className="p-3 bg-light rounded-3 mb-3">
               <div className="fw-semibold small text-dark mb-1">{t("success.service")}</div>
               <div className="d-flex justify-content-between align-items-center">
                 <span className="small text-muted">{booking.service?.name}</span>
@@ -104,6 +104,41 @@ export default function BookingSuccess() {
                 </span>
               </div>
             </div>
+
+            {booking.downpaymentPaid && (
+              <div className="p-3 rounded-3 mb-4 border border-opacity-25" style={{ background: `${color}06`, borderColor: color }}>
+                <div className="fw-bold small d-flex align-items-center gap-2 mb-2" style={{ color: color }}>
+                  <CheckCircle2 size={16} />
+                  <span>Seña Abonada Exitosamente</span>
+                </div>
+                <div className="d-flex justify-content-between text-muted small mb-1">
+                  <span>Monto de la Seña:</span>
+                  <span className="fw-bold text-dark">
+                    {new Intl.NumberFormat(locale, {
+                      style: "currency",
+                      currency: i18n.language === "es" ? "ARS" : "USD",
+                      maximumFractionDigits: 0,
+                    }).format(booking.downpaymentPaid)}
+                  </span>
+                </div>
+                {booking.downpaymentTransactionId && (
+                  <div className="d-flex justify-content-between text-muted small mb-1" style={{ fontSize: "11px" }}>
+                    <span>Código de Pago:</span>
+                    <span className="font-monospace text-dark">{booking.downpaymentTransactionId}</span>
+                  </div>
+                )}
+                <div className="d-flex justify-content-between text-muted small mt-2 pt-2 border-top">
+                  <span>Saldo restante a pagar en el salón:</span>
+                  <span className="fw-bold text-success">
+                    {new Intl.NumberFormat(locale, {
+                      style: "currency",
+                      currency: i18n.language === "es" ? "ARS" : "USD",
+                      maximumFractionDigits: 0,
+                    }).format((booking.service?.price || 0) - booking.downpaymentPaid)}
+                  </span>
+                </div>
+              </div>
+            )}
 
             <p className="text-muted text-center small mb-4">
               {t("success.emailNote", { message })}

@@ -32,7 +32,7 @@ export function getCorsOptions() {
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-business-id", "x-mock-role", "X-Requested-With", "x-finance-bypass-token"],
     optionsSuccessStatus: 204,
   };
 }

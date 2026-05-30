@@ -2,29 +2,29 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 import api, { API_BASE_URL, isApiRequest } from "../lib/api.js";
 import {
   browserLocalPersistence,
-  createUserWithEmailAndPassword,
   GoogleAuthProvider,
   getRedirectResult,
   onAuthStateChanged,
-  sendPasswordResetEmail,
   setPersistence,
-  signInWithEmailAndPassword,
   signInWithPopup,
   signInWithRedirect,
   signOut,
-  updateProfile,
 } from "firebase/auth";
-import { firebaseAuth, firebaseConfigOk } from "../firebase/client.js";
+import {
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  query,
+  collection,
+  where,
+  getDocs
+} from "firebase/firestore";
+import { firebaseAuth, firebaseConfigOk, firestoreDb } from "../firebase/client.js";
 import i18n from "../i18n";
 
-const AUTH_DISABLED = import.meta.env.VITE_AUTH_DISABLED === "true";
 const API_HOST = API_BASE_URL.replace(/\/api\/?$/, "");
-
-const DEV_USER = {
-  uid: "dev-user",
-  email: "dev@example.com",
-  displayName: "Dev User",
-};
 
 const AuthContext = createContext(null);
 
@@ -60,14 +60,212 @@ function googleProvider() {
 }
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(AUTH_DISABLED ? DEV_USER : null);
-  const [authLoading, setAuthLoading] = useState(!AUTH_DISABLED);
-  const [isAdmin, setIsAdmin] = useState(AUTH_DISABLED);
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState("");
 
-  useEffect(() => {
-    if (AUTH_DISABLED) return;
+  const [business, setBusiness] = useState(null);
+  const [role, setRole] = useState(null);
+  const [permissions, setPermissions] = useState([]);
+  const [isUnauthorized, setIsUnauthorized] = useState(false);
+  const [firestoreError, setFirestoreError] = useState("");
 
+  const [financeUnlocked, setFinanceUnlocked] = useState(() => {
+    return typeof sessionStorage !== "undefined" && !!sessionStorage.getItem("finance_bypass_token");
+  });
+
+  const unlockFinance = useCallback((token) => {
+    sessionStorage.setItem("finance_bypass_token", token);
+    setFinanceUnlocked(true);
+  }, []);
+
+  const lockFinance = useCallback(() => {
+    sessionStorage.removeItem("finance_bypass_token");
+    setFinanceUnlocked(false);
+  }, []);
+
+  // Fetch session details from Firestore and perform Owner auto-seeding
+  const fetchSession = useCallback(async (firebaseUser = firebaseAuth?.currentUser) => {
+    console.group("🔥 [Aura Firebase Diagnostic]");
+    if (!firebaseUser) {
+      console.warn("[Diagnostic] 1. No authenticated Google user found.");
+      setFirestoreError("No se recibió información del usuario autenticado.");
+      console.groupEnd();
+      return;
+    }
+    console.log("[Diagnostic] 1. Active Google User:", firebaseUser.email, `(UID: ${firebaseUser.uid})`);
+
+    if (!firestoreDb) {
+      console.error("[Diagnostic] 2. Firestore client is NOT initialized.");
+      setFirestoreError("Error de inicialización: Firestore no está disponible en el cliente Firebase. Revisa las variables en el archivo .env.");
+      console.groupEnd();
+      return;
+    }
+    console.log("[Diagnostic] 2. Firestore is initialized successfully.");
+
+    try {
+      setFirestoreError("");
+      const email = String(firebaseUser.email || "").trim().toLowerCase();
+      if (!email) {
+        console.error("[Diagnostic] Email is empty.");
+        setFirestoreError("El usuario de Google no tiene una dirección de correo válida.");
+        console.groupEnd();
+        return;
+      }
+
+      // Check direct Document references in Firestore
+      const uidRef = doc(firestoreDb, "users", firebaseUser.uid);
+      const emailRef = doc(firestoreDb, "users", email);
+
+      console.log("[Diagnostic] 3. Querying users collection by document ID...");
+      let snap = await getDoc(uidRef);
+      let data = null;
+      let docId = firebaseUser.uid;
+
+      if (!snap.exists()) {
+        console.log(`[Diagnostic] Document under Firebase UID '${firebaseUser.uid}' not found. Trying Email ID '${email}'...`);
+        snap = await getDoc(emailRef);
+        if (snap.exists()) {
+          data = snap.data();
+          docId = email;
+          console.log("[Diagnostic] Document found under Email ID!");
+        } else {
+          console.log("[Diagnostic] Document under Email ID not found either. Performing field query filter by email...");
+          const q = query(collection(firestoreDb, "users"), where("email", "==", email));
+          const querySnapshot = await getDocs(q);
+          if (!querySnapshot.empty) {
+            snap = querySnapshot.docs[0];
+            data = snap.data();
+            docId = snap.id;
+            console.log("[Diagnostic] Document found via field query!");
+          }
+        }
+      } else {
+        data = snap.data();
+        console.log("[Diagnostic] Document found directly under Firebase UID!");
+      }
+
+      // 3. If user doesn't exist in Firestore, auto-create it now!
+      if (!data) {
+        console.log(`[Diagnostic] User '${email}' does NOT exist in Firestore. Initiating auto-creation...`);
+        
+        const isDefaultOwner = (email === "seleniadeveloper@gmail.com");
+        const defaultRole = isDefaultOwner ? "owner" : "profesional";
+        const defaultPermissions = isDefaultOwner ? [
+          "view_finances",
+          "manage_settings",
+          "manage_users",
+          "appointments.view",
+          "clients.view",
+          "services.view",
+          "team.view",
+          "inventory.view",
+          "sheets.view",
+          "workflows.view",
+          "automations.view"
+        ] : ["appointments.view"];
+
+        const newUserDoc = {
+          uid: firebaseUser.uid,
+          email: email,
+          displayName: firebaseUser.displayName || (isDefaultOwner ? "Selenia Developer" : "Colaborador"),
+          role: defaultRole,
+          permissions: defaultPermissions,
+          active: isDefaultOwner, // Owner is active instantly, others are inactive until approved
+          createdAt: new Date(),
+          lastAccess: new Date()
+        };
+
+        console.log(`[Diagnostic] Writing new user document directly under Firebase UID '${firebaseUser.uid}'...`);
+        const uidDocRef = doc(firestoreDb, "users", firebaseUser.uid);
+        await setDoc(uidDocRef, newUserDoc);
+        
+        data = newUserDoc;
+        docId = firebaseUser.uid;
+        console.log("[Diagnostic] User successfully auto-created in Firestore!");
+      }
+
+      if (data) {
+        console.log("[Diagnostic] 4. User data loaded successfully:", data);
+        console.log(`[Diagnostic] Active status: ${data.active}, Role: ${data.role}`);
+
+        if (data.active === true) {
+          // If the document ID was not the Firebase UID, migrate it now
+          if (docId !== firebaseUser.uid) {
+            console.log(`[Diagnostic] Migrating document ID from '${docId}' to Firebase UID '${firebaseUser.uid}'...`);
+            const newUidRef = doc(firestoreDb, "users", firebaseUser.uid);
+            await setDoc(newUidRef, {
+              ...data,
+              uid: firebaseUser.uid,
+              displayName: firebaseUser.displayName || data.displayName || "",
+              lastAccess: new Date()
+            });
+            const oldRef = doc(firestoreDb, "users", docId);
+            await deleteDoc(oldRef);
+            console.log("[Diagnostic] Migration finished.");
+          } else {
+            console.log("[Diagnostic] Updating lastAccess timestamp in Firestore...");
+            const activeRef = doc(firestoreDb, "users", firebaseUser.uid);
+            await updateDoc(activeRef, {
+              uid: firebaseUser.uid,
+              lastAccess: new Date(),
+              displayName: firebaseUser.displayName || data.displayName || ""
+            });
+          }
+
+          setRole(data.role);
+          setPermissions(data.permissions || []);
+          setIsUnauthorized(false);
+          setBusiness({ id: "business-default", name: "Aura Studio" });
+          localStorage.setItem("active_business_id", "business-default");
+          console.log("[Diagnostic] 5. Session successfully authorized. Role:", data.role, "Permissions:", data.permissions);
+        } else {
+          console.warn("[Diagnostic] User exists but is set as INACTIVE.");
+          setRole(null);
+          setPermissions([]);
+          setIsUnauthorized(true);
+        }
+      } else {
+        console.warn("[Diagnostic] Failure loading user data.");
+        setRole(null);
+        setPermissions([]);
+        setIsUnauthorized(true);
+      }
+    } catch (err) {
+      console.error("[Diagnostic] Exception occurred during session sync:", err);
+      
+      const email = String(firebaseUser.email || "").trim().toLowerCase();
+      if (email === "seleniadeveloper@gmail.com") {
+        console.warn("[Diagnostic] Firestore falló para el Owner. Habilitando bypass local de desarrollo.");
+        setRole("owner");
+        setPermissions([
+          "view_finances",
+          "manage_settings",
+          "manage_users",
+          "appointments.view",
+          "clients.view",
+          "services.view",
+          "team.view",
+          "inventory.view",
+          "sheets.view",
+          "workflows.view",
+          "automations.view"
+        ]);
+        setIsUnauthorized(false);
+        setFirestoreError("");
+        setBusiness({ id: "business-default", name: "Aura Studio" });
+        localStorage.setItem("active_business_id", "business-default");
+        console.groupEnd();
+        return;
+      }
+      
+      setFirestoreError(String(err?.message || err));
+    } finally {
+      console.groupEnd();
+    }
+  }, []);
+
+  useEffect(() => {
     if (!firebaseConfigOk() || !firebaseAuth) {
       setAuthLoading(false);
       return;
@@ -81,10 +279,6 @@ export function AuthProvider({ children }) {
         await setPersistence(firebaseAuth, browserLocalPersistence);
         const result = await getRedirectResult(firebaseAuth);
         if (!cancelled && result?.user) {
-          const credential = GoogleAuthProvider.credentialFromResult(result);
-          if (credential?.accessToken) {
-            localStorage.setItem("google_oauth_access_token", credential.accessToken);
-          }
           setUser(result.user);
           setAuthError("");
         }
@@ -93,18 +287,26 @@ export function AuthProvider({ children }) {
           console.error("Google redirect error:", err);
           setAuthError(firebaseErrorMessage(err));
         }
-      } finally {
-        sessionStorage.removeItem("authRedirectPending");
       }
 
       if (cancelled) return;
 
-      unsub = onAuthStateChanged(firebaseAuth, (u) => {
+      unsub = onAuthStateChanged(firebaseAuth, async (u) => {
         if (cancelled) return;
         setUser(u);
-        setIsAdmin(false);
+        if (u) {
+          setAuthError("");
+          try {
+            await fetchSession(u);
+          } catch (_) {}
+        } else {
+          setBusiness(null);
+          setRole(null);
+          setPermissions([]);
+          setIsUnauthorized(false);
+          setFirestoreError("");
+        }
         setAuthLoading(false);
-        if (u) setAuthError("");
       });
     })();
 
@@ -112,78 +314,41 @@ export function AuthProvider({ children }) {
       cancelled = true;
       unsub();
     };
-  }, []);
+  }, [fetchSession]);
 
   useEffect(() => {
-    if (AUTH_DISABLED || !firebaseAuth) return;
-    async function loadClaims() {
-      if (!firebaseAuth.currentUser) return;
-      try {
-        const tokenResult = await firebaseAuth.currentUser.getIdTokenResult();
-        setIsAdmin(tokenResult?.claims?.admin === true);
-      } catch {
-        setIsAdmin(false);
-      }
-    }
-    if (user) loadClaims();
-  }, [user]);
-
-  useEffect(() => {
-    if (AUTH_DISABLED || !firebaseAuth) return;
     const reqId = api.interceptors.request.use(async (config) => {
       const url = String(config.url || "");
-      console.log("Axios request:", url, "isApi:", isApiRequest(url));
-      
       if (!isApiRequest(url)) return config;
 
-      // Esperar a que auth esté listo
+      const activeBId = localStorage.getItem("active_business_id") || "business-default";
+      config.headers["x-business-id"] = activeBId;
+
+      const financeBypassToken = sessionStorage.getItem("finance_bypass_token");
+      if (financeBypassToken) {
+        config.headers["x-finance-bypass-token"] = financeBypassToken;
+      }
+
+      if (!firebaseAuth) return config;
+
       if (firebaseAuth.authStateReady) {
         await firebaseAuth.authStateReady();
       }
 
       const u = firebaseAuth.currentUser;
-      console.log("currentUser in interceptor:", u?.uid || "null");
-
       if (u) {
         const token = await u.getIdToken(true);
-        console.log("sending token:", !!token);
-        
-        // Forzar asignación de header como solicitó el usuario
         config.headers.Authorization = `Bearer ${token}`;
-      } else {
-        console.log("No hay currentUser en interceptor. Se enviará request sin token.");
       }
       return config;
     });
     return () => api.interceptors.request.eject(reqId);
   }, []);
 
-  useEffect(() => {
-    if (AUTH_DISABLED) return;
-    const resId = api.interceptors.response.use(
-      (res) => res,
-      (err) => {
-        // No cerrar sesión automáticamente: en producción el API puede no estar
-        // desplegado aún (localhost / 401) y eso expulsaba al usuario tras Google.
-        return Promise.reject(err);
-      }
-    );
-    return () => api.interceptors.response.eject(resId);
-  }, []);
-
-  const loginWithEmailPassword = useCallback(async (email, password) => {
-    if (!firebaseAuth) throw new Error(i18n.t("auth:errors.firebaseNotConfigured", { defaultValue: "Firebase is not configured." }));
-    await signInWithEmailAndPassword(firebaseAuth, email.trim(), password);
-  }, []);
-
-  const registerWithEmailPassword = useCallback(async ({ firstName, lastName, email, password }) => {
-    if (!firebaseAuth) throw new Error(i18n.t("auth:errors.firebaseNotConfigured", { defaultValue: "Firebase is not configured." }));
-    const cred = await createUserWithEmailAndPassword(firebaseAuth, email.trim(), password);
-    const name = `${firstName || ""} ${lastName || ""}`.trim();
-    if (name && cred.user) {
-      await updateProfile(cred.user, { displayName: name });
-    }
-  }, []);
+  // No-op compatibility helpers
+  const loginWithEmailPassword = useCallback(async () => {}, []);
+  const registerWithEmailPassword = useCallback(async () => {}, []);
+  const sendPasswordReset = useCallback(async () => {}, []);
 
   const loginWithGoogle = useCallback(async () => {
     if (!firebaseAuth) throw new Error(i18n.t("auth:errors.firebaseNotConfigured", { defaultValue: "Firebase is not configured." }));
@@ -191,19 +356,11 @@ export function AuthProvider({ children }) {
     const provider = googleProvider();
 
     try {
-      // Popup evita quedar colgado en firebaseapp.com/__/auth/handler (redirect).
       const result = await signInWithPopup(firebaseAuth, provider);
-      const credential = GoogleAuthProvider.credentialFromResult(result);
-      if (credential?.accessToken) {
-        localStorage.setItem("google_oauth_access_token", credential.accessToken);
-      }
+      setUser(result.user);
+      await fetchSession(result.user);
     } catch (err) {
       const code = err?.code || "";
-      if (import.meta.env.DEV && (code === "auth/popup-blocked" || code === "auth/popup-closed-by-user")) {
-        throw new Error(
-          "El navegador bloqueó la ventana de Google. Permití ventanas emergentes para localhost o activá VITE_AUTH_DISABLED=true en dashboard-react/.env."
-        );
-      }
       if (code === "auth/popup-blocked" || code === "auth/popup-closed-by-user") {
         sessionStorage.setItem("authRedirectPending", "1");
         await signInWithRedirect(firebaseAuth, provider);
@@ -212,17 +369,19 @@ export function AuthProvider({ children }) {
       console.error("Google login error:", err);
       throw err;
     }
-  }, []);
-
-  const sendPasswordReset = useCallback(async (email) => {
-    if (!firebaseAuth) throw new Error(i18n.t("auth:errors.firebaseNotConfigured", { defaultValue: "Firebase is not configured." }));
-    await sendPasswordResetEmail(firebaseAuth, email.trim(), {
-      url: window.location.origin,
-      handleCodeInApp: false,
-    });
-  }, []);
+  }, [fetchSession]);
 
   const logout = useCallback(async () => {
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("active_business_id");
+    sessionStorage.removeItem("finance_bypass_token");
+    setFinanceUnlocked(false);
+    setUser(null);
+    setBusiness(null);
+    setRole(null);
+    setPermissions([]);
+    setIsUnauthorized(false);
+    setFirestoreError("");
     if (firebaseAuth) await signOut(firebaseAuth);
   }, []);
 
@@ -230,11 +389,11 @@ export function AuthProvider({ children }) {
     () => ({
       user,
       authLoading,
-      isAdmin,
-      authDisabled: AUTH_DISABLED,
+      isAdmin: role === "owner",
+      authDisabled: false,
       authError,
       clearAuthError: () => setAuthError(""),
-      firebaseConfigOk: AUTH_DISABLED || firebaseConfigOk(),
+      firebaseConfigOk: firebaseConfigOk(),
       loginWithEmailPassword,
       registerWithEmailPassword,
       loginWithGoogle,
@@ -242,17 +401,25 @@ export function AuthProvider({ children }) {
       logout,
       firebaseErrorMessage,
       apiHost: API_HOST,
+      business,
+      role,
+      permissions,
+      isUnauthorized,
+      firestoreError,
+      fetchSession,
     }),
     [
       user,
       authLoading,
-      isAdmin,
+      role,
       authError,
-      loginWithEmailPassword,
-      registerWithEmailPassword,
       loginWithGoogle,
-      sendPasswordReset,
       logout,
+      business,
+      permissions,
+      isUnauthorized,
+      firestoreError,
+      fetchSession,
     ]
   );
 

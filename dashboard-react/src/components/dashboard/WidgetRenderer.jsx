@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { useBrand } from "../../header/name/BrandProvider";
 import { METRIC_OPTIONS, getMetricIcon } from "./WidgetRegistry";
+import { useTranslation } from "react-i18next";
 
 // Nuevos componentes modulares
 import KPIWidget from "./KPIWidget";
@@ -13,8 +14,8 @@ import AttentionWidget from "./AttentionWidget";
 import { Table, Badge, Button } from "react-bootstrap";
 import { AlertCircle, CheckCircle } from "lucide-react";
 
-// Formato de moneda ARS
-function currency(n) {
+// Formato de moneda base
+function baseCurrency(n) {
   return new Intl.NumberFormat("es-AR", {
     style: "currency",
     currency: "ARS",
@@ -33,6 +34,15 @@ export default function WidgetRenderer({
   onViewCalendar,
   onEditWorker,
 }) {
+  const { i18n } = useTranslation();
+  const isEs = i18n.language === "es";
+
+  const currency = (n) => new Intl.NumberFormat(isEs ? "es-AR" : "en-US", {
+    style: "currency",
+    currency: isEs ? "ARS" : "USD",
+    maximumFractionDigits: 0,
+  }).format(n || 0);
+
   const { brand } = useBrand();
   const accent = widget?.config?.color || brand?.accentColor || "#10b981";
 
@@ -87,7 +97,7 @@ export default function WidgetRenderer({
     // Agrupación por servicio para gráficos
     const byServiceMap = {};
     filteredData.forEach((a) => {
-      const name = a?.service?.name || "Sin servicio";
+      const name = a?.service?.name || (isEs ? "Sin servicio" : "No service");
       const val = metricType === "revenue" ? Number(a?.service?.price || 0) : 1;
       byServiceMap[name] = (byServiceMap[name] || 0) + val;
     });
@@ -96,7 +106,7 @@ export default function WidgetRenderer({
     // Agrupación por profesional para gráficos
     const byWorkerMap = {};
     filteredData.forEach((a) => {
-      const name = `${a?.worker?.firstName || ""} ${a?.worker?.lastName || ""}`.trim() || "Sin trabajador";
+      const name = `${a?.worker?.firstName || ""} ${a?.worker?.lastName || ""}`.trim() || (isEs ? "Sin trabajador" : "No worker");
       const val = metricType === "revenue" ? Number(a?.service?.price || 0) : 1;
       byWorkerMap[name] = (byWorkerMap[name] || 0) + val;
     });
@@ -105,7 +115,7 @@ export default function WidgetRenderer({
     // Agrupación por fecha para series de tiempo
     const byDateMap = {};
     filteredData.forEach((a) => {
-      const dateStr = new Date(a.startsAt).toLocaleDateString("es-AR", { day: "numeric", month: "short" });
+      const dateStr = new Date(a.startsAt).toLocaleDateString(isEs ? "es-AR" : "en-US", { day: "numeric", month: "short" });
       const val = metricType === "revenue" ? Number(a?.service?.price || 0) : 1;
       byDateMap[dateStr] = (byDateMap[dateStr] || 0) + val;
     });
@@ -116,7 +126,7 @@ export default function WidgetRenderer({
     filteredData.forEach((a) => {
       if (a.status === "CANCELLED") return;
       const start = new Date(a.startsAt);
-      const timeStr = start.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" }) + " hs";
+      const timeStr = start.toLocaleTimeString(isEs ? "es-AR" : "en-US", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" }) + (isEs ? " hs" : "");
       peakHoursMap[timeStr] = (peakHoursMap[timeStr] || 0) + 1;
     });
     const peakHours = Object.entries(peakHoursMap)
@@ -137,8 +147,8 @@ export default function WidgetRenderer({
       else newClientsCount++;
     });
     const retentionRateData = [
-      { name: "Recurrentes", value: recurrentCount },
-      { name: "Nuevos", value: newClientsCount },
+      { name: isEs ? "Recurrentes" : "Recurring", value: recurrentCount },
+      { name: isEs ? "Nuevos" : "New", value: newClientsCount },
     ];
 
     return {
@@ -163,28 +173,28 @@ export default function WidgetRenderer({
 
       if (metricType === "revenue") {
         displayValue = currency(processedMetrics.totalRevenue);
-        label = "Ingresos Estimados";
+        label = isEs ? "Ingresos Estimados" : "Estimated Revenue";
       } else if (metricType === "appointments") {
         displayValue = String(processedMetrics.totalAppointments);
-        label = "Citas Registradas";
+        label = isEs ? "Citas Registradas" : "Registered Appointments";
       } else if (metricType === "cancellations") {
         displayValue = `${processedMetrics.cancellationRate}%`;
-        label = "Tasa de Cancelación";
+        label = isEs ? "Tasa de Cancelación" : "Cancellation Rate";
       } else if (metricType === "occupancy") {
         displayValue = `${processedMetrics.occupancyRate}%`;
-        label = "Ocupación de Horario";
+        label = isEs ? "Ocupación de Horario" : "Schedule Occupancy";
       } else if (metricType === "clients") {
         displayValue = String(clients.length);
-        label = "Clientes Totales";
+        label = isEs ? "Clientes Totales" : "Total Clients";
       } else if (metricType === "peak_hours") {
         const busiest = processedMetrics.peakHours.reduce((max, cur) => (cur.value > (max?.value || 0) ? cur : max), null);
         displayValue = busiest ? busiest.name : "N/A";
-        label = "Hora Pico de Reservas";
+        label = isEs ? "Hora Pico de Reservas" : "Peak Booking Hour";
       } else if (metricType === "retention_rate") {
         const total = processedMetrics.retentionRateData.reduce((sum, item) => sum + item.value, 0);
-        const recurrent = processedMetrics.retentionRateData.find(d => d.name === "Recurrentes")?.value || 0;
+        const recurrent = processedMetrics.retentionRateData.find(d => d.name === (isEs ? "Recurrentes" : "Recurring"))?.value || 0;
         displayValue = total ? `${Math.round((recurrent / total) * 100)}%` : "0%";
-        label = "Tasa de Retención";
+        label = isEs ? "Tasa de Retención" : "Retention Rate";
       }
 
       // Buscar ícono en Registry si es necesario
@@ -214,7 +224,7 @@ export default function WidgetRenderer({
 
       return (
         <RevenueWidget
-          title={widget.title || "Métricas de Rendimiento"}
+          title={widget.title || (isEs ? "Métricas de Rendimiento" : "Performance Metrics")}
           chartType={chartType}
           metric={metric}
           chartData={chartData}
@@ -261,14 +271,14 @@ export default function WidgetRenderer({
 
       return (
         <div className="d-flex flex-column h-100 p-1 overflow-hidden">
-          <div className="text-muted small fw-bold mb-2">{widget.title || "Resumen de Citas"}</div>
+          <div className="text-muted small fw-bold mb-2">{widget.title || (isEs ? "Resumen de Citas" : "Appointments Summary")}</div>
           <Table responsive hover size="sm" className="mb-0 align-middle">
             <thead>
               <tr style={{ fontSize: "10px" }}>
-                <th>Cliente</th>
-                <th>Servicio</th>
-                <th>Colaborador</th>
-                <th>Importe</th>
+                <th>{isEs ? "Cliente" : "Client"}</th>
+                <th>{isEs ? "Servicio" : "Service"}</th>
+                <th>{isEs ? "Colaborador" : "Staff"}</th>
+                <th>{isEs ? "Importe" : "Amount"}</th>
               </tr>
             </thead>
             <tbody style={{ fontSize: "12px" }}>
@@ -287,7 +297,7 @@ export default function WidgetRenderer({
     }
 
     case "ai_insight": {
-      const insightsList = [
+      const insightsList = isEs ? [
         {
           text: "Tus ingresos bajaron 18% esta semana en comparación con la anterior (debido al feriado de lunes).",
           color: "danger",
@@ -336,13 +346,62 @@ export default function WidgetRenderer({
             if (onEditWorker) onEditWorker();
           }
         }
+      ] : [
+        {
+          text: "Your income decreased by 18% this week compared to the previous one (due to Monday's holiday).",
+          color: "danger",
+          action: "Launch Promo",
+          onClick: () => alert("Express discount campaigns sent by email to recurring clients.")
+        },
+        {
+          text: "Thursdays are your slowest day: Consider launching a 2x1 on hair treatments.",
+          color: "info",
+          action: "Launch 2x1",
+          onClick: () => alert("2x1 automation created for Thursdays.")
+        },
+        {
+          text: "This client hasn't returned for 60 days: Laura Pérez (Last appointment: Balayage).",
+          color: "primary",
+          action: "Send WhatsApp",
+          onClick: () => {
+            const encoded = encodeURIComponent("Hi Laura! We are writing from Aura Studio. It's been about 60 days since your balayage, we want to offer you a free hair care session with your next booking this Saturday. Should we book you in?");
+            window.open(`https://wa.me/1154329876?text=${encoded}`, "_blank");
+          }
+        },
+        {
+          text: "Coloring generates more profit than nails ($30,000 average ticket vs. $8,000).",
+          color: "success",
+          action: "View Finances",
+          onClick: () => {
+            if (onViewCalendar) onViewCalendar(); // Scroll or move to section
+            window.location.hash = "/app/finances";
+            alert("Redirecting to Finances breakdown and commissions.");
+          }
+        },
+        {
+          text: "Your stylist Andrea has the highest client retention (78% recurrence rate).",
+          color: "warning",
+          action: "View Retention",
+          onClick: () => {
+            window.location.hash = "/app/team";
+            alert("Redirecting to productivity and invoicing of stylists.");
+          }
+        },
+        {
+          text: "You should open more slots on Saturdays: Your occupancy between 2 PM and 6 PM is around 98%.",
+          color: "warning",
+          action: "Extend Schedule",
+          onClick: () => {
+            if (onEditWorker) onEditWorker();
+          }
+        }
       ];
 
       return (
         <div className="d-flex flex-column h-100 p-2">
           <div className="text-muted small fw-bold mb-3 d-flex align-items-center gap-2">
             <CheckCircle size={16} className="text-success" />
-            <span>AI Copilot - Sugerencias de Negocio Inteligentes</span>
+            <span>{isEs ? "AI Copilot - Sugerencias de Negocio Inteligentes" : "AI Copilot - Intelligent Business Suggestions"}</span>
           </div>
           <div className="d-grid gap-3 overflow-auto" style={{ maxHeight: "400px" }}>
             {insightsList.map((insight, idx) => (
@@ -372,7 +431,7 @@ export default function WidgetRenderer({
     default:
       return (
         <div className="text-muted text-center py-4 small">
-          Widget no compatible: <b>{widget?.type}</b>
+          {isEs ? "Widget no compatible:" : "Unsupported widget:"} <b>{widget?.type}</b>
         </div>
       );
   }

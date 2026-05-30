@@ -53,8 +53,13 @@ export async function getPublicBusiness(req, res) {
 // Obtener servicios online
 export async function getPublicServices(req, res) {
   try {
+    const { slug } = req.params;
     const services = await prisma.service.findMany({
-      where: { isActive: true, availableOnline: true },
+      where: {
+        business: { slug },
+        isActive: true,
+        availableOnline: true
+      },
       orderBy: { name: "asc" },
     });
     return res.json(services);
@@ -67,8 +72,12 @@ export async function getPublicServices(req, res) {
 // Obtener profesionales online
 export async function getPublicProfessionals(req, res) {
   try {
+    const { slug } = req.params;
     const workers = await prisma.worker.findMany({
-      where: { availableOnline: true },
+      where: {
+        business: { slug },
+        availableOnline: true
+      },
       include: {
         services: {
           include: { service: true },
@@ -227,6 +236,9 @@ export async function createPublicBooking(req, res) {
       professionalId,
       date, // YYYY-MM-DD
       time, // HH:MM
+      downpaymentPaid,
+      downpaymentStatus,
+      downpaymentTransactionId,
     } = req.body;
 
     if (!firstName || !lastName || !serviceId || !professionalId || !date || !time) {
@@ -259,6 +271,7 @@ export async function createPublicBooking(req, res) {
           lastName: lastName.trim(),
           phone: phone?.trim() || null,
           email: email?.trim() || null,
+          businessId: biz.id,
           notes: "Registrado automáticamente desde reserva pública online.",
         },
       });
@@ -279,6 +292,10 @@ export async function createPublicBooking(req, res) {
         notes: notes || null,
         status: "PENDING", // Por defecto se crea en PENDING
         source: "online_booking",
+        businessId: biz.id,
+        downpaymentPaid: downpaymentPaid ? Number(downpaymentPaid) : null,
+        downpaymentStatus: downpaymentStatus || null,
+        downpaymentTransactionId: downpaymentTransactionId || null,
       },
       include: {
         client: true,

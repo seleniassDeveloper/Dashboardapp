@@ -21,36 +21,37 @@ import {
   updateOrderStatus
 } from "../controllers/inventory.controller.js";
 import requireAuth from "../middleware/requireAuth.js";
+import { requirePermission } from "../middleware/rbac.middleware.js";
 
 const router = Router();
 
 // Apply requireAuth middleware to secure all inventory ERP endpoints
 router.use(requireAuth);
 
-router.get("/dashboard", getInventoryDashboardData);
+router.get("/dashboard", requirePermission("inventory.view"), getInventoryDashboardData);
 
-router.get("/products", listProducts);
-router.post("/products", createProduct);
-router.put("/products/:id", updateProduct);
-router.delete("/products/:id", deleteProduct);
+router.get("/products", requirePermission("inventory.view"), listProducts);
+router.post("/products", requirePermission("inventory.create"), createProduct);
+router.put("/products/:id", requirePermission("inventory.edit"), updateProduct);
+router.delete("/products/:id", requirePermission("inventory.delete"), deleteProduct);
 
-router.get("/suppliers", listSuppliers);
-router.post("/suppliers", createSupplier);
-router.put("/suppliers/:id", updateSupplier);
-router.delete("/suppliers/:id", deleteSupplier);
+router.get("/suppliers", requirePermission("inventory.view"), listSuppliers);
+router.post("/suppliers", requirePermission("inventory.create"), createSupplier);
+router.put("/suppliers/:id", requirePermission("inventory.edit"), updateSupplier);
+router.delete("/suppliers/:id", requirePermission("inventory.delete"), deleteSupplier);
 
-router.get("/movements", listMovements);
-router.post("/movements", createMovement);
+router.get("/movements", requirePermission("inventory.movements.view"), listMovements);
+router.post("/movements", requirePermission("inventory.edit"), createMovement);
 
-router.get("/batches", listBatches);
-router.post("/batches", createBatch);
+router.get("/batches", requirePermission("inventory.view"), listBatches);
+router.post("/batches", requirePermission("inventory.create"), createBatch);
 
-router.get("/rules", listRules);
-router.post("/rules", createRule);
-router.delete("/rules/:id", deleteRule);
+router.get("/rules", requirePermission("inventory.view"), listRules);
+router.post("/rules", requirePermission("inventory.create"), createRule);
+router.delete("/rules/:id", requirePermission("inventory.delete"), deleteRule);
 
-router.get("/orders", listPurchaseOrders);
-router.post("/orders", createPurchaseOrder);
-router.put("/orders/:id", updateOrderStatus);
+router.get("/orders", requirePermission("inventory.view"), listPurchaseOrders);
+router.post("/orders", requirePermission("inventory.create"), createPurchaseOrder);
+router.put("/orders/:id", requirePermission("inventory.purchase.approve"), updateOrderStatus);
 
 export default router;

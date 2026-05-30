@@ -31,7 +31,33 @@ function slotErrorStatus(code) {
 
 export async function getAppointments(req, res) {
   try {
+    const whereClause = { businessId: req.businessId };
+
+    // Si el rol es profesional, limitamos a sus propias citas
+    if (req.user.role === "professional") {
+      const emailToFind = req.user.email?.toLowerCase().trim();
+      if (emailToFind) {
+        const worker = await prisma.worker.findFirst({
+          where: {
+            businessId: req.businessId,
+            email: {
+              equals: emailToFind,
+              mode: "insensitive"
+            }
+          }
+        });
+        if (worker) {
+          whereClause.workerId = worker.id;
+        } else {
+          whereClause.workerId = "non-existent-id";
+        }
+      } else {
+        whereClause.workerId = "non-existent-id";
+      }
+    }
+
     const appointments = await prisma.appointment.findMany({
+      where: whereClause,
       orderBy: { startsAt: "asc" },
       include: {
         client: true,
@@ -120,6 +146,7 @@ export async function createAppointment(req, res) {
         startsAt: new Date(startsAt),
         notes: notes || null,
         status: status || "PENDING",
+        businessId: req.businessId,
       },
       include: {
         client: true,
@@ -152,6 +179,26 @@ export async function updateAppointment(req, res) {
       return res.status(400).json({
         error: "Faltan datos: clientId, serviceId, workerId, startsAt.",
       });
+    }
+
+    // Seguridad Multi-Tenant
+    const existing = await prisma.appointment.findFirst({
+      where: { id, businessId: req.businessId }
+    });
+    if (!existing) {
+      return res.status(404).json({ error: "Cita no encontrada en tu negocio." });
+    }
+
+    // Filtro Profesional
+    if (req.user.role === "professional") {
+      const emailToFind = req.user.email?.toLowerCase().trim();
+      const worker = await prisma.worker.findFirst({
+        where: { businessId: req.businessId, email: { equals: emailToFind, mode: "insensitive" } }
+      });
+      // No puede cambiar la cita si no es de él, o si intenta reasignarla a otro
+      if (!worker || existing.workerId !== worker.id || workerId !== worker.id) {
+        return res.status(403).json({ error: "No tienes permisos para modificar citas de otros profesionales." });
+      }
     }
 
     const client = await prisma.client.findUnique({
@@ -215,6 +262,25 @@ export async function deleteAppointment(req, res) {
       return res.status(400).json({ error: "Id inválido." });
     }
 
+    // Seguridad Multi-Tenant
+    const existing = await prisma.appointment.findFirst({
+      where: { id, businessId: req.businessId }
+    });
+    if (!existing) {
+      return res.status(404).json({ error: "Cita no encontrada en tu negocio." });
+    }
+
+    // Filtro Profesional
+    if (req.user.role === "professional") {
+      const emailToFind = req.user.email?.toLowerCase().trim();
+      const worker = await prisma.worker.findFirst({
+        where: { businessId: req.businessId, email: { equals: emailToFind, mode: "insensitive" } }
+      });
+      if (!worker || existing.workerId !== worker.id) {
+        return res.status(403).json({ error: "No tienes permisos para cancelar citas de otros profesionales." });
+      }
+    }
+
     await prisma.appointment.delete({
       where: { id },
     });
@@ -232,19 +298,9 @@ export async function deleteAppointment(req, res) {
 
 export async function getBusinessConfig(req, res) {
   try {
-    let biz = await prisma.business.findFirst();
-    if (!biz) {
-      biz = await prisma.business.create({
-        data: {
-          name: "Aura Studio",
-          slug: "mi-negocio",
-          description: "Estudio de bienestar, estética y servicios profesionales.",
-          bookingEnabled: true,
-          bookingPrimaryColor: "#10b981",
-          bookingConfirmationMessage: "¡Tu reserva ha sido confirmada con éxito!",
-        },
-      });
-    }
+    const biz = await prisma.business.findUnique({
+      where: { id: req.businessId }
+    });
     return res.json(biz);
   } catch (error) {
     console.error("Error obteniendo config del negocio:", error);
@@ -262,41 +318,47 @@ export async function updateBusinessConfig(req, res) {
       bookingEnabled,
       bookingPrimaryColor,
       bookingConfirmationMessage,
+      bookingDownpaymentEnabled,
+      bookingDownpaymentPercent,
+      bookingDownpaymentAmount,
+      bookingDownpaymentMethod,
     } = req.body;
 
     if (!name || !slug) {
       return res.status(400).json({ error: "El nombre y el slug del negocio son obligatorios." });
     }
 
-    let biz = await prisma.business.findFirst();
-    if (!biz) {
-      biz = await prisma.business.create({
-        data: {
-          name,
-          slug,
-          logo: logo || null,
-          description: description || null,
-          bookingEnabled: bookingEnabled ?? true,
-          bookingPrimaryColor: bookingPrimaryColor || "#10b981",
-          bookingConfirmationMessage: bookingConfirmationMessage || "¡Tu reserva ha sido confirmada con éxito!",
-        },
-      });
-    } else {
-      biz = await prisma.business.update({
-        where: { id: biz.id },
-        data: {
-          name,
-          slug,
-          logo: logo !== undefined ? logo : biz.logo,
-          description: description !== undefined ? description : biz.description,
-          bookingEnabled: bookingEnabled !== undefined ? bookingEnabled : biz.bookingEnabled,
-          bookingPrimaryColor: bookingPrimaryColor !== undefined ? bookingPrimaryColor : biz.bookingPrimaryColor,
-          bookingConfirmationMessage: bookingConfirmationMessage !== undefined ? bookingConfirmationMessage : biz.bookingConfirmationMessage,
-        },
-      });
+    const cleanedSlug = slug.toLowerCase().trim().replace(/[^a-z0-9-_]/g, "");
+
+    // Check if slug is unique (excluding our own business)
+    const existingWithSlug = await prisma.business.findFirst({
+      where: {
+        slug: cleanedSlug,
+        NOT: { id: req.businessId }
+      }
+    });
+    if (existingWithSlug) {
+      return res.status(400).json({ error: "Este slug ya está en uso por otro salón." });
     }
 
-    return res.json(biz);
+    const updated = await prisma.business.update({
+      where: { id: req.businessId },
+      data: {
+        name: name.trim(),
+        slug: cleanedSlug,
+        logo: logo || null,
+        description: description || null,
+        bookingEnabled: typeof bookingEnabled === "boolean" ? bookingEnabled : true,
+        bookingPrimaryColor: bookingPrimaryColor || "#7c3aed",
+        bookingConfirmationMessage: bookingConfirmationMessage || "¡Tu reserva ha sido confirmada con éxito!",
+        bookingDownpaymentEnabled: typeof bookingDownpaymentEnabled === "boolean" ? bookingDownpaymentEnabled : false,
+        bookingDownpaymentPercent: typeof bookingDownpaymentPercent !== "undefined" ? Number(bookingDownpaymentPercent) : 30,
+        bookingDownpaymentAmount: bookingDownpaymentAmount ? Number(bookingDownpaymentAmount) : null,
+        bookingDownpaymentMethod: bookingDownpaymentMethod || "mock_mercadopago",
+      }
+    });
+
+    return res.json(updated);
   } catch (error) {
     console.error("Error actualizando config del negocio:", error);
     return res.status(500).json({ error: "Error actualizando configuración del negocio." });

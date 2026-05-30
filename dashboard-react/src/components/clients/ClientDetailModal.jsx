@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { API_BASE_URL } from "../../lib/api.js";
 import api from "../../lib/api.js";
+import { usePermissions } from "../../auth/PermissionProvider.jsx";
 
 function currency(n) {
   return new Intl.NumberFormat("es-AR", {
@@ -26,6 +27,12 @@ const getImageUrl = (url) => {
 };
 
 export default function ClientDetailModal({ show, onHide, client, appointments = [] }) {
+  const { hasPermission } = usePermissions();
+  
+  const canViewNotes = hasPermission("clients.privateNotes.view");
+  const canEditNotes = hasPermission("clients.privateNotes.edit");
+  const canViewFinance = hasPermission("clients.financialHistory.view");
+
   const [crmData, setCrmData] = useState(null);
   const [loadingCrm, setLoadingCrm] = useState(false);
   const [errorCrm, setErrorCrm] = useState("");
@@ -35,6 +42,13 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
   const [notesText, setNotesText] = useState("");
   const [savingNotes, setSavingNotes] = useState(false);
   const [notesSavedStatus, setNotesSavedStatus] = useState(""); // "success" | "error" | ""
+
+  // Redirigir a resumen si no tiene permiso para notas clínicas y está en ella
+  useEffect(() => {
+    if (!canViewNotes && activeTab === "clinico") {
+      setActiveTab("resumen");
+    }
+  }, [canViewNotes, activeTab]);
 
   useEffect(() => {
     if (show && client?.id) {
@@ -203,17 +217,19 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
             <span>Métricas CRM</span>
           </button>
           
-          <button
-            onClick={() => setActiveTab("clinico")}
-            className={`d-flex align-items-center gap-2 px-4 py-2.5 fw-bold rounded-xl border-0 transition-all ${
-              activeTab === "clinico"
-                ? "bg-purple-600 text-white shadow-sm hover-bg-purple-700"
-                : "bg-light text-muted hover-bg-gray-100"
-            }`}
-          >
-            <BookOpen size={16} />
-            <span>Historial Clínico & Fórmulas</span>
-          </button>
+          {canViewNotes && (
+            <button
+              onClick={() => setActiveTab("clinico")}
+              className={`d-flex align-items-center gap-2 px-4 py-2.5 fw-bold rounded-xl border-0 transition-all ${
+                activeTab === "clinico"
+                  ? "bg-purple-600 text-white shadow-sm hover-bg-purple-700"
+                  : "bg-light text-muted hover-bg-gray-100"
+              }`}
+            >
+              <BookOpen size={16} />
+              <span>Historial Clínico & Fórmulas</span>
+            </button>
+          )}
 
           <button
             onClick={() => setActiveTab("timeline")}
@@ -261,7 +277,11 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
                       <Col xs={6} md={4}>
                         <Card className="border-0 bg-light p-3 rounded-2xl shadow-sm-hover transition-all text-center h-100 d-flex flex-column justify-content-center">
                           <div className="text-muted smaller fw-bold mb-1 uppercase tracking-wider">Facturación Total</div>
-                          <div className="h3 fw-black text-purple-700 mb-0">{currency(crmData.metrics.totalSpent)}</div>
+                          {canViewFinance ? (
+                            <div className="h3 fw-black text-purple-700 mb-0">{currency(crmData.metrics.totalSpent)}</div>
+                          ) : (
+                            <div className="h4 fw-bold text-muted mb-0">🔒 Restringido</div>
+                          )}
                           <small className="text-muted mt-1">Servicios finalizados</small>
                         </Card>
                       </Col>
@@ -275,7 +295,11 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
                       <Col xs={6} md={4}>
                         <Card className="border-0 bg-light p-3 rounded-2xl shadow-sm-hover transition-all text-center h-100 d-flex flex-column justify-content-center">
                           <div className="text-muted smaller fw-bold mb-1 uppercase tracking-wider">Ticket Promedio</div>
-                          <div className="h3 fw-black text-emerald-600 mb-0">{currency(crmData.metrics.avgTicket)}</div>
+                          {canViewFinance ? (
+                            <div className="h3 fw-black text-emerald-600 mb-0">{currency(crmData.metrics.avgTicket)}</div>
+                          ) : (
+                            <div className="h4 fw-bold text-muted mb-0">🔒 Restringido</div>
+                          )}
                           <small className="text-muted mt-1">Gasto medio por turno</small>
                         </Card>
                       </Col>
@@ -356,43 +380,45 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
                 </Row>
 
                 {/* Resumen Histórico y Diagnóstico Rápido */}
-                <Card className="border-0 border bg-white p-4 rounded-2xl shadow-sm">
-                  <h3 className="h6 fw-bold text-gray-900 mb-3 d-flex align-items-center gap-2">
-                    <FileText size={18} className="text-purple-500" />
-                    <span>Último Diagnóstico Clínico Registrado</span>
-                  </h3>
-                  
-                  {crmData.clinicalHistory?.length > 0 ? (
-                    <div>
-                      <div className="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
-                        <span className="badge bg-purple-100 text-purple-700 fw-bold px-3 py-1.5 rounded-lg">
-                          {crmData.clinicalHistory[0].appointment?.service?.name || "Tratamiento"}
-                        </span>
-                        <small className="text-muted fw-semibold">
-                          Por: {crmData.clinicalHistory[0].worker ? `${crmData.clinicalHistory[0].worker.firstName} ${crmData.clinicalHistory[0].worker.lastName}` : "Profesional"} • {new Date(crmData.clinicalHistory[0].createdAt).toLocaleDateString("es-AR", { day: "numeric", month: "long", year: "numeric" })}
-                        </small>
-                      </div>
-                      <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 text-gray-700 mb-3" style={{ fontSize: "14px", lineHeight: "1.6" }}>
-                        {crmData.clinicalHistory[0].note}
-                      </div>
-                      {crmData.clinicalHistory[0].recommendations && (
-                        <div className="d-flex align-items-start gap-2 text-emerald-800 bg-emerald-50 bg-opacity-60 p-2.5 rounded-xl border border-emerald-100" style={{ fontSize: "13px" }}>
-                          <span className="fw-bold">💡 Recomendación de Cuidado:</span>
-                          <span>{crmData.clinicalHistory[0].recommendations}</span>
+                {canViewNotes && (
+                  <Card className="border-0 border bg-white p-4 rounded-2xl shadow-sm">
+                    <h3 className="h6 fw-bold text-gray-900 mb-3 d-flex align-items-center gap-2">
+                      <FileText size={18} className="text-purple-500" />
+                      <span>Último Diagnóstico Clínico Registrado</span>
+                    </h3>
+                    
+                    {crmData.clinicalHistory?.length > 0 ? (
+                      <div>
+                        <div className="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                          <span className="badge bg-purple-100 text-purple-700 fw-bold px-3 py-1.5 rounded-lg">
+                            {crmData.clinicalHistory[0].appointment?.service?.name || "Tratamiento"}
+                          </span>
+                          <small className="text-muted fw-semibold">
+                            Por: {crmData.clinicalHistory[0].worker ? `${crmData.clinicalHistory[0].worker.firstName} ${crmData.clinicalHistory[0].worker.lastName}` : "Profesional"} • {new Date(crmData.clinicalHistory[0].createdAt).toLocaleDateString("es-AR", { day: "numeric", month: "long", year: "numeric" })}
+                          </small>
                         </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="text-center py-4 bg-gray-50 rounded-xl text-muted small">
-                      Todavía no se han registrado fichas de evolución clínica para este cliente.
-                    </div>
-                  )}
-                </Card>
+                        <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 text-gray-700 mb-3" style={{ fontSize: "14px", lineHeight: "1.6" }}>
+                          {crmData.clinicalHistory[0].note}
+                        </div>
+                        {crmData.clinicalHistory[0].recommendations && (
+                          <div className="d-flex align-items-start gap-2 text-emerald-800 bg-emerald-50 bg-opacity-60 p-2.5 rounded-xl border border-emerald-100" style={{ fontSize: "13px" }}>
+                            <span className="fw-bold">💡 Recomendación de Cuidado:</span>
+                            <span>{crmData.clinicalHistory[0].recommendations}</span>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-center py-4 bg-gray-50 rounded-xl text-muted small">
+                        Todavía no se han registrado fichas de evolución clínica para este cliente.
+                      </div>
+                    )}
+                  </Card>
+                )}
               </div>
             )}
 
             {/* PESTAÑA 2: HISTORIAL CLÍNICO Y FÓRMULAS */}
-            {activeTab === "clinico" && crmData && (
+            {activeTab === "clinico" && canViewNotes && crmData && (
               <div>
                 <Row className="g-4">
                   {/* Fórmulas Químicas y Preferencias Estables */}
@@ -416,33 +442,36 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
                           as="textarea"
                           rows={4}
                           value={notesText}
+                          readOnly={!canEditNotes}
                           onChange={(e) => setNotesText(e.target.value)}
-                          placeholder="Fórmulas de coloración frecuentes, tiempos de pose, productos favoritos del cliente, alergias..."
+                          placeholder={canEditNotes ? "Fórmulas de coloración frecuentes, tiempos de pose, productos favoritos del cliente, alergias..." : "No tienes permisos para editar estas notas clínicas."}
                           className="border-gray-200 rounded-xl p-3 focus-ring-purple shadow-sm-hover"
                           style={{ fontSize: "14px" }}
                         />
                       </Form.Group>
 
-                      <div className="d-flex justify-content-end">
-                        <Button
-                          variant="purple"
-                          disabled={savingNotes}
-                          onClick={handleSaveNotes}
-                          className="rounded-xl px-4 py-2 fw-bold text-white bg-purple-600 hover-bg-purple-700 d-flex align-items-center gap-1.5 shadow"
-                        >
-                          {savingNotes ? (
-                            <>
-                              <Spinner size="sm" animation="border" />
-                              <span>Guardando...</span>
-                            </>
-                          ) : (
-                            <>
-                              <Save size={16} />
-                              <span>Guardar Cambios</span>
-                            </>
-                          )}
-                        </Button>
-                      </div>
+                      {canEditNotes && (
+                        <div className="d-flex justify-content-end">
+                          <Button
+                            variant="purple"
+                            disabled={savingNotes}
+                            onClick={handleSaveNotes}
+                            className="rounded-xl px-4 py-2 fw-bold text-white bg-purple-600 hover-bg-purple-700 d-flex align-items-center gap-1.5 shadow"
+                          >
+                            {savingNotes ? (
+                              <>
+                                <Spinner size="sm" animation="border" />
+                                <span>Guardando...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Save size={16} />
+                                <span>Guardar Cambios</span>
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      )}
                     </Card>
                   </Col>
 
@@ -540,68 +569,78 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
                     <span>Línea de Tiempo de Evolución (Visual CRM)</span>
                   </h3>
 
-                  {crmData.timeline?.length === 0 ? (
-                    <div className="text-center py-5 text-muted small">
-                      Sin eventos registrados en la línea de tiempo.
-                    </div>
-                  ) : (
-                    <div className="position-relative ps-4 ms-2" style={{ borderLeft: "2px solid #e9d5ff" }}>
-                      {crmData.timeline.map((event, index) => {
-                        const isLast = index === crmData.timeline.length - 1;
-                        
-                        return (
-                          <div key={event.id} className="position-relative mb-5 animate-fade-in">
-                            {/* Dot indicator */}
-                            <div 
-                              className="position-absolute rounded-circle d-flex align-items-center justify-content-center shadow"
-                              style={{ 
-                                left: "-32px", 
-                                top: "0px", 
-                                width: "24px", 
-                                height: "24px",
-                                backgroundColor: event.type === "creation" ? "#3b82f6" : event.type === "appointment" ? (event.status === "DONE" ? "#10b981" : "#f59e0b") : event.type === "clinical_note" ? "#8b5cf6" : "#ec4899",
-                                color: "#fff",
-                                fontSize: "10px"
-                              }}
-                            >
-                              {event.type === "creation" ? "✓" : event.type === "appointment" ? "📅" : event.type === "clinical_note" ? "📝" : "🖼️"}
-                            </div>
+                  {(() => {
+                    const filteredTimeline = (crmData.timeline || []).filter(event => {
+                      if (event.type === "clinical_note" && !canViewNotes) return false;
+                      return true;
+                    });
 
-                            {/* Event Header */}
-                            <div className="d-flex justify-content-between align-items-baseline mb-2 flex-wrap gap-2">
-                              <h5 className="h6 fw-bold text-gray-900 m-0">{event.title}</h5>
-                              <small className="text-purple-600 fw-bold bg-purple-50 rounded-pill px-2.5 py-0.5" style={{ fontSize: "12px" }}>
-                                {new Date(event.date).toLocaleDateString("es-AR", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })} hs
-                              </small>
-                            </div>
+                    if (filteredTimeline.length === 0) {
+                      return (
+                        <div className="text-center py-5 text-muted small">
+                          Sin eventos registrados en la línea de tiempo.
+                        </div>
+                      );
+                    }
 
-                            {/* Event Body */}
-                            <div className="p-3 rounded-xl bg-light border shadow-inner text-gray-700" style={{ fontSize: "13.5px" }}>
-                              <p className="mb-0">{event.description}</p>
-                              
-                              {/* Specialized payload elements based on event type */}
-                              {event.type === "appointment" && (
-                                <div className="mt-2 pt-2 border-top border-gray-200 d-flex flex-wrap gap-3 align-items-center">
-                                  <span className={`badge ${
-                                    event.status === "DONE" ? "bg-secondary" : event.status === "CONFIRMED" ? "bg-success" : event.status === "CANCELLED" ? "bg-danger" : "bg-warning"
-                                  }`}>
-                                    {event.status === "DONE" ? "Realizada" : event.status === "CONFIRMED" ? "Confirmada" : event.status === "CANCELLED" ? "Cancelada" : "Pendiente"}
-                                  </span>
-                                  <span className="fw-bold text-dark">{currency(event.metadata.price)}</span>
-                                  {event.metadata.notes && (
-                                    <span className="text-muted smaller italic">"{event.metadata.notes}"</span>
-                                  )}
-                                </div>
-                              )}
+                    return (
+                      <div className="position-relative ps-4 ms-2" style={{ borderLeft: "2px solid #e9d5ff" }}>
+                        {filteredTimeline.map((event, index) => {
+                          return (
+                            <div key={event.id} className="position-relative mb-5 animate-fade-in">
+                              {/* Dot indicator */}
+                              <div 
+                                className="position-absolute rounded-circle d-flex align-items-center justify-content-center shadow"
+                                style={{ 
+                                  left: "-32px", 
+                                  top: "0px", 
+                                  width: "24px", 
+                                  height: "24px",
+                                  backgroundColor: event.type === "creation" ? "#3b82f6" : event.type === "appointment" ? (event.status === "DONE" ? "#10b981" : "#f59e0b") : event.type === "clinical_note" ? "#8b5cf6" : "#ec4899",
+                                  color: "#fff",
+                                  fontSize: "10px"
+                                }}
+                              >
+                                {event.type === "creation" ? "✓" : event.type === "appointment" ? "📅" : event.type === "clinical_note" ? "📝" : "🖼️"}
+                              </div>
 
-                              {event.type === "clinical_note" && (
-                                <div className="mt-2 pt-2 border-top border-gray-200">
-                                  <div className="text-muted smaller fw-bold uppercase">Recomendaciones:</div>
-                                  <div className="text-emerald-800 bg-emerald-50 rounded p-2 mt-1">
-                                    {event.metadata.recommendations || "Sin especificaciones especiales."}
+                              {/* Event Header */}
+                              <div className="d-flex justify-content-between align-items-baseline mb-2 flex-wrap gap-2">
+                                <h5 className="h6 fw-bold text-gray-900 m-0">{event.title}</h5>
+                                <small className="text-purple-600 fw-bold bg-purple-50 rounded-pill px-2.5 py-0.5" style={{ fontSize: "12px" }}>
+                                  {new Date(event.date).toLocaleDateString("es-AR", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })} hs
+                                </small>
+                              </div>
+
+                              {/* Event Body */}
+                              <div className="p-3 rounded-xl bg-light border shadow-inner text-gray-700" style={{ fontSize: "13.5px" }}>
+                                <p className="mb-0">{event.description}</p>
+                                
+                                {/* Specialized payload elements based on event type */}
+                                {event.type === "appointment" && (
+                                  <div className="mt-2 pt-2 border-top border-gray-200 d-flex flex-wrap gap-3 align-items-center">
+                                    <span className={`badge ${
+                                      event.status === "DONE" ? "bg-secondary" : event.status === "CONFIRMED" ? "bg-success" : event.status === "CANCELLED" ? "bg-danger" : "bg-warning"
+                                    }`}>
+                                      {event.status === "DONE" ? "Realizada" : event.status === "CONFIRMED" ? "Confirmada" : event.status === "CANCELLED" ? "Cancelada" : "Pendiente"}
+                                    </span>
+                                    {canViewFinance && (
+                                      <span className="fw-bold text-dark">{currency(event.metadata.price)}</span>
+                                    )}
+                                    {event.metadata.notes && (
+                                      <span className="text-muted smaller italic">"{event.metadata.notes}"</span>
+                                    )}
                                   </div>
-                                </div>
-                              )}
+                                )}
+
+                                {event.type === "clinical_note" && (
+                                  <div className="mt-2 pt-2 border-top border-gray-200">
+                                    <div className="text-muted smaller fw-bold uppercase">Recomendaciones:</div>
+                                    <div className="text-emerald-800 bg-emerald-50 rounded p-2 mt-1">
+                                      {event.metadata.recommendations || "Sin especificaciones especiales."}
+                                    </div>
+                                  </div>
+                                )}
 
                               {event.type === "photos_session" && (
                                 <div className="mt-3">
@@ -634,7 +673,8 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
                         );
                       })}
                     </div>
-                  )}
+                  );
+                })()}
                 </Card>
               </div>
             )}
@@ -657,7 +697,7 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
                           <th className="py-2.5">Fecha y Hora</th>
                           <th className="py-2.5">Servicio</th>
                           <th className="py-2.5">Profesional</th>
-                          <th className="py-2.5">Precio</th>
+                          {canViewFinance && <th className="py-2.5">Precio</th>}
                           <th className="py-2.5">Estado</th>
                           <th className="py-2.5">Notas / Comentarios</th>
                         </tr>
@@ -675,7 +715,7 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
                             </td>
                             <td className="fw-bold text-gray-900">{a.service?.name}</td>
                             <td className="text-gray-700">{a.worker ? `${a.worker.firstName} ${a.worker.lastName}` : "General"}</td>
-                            <td className="fw-black text-purple-700">{currency(a.service?.price)}</td>
+                            {canViewFinance && <td className="fw-black text-purple-700">{currency(a.service?.price)}</td>}
                             <td>
                               <Badge 
                                 bg={a.status === "DONE" ? "secondary" : a.status === "CONFIRMED" ? "success" : a.status === "CANCELLED" ? "danger" : "warning"} 

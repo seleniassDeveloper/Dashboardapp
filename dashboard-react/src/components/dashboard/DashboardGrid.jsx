@@ -4,6 +4,7 @@ import { Card, Button, Dropdown } from "react-bootstrap";
 import { GripVertical, Trash2, Settings, Plus, LayoutGrid } from "lucide-react";
 import WidgetRenderer from "./WidgetRenderer";
 import { WIDGET_TYPES } from "./WidgetRegistry";
+import { useTranslation } from "react-i18next";
 
 export default function DashboardGrid({
   widgets = [],
@@ -20,6 +21,8 @@ export default function DashboardGrid({
   onViewCalendar,
   onEditWorker,
 }) {
+  const { i18n } = useTranslation();
+  const isEs = i18n.language === "es";
   const [draggedIdx, setDraggedIdx] = useState(null);
 
   // --- Manejo del Drag & Drop nativo ---
@@ -86,13 +89,15 @@ export default function DashboardGrid({
         style={{ minHeight: "350px", borderColor: "#c0c0c0" }}
       >
         <LayoutGrid size={48} className="text-muted mb-3" />
-        <h3 className="fw-bold mb-2">Tu Dashboard está vacío</h3>
+        <h3 className="fw-bold mb-2">{isEs ? "Tu Dashboard está vacío" : "Your Dashboard is empty"}</h3>
         <p className="text-muted small mb-4" style={{ maxWidth: "420px" }}>
-          Construí un dashboard inteligente a tu medida. Podés agregar widgets manualmente o escribirle a la IA para que los genere por vos.
+          {isEs 
+            ? "Construí un dashboard inteligente a tu medida. Podés agregar widgets manualmente o escribirle a la IA para que los genere por vos."
+            : "Build a smart dashboard tailored to your needs. You can add widgets manually or write to the AI so it generates them for you."}
         </p>
         <div className="d-flex gap-3">
           <Button variant="dark" onClick={onOpenAddModal} className="btn-premium rounded-pill px-4">
-            <Plus size={16} className="me-2" /> Agregar Widget
+            <Plus size={16} className="me-2" /> {isEs ? "Agregar Widget" : "Add Widget"}
           </Button>
         </div>
       </div>
@@ -169,20 +174,20 @@ export default function DashboardGrid({
 
                     <Dropdown.Menu className="dropdown-premium">
                       <Dropdown.Item onClick={() => onEditWidget(w)} className="small">
-                        Configurar widget
+                        {isEs ? "Configurar widget" : "Configure widget"}
                       </Dropdown.Item>
                       <Dropdown.Divider />
                       <Dropdown.Item onClick={() => handleResize(w, 1, 0)} className="small">
-                        Aumentar Ancho
+                        {isEs ? "Aumentar Ancho" : "Increase Width"}
                       </Dropdown.Item>
                       <Dropdown.Item onClick={() => handleResize(w, -1, 0)} className="small">
-                        Reducir Ancho
+                        {isEs ? "Reducir Ancho" : "Reduce Width"}
                       </Dropdown.Item>
                       <Dropdown.Item onClick={() => handleResize(w, 0, 1)} className="small">
-                        Aumentar Alto
+                        {isEs ? "Aumentar Alto" : "Increase Height"}
                       </Dropdown.Item>
                       <Dropdown.Item onClick={() => handleResize(w, 0, -1)} className="small">
-                        Reducir Alto
+                        {isEs ? "Reducir Alto" : "Reduce Height"}
                       </Dropdown.Item>
                     </Dropdown.Menu>
                   </Dropdown>
@@ -191,7 +196,7 @@ export default function DashboardGrid({
                     variant="link"
                     onClick={() => onDeleteWidget(w.id)}
                     className="p-0 text-danger"
-                    title="Eliminar widget"
+                    title={isEs ? "Eliminar widget" : "Delete widget"}
                   >
                     <Trash2 size={14} />
                   </Button>

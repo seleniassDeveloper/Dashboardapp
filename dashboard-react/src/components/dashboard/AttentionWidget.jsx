@@ -1,6 +1,7 @@
 import React from "react";
 import { AlertCircle, Clock, UserCheck, CalendarDays, ArrowRight } from "lucide-react";
 import { Badge, Button } from "react-bootstrap";
+import { useTranslation } from "react-i18next";
 
 export default function AttentionWidget({
   appointments = [],
@@ -9,6 +10,9 @@ export default function AttentionWidget({
   onViewCalendar,
   onEditWorker,
 }) {
+  const { i18n } = useTranslation("dashboard");
+  const isEs = i18n.language === "es";
+
   // 1. Citas PENDING
   const pendingAppointments = appointments.filter((a) => a.status === "PENDING");
 
@@ -33,12 +37,14 @@ export default function AttentionWidget({
     alerts.push({
       id: `pending-${a.id}`,
       type: "pending_appt",
-      title: `Cita pendiente de ${a.client?.firstName} ${a.client?.lastName || ""}`,
-      subtitle: `${a.service?.name} · ${new Date(a.startsAt).toLocaleDateString()} a las ${new Date(a.startsAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" })} hs`,
+      title: isEs ? `Cita pendiente de ${a.client?.firstName} ${a.client?.lastName || ""}` : `Pending appointment for ${a.client?.firstName} ${a.client?.lastName || ""}`,
+      subtitle: isEs 
+        ? `${a.service?.name} · ${new Date(a.startsAt).toLocaleDateString()} a las ${new Date(a.startsAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" })} hs`
+        : `${a.service?.name} · ${new Date(a.startsAt).toLocaleDateString()} at ${new Date(a.startsAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" })}`,
       icon: Clock,
-      badgeText: "Pendiente",
+      badgeText: isEs ? "Pendiente" : "Pending",
       badgeBg: "warning",
-      actionText: "Confirmar",
+      actionText: isEs ? "Confirmar" : "Confirm",
       onClick: () => onConfirmAppointment?.(a.id),
     });
   });
@@ -47,12 +53,12 @@ export default function AttentionWidget({
     alerts.push({
       id: `worker-schedule-${w.id}`,
       type: "worker_schedule",
-      title: `Profesional sin horario activo: ${w.firstName} ${w.lastName}`,
-      subtitle: "Configurá su jornada laboral para habilitar reservas online.",
+      title: isEs ? `Profesional sin horario activo: ${w.firstName} ${w.lastName}` : `Staff without active schedule: ${w.firstName} ${w.lastName}`,
+      subtitle: isEs ? "Configurá su jornada laboral para habilitar reservas online." : "Configure their working hours to enable online bookings.",
       icon: AlertCircle,
-      badgeText: "Sin horario",
+      badgeText: isEs ? "Sin horario" : "No schedule",
       badgeBg: "danger",
-      actionText: "Editar",
+      actionText: isEs ? "Editar" : "Edit",
       onClick: () => onEditWorker?.(w.id),
     });
   });
@@ -61,12 +67,12 @@ export default function AttentionWidget({
     alerts.push({
       id: `followup-${a.id}`,
       type: "followup",
-      title: `Turno próximo/en curso: ${a.client?.firstName}`,
-      subtitle: `Con ${a.worker?.firstName} · ${a.service?.name}`,
+      title: isEs ? `Turno próximo/en curso: ${a.client?.firstName}` : `Upcoming/current appointment: ${a.client?.firstName}`,
+      subtitle: isEs ? `Con ${a.worker?.firstName} · ${a.service?.name}` : `With ${a.worker?.firstName} · ${a.service?.name}`,
       icon: UserCheck,
-      badgeText: "Operativo",
+      badgeText: isEs ? "Operativo" : "Active",
       badgeBg: "info",
-      actionText: "Ver Agenda",
+      actionText: isEs ? "Ver Agenda" : "View Agenda",
       onClick: () => onViewCalendar?.(),
     });
   });
@@ -77,12 +83,14 @@ export default function AttentionWidget({
       {
         id: "simulated-1",
         type: "tip",
-        title: "Optimización de horarios",
-        subtitle: "Sábado en la tarde registra 95% de ocupación. Considerá agregar bloqueos de descanso.",
+        title: isEs ? "Optimización de horarios" : "Schedule optimization",
+        subtitle: isEs 
+          ? "Sábado en la tarde registra 95% de ocupación. Considerá agregar bloqueos de descanso."
+          : "Saturday afternoon has 95% occupancy. Consider adding rest blocks.",
         icon: CalendarDays,
-        badgeText: "Tip de IA",
+        badgeText: isEs ? "Tip de IA" : "AI Tip",
         badgeBg: "success",
-        actionText: "Ver Horarios",
+        actionText: isEs ? "Ver Horarios" : "View Schedules",
         onClick: () => onViewCalendar?.(),
       }
     );

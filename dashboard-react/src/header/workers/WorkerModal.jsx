@@ -37,6 +37,8 @@ export default function WorkerModal({
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [serviceIds, setServiceIds] = useState([]);
   const [schedule, setSchedule] = useState(emptySchedule);
 
@@ -71,6 +73,8 @@ export default function WorkerModal({
     if (isEdit) {
       setFirstName(initialData?.firstName || "");
       setLastName(initialData?.lastName || "");
+      setEmail(initialData?.email || "");
+      setPhone(initialData?.phone || "");
       setServiceIds(safeArray(initialData?.serviceIds));
 
       const base = DAYS.map((d) => ({
@@ -95,6 +99,8 @@ export default function WorkerModal({
     } else {
       setFirstName("");
       setLastName("");
+      setEmail("");
+      setPhone("");
       setServiceIds([]);
       setSchedule(emptySchedule);
     }
@@ -137,6 +143,8 @@ export default function WorkerModal({
       const payload = {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
+        email: email.trim() || null,
+        phone: phone.trim() || null,
         serviceIds,
         schedules: schedulesPayload,
       };
@@ -193,6 +201,31 @@ export default function WorkerModal({
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
                 placeholder="Ej: Pérez"
+              />
+            </Form.Group>
+          </Col>
+
+          <Col md={6}>
+            <Form.Group>
+              <Form.Label htmlFor="worker-email">Correo Electrónico (Para Login con Gmail)</Form.Label>
+              <Form.Control
+                id="worker-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="ejemplo@correo.com"
+              />
+            </Form.Group>
+          </Col>
+
+          <Col md={6}>
+            <Form.Group>
+              <Form.Label htmlFor="worker-phone">Teléfono de contacto</Form.Label>
+              <Form.Control
+                id="worker-phone"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="Ej: +34 600 000 000"
               />
             </Form.Group>
           </Col>

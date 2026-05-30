@@ -142,7 +142,7 @@ export default function FormSchemaEditor() {
         <div className="d-flex flex-column gap-2">
           {fields.map((field, index) => (
             <div
-              key={field.id}
+              key={`${field.entity || "schema"}-${field.name || field.id}-${field.id || index}`}
               className="p-3 rounded-3 border bg-light-subtle"
               style={{ background: field.enabled === false ? "rgba(0,0,0,0.03)" : undefined }}
             >

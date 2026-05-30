@@ -136,7 +136,8 @@
       "registry": "Catálogo de campos",
       "assign": "Asignar a componentes",
       "modules": "Módulos activos",
-      "booking": "Reservas Online"
+      "booking": "Reservas Online",
+      "users": "Colaboradores y Permisos"
     },
     "workflowHint": {
       "title": "Workflows con transiciones y pantallas",
@@ -201,5 +202,110 @@
       "subtitle": "Dashboard OS está diseñado para crecer contigo.",
       "cta": "Empezar ahora"
     }
+  },
+  "workflowsBuilder": {
+    "stats": {
+      "active": "Automatizaciones Activas",
+      "total": "Total de Flujos",
+      "runs": "Ejecuciones Persistidas",
+      "loading": "Cargando flujos de automatizaciones…"
+    },
+    "tabs": {
+      "flows": "Flujos Configurados",
+      "logs": "Bitácora de Auditoría (Logs)"
+    },
+    "empty": {
+      "title": "Crea tu primer flujo de automatización",
+      "subtitle": "Configura disparadores en tiempo real (citas, stock, cobros) y bifurca decisiones dinámicas para enviar WhatsApps, emails o tareas al equipo.",
+      "btn": "Diseñar primer workflow"
+    },
+    "builder": {
+      "errorSave": "Error al guardar la automatización en el servidor.",
+      "errorFields": "Completá nombre, disparador y al menos una acción.",
+      "placeholderName": "Nombre de la automatización...",
+      "save": "Guardar Automatización",
+      "saving": "Guardando...",
+      "test": "Probar Flujo",
+      "canvasHelp": "Arrastrá los nodos para moverlos. Conectalos arrastrando líneas entre ellos.",
+      "deleteNode": "Eliminar Nodo",
+      "deleteTrans": "Eliminar Conexión",
+      "zoom": "Zoom",
+      "close": "Cerrar",
+      "triggerTitle": "📅 Disparador",
+      "actionTitle": "⚡ Acción",
+      "logicTitle": "🧠 Lógica y Control"
+    },
+    "nodes": {
+      "nueva-cita": { "name": "📅 Nueva Cita", "desc": "Se ejecuta al agendar cita." },
+      "cita-confirmada": { "name": "✅ Cita Confirmada", "desc": "Se ejecuta al confirmar cita." },
+      "cita-cancelada": { "name": "❌ Cita Cancelada", "desc": "Se ejecuta al cancelar cita." },
+      "cita-finalizada": { "name": "🏁 Cita Finalizada", "desc": "Se ejecuta al marcar cita DONE." },
+      "cliente-nuevo": { "name": "👤 Cliente Nuevo", "desc": "Se ejecuta al crear cliente." },
+      "cliente-inactivo": { "name": "⚠️ Cliente Inactivo", "desc": "Se ejecuta si cliente no asiste en 60d." },
+      "stock-bajo": { "name": "📦 Stock Bajo", "desc": "Se ejecuta al cruzar stock mínimo." },
+      "pago-recibido": { "name": "💸 Pago Recibido", "desc": "Se ejecuta al registrar cobro." },
+      "whatsapp": { "name": "📱 WhatsApp", "desc": "Manda mensaje por enlace WhatsApp." },
+      "email": { "name": "✉️ Correo Email", "desc": "Envía un email formal por Gmail API." },
+      "notificacion": { "name": "🔔 Alerta Push", "desc": "Muestra alerta interna en la campana." },
+      "crear-tarea": { "name": "📝 Crear Tarea", "desc": "Asigna tarea técnica al equipo." },
+      "condition": { "name": "🧠 Condición (IF/ELSE)", "desc": "Bifurca el camino lógico." },
+      "delay": { "name": "⏳ Retardo (Delay)", "desc": "Espera antes de avanzar." }
+    },
+    "inspector": {
+      "title": "Inspector de Nodo",
+      "empty": "Selecciona un nodo del canvas para configurar sus parámetros, mermas, condiciones y automatizaciones en la base de datos.",
+      "labelName": "Etiqueta del Nodo",
+      "labelDesc": "Descripción / Nota",
+      "placeholderDesc": "Qué hace este paso...",
+      "messagingSection": "Configuración de Mensajería",
+      "messageTitle": "Título de la Notificación *",
+      "titlePlaceholder": "Ej: Confirmación de Cita",
+      "editorLabel": "Editor Dinámico de Mensaje",
+      "editorPlaceholder": "Escribe tu mensaje aquí...",
+      "taskSection": "Configuración de Tarea",
+      "taskPlaceholder": "Ej: Llamar al cliente para verificar",
+      "taskDesc": "Descripción de la Tarea",
+      "conditionSection": "Bifurca Condicional (IF/ELSE)",
+      "condLabel": "Propiedad / Campo del Salón",
+      "condVip": "¿Cliente es VIP?",
+      "condBranch": "Rama a evaluar",
+      "condBranchVal": "Valor a coincidir",
+      "delaySection": "Retardo de Ejecución (Delay)",
+      "delayValue": "Duración",
+      "delayUnit": "Unidad",
+      "unitHours": "Horas",
+      "unitDays": "Días",
+      "unitMinutes": "Minutos",
+      "tipTitle": "Tip del sistema:",
+      "tipBody": "Puedes referenciar las variables dinámicas del salón en cualquier caja de texto del workflow. Éstas serán calculadas automáticamente."
+    },
+    "logs": {
+      "title": "Bitácora de Auditoría y Ejecuciones (Logs)",
+      "subtitle": "Rastrea cada automatización en tiempo real con tiempos de procesamiento y registro de respuestas.",
+      "updateBtn": "Actualizar Bitácora",
+      "empty": "No se encontraron ejecuciones registradas en la bitácora contable.",
+      "traceTitle": "Trazabilidad del Flujo de Ejecución (Paso a Paso):",
+      "emptyTrace": "Sin sub-logs detallados para esta ejecución.",
+      "successDefault": "Acción completada con éxito.",
+      "errorDefault": "Fallo en ejecución de automatización.",
+      "errorLoading": "No se pudieron cargar los registros de ejecución."
+    },
+    "simulator": {
+      "title": "Simulador en Vivo de Workflows",
+      "subtitle": "Simula eventos en vivo del salón para probar la lógica de automatización y ver las ramas recorrer el canvas.",
+      "triggerBtn": "Simular Disparador",
+      "statusDraft": "Borrador - Modo Simulador",
+      "statusActive": "Activo - Modo Real",
+      "nodeSuccess": "Nodo procesado con éxito",
+      "nodeFail": "Ejecución de nodo fallida",
+      "runComplete": "¡Simulación completada con éxito!"
+    }
+  },
+  "unauthorized": {
+    "title": "Acceso Restringido",
+    "subtitle": "No tienes permisos suficientes para acceder a esta sección.",
+    "description": "Tu rol actual en la empresa no cuenta con los privilegios necesarios para ver este contenido. Si crees que esto es un error, por favor contacta al administrador o dueño de la cuenta.",
+    "goBack": "Volver Atrás",
+    "goHome": "Ir al Dashboard"
   }
 }

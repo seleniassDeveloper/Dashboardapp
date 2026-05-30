@@ -44,14 +44,24 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { postGadgetAiReport } from "../../gadgets/ai/gadgetReportApi.js";
 import "../../styles/smart-reports.css";
+import { useTranslation } from "react-i18next";
 
-// Helper de formato de moneda ARS
-function currency(n) {
-  return new Intl.NumberFormat("es-AR", {
+// Helper de formato de moneda
+function currencyHelper(n, isEs = true) {
+  return new Intl.NumberFormat(isEs ? "es-AR" : "en-US", {
     style: "currency",
-    currency: "ARS",
+    currency: isEs ? "ARS" : "USD",
     maximumFractionDigits: 0,
   }).format(n || 0);
+}
+
+function translatePaymentMethod(method, isEs) {
+  if (isEs) return method;
+  if (method === "Efectivo") return "Cash";
+  if (method === "Tarjeta de Crédito" || method === "Tarjeta") return "Credit Card";
+  if (method === "Transferencia MP" || method === "Transferencia") return "Bank Transfer";
+  if (method === "Débito") return "Debit Card";
+  return method;
 }
 
 // Lista estática de productos para el inventario (coincide con InventoryView.jsx)
@@ -64,6 +74,10 @@ const INITIAL_PRODUCTS = [
 ];
 
 export default function SmartReports({ appointments = [], clients = [], workers = [], services = [], brand = {} }) {
+  const { t, i18n } = useTranslation("dashboard");
+  const isEs = i18n.language === "es";
+  const currency = (n) => currencyHelper(n, isEs);
+
   // Estados principales
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Todos");
@@ -116,26 +130,28 @@ export default function SmartReports({ appointments = [], clients = [], workers 
       const chartData = Object.entries(servMap).map(([name, value]) => ({ name, value }));
 
       return {
-        title: "Ventas del Día",
-        description: "Análisis y volumen de facturación registrados en la jornada de hoy.",
-        summary: `Hoy se registraron ${todayAppts.length} citas operativas con un total facturado de ${currency(total)}. El ticket promedio de hoy se sitúa en ${currency(todayAppts.length ? total / todayAppts.length : 0)}.`,
+        title: isEs ? "Ventas del Día" : "Today's Sales",
+        description: isEs ? "Análisis y volumen de facturación registrados en la jornada de hoy." : "Analysis and billing volume recorded today.",
+        summary: isEs 
+          ? `Hoy se registraron ${todayAppts.length} citas operativas con un total facturado de ${currency(total)}. El ticket promedio de hoy se sitúa en ${currency(todayAppts.length ? total / todayAppts.length : 0)}.`
+          : `Today, there were ${todayAppts.length} active appointments with a total billed amount of ${currency(total)}. Today's average ticket is ${currency(todayAppts.length ? total / todayAppts.length : 0)}.`,
         kpis: [
-          { label: "Total Vendido Hoy", value: currency(total), icon: <DollarSign size={18} className="text-success" /> },
-          { label: "Citas Operativas", value: `${todayAppts.length} turnos`, icon: <CheckCircle size={18} className="text-primary" /> },
-          { label: "Ticket Promedio", value: currency(todayAppts.length ? total / todayAppts.length : 0), icon: <TrendingUp size={18} className="text-warning" /> }
+          { label: isEs ? "Total Vendido Hoy" : "Total Sold Today", value: currency(total), icon: <DollarSign size={18} className="text-success" /> },
+          { label: isEs ? "Citas Operativas" : "Active Appointments", value: isEs ? `${todayAppts.length} turnos` : `${todayAppts.length} slots`, icon: <CheckCircle size={18} className="text-primary" /> },
+          { label: isEs ? "Ticket Promedio" : "Average Ticket", value: currency(todayAppts.length ? total / todayAppts.length : 0), icon: <TrendingUp size={18} className="text-warning" /> }
         ],
         chart: {
           type: "bar",
-          title: "Facturación por Servicio (Hoy)",
-          data: chartData.length ? chartData : [{ name: "Sin Ventas", value: 0 }]
+          title: isEs ? "Facturación por Servicio (Hoy)" : "Billing by Service (Today)",
+          data: chartData.length ? chartData : [{ name: isEs ? "Sin Ventas" : "No Sales", value: 0 }]
         },
         table: {
-          headers: ["Cliente", "Servicio", "Colaborador", "M. Pago", "Importe"],
+          headers: isEs ? ["Cliente", "Servicio", "Colaborador", "M. Pago", "Importe"] : ["Client", "Service", "Staff", "Payment Method", "Amount"],
           rows: todayAppts.map(a => [
-            `${a.client?.firstName || "Cliente"} ${a.client?.lastName || ""}`.trim(),
-            a.service?.name || "Servicio",
-            `${a.worker?.firstName || "Profesional"}`.trim(),
-            a.paymentMethod,
+            `${a.client?.firstName || (isEs ? "Cliente" : "Client")} ${a.client?.lastName || ""}`.trim(),
+            a.service?.name || (isEs ? "Servicio" : "Service"),
+            `${a.worker?.firstName || (isEs ? "Profesional" : "Staff")}`.trim(),
+            translatePaymentMethod(a.paymentMethod, isEs),
             currency(a.service?.price)
           ])
         }
@@ -151,7 +167,9 @@ export default function SmartReports({ appointments = [], clients = [], workers 
       const total = weekAppts.reduce((sum, a) => sum + Number(a.service?.price || 0), 0);
 
       // Agrupación por día de la semana
-      const days = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+      const days = isEs 
+        ? ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"] 
+        : ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
       const dailyMap = {};
       // Inicializar últimos 7 días
       for (let i = 6; i >= 0; i--) {
@@ -169,26 +187,28 @@ export default function SmartReports({ appointments = [], clients = [], workers 
       const chartData = Object.entries(dailyMap).map(([name, value]) => ({ name, value }));
 
       return {
-        title: "Ventas de la Semana",
-        description: "Monitoreo de ingresos móviles de los últimos 7 días con tendencia diaria.",
-        summary: `Los ingresos totales acumulados en los últimos 7 días ascienden a ${currency(total)} distribuidos en ${weekAppts.length} citas. Esto marca un promedio de facturación diario de ${currency(total / 7)}.`,
+        title: isEs ? "Ventas de la Semana" : "Weekly Sales",
+        description: isEs ? "Monitoreo de ingresos móviles de los últimos 7 días con tendencia diaria." : "Monitoring of mobile income over the last 7 days with daily trend.",
+        summary: isEs 
+          ? `Los ingresos totales acumulados en los últimos 7 días ascienden a ${currency(total)} distribuidos en ${weekAppts.length} citas. Esto marca un promedio de facturación diario de ${currency(total / 7)}.`
+          : `Total accumulated income in the last 7 days amounts to ${currency(total)} across ${weekAppts.length} appointments. This marks a daily billing average of ${currency(total / 7)}.`,
         kpis: [
-          { label: "Ventas Semanales", value: currency(total), icon: <DollarSign size={18} className="text-success" /> },
-          { label: "Servicios Realizados", value: `${weekAppts.length} turnos`, icon: <CheckCircle size={18} className="text-primary" /> },
-          { label: "Promedio Diario", value: currency(total / 7), icon: <TrendingUp size={18} className="text-info" /> }
+          { label: isEs ? "Ventas Semanales" : "Weekly Sales", value: currency(total), icon: <DollarSign size={18} className="text-success" /> },
+          { label: isEs ? "Servicios Realizados" : "Completed Services", value: isEs ? `${weekAppts.length} turnos` : `${weekAppts.length} slots`, icon: <CheckCircle size={18} className="text-primary" /> },
+          { label: isEs ? "Promedio Diario" : "Daily Average", value: currency(total / 7), icon: <TrendingUp size={18} className="text-info" /> }
         ],
         chart: {
           type: "area",
-          title: "Evolución Semanal de Ventas (ARS)",
+          title: isEs ? "Evolución Semanal de Ventas (ARS)" : "Weekly Sales Trend",
           data: chartData
         },
         table: {
-          headers: ["Fecha", "Cliente", "Servicio", "Colaborador", "Total"],
+          headers: isEs ? ["Fecha", "Cliente", "Servicio", "Colaborador", "Total"] : ["Date", "Client", "Service", "Staff", "Total"],
           rows: weekAppts.slice(0, 10).map(a => [
-            new Date(a.startsAt).toLocaleDateString("es-AR", { day: "numeric", month: "short" }),
-            `${a.client?.firstName || "Cliente"} ${a.client?.lastName || ""}`.trim(),
-            a.service?.name || "Servicio",
-            a.worker?.firstName || "Profesional",
+            new Date(a.startsAt).toLocaleDateString(isEs ? "es-AR" : "en-US", { day: "numeric", month: "short" }),
+            `${a.client?.firstName || (isEs ? "Cliente" : "Client")} ${a.client?.lastName || ""}`.trim(),
+            a.service?.name || (isEs ? "Servicio" : "Service"),
+            a.worker?.firstName || (isEs ? "Profesional" : "Staff"),
             currency(a.service?.price)
           ])
         }
@@ -201,7 +221,7 @@ export default function SmartReports({ appointments = [], clients = [], workers 
       const serviceRev = {};
       
       activeAppts.forEach(a => {
-        const name = a.service?.name || "Otros";
+        const name = a.service?.name || (isEs ? "Otros" : "Others");
         serviceCounts[name] = (serviceCounts[name] || 0) + 1;
         serviceRev[name] = (serviceRev[name] || 0) + Number(a.service?.price || 0);
       });
@@ -217,27 +237,29 @@ export default function SmartReports({ appointments = [], clients = [], workers 
       const chartData = sortedServices.map(s => ({ name: s.name, value: s.count }));
 
       return {
-        title: "Servicios Más Solicitados",
-        description: "Identificación de los tratamientos estrella de tu salón por número de reservas.",
+        title: isEs ? "Servicios Más Solicitados" : "Most Requested Services",
+        description: isEs ? "Identificación de los tratamientos estrella de tu salón por número de reservas." : "Identification of your salon's star treatments by number of bookings.",
         summary: sortedServices.length 
-          ? `El servicio más solicitado es "${sortedServices[0].name}" con ${sortedServices[0].count} turnos realizados, generando una facturación de ${currency(sortedServices[0].revenue)}.` 
-          : "No se registran servicios activos.",
+          ? (isEs 
+              ? `El servicio más solicitado es "${sortedServices[0].name}" con ${sortedServices[0].count} turnos realizados, generando una facturación de ${currency(sortedServices[0].revenue)}.` 
+              : `The most requested service is "${sortedServices[0].name}" with ${sortedServices[0].count} completed bookings, generating a total billing of ${currency(sortedServices[0].revenue)}.`)
+          : (isEs ? "No se registran servicios activos." : "No active services recorded."),
         kpis: [
-          { label: "Servicio Top", value: sortedServices[0]?.name || "Ninguno", icon: <TrendingUp size={18} className="text-success" /> },
-          { label: "Volumen Reservas", value: `${sortedServices[0]?.count || 0} turnos`, icon: <CheckCircle size={18} className="text-primary" /> },
-          { label: "Servicios Únicos", value: `${sortedServices.length} categorías`, icon: <Layers size={18} className="text-warning" /> }
+          { label: isEs ? "Servicio Top" : "Top Service", value: sortedServices[0]?.name || (isEs ? "Ninguno" : "None"), icon: <TrendingUp size={18} className="text-success" /> },
+          { label: isEs ? "Volumen Reservas" : "Booking Volume", value: isEs ? `${sortedServices[0]?.count || 0} turnos` : `${sortedServices[0]?.count || 0} bookings`, icon: <CheckCircle size={18} className="text-primary" /> },
+          { label: isEs ? "Servicios Únicos" : "Unique Services", value: isEs ? `${sortedServices.length} categorías` : `${sortedServices.length} categories`, icon: <Layers size={18} className="text-warning" /> }
         ],
         chart: {
           type: "bar",
-          title: "Reservas por Tipo de Servicio (Cant.)",
-          data: chartData.length ? chartData : [{ name: "Ninguno", value: 0 }]
+          title: isEs ? "Reservas por Tipo de Servicio (Cant.)" : "Bookings by Service Type (Qty)",
+          data: chartData.length ? chartData : [{ name: isEs ? "Ninguno" : "None", value: 0 }]
         },
         table: {
-          headers: ["Nombre del Servicio", "Cantidad de Turnos", "Participación", "Ingresos Generados"],
+          headers: isEs ? ["Nombre del Servicio", "Cantidad de Turnos", "Participación", "Ingresos Generados"] : ["Service Name", "Booking Qty", "Share %", "Generated Revenue"],
           rows: sortedServices.map(s => [
             s.name,
-            `${s.count} turnos`,
-            `${Math.round((s.count / activeAppts.length) * 100)}%`,
+            isEs ? `${s.count} turnos` : `${s.count} bookings`,
+            `${Math.round((s.count / (activeAppts.length || 1)) * 100)}%`,
             currency(s.revenue)
           ])
         }
@@ -253,11 +275,11 @@ export default function SmartReports({ appointments = [], clients = [], workers 
         const key = a.clientId;
         if (!clientMap[key]) {
           clientMap[key] = {
-            name: `${a.client?.firstName || ""} ${a.client?.lastName || ""}`.trim() || "Cliente Anónimo",
+            name: `${a.client?.firstName || ""} ${a.client?.lastName || ""}`.trim() || (isEs ? "Cliente Anónimo" : "Anonymous Client"),
             count: 0,
             spend: 0,
-            email: a.client?.email || "Sin email",
-            phone: a.client?.phone || "Sin teléfono"
+            email: a.client?.email || (isEs ? "Sin email" : "No email"),
+            phone: a.client?.phone || (isEs ? "Sin teléfono" : "No phone")
           };
         }
         clientMap[key].count += 1;
@@ -271,27 +293,29 @@ export default function SmartReports({ appointments = [], clients = [], workers 
       const chartData = sortedClients.map(c => ({ name: c.name, value: c.count }));
 
       return {
-        title: "Clientes Frecuentes",
-        description: "Listado de tus clientes recurrentes con mayor concurrencia en reservas.",
+        title: isEs ? "Clientes Frecuentes" : "Frequent Clients",
+        description: isEs ? "Listado de tus clientes recurrentes con mayor concurrencia en reservas." : "List of your recurring clients with the highest booking attendance.",
         summary: sortedClients.length
-          ? `Tu cliente más recurrente es "${sortedClients[0].name}" con ${sortedClients[0].count} visitas en el sistema y un aporte monetario acumulado de ${currency(sortedClients[0].spend)}.`
-          : "No hay registros de clientes recurrentes.",
+          ? (isEs 
+              ? `Tu cliente más recurrente es "${sortedClients[0].name}" con ${sortedClients[0].count} visitas en el sistema y un aporte monetario acumulado de ${currency(sortedClients[0].spend)}.`
+              : `Your most recurring client is "${sortedClients[0].name}" with ${sortedClients[0].count} visits in the system and an accumulated contribution of ${currency(sortedClients[0].spend)}.`)
+          : (isEs ? "No hay registros de clientes recurrentes." : "No recurring clients recorded."),
         kpis: [
-          { label: "Cliente Más Activo", value: sortedClients[0]?.name || "Ninguno", icon: <User size={18} className="text-success" /> },
-          { label: "Máximo de Reservas", value: `${sortedClients[0]?.count || 0} visitas`, icon: <CheckCircle size={18} className="text-primary" /> },
-          { label: "Clientes Fidelizados", value: `${Object.keys(clientMap).length} activos`, icon: <Users size={18} className="text-info" /> }
+          { label: isEs ? "Cliente Más Activo" : "Most Active Client", value: sortedClients[0]?.name || (isEs ? "Ninguno" : "None"), icon: <User size={18} className="text-success" /> },
+          { label: isEs ? "Máximo de Reservas" : "Max Bookings", value: isEs ? `${sortedClients[0]?.count || 0} visitas` : `${sortedClients[0]?.count || 0} visits`, icon: <CheckCircle size={18} className="text-primary" /> },
+          { label: isEs ? "Clientes Fidelizados" : "Loyal Clients", value: isEs ? `${Object.keys(clientMap).length} activos` : `${Object.keys(clientMap).length} active`, icon: <Users size={18} className="text-info" /> }
         ],
         chart: {
           type: "pie",
-          title: "Cuota de Reservas por Cliente Frecuente",
-          data: chartData.length ? chartData : [{ name: "Ninguno", value: 0 }]
+          title: isEs ? "Cuota de Reservas por Cliente Frecuente" : "Booking Share by Frequent Client",
+          data: chartData.length ? chartData : [{ name: isEs ? "Ninguno" : "None", value: 0 }]
         },
         table: {
-          headers: ["Cliente", "Teléfono / Contacto", "Cantidad Visitas", "Gasto Acumulado"],
+          headers: isEs ? ["Cliente", "Teléfono / Contacto", "Cantidad Visitas", "Gasto Acumulado"] : ["Client", "Phone / Contact", "Visits Count", "Accumulated Spend"],
           rows: sortedClients.map(c => [
             c.name,
             c.phone,
-            `${c.count} visitas`,
+            isEs ? `${c.count} visitas` : `${c.count} visits`,
             currency(c.spend)
           ])
         }
@@ -309,27 +333,29 @@ export default function SmartReports({ appointments = [], clients = [], workers 
       });
 
       const total = Object.values(methodMap).reduce((sum, v) => sum + v, 0);
-      const chartData = Object.entries(methodMap).map(([name, value]) => ({ name, value }));
+      const chartData = Object.entries(methodMap).map(([name, value]) => ({ name: translatePaymentMethod(name, isEs), value }));
       const topMethod = Object.entries(methodMap).reduce((max, cur) => cur[1] > max[1] ? cur : max, ["Ninguno", 0]);
 
       return {
-        title: "Ingresos por Método de Pago",
-        description: "Distribución monetaria de la facturación según los canales de cobro utilizados.",
-        summary: `El canal de cobro principal es "${topMethod[0]}" captando el ${Math.round((topMethod[1] / (total || 1)) * 100)}% de los ingresos totales (${currency(topMethod[1])}).`,
+        title: isEs ? "Ingresos por Método de Pago" : "Revenue by Payment Method",
+        description: isEs ? "Distribución monetaria de la facturación según los canales de cobro utilizados." : "Monetary distribution of billing according to payment channels used.",
+        summary: isEs 
+          ? `El canal de cobro principal es "${translatePaymentMethod(topMethod[0], true)}" captando el ${Math.round((topMethod[1] / (total || 1)) * 100)}% de los ingresos totales (${currency(topMethod[1])}).`
+          : `The primary payment channel is "${translatePaymentMethod(topMethod[0], false)}" capturing ${Math.round((topMethod[1] / (total || 1)) * 100)}% of total revenue (${currency(topMethod[1])}).`,
         kpis: [
-          { label: "Canal Preferido", value: topMethod[0], icon: <CreditCard size={18} className="text-success" /> },
-          { label: "Participación Top", value: `${Math.round((topMethod[1] / (total || 1)) * 100)}%`, icon: <Percent size={18} className="text-primary" /> },
-          { label: "Total Conciliado", value: currency(total), icon: <DollarSign size={18} className="text-warning" /> }
+          { label: isEs ? "Canal Preferido" : "Preferred Channel", value: translatePaymentMethod(topMethod[0], isEs), icon: <CreditCard size={18} className="text-success" /> },
+          { label: isEs ? "Participación Top" : "Top Share", value: `${Math.round((topMethod[1] / (total || 1)) * 100)}%`, icon: <Percent size={18} className="text-primary" /> },
+          { label: isEs ? "Total Conciliado" : "Total Reconciled", value: currency(total), icon: <DollarSign size={18} className="text-warning" /> }
         ],
         chart: {
           type: "pie",
-          title: "Desglose Financiero por Método de Pago (ARS)",
+          title: isEs ? "Desglose Financiero por Método de Pago" : "Financial Breakdown by Payment Method",
           data: chartData
         },
         table: {
-          headers: ["Método de Pago", "Participación %", "Facturación Total"],
+          headers: isEs ? ["Método de Pago", "Participación %", "Facturación Total"] : ["Payment Method", "Share %", "Total Billing"],
           rows: Object.entries(methodMap).map(([name, value]) => [
-            name,
+            translatePaymentMethod(name, isEs),
             `${Math.round((value / (total || 1)) * 100)}%`,
             currency(value)
           ])
@@ -345,32 +371,34 @@ export default function SmartReports({ appointments = [], clients = [], workers 
       const active = todayAppts.filter(a => a.status !== "CANCELLED");
 
       const chartData = [
-        { name: "Confirmadas/Hechas", value: active.length },
-        { name: "Canceladas", value: todayAppts.length - active.length }
+        { name: isEs ? "Confirmadas/Hechas" : "Confirmed/Done", value: active.length },
+        { name: isEs ? "Canceladas" : "Cancelled", value: todayAppts.length - active.length }
       ];
 
       return {
-        title: "Agenda del Día",
-        description: "Compendio operativo de las reservas y estados calendarizados para hoy.",
-        summary: `Hoy se programaron ${todayAppts.length} citas totales en la agenda. Actualmente tenés ${active.length} turnos operativos y ${todayAppts.length - active.length} cancelados.`,
+        title: isEs ? "Agenda del Día" : "Daily Agenda",
+        description: isEs ? "Compendio operativo de las reservas y estados calendarizados para hoy." : "Operational digest of bookings and scheduled states for today.",
+        summary: isEs 
+          ? `Hoy se programaron ${todayAppts.length} citas totales en la agenda. Actualmente tenés ${active.length} turnos operativos y ${todayAppts.length - active.length} cancelados.`
+          : `Today, a total of ${todayAppts.length} appointments were scheduled. Currently you have ${active.length} active slots and ${todayAppts.length - active.length} cancelled.`,
         kpis: [
-          { label: "Turnos Totales Hoy", value: `${todayAppts.length} reservas`, icon: <Calendar size={18} className="text-primary" /> },
-          { label: "Confirmados", value: `${active.length} activos`, icon: <CheckCircle size={18} className="text-success" /> },
-          { label: "Cancelados Hoy", value: `${todayAppts.length - active.length} turnos`, icon: <XCircle size={18} className="text-danger" /> }
+          { label: isEs ? "Turnos Totales Hoy" : "Total Bookings Today", value: isEs ? `${todayAppts.length} reservas` : `${todayAppts.length} bookings`, icon: <Calendar size={18} className="text-primary" /> },
+          { label: isEs ? "Confirmados" : "Confirmed", value: isEs ? `${active.length} activos` : `${active.length} active`, icon: <CheckCircle size={18} className="text-success" /> },
+          { label: isEs ? "Cancelados Hoy" : "Cancelled Today", value: isEs ? `${todayAppts.length - active.length} turnos` : `${todayAppts.length - active.length} bookings`, icon: <XCircle size={18} className="text-danger" /> }
         ],
         chart: {
           type: "pie",
-          title: "Estado de la Agenda de Hoy",
+          title: isEs ? "Estado de la Agenda de Hoy" : "Today's Agenda Status",
           data: chartData
         },
         table: {
-          headers: ["Hora", "Cliente", "Servicio", "Colaborador", "Estado"],
+          headers: isEs ? ["Hora", "Cliente", "Servicio", "Colaborador", "Estado"] : ["Time", "Client", "Service", "Staff", "Status"],
           rows: todayAppts.map(a => [
-            new Date(a.startsAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" }),
-            `${a.client?.firstName || "Cliente"} ${a.client?.lastName || ""}`.trim(),
-            a.service?.name || "Servicio",
-            a.worker?.firstName || "Profesional",
-            a.status === "CANCELLED" ? "Cancelado" : a.status === "DONE" ? "Finalizado" : "Confirmado"
+            new Date(a.startsAt).toLocaleTimeString(isEs ? "es-AR" : "en-US", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" }),
+            `${a.client?.firstName || (isEs ? "Cliente" : "Client")} ${a.client?.lastName || ""}`.trim(),
+            a.service?.name || (isEs ? "Servicio" : "Service"),
+            a.worker?.firstName || (isEs ? "Profesional" : "Staff"),
+            a.status === "CANCELLED" ? (isEs ? "Cancelado" : "Cancelled") : a.status === "DONE" ? (isEs ? "Finalizado" : "Completed") : (isEs ? "Confirmado" : "Confirmed")
           ])
         }
       };
@@ -382,26 +410,28 @@ export default function SmartReports({ appointments = [], clients = [], workers 
       const chartData = INITIAL_PRODUCTS.map(p => ({ name: p.name, value: p.stock }));
 
       return {
-        title: "Productos con Bajo Stock",
-        description: "Listado crítico de insumos del salón que requieren reposición inmediata.",
-        summary: `Tenés ${lowStockProducts.length} productos bajo el stock límite de seguridad. Es de alta prioridad iniciar pedidos de reposición.`,
+        title: isEs ? "Productos con Bajo Stock" : "Low Stock Products",
+        description: isEs ? "Listado crítico de insumos del salón que requieren reposición inmediata." : "Critical list of salon supplies requiring immediate replenishment.",
+        summary: isEs 
+          ? `Tenés ${lowStockProducts.length} productos bajo el stock límite de seguridad. Es de alta prioridad iniciar pedidos de reposición.`
+          : `You have ${lowStockProducts.length} products below the safety stock limit. Replenishment orders are high priority.`,
         kpis: [
-          { label: "Productos Críticos", value: `${lowStockProducts.length} insumos`, icon: <AlertTriangle size={18} className="text-danger" /> },
-          { label: "Valuación Inventario", value: currency(totalVal), icon: <Package size={18} className="text-success" /> },
-          { label: "Artículos Únicos", value: `${INITIAL_PRODUCTS.length} productos`, icon: <Layers size={18} className="text-primary" /> }
+          { label: isEs ? "Productos Críticos" : "Critical Products", value: isEs ? `${lowStockProducts.length} insumos` : `${lowStockProducts.length} items`, icon: <AlertTriangle size={18} className="text-danger" /> },
+          { label: isEs ? "Valuación Inventario" : "Inventory Valuation", value: currency(totalVal), icon: <Package size={18} className="text-success" /> },
+          { label: isEs ? "Artículos Únicos" : "Unique Items", value: isEs ? `${INITIAL_PRODUCTS.length} productos` : `${INITIAL_PRODUCTS.length} products`, icon: <Layers size={18} className="text-primary" /> }
         ],
         chart: {
           type: "bar",
-          title: "Nivel de Stock Actual por Insumo",
+          title: isEs ? "Nivel de Stock Actual por Insumo" : "Current Stock Level by Item",
           data: chartData
         },
         table: {
-          headers: ["Nombre Insumo", "Categoría", "Stock Actual", "Límite Alerta", "Costo Unidad"],
+          headers: isEs ? ["Nombre Insumo", "Categoría", "Stock Actual", "Límite Alerta", "Costo Unidad"] : ["Item Name", "Category", "Current Stock", "Alert Limit", "Unit Cost"],
           rows: lowStockProducts.map(p => [
             p.name,
             p.category,
-            `${p.stock} un.`,
-            `${p.limit} un.`,
+            isEs ? `${p.stock} un.` : `${p.stock} units`,
+            isEs ? `${p.limit} un.` : `${p.limit} units`,
             currency(p.cost)
           ])
         }
@@ -414,7 +444,7 @@ export default function SmartReports({ appointments = [], clients = [], workers 
       const workerRevenue = {};
 
       activeAppts.forEach(a => {
-        const name = a.worker ? `${a.worker.firstName} ${a.worker.lastName}`.trim() : "Sin profesional";
+        const name = a.worker ? `${a.worker.firstName} ${a.worker.lastName}`.trim() : (isEs ? "Sin profesional" : "Unassigned");
         workerCounts[name] = (workerCounts[name] || 0) + 1;
         workerRevenue[name] = (workerRevenue[name] || 0) + Number(a.service?.price || 0);
       });
@@ -423,24 +453,26 @@ export default function SmartReports({ appointments = [], clients = [], workers 
       const topWorker = Object.entries(workerCounts).reduce((max, cur) => cur[1] > max[1] ? cur : max, ["Ninguno", 0]);
 
       return {
-        title: "Rendimiento por Colaborador",
-        description: "Carga de trabajo, productividad e ingresos generados por cada estilista.",
-        summary: `El colaborador con más turnos atendidos es "${topWorker[0]}" con un volumen de ${topWorker[1]} citas en el sistema.`,
+        title: isEs ? "Rendimiento por Colaborador" : "Staff Performance",
+        description: isEs ? "Carga de trabajo, productividad e ingresos generados por cada estilista." : "Workload, productivity, and revenue generated by each stylist.",
+        summary: isEs 
+          ? `El colaborador con más turnos atendidos es "${topWorker[0]}" con un volumen de ${topWorker[1]} citas en el sistema.`
+          : `The staff member with the most completed appointments is "${topWorker[0]}" with ${topWorker[1]} bookings in the system.`,
         kpis: [
-          { label: "Estilista Top", value: topWorker[0], icon: <User size={18} className="text-success" /> },
-          { label: "Citas Atendidas", value: `${topWorker[1]} turnos`, icon: <CheckCircle size={18} className="text-primary" /> },
-          { label: "Colaboradores Activos", value: `${workers.length} profesionales`, icon: <Briefcase size={18} className="text-info" /> }
+          { label: isEs ? "Estilista Top" : "Top Stylist", value: topWorker[0] === "Ninguno" ? (isEs ? "Ninguno" : "None") : topWorker[0], icon: <User size={18} className="text-success" /> },
+          { label: isEs ? "Citas Atendidas" : "Appointments Handled", value: isEs ? `${topWorker[1]} turnos` : `${topWorker[1]} slots`, icon: <CheckCircle size={18} className="text-primary" /> },
+          { label: isEs ? "Colaboradores Activos" : "Active Staff", value: isEs ? `${workers.length} profesionales` : `${workers.length} professionals`, icon: <Briefcase size={18} className="text-info" /> }
         ],
         chart: {
           type: "bar",
-          title: "Ingresos Generados por Colaborador (ARS)",
-          data: chartData.length ? chartData : [{ name: "Ninguno", value: 0 }]
+          title: isEs ? "Ingresos Generados por Colaborador (ARS)" : "Revenue Generated by Staff",
+          data: chartData.length ? chartData : [{ name: isEs ? "Ninguno" : "None", value: 0 }]
         },
         table: {
-          headers: ["Colaborador", "Citas Realizadas", "Participación %", "Total Facturado"],
+          headers: isEs ? ["Colaborador", "Citas Realizadas", "Participación %", "Total Facturado"] : ["Staff", "Completed Slots", "Share %", "Total Billed"],
           rows: Object.entries(workerCounts).map(([name, count]) => [
             name,
-            `${count} turnos`,
+            isEs ? `${count} turnos` : `${count} slots`,
             `${Math.round((count / (activeAppts.length || 1)) * 100)}%`,
             currency(workerRevenue[name] || 0)
           ])
@@ -464,27 +496,29 @@ export default function SmartReports({ appointments = [], clients = [], workers 
       // Agrupación de ingresos por categoría de servicio
       const catMap = {};
       active.forEach(a => {
-        const cat = a.service?.category || "Estética";
+        const cat = a.service?.category || (isEs ? "Estética" : "Aesthetic");
         catMap[cat] = (catMap[cat] || 0) + Number(a.service?.price || 0);
       });
       const chartData = Object.entries(catMap).map(([name, value]) => ({ name, value }));
 
       return {
-        title: "Finanzas del Mes",
-        description: "Monitoreo consolidado de facturación, comisiones y volumen financiero mensual.",
-        summary: `En el mes de ${now.toLocaleDateString("es-AR", { month: "long" })}, se han facturado ${currency(total)} a través de ${active.length} reservas activas.`,
+        title: isEs ? "Finanzas del Mes" : "Monthly Finances",
+        description: isEs ? "Monitoreo consolidado de facturación, comisiones y volumen financiero mensual." : "Consolidated monitoring of monthly billing, commissions, and financial volume.",
+        summary: isEs 
+          ? `En el mes de ${now.toLocaleDateString("es-AR", { month: "long" })}, se han facturado ${currency(total)} a través de ${active.length} reservas activas.`
+          : `In the month of ${now.toLocaleDateString("en-US", { month: "long" })}, a total of ${currency(total)} has been billed across ${active.length} active bookings.`,
         kpis: [
-          { label: "Ingresos Mensuales", value: currency(total), icon: <DollarSign size={18} className="text-success" /> },
-          { label: "Citas Confirmadas", value: `${active.length} turnos`, icon: <CheckCircle size={18} className="text-primary" /> },
-          { label: "Tasa Cancelación Mes", value: `${monthAppts.length ? Math.round(((monthAppts.length - active.length) / monthAppts.length) * 100) : 0}%`, icon: <XCircle size={18} className="text-danger" /> }
+          { label: isEs ? "Ingresos Mensuales" : "Monthly Income", value: currency(total), icon: <DollarSign size={18} className="text-success" /> },
+          { label: isEs ? "Citas Confirmadas" : "Confirmed Bookings", value: isEs ? `${active.length} turnos` : `${active.length} slots`, icon: <CheckCircle size={18} className="text-primary" /> },
+          { label: isEs ? "Tasa Cancelación Mes" : "Monthly Cancellation Rate", value: `${monthAppts.length ? Math.round(((monthAppts.length - active.length) / monthAppts.length) * 100) : 0}%`, icon: <XCircle size={18} className="text-danger" /> }
         ],
         chart: {
           type: "pie",
-          title: "Participación Financiera por Categoría de Servicio",
-          data: chartData.length ? chartData : [{ name: "Ninguno", value: 0 }]
+          title: isEs ? "Participación Financiera por Categoría de Servicio" : "Financial Share by Service Category",
+          data: chartData.length ? chartData : [{ name: isEs ? "Ninguno" : "None", value: 0 }]
         },
         table: {
-          headers: ["Categoría de Servicio", "Participación %", "Facturado"],
+          headers: isEs ? ["Categoría de Servicio", "Participación %", "Facturado"] : ["Service Category", "Share %", "Billed"],
           rows: Object.entries(catMap).map(([name, value]) => [
             name,
             `${Math.round((value / (total || 1)) * 100)}%`,
@@ -504,32 +538,34 @@ export default function SmartReports({ appointments = [], clients = [], workers 
       // Agrupación por servicio cancelado
       const serviceCancelMap = {};
       cancelledAppts.forEach(a => {
-        const name = a.service?.name || "Otros";
+        const name = a.service?.name || (isEs ? "Otros" : "Others");
         serviceCancelMap[name] = (serviceCancelMap[name] || 0) + 1;
       });
       const chartData = Object.entries(serviceCancelMap).map(([name, value]) => ({ name, value }));
 
       return {
-        title: "Cancelaciones y Ausencias",
-        description: "Análisis operativo de citas caídas e ingresos perdidos para optimizar políticas del salón.",
-        summary: `El salón registra una tasa de cancelación del ${cancellationRate}% con un total de ${cancelledAppts.length} citas canceladas históricas. Esto representa una pérdida de facturación estimada de ${currency(lostRevenue)}.`,
+        title: isEs ? "Cancelaciones y Ausencias" : "Cancellations & Absences",
+        description: isEs ? "Análisis operativo de citas caídas e ingresos perdidos para optimizar políticas del salón." : "Operational analysis of missed appointments and lost revenue to optimize salon policies.",
+        summary: isEs 
+          ? `El salón registra una tasa de cancelación del ${cancellationRate}% con un total de ${cancelledAppts.length} citas canceladas históricas. Esto representa una pérdida de facturación estimada de ${currency(lostRevenue)}.`
+          : `The salon records a cancellation rate of ${cancellationRate}% with a total of ${cancelledAppts.length} historic cancelled appointments. This represents an estimated billing loss of ${currency(lostRevenue)}.`,
         kpis: [
-          { label: "Tasa Cancelaciones", value: `${cancellationRate}%`, icon: <Percent size={18} className="text-danger" /> },
-          { label: "Citas Canceladas", value: `${cancelledAppts.length} turnos`, icon: <XCircle size={18} className="text-warning" /> },
-          { label: "Facturación Perdida", value: currency(lostRevenue), icon: <DollarSign size={18} className="text-danger" /> }
+          { label: isEs ? "Tasa Cancelaciones" : "Cancellation Rate", value: `${cancellationRate}%`, icon: <Percent size={18} className="text-danger" /> },
+          { label: isEs ? "Citas Canceladas" : "Cancelled Bookings", value: isEs ? `${cancelledAppts.length} turnos` : `${cancelledAppts.length} slots`, icon: <XCircle size={18} className="text-warning" /> },
+          { label: isEs ? "Facturación Perdida" : "Lost Revenue", value: currency(lostRevenue), icon: <DollarSign size={18} className="text-danger" /> }
         ],
         chart: {
           type: "bar",
-          title: "Cancelaciones por Tipo de Servicio (Cantidad)",
-          data: chartData.length ? chartData : [{ name: "Ninguno", value: 0 }]
+          title: isEs ? "Cancelaciones por Tipo de Servicio (Cantidad)" : "Cancellations by Service Type (Qty)",
+          data: chartData.length ? chartData : [{ name: isEs ? "Ninguno" : "None", value: 0 }]
         },
         table: {
-          headers: ["Fecha Cita", "Cliente", "Servicio que Iba a Realizarse", "Profesional Asignado", "Importe Pérdida"],
+          headers: isEs ? ["Fecha Cita", "Cliente", "Servicio que Iba a Realizarse", "Profesional Asignado", "Importe Pérdida"] : ["Appointment Date", "Client", "Intended Service", "Assigned Stylist", "Lost Revenue"],
           rows: cancelledAppts.slice(0, 10).map(a => [
-            new Date(a.startsAt).toLocaleDateString("es-AR", { day: "numeric", month: "short" }),
-            `${a.client?.firstName || "Cliente"} ${a.client?.lastName || ""}`.trim(),
-            a.service?.name || "Servicio",
-            a.worker?.firstName || "Profesional",
+            new Date(a.startsAt).toLocaleDateString(isEs ? "es-AR" : "en-US", { day: "numeric", month: "short" }),
+            `${a.client?.firstName || (isEs ? "Cliente" : "Client")} ${a.client?.lastName || ""}`.trim(),
+            a.service?.name || (isEs ? "Servicio" : "Service"),
+            a.worker?.firstName || (isEs ? "Profesional" : "Staff"),
             currency(a.service?.price)
           ])
         }
@@ -704,18 +740,18 @@ export default function SmartReports({ appointments = [], clients = [], workers 
     return [
       {
         id: "total-vendido",
-        title: "Total Vendido",
-        category: "Finanzas",
-        description: "Visualización de facturación neta acumulada en tiempo real.",
+        title: isEs ? "Total Vendido" : "Total Sold",
+        category: isEs ? "Finanzas" : "Finances",
+        description: isEs ? "Visualización de facturación neta acumulada en tiempo real." : "Real-time visualization of net accumulated billing.",
         keywords: ["ventas", "ingresos", "dinero", "caja", "pagos", "facturacion", "total"],
         component: () => {
           const total = appointments.filter(a => a.status !== "CANCELLED").reduce((sum, a) => sum + Number(a.service?.price || 0), 0);
           return (
             <div className="text-center py-2">
-              <div className="text-muted smaller mb-1">Facturación Histórica</div>
+              <div className="text-muted smaller mb-1">{isEs ? "Facturación Histórica" : "Historical Billing"}</div>
               <h4 className="fw-black text-success mb-2" style={{ fontSize: "22px" }}>{currency(total)}</h4>
               <Badge bg="success-soft" className="text-success rounded-pill px-2 py-1 small">
-                <TrendingUp size={11} className="me-1" /> Activo
+                <TrendingUp size={11} className="me-1" /> {isEs ? "Activo" : "Active"}
               </Badge>
             </div>
           );
@@ -723,22 +759,22 @@ export default function SmartReports({ appointments = [], clients = [], workers 
       },
       {
         id: "ventas-dia-chart",
-        title: "Ventas por Día",
-        category: "Finanzas",
-        description: "Monitoreo dinámico del histórico diario de ventas.",
+        title: isEs ? "Ventas por Día" : "Daily Sales",
+        category: isEs ? "Finanzas" : "Finances",
+        description: isEs ? "Monitoreo dinámico del histórico diario de ventas." : "Dynamic monitoring of daily sales history.",
         keywords: ["ventas", "ingresos", "dias", "diario", "grafico", "evolucion"],
         component: () => {
           // Últimos 5 días con facturación
           const daysMap = {};
           appointments.filter(a => a.status !== "CANCELLED").slice(-15).forEach(a => {
-            const dateStr = new Date(a.startsAt).toLocaleDateString("es-AR", { day: "numeric", month: "short" });
+            const dateStr = new Date(a.startsAt).toLocaleDateString(isEs ? "es-AR" : "en-US", { day: "numeric", month: "short" });
             daysMap[dateStr] = (daysMap[dateStr] || 0) + Number(a.service?.price || 0);
           });
           const chartData = Object.entries(daysMap).slice(-5).map(([name, value]) => ({ name, value }));
           return (
             <div style={{ height: "90px", width: "100%" }}>
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData.length ? chartData : [{ name: "Sin datos", value: 0 }]}>
+                <AreaChart data={chartData.length ? chartData : [{ name: isEs ? "Sin datos" : "No data", value: 0 }]}>
                   <Tooltip formatter={(v) => currency(v)} />
                   <Area type="monotone" dataKey="value" stroke="#10b981" fill="rgba(16,185,129,0.08)" strokeWidth={2} />
                 </AreaChart>
@@ -749,9 +785,9 @@ export default function SmartReports({ appointments = [], clients = [], workers 
       },
       {
         id: "metodo-pago-pie",
-        title: "Método de Pago",
-        category: "Finanzas",
-        description: "Canales de cobro utilizados por los clientes.",
+        title: isEs ? "Método de Pago" : "Payment Method",
+        category: isEs ? "Finanzas" : "Finances",
+        description: isEs ? "Canales de cobro utilizados por los clientes." : "Payment channels used by customers.",
         keywords: ["metodo", "pago", "ingresos", "efectivo", "transferencia", "tarjeta", "canales"],
         component: () => {
           const methodMap = { "Efectivo": 0, "Tarjeta": 0, "Transferencia": 0 };
@@ -759,7 +795,7 @@ export default function SmartReports({ appointments = [], clients = [], workers 
             const cat = a.paymentMethod.includes("Tarjeta") ? "Tarjeta" : a.paymentMethod.includes("Transferencia") ? "Transferencia" : "Efectivo";
             methodMap[cat] += Number(a.service?.price || 0);
           });
-          const chartData = Object.entries(methodMap).map(([name, value]) => ({ name, value }));
+          const chartData = Object.entries(methodMap).map(([name, value]) => ({ name: translatePaymentMethod(name, isEs), value }));
           return (
             <div style={{ height: "90px", width: "100%" }}>
               <ResponsiveContainer width="100%" height="100%">
@@ -778,14 +814,14 @@ export default function SmartReports({ appointments = [], clients = [], workers 
       },
       {
         id: "servicios-mas-vendidos",
-        title: "Servicios Más Vendidos",
-        category: "Finanzas",
-        description: "Los servicios más solicitados de Aura Studio.",
+        title: isEs ? "Servicios Más Vendidos" : "Top Selling Services",
+        category: isEs ? "Finanzas" : "Finances",
+        description: isEs ? "Los servicios más solicitados de Aura Studio." : "The most requested services of Aura Studio.",
         keywords: ["ventas", "servicios", "solicitados", "mas vendidos", "corte", "color"],
         component: () => {
           const counts = {};
           appointments.forEach(a => {
-            const name = a.service?.name || "Otros";
+            const name = a.service?.name || (isEs ? "Otros" : "Others");
             counts[name] = (counts[name] || 0) + 1;
           });
           const top = Object.entries(counts).sort((a,b) => b[1] - a[1]).slice(0, 2);
@@ -794,7 +830,7 @@ export default function SmartReports({ appointments = [], clients = [], workers 
               {top.map(([name, val], i) => (
                 <div key={i} className="d-flex justify-content-between align-items-center smaller border-bottom pb-1">
                   <span className="fw-semibold text-truncate" style={{ maxWidth: "70%" }}>{name}</span>
-                  <Badge bg="primary-soft" className="text-primary rounded-pill">{val} turnos</Badge>
+                  <Badge bg="primary-soft" className="text-primary rounded-pill">{val} {isEs ? "turnos" : "bookings"}</Badge>
                 </div>
               ))}
             </div>
@@ -803,9 +839,9 @@ export default function SmartReports({ appointments = [], clients = [], workers 
       },
       {
         id: "clientes-frecuentes-list",
-        title: "Clientes Frecuentes",
-        category: "Clientes",
-        description: "Listado rápido de visitas recurrentes de clientes fidelizados.",
+        title: isEs ? "Clientes Frecuentes" : "Frequent Clients",
+        category: isEs ? "Clientes" : "Clients",
+        description: isEs ? "Listado rápido de visitas recurrentes de clientes fidelizados." : "Quick list of recurring visits from loyal clients.",
         keywords: ["clientes", "frecuentes", "recurrentes", "fidelidad", "top"],
         component: () => {
           const clientMap = {};
@@ -820,7 +856,7 @@ export default function SmartReports({ appointments = [], clients = [], workers 
               {top.map(([name, val], i) => (
                 <div key={i} className="d-flex justify-content-between align-items-center text-dark">
                   <span className="fw-semibold text-truncate">{name}</span>
-                  <strong className="text-muted">{val} visitas</strong>
+                  <strong className="text-muted">{val} {isEs ? "visitas" : "visits"}</strong>
                 </div>
               ))}
             </div>
@@ -829,9 +865,9 @@ export default function SmartReports({ appointments = [], clients = [], workers 
       },
       {
         id: "ultima-visita-table",
-        title: "Última Visita",
-        category: "Clientes",
-        description: "Listado de últimas visitas calendarizadas en el salón.",
+        title: isEs ? "Última Visita" : "Last Visit",
+        category: isEs ? "Clientes" : "Clients",
+        description: isEs ? "Listado de últimas visitas calendarizadas en el salón." : "List of the last scheduled visits in the salon.",
         keywords: ["clientes", "visitas", "ultima visita", "fechas", "agenda", "historico"],
         component: () => {
           const recent = appointments.slice(-3).reverse();
@@ -840,7 +876,7 @@ export default function SmartReports({ appointments = [], clients = [], workers 
               {recent.map((a, i) => (
                 <div key={i} className="d-flex justify-content-between align-items-center border-bottom pb-1">
                   <span className="fw-semibold text-truncate" style={{ maxWidth: "60%" }}>{a.client?.firstName} {a.client?.lastName}</span>
-                  <span className="text-muted smaller">{new Date(a.startsAt).toLocaleDateString("es-AR", { day: "numeric", month: "short" })}</span>
+                  <span className="text-muted smaller">{new Date(a.startsAt).toLocaleDateString(isEs ? "es-AR" : "en-US", { day: "numeric", month: "short" })}</span>
                 </div>
               ))}
             </div>
@@ -849,9 +885,9 @@ export default function SmartReports({ appointments = [], clients = [], workers 
       },
       {
         id: "total-gastado-list",
-        title: "Total Gastado",
-        category: "Clientes",
-        description: "Top 3 clientes VIP que más ingresos aportaron al negocio.",
+        title: isEs ? "Total Gastado" : "Total Spent",
+        category: isEs ? "Clientes" : "Clients",
+        description: isEs ? "Top 3 clientes VIP que más ingresos aportaron al negocio." : "Top 3 VIP clients who contributed the most revenue to the business.",
         keywords: ["clientes", "gasto", "total gastado", "dinero", "ingresos", "vip"],
         component: () => {
           const spendMap = {};
@@ -875,9 +911,9 @@ export default function SmartReports({ appointments = [], clients = [], workers 
       },
       {
         id: "bajo-stock-list",
-        title: "Bajo Stock",
-        category: "Inventario",
-        description: "Alerta crítica de insumos que necesitan reposición inmediata.",
+        title: isEs ? "Bajo Stock" : "Low Stock",
+        category: isEs ? "Inventario" : "Inventory",
+        description: isEs ? "Alerta crítica de insumos que necesitan reposición inmediata." : "Critical alert for supplies needing immediate replenishment.",
         keywords: ["bajo stock", "productos", "inventario", "insumos", "alerta", "reposicion"],
         component: () => {
           const low = INITIAL_PRODUCTS.filter(p => p.stock < p.limit).slice(0, 3);
@@ -886,7 +922,7 @@ export default function SmartReports({ appointments = [], clients = [], workers 
               {low.map((p, i) => (
                 <div key={i} className="d-flex justify-content-between align-items-center border-bottom pb-1">
                   <span className="fw-semibold text-truncate" style={{ maxWidth: "60%" }}>{p.name}</span>
-                  <Badge bg="danger-soft" className="text-danger rounded-pill">{p.stock} en stock</Badge>
+                  <Badge bg="danger-soft" className="text-danger rounded-pill">{p.stock} {isEs ? "en stock" : "in stock"}</Badge>
                 </div>
               ))}
             </div>
@@ -895,20 +931,20 @@ export default function SmartReports({ appointments = [], clients = [], workers 
       },
       {
         id: "productos-mas-vendidos",
-        title: "Productos Más Vendidos",
-        category: "Inventario",
-        description: "Insumos y productos de mayor rotación comercial.",
+        title: isEs ? "Productos Más Vendidos" : "Top Selling Products",
+        category: isEs ? "Inventario" : "Inventory",
+        description: isEs ? "Insumos y productos de mayor rotación comercial." : "Highest commercial turnover supplies and products.",
         keywords: ["productos", "vendidos", "rotacion", "consumo", "insumos", "salida"],
         component: () => {
           return (
             <div className="d-grid gap-2 text-dark smaller">
               <div className="d-flex justify-content-between">
                 <span className="fw-semibold">1. Shampoo PH Neutro</span>
-                <span className="text-muted">12 un.</span>
+                <span className="text-muted">12 {isEs ? "un." : "units"}</span>
               </div>
               <div className="d-flex justify-content-between">
                 <span className="fw-semibold">2. Tinta L'Oreal Majirel</span>
-                <span className="text-muted">9 un.</span>
+                <span className="text-muted">9 {isEs ? "un." : "units"}</span>
               </div>
             </div>
           );
@@ -916,26 +952,26 @@ export default function SmartReports({ appointments = [], clients = [], workers 
       },
       {
         id: "valor-inventario-stat",
-        title: "Valor del Inventario",
-        category: "Inventario",
-        description: "Valuación monetaria total del stock físico en el salón.",
+        title: isEs ? "Valor del Inventario" : "Inventory Value",
+        category: isEs ? "Inventario" : "Inventory",
+        description: isEs ? "Valuación monetaria total del stock físico en el salón." : "Total monetary valuation of the physical stock in the salon.",
         keywords: ["valor", "inventario", "insumos", "valuacion", "costo", "total"],
         component: () => {
           const totalVal = INITIAL_PRODUCTS.reduce((sum, p) => sum + (p.stock * p.cost), 0);
           return (
             <div className="text-center py-2">
-              <div className="text-muted smaller mb-1">Capital en Insumos</div>
+              <div className="text-muted smaller mb-1">{isEs ? "Capital en Insumos" : "Supplies Capital"}</div>
               <h4 className="fw-black text-dark mb-2" style={{ fontSize: "22px" }}>{currency(totalVal)}</h4>
-              <span className="text-muted smaller">Valuación Real</span>
+              <span className="text-muted smaller">{isEs ? "Valuación Real" : "Real Valuation"}</span>
             </div>
           );
         }
       },
       {
         id: "alertas-reposicion",
-        title: "Alertas de Reposición",
-        category: "Inventario",
-        description: "Recomendaciones de órdenes de compra automáticas.",
+        title: isEs ? "Alertas de Reposición" : "Replenishment Alerts",
+        category: isEs ? "Inventario" : "Inventory",
+        description: isEs ? "Recomendaciones de órdenes de compra automáticas." : "Recommendations of automatic purchase orders.",
         keywords: ["alertas", "reposicion", "comprar", "pedido", "inventario", "insumos"],
         component: () => {
           const low = INITIAL_PRODUCTS.filter(p => p.stock < p.limit).length;
@@ -946,17 +982,17 @@ export default function SmartReports({ appointments = [], clients = [], workers 
                   <div className="p-2 bg-danger bg-opacity-10 text-danger rounded-4 d-inline-flex mb-2">
                     <AlertTriangle size={20} />
                   </div>
-                  <div className="small fw-semibold text-danger">{low} Insumos críticos</div>
+                  <div className="small fw-semibold text-danger">{low} {isEs ? "Insumos críticos" : "Critical supplies"}</div>
                 </>
               ) : (
-                <div className="small text-success fw-bold">Stock en nivel óptimo</div>
+                <div className="small text-success fw-bold">{isEs ? "Stock en nivel óptimo" : "Stock at optimal level"}</div>
               )}
             </div>
           );
         }
       }
     ];
-  }, [appointments, appointmentsWithPayment]);
+  }, [appointments, appointmentsWithPayment, isEs]);
 
   // --- FILTRO DE GADGETS ---
   const filteredGadgets = useMemo(() => {
@@ -1092,8 +1128,8 @@ export default function SmartReports({ appointments = [], clients = [], workers 
               <Sparkles size={24} />
             </div>
             <div>
-              <h2 className="h5 fw-black text-dark mb-0.5">Informes Inteligentes & Copilot IA</h2>
-              <p className="text-muted smaller mb-0">Generá reportes con accesos rápidos, consultas en lenguaje natural o explorá gadgets.</p>
+              <h2 className="h5 fw-black text-dark mb-0.5">{isEs ? "Informes Inteligentes & Copilot IA" : "Smart Reports & AI Copilot"}</h2>
+              <p className="text-muted smaller mb-0">{isEs ? "Generá reportes con accesos rápidos, consultas en lenguaje natural o explorá gadgets." : "Generate reports with quick access, natural language queries, or explore gadgets."}</p>
             </div>
           </div>
 
@@ -1102,7 +1138,7 @@ export default function SmartReports({ appointments = [], clients = [], workers 
             {/* COLUMNA IZQUIERDA: BUSCADOR & FILTROS & INFORMES PREDETERMINADOS */}
             <Col lg={7} className="border-end pe-lg-4">
               <h3 className="smaller text-muted fw-bold uppercase mb-3" style={{ letterSpacing: "0.08em" }}>
-                1. Informes Predeterminados & Filtros
+                {isEs ? "1. Informes Predeterminados & Filtros" : "1. Predefined Reports & Filters"}
               </h3>
               
               {/* Buscador de gadgets */}
@@ -1110,7 +1146,7 @@ export default function SmartReports({ appointments = [], clients = [], workers 
                 <Search size={16} className="search-icon-inside" />
                 <Form.Control
                   type="text"
-                  placeholder="Buscar gadget por título, descripción o palabra clave..."
+                  placeholder={isEs ? "Buscar gadget por título, descripción o palabra clave..." : "Search gadget by title, description, or keyword..."}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="search-glow-input"
@@ -1126,7 +1162,7 @@ export default function SmartReports({ appointments = [], clients = [], workers 
                     className={`category-chip ${selectedCategory === cat ? "active" : ""}`}
                   >
                     {cat === "Todos" ? <Layers size={13} /> : cat === "Finanzas" ? <CreditCard size={13} /> : cat === "Clientes" ? <Users size={13} /> : <Package size={13} />}
-                    <span>{cat}</span>
+                    <span>{cat === "Todos" ? (isEs ? "Todos" : "All") : cat === "Finanzas" ? (isEs ? "Finanzas" : "Finances") : cat === "Clientes" ? (isEs ? "Clientes" : "Clients") : (isEs ? "Inventario" : "Inventory")}</span>
                   </button>
                 ))}
               </div>
@@ -1134,21 +1170,21 @@ export default function SmartReports({ appointments = [], clients = [], workers 
               {/* Grid de informes predeterminados rápidos */}
               <h4 className="smaller text-dark fw-bold mb-3 d-flex align-items-center gap-1.5">
                 <FileText size={14} className="text-success" />
-                <span>Accesos rápidos de Informes</span>
+                <span>{isEs ? "Accesos rápidos de Informes" : "Quick Report Access"}</span>
               </h4>
               
               <Row className="g-2.5">
                 {[
-                  { id: "ventas-dia", label: "Ventas de hoy", color: "success" },
-                  { id: "ventas-semana", label: "Ventas semanales", color: "success" },
-                  { id: "servicios-solicitados", label: "Servicios estrella", color: "primary" },
-                  { id: "clientes-frecuentes", label: "Clientes frecuentes", color: "info" },
-                  { id: "ingresos-metodo-pago", label: "Métodos de Pago", color: "success" },
-                  { id: "agenda-dia", label: "Agenda del día", color: "primary" },
-                  { id: "bajo-stock", label: "Bajo Stock", color: "warning" },
-                  { id: "rendimiento-empleado", label: "Rendimiento Equipo", color: "info" },
-                  { id: "finanzas-mes", label: "Finanzas del mes", color: "success" },
-                  { id: "cancelaciones-ausencias", label: "Cancelaciones", color: "danger" }
+                  { id: "ventas-dia", label: isEs ? "Ventas de hoy" : "Today's sales", color: "success" },
+                  { id: "ventas-semana", label: isEs ? "Ventas semanales" : "Weekly sales", color: "success" },
+                  { id: "servicios-solicitados", label: isEs ? "Servicios estrella" : "Star services", color: "primary" },
+                  { id: "clientes-frecuentes", label: isEs ? "Clientes frecuentes" : "Frequent clients", color: "info" },
+                  { id: "ingresos-metodo-pago", label: isEs ? "Métodos de Pago" : "Payment methods", color: "success" },
+                  { id: "agenda-dia", label: isEs ? "Agenda del día" : "Daily schedule", color: "primary" },
+                  { id: "bajo-stock", label: isEs ? "Bajo Stock" : "Low Stock", color: "warning" },
+                  { id: "rendimiento-empleado", label: isEs ? "Rendimiento Equipo" : "Team Performance", color: "info" },
+                  { id: "finanzas-mes", label: isEs ? "Finanzas del mes" : "Monthly finances", color: "success" },
+                  { id: "cancelaciones-ausencias", label: isEs ? "Cancelaciones" : "Cancellations", color: "danger" }
                 ].map((rep) => (
                   <Col xs={6} md={4} key={rep.id}>
                     <Button
@@ -1168,24 +1204,24 @@ export default function SmartReports({ appointments = [], clients = [], workers 
             {/* COLUMNA DERECHA: CONSULTAS PERSONALIZADAS CON IA */}
             <Col lg={5}>
               <h3 className="smaller text-muted fw-bold uppercase mb-3" style={{ letterSpacing: "0.08em" }}>
-                2. Consultas Personalizadas con IA
+                {isEs ? "2. Consultas Personalizadas con IA" : "2. Custom AI Queries"}
               </h3>
               
               <div className="ai-query-box">
                 <div className="d-flex align-items-center gap-2 mb-3">
                   <Sparkles size={18} className="text-success animate-pulse" />
-                  <strong className="text-white small">Preguntale a Aura Copilot</strong>
+                  <strong className="text-white small">{isEs ? "Preguntale a Aura Copilot" : "Ask Aura Copilot"}</strong>
                 </div>
                 
                 <p className="text-white-50 smaller mb-3.5">
-                  Escribí en lenguaje natural y nuestro Copilot interpretará los datos o creará gadgets para vos.
+                  {isEs ? "Escribí en lenguaje natural y nuestro Copilot interpretará los datos o creará gadgets para vos." : "Write in natural language and our Copilot will interpret the data or create gadgets for you."}
                 </p>
 
                 <Form onSubmit={handleAiQuerySubmit} className="d-grid gap-3">
                   <div className="ai-query-input-wrapper">
                     <Form.Control
                       type="text"
-                      placeholder="“¿Cuánto vendimos esta semana?”..."
+                      placeholder={isEs ? "“¿Cuánto vendimos esta semana?”..." : "“How much did we sell this week?”..."}
                       value={aiQuestion}
                       onChange={(e) => setAiQuestion(e.target.value)}
                       disabled={aiLoading}
@@ -1201,7 +1237,7 @@ export default function SmartReports({ appointments = [], clients = [], workers 
                       ) : (
                         <>
                           <Sparkles size={13} />
-                          <span>Consultar</span>
+                          <span>{isEs ? "Consultar" : "Submit"}</span>
                         </>
                       )}
                     </Button>
@@ -1212,14 +1248,14 @@ export default function SmartReports({ appointments = [], clients = [], workers 
 
                 {/* Preguntas frecuentes sugeridas */}
                 <div className="mt-4">
-                  <div className="text-white-50 smaller fw-bold mb-2">Preguntas de ejemplo:</div>
+                  <div className="text-white-50 smaller fw-bold mb-2">{isEs ? "Preguntas de ejemplo:" : "Example questions:"}</div>
                   <div className="d-grid gap-1.5">
                     {[
-                      "¿Cuánto vendimos esta semana?",
-                      "Muéstrame los clientes que más gastaron este mes",
-                      "Qué servicios dejaron más dinero",
-                      "Qué productos se están acabando",
-                      "Cuáles son los días con más reservas"
+                      isEs ? "¿Cuánto vendimos esta semana?" : "How much did we sell this week?",
+                      isEs ? "Muéstrame los clientes que más gastaron este mes" : "Show me the top spending clients this month",
+                      isEs ? "Qué servicios dejaron más dinero" : "Which services generated the most revenue",
+                      isEs ? "Qué productos se están acabando" : "Which products are running out",
+                      isEs ? "Cuáles son los días con más reservas" : "Which days have the most bookings"
                     ].map((p, idx) => (
                       <button
                         key={idx}

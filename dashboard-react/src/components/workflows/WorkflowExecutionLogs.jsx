@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { Card, Table, Form, Row, Col, Badge, Spinner, Alert } from "react-bootstrap";
 import { ClipboardCheck, Search, Filter, AlertCircle, ChevronDown, ChevronUp, Clock, User, MessageSquare } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import api from "../../lib/api.js";
 
 export default function WorkflowExecutionLogs() {
+  const { t, i18n } = useTranslation("views");
+  const isEs = i18n.language === "es";
+
   const [executions, setExecutions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -19,7 +23,7 @@ export default function WorkflowExecutionLogs() {
       setExecutions(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error(err);
-      setError("No se pudieron cargar los registros de ejecución desde Neon Cloud.");
+      setError(t("workflowsBuilder.logs.errorLoading", { defaultValue: "No se pudieron cargar los registros de ejecución desde Neon Cloud." }));
     } finally {
       setLoading(false);
     }
@@ -50,9 +54,9 @@ export default function WorkflowExecutionLogs() {
           <div>
             <h3 className="h6 fw-black text-gray-900 mb-0.5 d-flex align-items-center gap-2">
               <ClipboardCheck className="text-purple-600 animate-pulse" size={20} />
-              <span>Bitácora de Auditoría y Ejecuciones (Logs)</span>
+              <span>{t("workflowsBuilder.logs.title")}</span>
             </h3>
-            <p className="text-muted smaller mb-0">Rastrea cada automatización en tiempo real con tiempos de procesamiento y registro de respuestas.</p>
+            <p className="text-muted smaller mb-0">{t("workflowsBuilder.logs.subtitle")}</p>
           </div>
           
           <button 
@@ -60,7 +64,7 @@ export default function WorkflowExecutionLogs() {
             className="btn btn-sm btn-outline-purple rounded-xl px-3 py-2 fw-semibold"
             disabled={loading}
           >
-            {loading ? <Spinner size="sm" /> : "Actualizar Bitácora"}
+            {loading ? <Spinner size="sm" /> : t("workflowsBuilder.logs.updateBtn")}
           </button>
         </div>
 
@@ -72,7 +76,7 @@ export default function WorkflowExecutionLogs() {
             <Form.Group className="position-relative">
               <Form.Control
                 type="text"
-                placeholder="Buscar por nombre de workflow o disparador..."
+                placeholder={isEs ? "Buscar por nombre de workflow o disparador..." : "Search by workflow name or trigger..."}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="rounded-xl border-gray-200 small ps-5 py-2.5 bg-light bg-opacity-30"
@@ -87,10 +91,10 @@ export default function WorkflowExecutionLogs() {
                 onChange={(e) => setFilterStatus(e.target.value)}
                 className="rounded-xl border-gray-200 small ps-5 py-2.5 bg-light bg-opacity-30"
               >
-                <option value="all">🟢 Todos los Estados</option>
-                <option value="SUCCESS">✅ Éxito (Exitosas)</option>
-                <option value="FAILED">🚨 Error (Fallidas)</option>
-                <option value="RUNNING">⚡ Corriendo (En Proceso)</option>
+                <option value="all">🟢 {isEs ? "Todos los Estados" : "All Statuses"}</option>
+                <option value="SUCCESS">✅ {isEs ? "Éxito (Exitosas)" : "Success (Successful)"}</option>
+                <option value="FAILED">🚨 {isEs ? "Error (Fallidas)" : "Error (Failed)"}</option>
+                <option value="RUNNING">⚡ {isEs ? "Corriendo (En Proceso)" : "Running (In Process)"}</option>
               </Form.Select>
               <Filter className="position-absolute text-muted" size={16} style={{ left: "16px", top: "50%", transform: "translateY(-50%)" }} />
             </Form.Group>
@@ -104,7 +108,7 @@ export default function WorkflowExecutionLogs() {
           </div>
         ) : filteredList.length === 0 ? (
           <div className="text-center py-5 text-muted small bg-gray-50 rounded-2xl border">
-            No se encontraron ejecuciones registradas en la bitácora contable.
+            {t("workflowsBuilder.logs.empty")}
           </div>
         ) : (
           <div className="d-flex flex-column gap-2.5">
@@ -123,18 +127,18 @@ export default function WorkflowExecutionLogs() {
                         <Clock size={16} />
                       </Badge>
                       <div>
-                        <strong className="text-gray-900 d-block">{e.workflow?.name || "Workflow Desconocido"}</strong>
-                        <span className="smaller text-muted">Disparador: <strong>{e.triggerType}</strong> • {new Date(e.createdAt).toLocaleString("es-AR")}</span>
+                        <strong className="text-gray-900 d-block">{e.workflow?.name || (isEs ? "Workflow Desconocido" : "Unknown Workflow")}</strong>
+                        <span className="smaller text-muted">{isEs ? "Disparador" : "Trigger"}: <strong>{e.triggerType}</strong> • {new Date(e.createdAt).toLocaleString(isEs ? "es-AR" : "en-US")}</span>
                       </div>
                     </div>
 
                     <div className="d-flex align-items-center gap-3">
                       <div className="text-end">
-                        <span className="smaller text-muted d-block">T. Procesamiento</span>
+                        <span className="smaller text-muted d-block">{isEs ? "T. Procesamiento" : "Proc. Time"}</span>
                         <strong className="text-purple-600">{e.runTimeMs} ms</strong>
                       </div>
                       <Badge bg={e.status === "SUCCESS" ? "success" : "danger"} className="rounded-pill px-3 py-1.5 fw-bold">
-                        {e.status === "SUCCESS" ? "EXITOSO" : "FALLIDO"}
+                        {e.status === "SUCCESS" ? (isEs ? "EXITOSO" : "SUCCESS") : (isEs ? "FALLIDO" : "FAILED")}
                       </Badge>
                       {isExpanded ? <ChevronUp size={16} className="text-muted" /> : <ChevronDown size={16} className="text-muted" />}
                     </div>
@@ -143,10 +147,10 @@ export default function WorkflowExecutionLogs() {
                   {/* Expanded Logs Details */}
                   {isExpanded && (
                     <div className="p-4 bg-light bg-opacity-30 border-top small" style={{ fontSize: "12.5px" }}>
-                      <span className="smaller text-muted fw-bold d-block mb-3">Trazabilidad del Flujo de Ejecución (Paso a Paso):</span>
+                      <span className="smaller text-muted fw-bold d-block mb-3">{t("workflowsBuilder.logs.traceTitle")}</span>
                       
                       {(!e.logs || e.logs.length === 0) ? (
-                        <div className="text-muted italic py-2">Sin sub-logs detallados para esta ejecución.</div>
+                        <div className="text-muted italic py-2">{t("workflowsBuilder.logs.emptyTrace")}</div>
                       ) : (
                         <div className="d-flex flex-column gap-3.5 position-relative ps-4 before-line">
                           {e.logs.map((log) => (
@@ -170,9 +174,9 @@ export default function WorkflowExecutionLogs() {
                                     {log.nodeType.toUpperCase()}
                                   </Badge>
                                 </div>
-                                <span className="smaller text-muted d-block mb-1.5">Estado: <strong>{log.status}</strong> • {new Date(log.createdAt).toLocaleTimeString("es-AR")}</span>
+                                <span className="smaller text-muted d-block mb-1.5">{isEs ? "Estado: " : "Status: "}<strong>{log.status}</strong> • {new Date(log.createdAt).toLocaleTimeString(isEs ? "es-AR" : "en-US")}</span>
                                 <div className="p-2 bg-light rounded-xl font-mono text-gray-800" style={{ fontSize: "11px", whiteSpace: "pre-line" }}>
-                                  {log.status === "SUCCESS" ? (log.result || "Acción completada con éxito.") : (log.error || "Fallo en ejecución de automatización.")}
+                                  {log.status === "SUCCESS" ? (log.result || t("workflowsBuilder.logs.successDefault")) : (log.error || t("workflowsBuilder.logs.errorDefault"))}
                                 </div>
                               </div>
                             </div>

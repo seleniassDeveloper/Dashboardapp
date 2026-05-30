@@ -1,5 +1,6 @@
 import React from "react";
 import { AlertCircle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import {
   ResponsiveContainer,
   BarChart,
@@ -18,10 +19,10 @@ import {
 } from "recharts";
 
 // Formato de moneda ARS
-function currency(n) {
-  return new Intl.NumberFormat("es-AR", {
+function currency(n, isEs) {
+  return new Intl.NumberFormat(isEs ? "es-AR" : "en-US", {
     style: "currency",
-    currency: "ARS",
+    currency: isEs ? "ARS" : "USD",
     maximumFractionDigits: 0,
   }).format(n || 0);
 }
@@ -43,11 +44,14 @@ export default function RevenueWidget({
   chartData = [],
   color = "#10b981",
 }) {
+  const { i18n } = useTranslation("dashboard");
+  const isEs = i18n.language === "es";
+
   if (!chartData || chartData.length === 0) {
     return (
       <div className="d-flex flex-column align-items-center justify-content-center h-100 text-muted small p-4" style={{ minHeight: "180px" }}>
         <AlertCircle size={24} className="mb-2 text-muted" />
-        <span>Sin datos para graficar en el rango seleccionado</span>
+        <span>{isEs ? "Sin datos para graficar en el rango seleccionado" : "No data to display in the selected range"}</span>
       </div>
     );
   }
@@ -66,7 +70,7 @@ export default function RevenueWidget({
               <YAxis tick={{ fontSize: 10, fill: "#6b7280" }} axisLine={false} tickLine={false} />
               <Tooltip
                 contentStyle={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "10px", fontSize: "12px" }}
-                formatter={(value) => [metric === "revenue" ? currency(value) : value, "Total"]}
+                formatter={(value) => [metric === "revenue" ? currency(value, isEs) : value, isEs ? "Total" : "Total"]}
               />
               <Bar dataKey="value" fill={stroke} radius={[4, 4, 0, 0]} maxBarSize={45} />
             </BarChart>
@@ -77,7 +81,7 @@ export default function RevenueWidget({
               <YAxis tick={{ fontSize: 10, fill: "#6b7280" }} axisLine={false} tickLine={false} />
               <Tooltip
                 contentStyle={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "10px", fontSize: "12px" }}
-                formatter={(value) => [metric === "revenue" ? currency(value) : value, "Total"]}
+                formatter={(value) => [metric === "revenue" ? currency(value, isEs) : value, isEs ? "Total" : "Total"]}
               />
               <Line type="monotone" dataKey="value" stroke={stroke} strokeWidth={2.5} dot={{ r: 3, fill: "#fff", stroke: stroke, strokeWidth: 2 }} activeDot={{ r: 5 }} />
             </LineChart>
@@ -88,7 +92,7 @@ export default function RevenueWidget({
               <YAxis tick={{ fontSize: 10, fill: "#6b7280" }} axisLine={false} tickLine={false} />
               <Tooltip
                 contentStyle={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "10px", fontSize: "12px" }}
-                formatter={(value) => [metric === "revenue" ? currency(value) : value, "Total"]}
+                formatter={(value) => [metric === "revenue" ? currency(value, isEs) : value, isEs ? "Total" : "Total"]}
               />
               <Area type="monotone" dataKey="value" stroke={stroke} fill={fill} strokeWidth={2.5} />
             </AreaChart>
@@ -111,7 +115,7 @@ export default function RevenueWidget({
               </Pie>
               <Tooltip
                 contentStyle={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "10px", fontSize: "12px" }}
-                formatter={(value) => [metric === "revenue" ? currency(value) : value, "Total"]}
+                formatter={(value) => [metric === "revenue" ? currency(value, isEs) : value, isEs ? "Total" : "Total"]}
               />
             </PieChart>
           )}

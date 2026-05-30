@@ -132,14 +132,19 @@ function translate(key, opts, defaultNs) {
   if (val === undefined && currentLang !== FALLBACK) {
     val = lookupKey(FALLBACK, ns, path);
   }
-  if (val === undefined && opts && opts.defaultValue !== undefined) {
-    val = opts.defaultValue;
+  if (val === undefined) {
+    if (typeof opts === "string") {
+      return opts;
+    }
+    if (opts && typeof opts === "object" && opts.defaultValue !== undefined) {
+      val = opts.defaultValue;
+    }
   }
   if (val === undefined) {
     return key;
   }
 
-  return interpolate(val, opts);
+  return interpolate(val, typeof opts === "object" ? opts : undefined);
 }
 
 // --- i18n core object (default export) ---------------------------------------

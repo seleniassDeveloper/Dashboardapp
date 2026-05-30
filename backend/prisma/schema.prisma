@@ -20,11 +20,13 @@ model Client {
   appointments      Appointment[]
   appointmentPhotos AppointmentPhoto[]
   clinicalNotes     ClinicalNote[]
+  businessId        String?
+  business          Business?          @relation(fields: [businessId], references: [id], onDelete: Cascade)
 }
 
 model Service {
   id              String                   @id @default(cuid())
-  name            String                   @unique
+  name            String
   price           Int
   duration        Int
   isActive        Boolean                  @default(true)
@@ -34,6 +36,10 @@ model Service {
   appointments    Appointment[]
   workers         WorkerService[]
   consumptionRules ServiceConsumptionRule[]
+  businessId      String?
+  business        Business?                @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([name, businessId])
 }
 
 model Appointment {
@@ -52,8 +58,13 @@ model Appointment {
   worker         Worker             @relation(fields: [workerId], references: [id])
   photos         AppointmentPhoto[]
   clinicalNotes  ClinicalNote[]
-  branchId       String?
-  branch         Branch?            @relation(fields: [branchId], references: [id])
+  branchId                 String?
+  branch                   Branch?            @relation(fields: [branchId], references: [id])
+  businessId               String?
+  business                 Business?          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  downpaymentPaid          Int?
+  downpaymentStatus        String? // "PENDING" | "PAID" | "REFUNDED"
+  downpaymentTransactionId String?
 }
 
 model Worker {
@@ -75,6 +86,8 @@ model Worker {
   branchId        String?
   branch          Branch?          @relation(fields: [branchId], references: [id])
   salaryPayments  SalaryPayment[]
+  businessId      String?
+  business        Business?        @relation(fields: [businessId], references: [id], onDelete: Cascade)
 }
 
 model FormSchema {
@@ -200,15 +213,30 @@ model DashboardWidget {
 
 model Business {
   id                         String   @id @default(cuid())
+  userId                     String?  // Legacy support
+  ownerId                    String?  // UID del creador principal
   name                       String
   slug                       String   @unique
   logo                       String?
+  industry                   String?  // Rubro del negocio
   description                String?
   bookingEnabled             Boolean  @default(true)
   bookingPrimaryColor        String   @default("#10b981")
   bookingConfirmationMessage String?  @default("¡Tu reserva ha sido confirmada con éxito!")
+  bookingDownpaymentEnabled  Boolean  @default(false)
+  bookingDownpaymentPercent  Int      @default(30)
+  bookingDownpaymentAmount   Int?
+  bookingDownpaymentMethod   String?  @default("mock_mercadopago")
   createdAt                  DateTime @default(now())
   updatedAt                  DateTime @updatedAt
+  services                   Service[]
+  workers                    Worker[]
+  appointments               Appointment[]
+  clients                    Client[]
+  products                   Product[]
+  branches                   Branch[]
+  members                    BusinessMember[]
+  invitations                Invitation[]
 }
 
 model ScheduleBlock {
@@ -250,7 +278,7 @@ model ClinicalNote {
 
 model Branch {
   id                String            @id @default(cuid())
-  name              String            @unique
+  name              String
   address           String?
   phone             String?
   createdAt         DateTime          @default(now())
@@ -262,6 +290,10 @@ model Branch {
   batches           ProductBatch[]
   branchInventories BranchInventory[]
   purchaseOrders    PurchaseOrder[]
+  businessId        String?
+  business          Business?         @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([name, businessId])
 }
 
 model Expense {
@@ -319,16 +351,21 @@ model BankMovement {
 }
 
 model AuditLog {
-  id          String   @id @default(cuid())
-  action      String   // "close_cash" | "update_price" | "reopen_cash" | "delete_transaction"
-  actor       String   // Nombre/email del administrador
-  details     String
-  createdAt   DateTime @default(now())
+  id         String   @id @default(cuid())
+  businessId String?
+  userId     String?
+  action     String   // Ej: "invitation_sent", "role_changed"
+  entity     String?  // Ej: "BusinessMember", "Appointment"
+  entityId   String?
+  metadata   Json?    // Datos extra
+  createdAt  DateTime @default(now())
+
+  @@index([businessId])
 }
 
 model Product {
   id                String                   @id @default(cuid())
-  name              String                   @unique
+  name              String
   category          String
   providerId        String?
   provider          Supplier?                @relation(fields: [providerId], references: [id], onDelete: SetNull)
@@ -348,6 +385,10 @@ model Product {
   branchInventories BranchInventory[]
   consumptionRules  ServiceConsumptionRule[]
   orderItems        PurchaseOrderItem[]
+  businessId        String?
+  business          Business?                @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([name, businessId])
 }
 
 model Supplier {
@@ -451,6 +492,88 @@ model PurchaseOrderItem {
   quantity    Int
   price       Int
   receivedQty Int           @default(0)
+}
+
+model User {
+  id          String           @id // Firebase UID
+  email       String           @unique
+  name        String?
+  firstName   String?
+  lastName    String?
+  avatar      String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  memberships BusinessMember[]
+}
+
+model BusinessMember {
+  id         String   @id @default(cuid())
+  userId     String
+  businessId String
+  roleId     String
+  role       String?  // OWNER | ADMIN | MANAGER | PROFESSIONAL etc.
+  status     String   @default("ACTIVE") // "ACTIVE" | "INVITED" | "SUSPENDED" | "REMOVED"
+  invitedBy  String?  // UID del usuario que invitó
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  roleRel    Role     @relation(fields: [roleId], references: [id])
+
+  @@unique([userId, businessId])
+  @@index([userId])
+  @@index([businessId])
+}
+
+model Invitation {
+  id         String   @id @default(cuid())
+  businessId String
+  email      String
+  role       String   // OWNER | ADMIN | MANAGER | PROFESSIONAL etc.
+  token      String   @unique
+  status     String   @default("PENDING") // PENDING | ACCEPTED | EXPIRED | CANCELLED
+  expiresAt  DateTime
+  invitedBy  String
+  createdAt  DateTime @default(now())
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+  @@index([token])
+}
+
+model Role {
+  id           String           @id @default(cuid())
+  businessId   String?          // Nullable para roles compartidos del sistema
+  name         String           // Ej: "Admin / Dueño", "Profesional"
+  key          String           // Ej: "owner", "professional"
+  description  String?
+  isSystemRole Boolean          @default(true)
+  isActive     Boolean          @default(true)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  members      BusinessMember[]
+  permissions  RolePermission[]
+
+  @@unique([key, businessId])
+}
+
+model Permission {
+  id          String           @id @default(cuid())
+  key         String?          @unique
+  module      String?          // Ej: "agenda", "finance"
+  action      String           @unique // Ej: "agenda.view", "finance.view"
+  description String?
+  createdAt   DateTime         @default(now())
+  roles       RolePermission[]
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
 }
 
 

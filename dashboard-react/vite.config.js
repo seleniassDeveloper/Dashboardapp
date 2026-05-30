@@ -29,6 +29,7 @@ export default defineConfig({
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2,woff}"],
         navigateFallback: "/index.html",
+        maximumFileSizeToCacheInBytes: 3000000,
       },
       manifest: {
         name: "Dashboard — organiza tu negocio",

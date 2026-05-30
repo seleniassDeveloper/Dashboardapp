@@ -8,10 +8,13 @@
     "finances": "Finances",
     "inventory": "Inventory",
     "sheets_sync": "Sheets Sync",
-    "workflows": "Workflows",
-    "automations": "Automations",
+    "workflows": "Flows",
+    "automations": "Integrations",
+    "templates": "Templates",
+    "history": "History",
     "config": "Settings",
-    "usersAdmin": "Users (Admin)"
+    "usersAdmin": "Users (Admin)",
+    "automation_section": "Automation"
   },
   "topbar": {
     "openMenu": "Open menu",

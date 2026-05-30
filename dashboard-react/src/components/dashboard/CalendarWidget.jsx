@@ -1,25 +1,26 @@
 import React, { useState, useMemo } from "react";
 import { Badge, Button, Table, Row, Col, Card, Form, Dropdown, Offcanvas } from "react-bootstrap";
 import { Calendar, Clock, User, ChevronLeft, ChevronRight, Check, X, ShieldAlert, Edit3 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 // Helper de moneda
-function currency(n) {
-  return new Intl.NumberFormat("es-AR", {
+function currency(n, isEs) {
+  return new Intl.NumberFormat(isEs ? "es-AR" : "en-US", {
     style: "currency",
-    currency: "ARS",
+    currency: isEs ? "ARS" : "USD",
     maximumFractionDigits: 0,
   }).format(n || 0);
 }
 
 // Estados y sus estilos
-const STATUS_STYLES = {
-  PENDING: { label: "Pendiente", bg: "rgba(217, 119, 6, 0.08)", color: "#d97706", border: "rgba(217, 119, 6, 0.2)" },
-  CONFIRMED: { label: "Confirmada", bg: "rgba(59, 130, 246, 0.08)", color: "#3b82f6", border: "rgba(59, 130, 246, 0.2)" },
-  IN_PROCESS: { label: "En proceso", bg: "rgba(139, 92, 246, 0.08)", color: "#8b5cf6", border: "rgba(139, 92, 246, 0.2)" },
-  DONE: { label: "Finalizada", bg: "rgba(16, 185, 129, 0.08)", color: "#10b981", border: "rgba(16, 185, 129, 0.2)" },
-  CANCELLED: { label: "Cancelada", bg: "rgba(239, 68, 68, 0.08)", color: "#ef4444", border: "rgba(239, 68, 68, 0.2)" },
-  NOSHOW: { label: "No asistió", bg: "rgba(107, 114, 128, 0.08)", color: "#6b7280", border: "rgba(107, 114, 128, 0.2)" },
-};
+const getStatusStyles = (isEs) => ({
+  PENDING: { label: isEs ? "Pendiente" : "Pending", bg: "rgba(217, 119, 6, 0.08)", color: "#d97706", border: "rgba(217, 119, 6, 0.2)" },
+  CONFIRMED: { label: isEs ? "Confirmada" : "Confirmed", bg: "rgba(59, 130, 246, 0.08)", color: "#3b82f6", border: "rgba(59, 130, 246, 0.2)" },
+  IN_PROCESS: { label: isEs ? "En proceso" : "In process", bg: "rgba(139, 92, 246, 0.08)", color: "#8b5cf6", border: "rgba(139, 92, 246, 0.2)" },
+  DONE: { label: isEs ? "Finalizada" : "Completed", bg: "rgba(16, 185, 129, 0.08)", color: "#10b981", border: "rgba(16, 185, 129, 0.2)" },
+  CANCELLED: { label: isEs ? "Cancelada" : "Cancelled", bg: "rgba(239, 68, 68, 0.08)", color: "#ef4444", border: "rgba(239, 68, 68, 0.2)" },
+  NOSHOW: { label: isEs ? "No asistió" : "No-show", bg: "rgba(107, 114, 128, 0.08)", color: "#6b7280", border: "rgba(107, 114, 128, 0.2)" },
+});
 
 export default function CalendarWidget({
   appointments = [],
@@ -28,6 +29,9 @@ export default function CalendarWidget({
   onUpdateAppointmentStatus,
   color = "#10b981",
 }) {
+  const { i18n } = useTranslation("dashboard");
+  const isEs = i18n.language === "es";
+  const statusStyles = getStatusStyles(isEs);
   const [view, setView] = useState("day"); // "day" | "week" | "month"
   const [currentDate, setCurrentDate] = useState(new Date());
   
@@ -131,7 +135,7 @@ export default function CalendarWidget({
             <ChevronLeft size={16} />
           </Button>
           <span className="fw-bold text-dark small text-capitalize" style={{ minWidth: "130px", textAlign: "center" }}>
-            {currentDate.toLocaleDateString("es-AR", { weekday: "short", day: "numeric", month: "long" })}
+            {currentDate.toLocaleDateString(isEs ? "es-AR" : "en-US", { weekday: "short", day: "numeric", month: "long" })}
           </span>
           <Button variant="light" size="sm" onClick={handleNextDay} className="rounded-circle p-1 d-flex align-items-center justify-content-center" style={{ width: "28px", height: "28px" }}>
             <ChevronRight size={16} />
@@ -146,7 +150,7 @@ export default function CalendarWidget({
             onClick={() => setView("day")}
             style={{ fontSize: "11px" }}
           >
-            Hoy
+            {isEs ? "Hoy" : "Today"}
           </Button>
           <Button
             size="sm"
@@ -155,7 +159,7 @@ export default function CalendarWidget({
             onClick={() => setView("week")}
             style={{ fontSize: "11px" }}
           >
-            Semana
+            {isEs ? "Semana" : "Week"}
           </Button>
           <Button
             size="sm"
@@ -164,7 +168,7 @@ export default function CalendarWidget({
             onClick={() => setView("month")}
             style={{ fontSize: "11px" }}
           >
-            Mes
+            {isEs ? "Mes" : "Month"}
           </Button>
         </div>
       </div>
@@ -178,24 +182,24 @@ export default function CalendarWidget({
             {todayAppointments.length === 0 ? (
               <div className="text-muted text-center py-5 small d-flex flex-column align-items-center gap-2">
                 <Calendar size={36} className="text-muted opacity-40" />
-                <span>No hay citas programadas para hoy.</span>
+                <span>{isEs ? "No hay citas programadas para hoy." : "No appointments scheduled for today."}</span>
               </div>
             ) : (
               <Table responsive hover size="sm" className="mb-0 custom-table align-middle">
                 <thead>
                   <tr style={{ fontSize: "10.5px" }}>
-                    <th>Hora</th>
-                    <th>Cliente</th>
-                    <th>Servicio</th>
-                    <th>Profesional</th>
-                    <th>Estado</th>
-                    <th className="text-end">Acción</th>
+                    <th>{isEs ? "Hora" : "Time"}</th>
+                    <th>{isEs ? "Cliente" : "Client"}</th>
+                    <th>{isEs ? "Servicio" : "Service"}</th>
+                    <th>{isEs ? "Profesional" : "Staff"}</th>
+                    <th>{isEs ? "Estado" : "Status"}</th>
+                    <th className="text-end">{isEs ? "Acción" : "Action"}</th>
                   </tr>
                 </thead>
                 <tbody style={{ fontSize: "12.5px" }}>
                   {todayAppointments.map((a) => {
-                    const status = STATUS_STYLES[a.status] || STATUS_STYLES.PENDING;
-                    const startTime = new Date(a.startsAt).toLocaleTimeString("es-AR", {
+                    const status = statusStyles[a.status] || statusStyles.PENDING;
+                    const startTime = new Date(a.startsAt).toLocaleTimeString(isEs ? "es-AR" : "en-US", {
                       hour: "2-digit",
                       minute: "2-digit",
                       timeZone: "UTC",
@@ -215,7 +219,7 @@ export default function CalendarWidget({
                         <td>
                           <div>
                             <div className="fw-medium text-dark">{a.service?.name}</div>
-                            <div className="text-muted smaller">{a.service?.duration} min · {currency(a.service?.price)}</div>
+                            <div className="text-muted smaller">{a.service?.duration} min · {currency(a.service?.price, isEs)}</div>
                           </div>
                         </td>
                         <td className="text-muted">{a.worker?.firstName}</td>
@@ -241,16 +245,16 @@ export default function CalendarWidget({
                             </Dropdown.Toggle>
                             <Dropdown.Menu className="dropdown-premium">
                               <Dropdown.Item onClick={() => handleStatusChange(a.id, "CONFIRMED")} className="small d-flex align-items-center gap-2">
-                                <Check size={12} className="text-success" /> Confirmar
+                                <Check size={12} className="text-success" /> {isEs ? "Confirmar" : "Confirm"}
                               </Dropdown.Item>
                               <Dropdown.Item onClick={() => handleStatusChange(a.id, "IN_PROCESS")} className="small d-flex align-items-center gap-2">
-                                <Clock size={12} className="text-primary" /> Poner en proceso
+                                <Clock size={12} className="text-primary" /> {isEs ? "Poner en proceso" : "Start process"}
                               </Dropdown.Item>
                               <Dropdown.Item onClick={() => handleStatusChange(a.id, "DONE")} className="small d-flex align-items-center gap-2">
-                                <Check size={12} className="text-success" /> Finalizar
+                                <Check size={12} className="text-success" /> {isEs ? "Finalizar" : "Complete"}
                               </Dropdown.Item>
                               <Dropdown.Item onClick={() => handleStatusChange(a.id, "CANCELLED")} className="small d-flex align-items-center gap-2">
-                                <X size={12} className="text-danger" /> Cancelar
+                                <X size={12} className="text-danger" /> {isEs ? "Cancelar" : "Cancel"}
                               </Dropdown.Item>
                             </Dropdown.Menu>
                           </Dropdown>
@@ -285,7 +289,7 @@ export default function CalendarWidget({
                   <Card className={`border-0 rounded-3 h-100 p-2 text-center ${isToday ? "bg-light border" : "bg-white"}`}>
                     <div className="mb-2">
                       <div className="smaller fw-bold text-muted text-uppercase">
-                        {day.toLocaleDateString("es-AR", { weekday: "short" })}
+                        {day.toLocaleDateString(isEs ? "es-AR" : "en-US", { weekday: "short" })}
                       </div>
                       <div className={`fw-black ${isToday ? "text-primary fs-5" : "text-dark"}`}>
                         {day.getDate()}
@@ -316,18 +320,18 @@ export default function CalendarWidget({
                           }}
                         >
                           <div className="fw-bold text-dark truncate">
-                            {new Date(a.startsAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" })}
+                            {new Date(a.startsAt).toLocaleTimeString(isEs ? "es-AR" : "en-US", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" })}
                           </div>
                           <div className="text-muted truncate">{a.client?.firstName}</div>
                         </div>
                       ))}
                       {dayAppts.length > 4 && (
                         <div className="text-muted smaller fw-bold mt-1">
-                          +{dayAppts.length - 4} más
+                          +{dayAppts.length - 4} {isEs ? "más" : "more"}
                         </div>
                       )}
                       {dayAppts.length === 0 && (
-                        <span className="text-muted smaller py-4">Libre</span>
+                        <span className="text-muted smaller py-4">{isEs ? "Libre" : "Free"}</span>
                       )}
                     </div>
                   </Card>
@@ -341,7 +345,11 @@ export default function CalendarWidget({
         {view === "month" && (
           <div style={{ minWidth: "500px" }}>
             <div className="grid-month-headers d-grid text-center text-muted fw-bold mb-1 smaller uppercase" style={{ gridTemplateColumns: "repeat(7, 1fr)" }}>
-              <span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span>
+              {isEs ? (
+                <><span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span></>
+              ) : (
+                <><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></>
+              )}
             </div>
             <div className="grid-month-cells d-grid gap-1" style={{ gridTemplateColumns: "repeat(7, 1fr)" }}>
               {monthCells.map((cell, idx) => {
@@ -403,78 +411,84 @@ export default function CalendarWidget({
       {/* DETAIL SIDE PANEL (Offcanvas Drawer) */}
       <Offcanvas show={showDrawer} onHide={() => setShowDrawer(false)} placement="end" className="hegemonic-modal">
         <Offcanvas.Header closeButton className="border-bottom">
-          <Offcanvas.Title className="fw-black h5">Detalle del Turno</Offcanvas.Title>
+          <Offcanvas.Title className="fw-black h5">{isEs ? "Detalle del Turno" : "Appointment Details"}</Offcanvas.Title>
         </Offcanvas.Header>
         <Offcanvas.Body className="p-4">
           {selectedAppt && (
             <div className="d-grid gap-4">
               <div>
-                <span className="text-muted smaller uppercase d-block mb-1">Cliente</span>
+                <span className="text-muted smaller uppercase d-block mb-1">{isEs ? "Cliente" : "Client"}</span>
                 <h4 className="fw-bold text-dark mb-0">
                   {selectedAppt.client?.firstName} {selectedAppt.client?.lastName || ""}
                 </h4>
-                <div className="text-muted small mt-1">{selectedAppt.client?.email || "Sin correo"} · {selectedAppt.client?.phone || "Sin teléfono"}</div>
+                <div className="text-muted small mt-1">
+                  {selectedAppt.client?.email || (isEs ? "Sin correo" : "No email")} · {selectedAppt.client?.phone || (isEs ? "Sin teléfono" : "No phone")}
+                </div>
               </div>
 
               <div className="p-3 bg-light rounded-4 border">
                 <div className="d-flex justify-content-between align-items-start mb-2">
                   <div>
-                    <span className="text-muted smaller uppercase">Servicio</span>
+                    <span className="text-muted smaller uppercase">{isEs ? "Servicio" : "Service"}</span>
                     <div className="fw-bold text-dark">{selectedAppt.service?.name}</div>
                   </div>
                   <Badge bg="dark" className="fs-6 py-1 px-2.5">
-                    {currency(selectedAppt.service?.price)}
+                    {currency(selectedAppt.service?.price, isEs)}
                   </Badge>
                 </div>
-                <div className="text-muted small">Duración del servicio: {selectedAppt.service?.duration} minutos</div>
-              </div>
-
-              <div>
-                <span className="text-muted smaller uppercase d-block mb-2">Colaborador</span>
-                <div className="d-flex align-items-center gap-2 bg-light p-2.5 rounded-3">
-                  <User size={16} className="text-muted" />
-                  <span className="fw-semibold text-dark">{selectedAppt.worker ? `${selectedAppt.worker.firstName} ${selectedAppt.worker.lastName}` : "Profesional no asignado"}</span>
+                <div className="text-muted small">
+                  {isEs ? "Duración del servicio:" : "Service duration:"} {selectedAppt.service?.duration} {isEs ? "minutos" : "minutes"}
                 </div>
               </div>
 
               <div>
-                <span className="text-muted smaller uppercase d-block mb-2">Fecha y Horario</span>
+                <span className="text-muted smaller uppercase d-block mb-2">{isEs ? "Colaborador" : "Staff"}</span>
+                <div className="d-flex align-items-center gap-2 bg-light p-2.5 rounded-3">
+                  <User size={16} className="text-muted" />
+                  <span className="fw-semibold text-dark">
+                    {selectedAppt.worker ? `${selectedAppt.worker.firstName} ${selectedAppt.worker.lastName}` : (isEs ? "Profesional no asignado" : "Staff not assigned")}
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <span className="text-muted smaller uppercase d-block mb-2">{isEs ? "Fecha y Horario" : "Date & Time"}</span>
                 <div className="d-flex align-items-center gap-2 bg-light p-2.5 rounded-3">
                   <Calendar size={16} className="text-muted" />
                   <span className="fw-semibold text-dark">
-                    {new Date(selectedAppt.startsAt).toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
-                    {" a las "}
-                    {new Date(selectedAppt.startsAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" })} hs
+                    {new Date(selectedAppt.startsAt).toLocaleDateString(isEs ? "es-AR" : "en-US", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+                    {isEs ? " a las " : " at "}
+                    {new Date(selectedAppt.startsAt).toLocaleTimeString(isEs ? "es-AR" : "en-US", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" })} {isEs ? "hs" : ""}
                   </span>
                 </div>
               </div>
 
               {selectedAppt.notes && (
                 <div>
-                  <span className="text-muted smaller uppercase d-block mb-1">Notas del Turno</span>
+                  <span className="text-muted smaller uppercase d-block mb-1">{isEs ? "Notas del Turno" : "Appointment Notes"}</span>
                   <div className="p-2 border bg-light rounded-3 text-muted small">{selectedAppt.notes}</div>
                 </div>
               )}
 
               <div>
-                <span className="text-muted smaller uppercase d-block mb-2">Cambiar Estado</span>
+                <span className="text-muted smaller uppercase d-block mb-2">{isEs ? "Cambiar Estado" : "Change Status"}</span>
                 <Form.Select
                   value={selectedAppt.status}
                   onChange={(e) => handleStatusChange(selectedAppt.id, e.target.value)}
                   className="modern-input"
                 >
-                  <option value="PENDING">Pendiente</option>
-                  <option value="CONFIRMED">Confirmada</option>
-                  <option value="IN_PROCESS">En proceso</option>
-                  <option value="DONE">Finalizada</option>
-                  <option value="CANCELLED">Cancelada</option>
-                  <option value="NOSHOW">No asistió</option>
+                  <option value="PENDING">{isEs ? "Pendiente" : "Pending"}</option>
+                  <option value="CONFIRMED">{isEs ? "Confirmada" : "Confirmed"}</option>
+                  <option value="IN_PROCESS">{isEs ? "En proceso" : "In process"}</option>
+                  <option value="DONE">{isEs ? "Finalizada" : "Completed"}</option>
+                  <option value="CANCELLED">{isEs ? "Cancelada" : "Cancelled"}</option>
+                  <option value="NOSHOW">{isEs ? "No asistió" : "No-show"}</option>
                 </Form.Select>
               </div>
 
               <div className="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
                 <Button variant="outline-dark" className="rounded-pill px-4" onClick={() => setShowDrawer(false)}>
-                  Cerrar
+                  {isEs ? "Cerrar" : "Close"}
                 </Button>
               </div>
             </div>

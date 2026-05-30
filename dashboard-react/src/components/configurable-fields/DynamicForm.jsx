@@ -202,7 +202,7 @@ export default function DynamicForm({ enabledFields, values, onChange, errors = 
     otro: "Información adicional",
   };
 
-  function renderField(field) {
+  function renderField(field, index) {
     const err = errors[field.id];
     const label = (
       <>
@@ -211,9 +211,11 @@ export default function DynamicForm({ enabledFields, values, onChange, errors = 
       </>
     );
 
+    const groupKey = `${field.entity || "worker"}-${field.name || field.id}-${field.id || index}`;
+
     if (field.type === "services") {
       return (
-        <Form.Group key={field.id} className="mb-3">
+        <Form.Group key={groupKey} className="mb-3">
           <Form.Label>{label}</Form.Label>
           {loadingServices ? (
             <Spinner size="sm" />
@@ -245,7 +247,7 @@ export default function DynamicForm({ enabledFields, values, onChange, errors = 
     if (field.type === "servicePricing") {
       if (!values.serviceIds.length) return null;
       return (
-        <Form.Group key={field.id} className="mb-3">
+        <Form.Group key={`${field.entity || "worker"}-${field.name || field.id}-${field.id || index}`} className="mb-3">
           <Form.Label>{label}</Form.Label>
           {field.help && <div className="text-muted small mb-2">{field.help}</div>}
           <div className="d-flex flex-column gap-2">
@@ -278,7 +280,7 @@ export default function DynamicForm({ enabledFields, values, onChange, errors = 
 
     if (field.type === "schedule") {
       return (
-        <Form.Group key={field.id} className="mb-3">
+        <Form.Group key={`${field.entity || "worker"}-${field.name || field.id}-${field.id || index}`} className="mb-3">
           <Form.Label>{label}</Form.Label>
           <div className="workerScheduleGrid">
             {values.schedule.map((d) => (
@@ -363,7 +365,7 @@ export default function DynamicForm({ enabledFields, values, onChange, errors = 
     }
 
     return (
-      <Form.Group key={field.id} className="mb-3">
+      <Form.Group key={`${field.entity || "worker"}-${field.name || field.id}-${field.id || index}`} className="mb-3">
         <Form.Label>{label}</Form.Label>
         {control}
         {field.help && <Form.Text muted>{field.help}</Form.Text>}
@@ -381,11 +383,12 @@ export default function DynamicForm({ enabledFields, values, onChange, errors = 
           <div key={sec} className="mb-4">
             <h6 className="text-uppercase text-muted small fw-bold mb-3">{sectionTitles[sec] || sec}</h6>
             <Row className="g-2">
-              {fields.map((field) => {
+              {fields.map((field, index) => {
                 const wide = field.type === "services" || field.type === "schedule" || field.type === "servicePricing";
+                const compositeKey = `${field.entity || "worker"}-${field.name || field.id}-${field.id || index}`;
                 return (
-                  <Col key={field.id} md={wide ? 12 : 6}>
-                    {renderField(field)}
+                  <Col key={compositeKey} md={wide ? 12 : 6}>
+                    {renderField(field, index)}
                   </Col>
                 );
               })}

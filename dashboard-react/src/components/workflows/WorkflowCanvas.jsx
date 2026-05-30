@@ -77,7 +77,61 @@ export default function WorkflowCanvas({
   };
 
   // Compute SVG Bézier Curves for connection lines between nodes
-  const connectionPaths = useMemoPaths(nodes, transitions, zoom);
+  const connectionPaths = React.useMemo(() => {
+    const nodeMap = nodes.reduce((acc, n) => {
+      acc[n.id] = n;
+      return acc;
+    }, {});
+
+    const paths = [];
+
+    transitions.forEach((tr, index) => {
+      const source = nodeMap[tr.from];
+      const target = nodeMap[tr.to];
+
+      if (!source || !target) return;
+
+      // Output coordinates
+      let x1 = source.x + 250;
+      let y1 = source.y + 40; // Vertical center of a 80px high node card
+      
+      // Handle YES/NO bifurcation coordinates for condition nodes
+      if (source.type === "condition") {
+        if (tr.conditionBranch === "no") {
+          y1 = source.y + 60; // Bottom branch
+        } else {
+          y1 = source.y + 30; // Top branch
+        }
+      }
+
+      // Input coordinates
+      const x2 = target.x;
+      const y2 = target.y + 40; // Vertical center
+
+      // Control points for Bézier curve
+      const dx = Math.max(80, Math.abs(x2 - x1) * 0.5);
+      const cp1x = x1 + dx;
+      const cp1y = y1;
+      const cp2x = x2 - dx;
+      const cp2y = y2;
+
+      const d = `M ${x1} ${y1} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${x2} ${y2}`;
+
+      let color = "url(#purpleGlow)";
+      if (source.type === "condition") {
+        color = tr.conditionBranch === "no" ? "#f87171" : "#34d399";
+      }
+
+      paths.push({
+        id: tr.id || `path-${index}`,
+        d,
+        color,
+        isActive: source.status === "ACTIVE" || true
+      });
+    });
+
+    return paths;
+  }, [nodes, transitions]);
 
   return (
     <div 
@@ -233,63 +287,4 @@ export default function WorkflowCanvas({
       `}</style>
     </div>
   );
-}
-
-// Heuristic SVG paths drawer for visual transitions
-function useMemoPaths(nodes, transitions, zoom) {
-  return React.useMemo(() => {
-    const nodeMap = nodes.reduce((acc, n) => {
-      acc[n.id] = n;
-      return acc;
-    }, {});
-
-    const paths = [];
-
-    transitions.forEach((tr, index) => {
-      const source = nodeMap[tr.from];
-      const target = nodeMap[tr.to];
-
-      if (!source || !target) return;
-
-      // Output coordinates
-      let x1 = source.x + 250;
-      let y1 = source.y + 40; // Vertical center of a 80px high node card
-      
-      // Handle YES/NO bifurcation coordinates for condition nodes
-      if (source.type === "condition") {
-        if (tr.conditionBranch === "no") {
-          y1 = source.y + 60; // Bottom branch
-        } else {
-          y1 = source.y + 30; // Top branch
-        }
-      }
-
-      // Input coordinates
-      const x2 = target.x;
-      const y2 = target.y + 40; // Vertical center
-
-      // Control points for Bézier curve
-      const dx = Math.max(80, Math.abs(x2 - x1) * 0.5);
-      const cp1x = x1 + dx;
-      const cp1y = y1;
-      const cp2x = x2 - dx;
-      const cp2y = y2;
-
-      const d = `M ${x1} ${y1} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${x2} ${y2}`;
-
-      let color = "url(#purpleGlow)";
-      if (source.type === "condition") {
-        color = tr.conditionBranch === "no" ? "#f87171" : "#34d399";
-      }
-
-      paths.push({
-        id: tr.id || `path-${index}`,
-        d,
-        color,
-        isActive: source.status === "ACTIVE" || true
-      });
-    });
-
-    return paths;
-  }, [nodes, transitions]);
 }

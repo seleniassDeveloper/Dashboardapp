@@ -1,7 +1,11 @@
 import React from "react";
 import { UserPlus, CalendarRange, CheckCircle2, XCircle, CreditCard, Sparkles } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export default function ActivityFeedWidget({ appointments = [], clients = [] }) {
+  const { i18n } = useTranslation("dashboard");
+  const isEs = i18n.language === "es";
+
   // Combinar eventos y ordenar cronológicamente
   const events = [];
 
@@ -12,10 +16,10 @@ export default function ActivityFeedWidget({ appointments = [], clients = [] }) 
     const diffHours = Math.floor(diffMins / 60);
     const diffDays = Math.floor(diffHours / 24);
 
-    if (diffMins < 1) return "Hace unos instantes";
-    if (diffMins < 60) return `Hace ${diffMins} min`;
-    if (diffHours < 24) return `Hace ${diffHours} ${diffHours === 1 ? "hora" : "horas"}`;
-    return `Hace ${diffDays} ${diffDays === 1 ? "día" : "días"}`;
+    if (diffMins < 1) return isEs ? "Hace unos instantes" : "Just now";
+    if (diffMins < 60) return isEs ? `Hace ${diffMins} min` : `${diffMins} min ago`;
+    if (diffHours < 24) return isEs ? `Hace ${diffHours} ${diffHours === 1 ? "hora" : "horas"}` : `${diffHours} ${diffHours === 1 ? "hour" : "hours"} ago`;
+    return isEs ? `Hace ${diffDays} ${diffDays === 1 ? "día" : "días"}` : `${diffDays} ${diffDays === 1 ? "day" : "days"} ago`;
   };
 
   // Citas creadas u ordenadas
@@ -27,8 +31,10 @@ export default function ActivityFeedWidget({ appointments = [], clients = [] }) 
       id: `appt-create-${a.id}`,
       time,
       type: "appointment",
-      title: "Nueva cita programada",
-      description: `Cliente: ${a.client?.firstName} ${a.client?.lastName || ""} con ${a.worker?.firstName || "Profesional"} (${a.service?.name || "Servicio"})`,
+      title: isEs ? "Nueva cita programada" : "New appointment scheduled",
+      description: isEs 
+        ? `Cliente: ${a.client?.firstName} ${a.client?.lastName || ""} con ${a.worker?.firstName || "Profesional"} (${a.service?.name || "Servicio"})`
+        : `Client: ${a.client?.firstName} ${a.client?.lastName || ""} with ${a.worker?.firstName || "Professional"} (${a.service?.name || "Service"})`,
       icon: CalendarRange,
       color: "#3b82f6",
     });
@@ -38,8 +44,10 @@ export default function ActivityFeedWidget({ appointments = [], clients = [] }) 
         id: `appt-done-${a.id}`,
         time: new Date(a.startsAt), // terminó en la hora de la cita
         type: "status",
-        title: "Cita finalizada con éxito",
-        description: `Se completó el servicio de ${a.service?.name} para ${a.client?.firstName}.`,
+        title: isEs ? "Cita finalizada con éxito" : "Appointment completed successfully",
+        description: isEs 
+          ? `Se completó el servicio de ${a.service?.name} para ${a.client?.firstName}.`
+          : `Completed service of ${a.service?.name} for ${a.client?.firstName}.`,
         icon: CheckCircle2,
         color: "#10b981",
       });
@@ -50,8 +58,10 @@ export default function ActivityFeedWidget({ appointments = [], clients = [] }) 
         id: `appt-cancel-${a.id}`,
         time: new Date(a.startsAt),
         type: "status",
-        title: "Cita cancelada",
-        description: `El turno de ${a.client?.firstName} para ${a.service?.name} fue cancelado.`,
+        title: isEs ? "Cita cancelada" : "Appointment cancelled",
+        description: isEs 
+          ? `El turno de ${a.client?.firstName} para ${a.service?.name} fue cancelado.`
+          : `Appointment of ${a.client?.firstName} for ${a.service?.name} was cancelled.`,
         icon: XCircle,
         color: "#ef4444",
       });
@@ -65,8 +75,10 @@ export default function ActivityFeedWidget({ appointments = [], clients = [] }) 
       id: `client-create-${c.id}`,
       time,
       type: "client",
-      title: "Nuevo cliente registrado",
-      description: `${c.firstName} ${c.lastName || ""} se sumó a tu base de datos.`,
+      title: isEs ? "Nuevo cliente registrado" : "New client registered",
+      description: isEs 
+        ? `${c.firstName} ${c.lastName || ""} se sumó a tu base de datos.`
+        : `${c.firstName} ${c.lastName || ""} joined your database.`,
       icon: UserPlus,
       color: "#8b5cf6",
     });
@@ -78,8 +90,10 @@ export default function ActivityFeedWidget({ appointments = [], clients = [] }) 
       id: "ai-auto-1",
       time: new Date(),
       type: "system",
-      title: "Sistema inicializado",
-      description: "El Copilot de IA cargó los widgets por defecto del dashboard de forma exitosa.",
+      title: isEs ? "Sistema inicializado" : "System initialized",
+      description: isEs 
+        ? "El Copilot de IA cargó los widgets por defecto del dashboard de forma exitosa."
+        : "AI Copilot successfully loaded default dashboard widgets.",
       icon: Sparkles,
       color: "#d97706",
     });

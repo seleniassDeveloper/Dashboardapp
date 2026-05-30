@@ -36,7 +36,7 @@ export default function LanguageSwitcher({ variant = "default", compact = false 
   }
 
   return (
-    <div className={`lang-switcher lang-switcher--${variant}`} ref={ref}>
+    <div className={`lang-switcher lang-switcher--${variant} ${open ? "is-open" : ""}`} ref={ref}>
       <button
         type="button"
         className="lang-switcher__btn"
@@ -44,7 +44,10 @@ export default function LanguageSwitcher({ variant = "default", compact = false 
         aria-label={t("language.switch")}
         title={t("language.switch")}
       >
-        <Globe size={16} />
+        <Globe size={16} className="lang-switcher__globe" />
+        <span className="lang-switcher__flag" aria-hidden style={{ fontSize: "14px", marginLeft: "2px" }}>
+          {current.flag}
+        </span>
         {!compact && <span className="lang-switcher__label">{current.short}</span>}
         {!compact && <ChevronDown size={14} className="lang-switcher__chev" />}
       </button>

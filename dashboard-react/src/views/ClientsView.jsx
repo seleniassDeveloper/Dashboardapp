@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import ClientModal from "../header/clients/ClientModal.jsx";
 import ClientDetailModal from "../components/clients/ClientDetailModal.jsx";
 import api from "../lib/api.js";
+import { usePermissions } from "../auth/PermissionProvider.jsx";
 
 const safeArray = (x) => (Array.isArray(x) ? x : []);
 
@@ -19,6 +20,7 @@ function displayName(c) {
 
 export default function ClientsView() {
   const { t } = useTranslation("views");
+  const { hasPermission } = usePermissions();
   const [loading, setLoading] = useState(false);
   const [busyId, setBusyId] = useState("");
   const [error, setError] = useState("");
@@ -294,16 +296,18 @@ export default function ClientsView() {
                         >
                           <Edit2 size={16} className="text-muted" />
                         </Button>
-                        <Button
-                          variant="light"
-                          size="sm"
-                          className="rounded-lg p-2 hover-danger"
-                          onClick={() => handleDelete(c)}
-                          disabled={busyId === c.id}
-                          title={t("clients.actions.delete")}
-                        >
-                          <Trash2 size={16} className="text-danger" />
-                        </Button>
+                        {hasPermission("clients.delete") && (
+                          <Button
+                            variant="light"
+                            size="sm"
+                            className="rounded-lg p-2 hover-danger"
+                            onClick={() => handleDelete(c)}
+                            disabled={busyId === c.id}
+                            title={t("clients.actions.delete")}
+                          >
+                            <Trash2 size={16} className="text-danger" />
+                          </Button>
+                        )}
                       </div>
                     </td>
                   </tr>

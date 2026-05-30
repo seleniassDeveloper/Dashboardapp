@@ -2,10 +2,13 @@ import React, { useState, useEffect } from "react";
 import { Container, Button, Modal, Form, Row, Col, Spinner, Alert, Badge } from "react-bootstrap";
 import {
   TrendingUp, TrendingDown, Landmark, ShieldCheck, DollarSign, Sparkles,
-  Download, Plus, Scissors, Award, Clock, FileText
+  Download, Plus, Scissors, Award, Clock, FileText, Lock
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import api from "../lib/api.js";
+import { useAuth } from "../auth/AuthProvider.jsx";
+import { usePermissions } from "../auth/PermissionProvider.jsx";
+import FinanceAccessModal from "../components/finances/FinanceAccessModal.jsx";
 
 // ERP sub-modules
 import FinanceDashboard from "../components/finance/FinanceDashboard.jsx";
@@ -22,8 +25,15 @@ import FinancialAudit from "../components/finance/FinancialAudit.jsx";
 
 export default function FinancesView() {
   const { t } = useTranslation("views");
+  const { hasPermission } = usePermissions();
+  const { financeUnlocked } = useAuth();
+
+  const hasFinancePermission = hasPermission("finance.view");
+  const isFinanceUnlocked = hasFinancePermission || financeUnlocked;
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [showAccessModal, setShowAccessModal] = useState(!isFinanceUnlocked);
   
   // Tab State
   const [activeTab, setActiveTab] = useState("resumen");
@@ -55,13 +65,15 @@ export default function FinancesView() {
   };
 
   useEffect(() => {
-    fetchDashboardData();
-    
-    // Fetch branches for expense select
-    api.get("/finances/branches")
-      .then(res => setExpenseBranches(Array.isArray(res.data) ? res.data : []))
-      .catch(e => console.error(e));
-  }, []);
+    if (isFinanceUnlocked) {
+      fetchDashboardData();
+      
+      // Fetch branches for expense select
+      api.get("/finances/branches")
+        .then(res => setExpenseBranches(Array.isArray(res.data) ? res.data : []))
+        .catch(e => console.error(e));
+    }
+  }, [isFinanceUnlocked]);
 
   const handleAddExpense = async (e) => {
     e.preventDefault();
@@ -92,6 +104,60 @@ export default function FinancesView() {
       setSavingExpense(false);
     }
   };
+
+  if (!isFinanceUnlocked) {
+    return (
+      <div 
+        className="d-flex flex-column align-items-center justify-content-center border shadow-sm p-5 text-center animate-fade-in"
+        style={{
+          minHeight: "65vh",
+          background: "rgba(255, 255, 255, 0.45)",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+          borderRadius: "24px",
+          border: "1px solid rgba(255, 255, 255, 0.25)"
+        }}
+      >
+        <div 
+          className="rounded-circle d-flex align-items-center justify-content-center text-white mb-4 shadow"
+          style={{
+            width: "80px",
+            height: "80px",
+            background: "linear-gradient(135deg, #7c3aed 0%, #ec4899 100%)",
+            border: "3px solid #ffffff",
+            boxShadow: "0 10px 25px -5px rgba(124, 58, 237, 0.3)"
+          }}
+        >
+          <Lock size={32} />
+        </div>
+        <h2 className="fw-black h3 mb-2 text-dark">Acceso Restringido</h2>
+        <p className="text-secondary small mb-4" style={{ maxWidth: "420px", fontSize: "14px", lineHeight: "1.5" }}>
+          Esta sección contiene información financiera sensible del negocio. Ingresa credenciales autorizadas de supervisor para ver el contenido.
+        </p>
+        <div>
+          <Button 
+            variant="purple"
+            onClick={() => setShowAccessModal(true)}
+            className="rounded-pill px-4 py-2.5 fw-bold text-white bg-purple-600 hover-bg-purple-700 shadow"
+            style={{
+              background: "linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)",
+              boxShadow: "0 4px 14px 0 rgba(124, 58, 237, 0.3)"
+            }}
+          >
+            Ingresar Credenciales
+          </Button>
+        </div>
+
+        <FinanceAccessModal 
+          show={showAccessModal} 
+          onHide={() => setShowAccessModal(false)}
+          onSuccess={() => {
+            setShowAccessModal(false);
+          }}
+        />
+      </div>
+    );
+  }
 
   if (loading && !dashboardData) {
     return (
@@ -135,187 +201,202 @@ export default function FinancesView() {
 
       {error && <Alert variant="danger" className="rounded-2xl">{error}</Alert>}
 
-      {/* PESTAÑAS DEL ERP FINANCIERO */}
-      <div 
-        className="d-flex border-bottom mb-4 gap-2 overflow-auto scrollbar-none py-1.5"
-        style={{ maxWidth: "100%", overflowX: "auto", flexWrap: "nowrap" }}
-      >
-        <button
-          onClick={() => setActiveTab("resumen")}
-          className={`d-flex align-items-center gap-2 px-3.5 py-2 fw-bold rounded-xl border-0 transition-all flex-shrink-0 ${
-            activeTab === "resumen" ? "bg-purple-600 text-white shadow-sm" : "bg-light text-muted hover-bg-gray-100"
-          }`}
-          style={{ fontSize: "13px" }}
-        >
-          <TrendingUp size={15} />
-          <span>Resumen</span>
-        </button>
+      <Row className="g-4">
+        {/* PESTAÑAS DEL ERP FINANCIERO (Columna de Navegación Vertical en Escritorio) */}
+        <Col lg={3} md={4} xs={12}>
+          <div 
+            className="d-flex flex-md-column flex-row gap-2 overflow-auto scrollbar-none p-3 rounded-4 shadow-sm border bg-white"
+            style={{ 
+              borderColor: "#e5e7eb",
+              maxHeight: "none",
+              flexWrap: "nowrap",
+              overflowX: "auto"
+            }}
+          >
+            <h3 className="h6 fw-black text-gray-400 mb-2 px-2 text-uppercase tracking-wider d-none d-md-block" style={{ fontSize: "10px", letterSpacing: "1.2px" }}>
+              Módulos Financieros
+            </h3>
+            
+            <button
+              onClick={() => setActiveTab("resumen")}
+              className={`d-flex align-items-center gap-2 px-3 py-2.5 fw-bold rounded-xl border-0 transition-all text-start w-100 flex-shrink-0 ${
+                activeTab === "resumen" ? "bg-purple-600 text-white shadow-sm" : "bg-light text-muted hover-bg-gray-100"
+              }`}
+              style={{ fontSize: "13px", minWidth: "140px" }}
+            >
+              <TrendingUp size={16} />
+              <span>Resumen</span>
+            </button>
 
-        <button
-          onClick={() => setActiveTab("gastos_operativos")}
-          className={`d-flex align-items-center gap-2 px-3.5 py-2 fw-bold rounded-xl border-0 transition-all flex-shrink-0 ${
-            activeTab === "gastos_operativos" ? "bg-purple-600 text-white shadow-sm" : "bg-light text-muted hover-bg-gray-100"
-          }`}
-          style={{ fontSize: "13px" }}
-        >
-          <TrendingDown size={15} />
-          <span>Gastos</span>
-        </button>
+            <button
+              onClick={() => setActiveTab("gastos_operativos")}
+              className={`d-flex align-items-center gap-2 px-3 py-2.5 fw-bold rounded-xl border-0 transition-all text-start w-100 flex-shrink-0 ${
+                activeTab === "gastos_operativos" ? "bg-purple-600 text-white shadow-sm" : "bg-light text-muted hover-bg-gray-100"
+              }`}
+              style={{ fontSize: "13px", minWidth: "140px" }}
+            >
+              <TrendingDown size={16} />
+              <span>Gastos</span>
+            </button>
 
-        <button
-          onClick={() => setActiveTab("gastos")}
-          className={`d-flex align-items-center gap-2 px-3.5 py-2 fw-bold rounded-xl border-0 transition-all flex-shrink-0 ${
-            activeTab === "gastos" ? "bg-purple-600 text-white shadow-sm" : "bg-light text-muted hover-bg-gray-100"
-          }`}
-          style={{ fontSize: "13px" }}
-        >
-          <ShieldCheck size={15} />
-          <span>Cierre Caja</span>
-        </button>
+            <button
+              onClick={() => setActiveTab("gastos")}
+              className={`d-flex align-items-center gap-2 px-3 py-2.5 fw-bold rounded-xl border-0 transition-all text-start w-100 flex-shrink-0 ${
+                activeTab === "gastos" ? "bg-purple-600 text-white shadow-sm" : "bg-light text-muted hover-bg-gray-100"
+              }`}
+              style={{ fontSize: "13px", minWidth: "140px" }}
+            >
+              <ShieldCheck size={16} />
+              <span>Cierre Caja</span>
+            </button>
 
-        <button
-          onClick={() => setActiveTab("sueldos")}
-          className={`d-flex align-items-center gap-2 px-3.5 py-2 fw-bold rounded-xl border-0 transition-all flex-shrink-0 ${
-            activeTab === "sueldos" ? "bg-purple-600 text-white shadow-sm" : "bg-light text-muted hover-bg-gray-100"
-          }`}
-          style={{ fontSize: "13px" }}
-        >
-          <DollarSign size={15} />
-          <span>Nóminas</span>
-        </button>
+            <button
+              onClick={() => setActiveTab("sueldos")}
+              className={`d-flex align-items-center gap-2 px-3 py-2.5 fw-bold rounded-xl border-0 transition-all text-start w-100 flex-shrink-0 ${
+                activeTab === "sueldos" ? "bg-purple-600 text-white shadow-sm" : "bg-light text-muted hover-bg-gray-100"
+              }`}
+              style={{ fontSize: "13px", minWidth: "140px" }}
+            >
+              <DollarSign size={16} />
+              <span>Nóminas</span>
+            </button>
 
-        <button
-          onClick={() => setActiveTab("conciliacion")}
-          className={`d-flex align-items-center gap-2 px-3.5 py-2 fw-bold rounded-xl border-0 transition-all flex-shrink-0 ${
-            activeTab === "conciliacion" ? "bg-purple-600 text-white shadow-sm" : "bg-light text-muted hover-bg-gray-100"
-          }`}
-          style={{ fontSize: "13px" }}
-        >
-          <Landmark size={15} />
-          <span>Conciliación</span>
-        </button>
+            <button
+              onClick={() => setActiveTab("conciliacion")}
+              className={`d-flex align-items-center gap-2 px-3 py-2.5 fw-bold rounded-xl border-0 transition-all text-start w-100 flex-shrink-0 ${
+                activeTab === "conciliacion" ? "bg-purple-600 text-white shadow-sm" : "bg-light text-muted hover-bg-gray-100"
+              }`}
+              style={{ fontSize: "13px", minWidth: "140px" }}
+            >
+              <Landmark size={16} />
+              <span>Conciliación</span>
+            </button>
 
-        <button
-          onClick={() => setActiveTab("servicios")}
-          className={`d-flex align-items-center gap-2 px-3.5 py-2 fw-bold rounded-xl border-0 transition-all flex-shrink-0 ${
-            activeTab === "servicios" ? "bg-purple-600 text-white shadow-sm" : "bg-light text-muted hover-bg-gray-100"
-          }`}
-          style={{ fontSize: "13px" }}
-        >
-          <Scissors size={15} />
-          <span>Servicios</span>
-        </button>
+            <button
+              onClick={() => setActiveTab("servicios")}
+              className={`d-flex align-items-center gap-2 px-3 py-2.5 fw-bold rounded-xl border-0 transition-all text-start w-100 flex-shrink-0 ${
+                activeTab === "servicios" ? "bg-purple-600 text-white shadow-sm" : "bg-light text-muted hover-bg-gray-100"
+              }`}
+              style={{ fontSize: "13px", minWidth: "140px" }}
+            >
+              <Scissors size={16} />
+              <span>Servicios</span>
+            </button>
 
-        <button
-          onClick={() => setActiveTab("profesionales")}
-          className={`d-flex align-items-center gap-2 px-3.5 py-2 fw-bold rounded-xl border-0 transition-all flex-shrink-0 ${
-            activeTab === "profesionales" ? "bg-purple-600 text-white shadow-sm" : "bg-light text-muted hover-bg-gray-100"
-          }`}
-          style={{ fontSize: "13px" }}
-        >
-          <Award size={15} />
-          <span>Profesionales</span>
-        </button>
+            <button
+              onClick={() => setActiveTab("profesionales")}
+              className={`d-flex align-items-center gap-2 px-3 py-2.5 fw-bold rounded-xl border-0 transition-all text-start w-100 flex-shrink-0 ${
+                activeTab === "profesionales" ? "bg-purple-600 text-white shadow-sm" : "bg-light text-muted hover-bg-gray-100"
+              }`}
+              style={{ fontSize: "13px", minWidth: "140px" }}
+            >
+              <Award size={16} />
+              <span>Profesionales</span>
+            </button>
 
-        <button
-          onClick={() => setActiveTab("simulador")}
-          className={`d-flex align-items-center gap-2 px-3.5 py-2 fw-bold rounded-xl border-0 transition-all flex-shrink-0 ${
-            activeTab === "simulador" ? "bg-purple-600 text-white shadow-sm" : "bg-light text-muted hover-bg-gray-100"
-          }`}
-          style={{ fontSize: "13px" }}
-        >
-          <Sparkles size={15} />
-          <span>Simulador</span>
-        </button>
+            <button
+              onClick={() => setActiveTab("simulador")}
+              className={`d-flex align-items-center gap-2 px-3 py-2.5 fw-bold rounded-xl border-0 transition-all text-start w-100 flex-shrink-0 ${
+                activeTab === "simulador" ? "bg-purple-600 text-white shadow-sm" : "bg-light text-muted hover-bg-gray-100"
+              }`}
+              style={{ fontSize: "13px", minWidth: "140px" }}
+            >
+              <Sparkles size={16} />
+              <span>Simulador</span>
+            </button>
 
-        <button
-          onClick={() => setActiveTab("reportes")}
-          className={`d-flex align-items-center gap-2 px-3.5 py-2 fw-bold rounded-xl border-0 transition-all flex-shrink-0 ${
-            activeTab === "reportes" ? "bg-purple-600 text-white shadow-sm" : "bg-light text-muted hover-bg-gray-100"
-          }`}
-          style={{ fontSize: "13px" }}
-        >
-          <FileText size={15} />
-          <span>Reportes</span>
-        </button>
+            <button
+              onClick={() => setActiveTab("reportes")}
+              className={`d-flex align-items-center gap-2 px-3 py-2.5 fw-bold rounded-xl border-0 transition-all text-start w-100 flex-shrink-0 ${
+                activeTab === "reportes" ? "bg-purple-600 text-white shadow-sm" : "bg-light text-muted hover-bg-gray-100"
+              }`}
+              style={{ fontSize: "13px", minWidth: "140px" }}
+            >
+              <FileText size={16} />
+              <span>Reportes</span>
+            </button>
 
-        <button
-          onClick={() => setActiveTab("auditoria")}
-          className={`d-flex align-items-center gap-2 px-3.5 py-2 fw-bold rounded-xl border-0 transition-all flex-shrink-0 ${
-            activeTab === "auditoria" ? "bg-purple-600 text-white shadow-sm" : "bg-light text-muted hover-bg-gray-100"
-          }`}
-          style={{ fontSize: "13px" }}
-        >
-          <FileText size={15} />
-          <span>Auditoría</span>
-        </button>
-      </div>
+            <button
+              onClick={() => setActiveTab("auditoria")}
+              className={`d-flex align-items-center gap-2 px-3 py-2.5 fw-bold rounded-xl border-0 transition-all text-start w-100 flex-shrink-0 ${
+                activeTab === "auditoria" ? "bg-purple-600 text-white shadow-sm" : "bg-light text-muted hover-bg-gray-100"
+              }`}
+              style={{ fontSize: "13px", minWidth: "140px" }}
+            >
+              <FileText size={16} />
+              <span>Auditoría</span>
+            </button>
+          </div>
+        </Col>
 
-      {/* RENDERIZADO ACTIVO DE CADA MODULO ERP */}
-      {dashboardData && (
-        <div className="animate-fade-in">
-          {activeTab === "resumen" && (
-            <FinanceDashboard 
-              summary={dashboardData.summary}
-              paymentMethods={dashboardData.paymentMethods}
-              branchComparison={dashboardData.branchComparison}
-              recentTransactions={dashboardData.recentTransactions}
-              onAddExpenseClick={() => setShowExpenseModal(true)}
-            />
+        {/* CONTENIDO ACTIVO DEL ERP (Columna Derecha) */}
+        <Col lg={9} md={8} xs={12}>
+          {dashboardData && (
+            <div className="animate-fade-in">
+              {activeTab === "resumen" && (
+                <FinanceDashboard 
+                  summary={dashboardData.summary}
+                  paymentMethods={dashboardData.paymentMethods}
+                  branchComparison={dashboardData.branchComparison}
+                  recentTransactions={dashboardData.recentTransactions}
+                  onAddExpenseClick={() => setShowExpenseModal(true)}
+                />
+              )}
+
+              {activeTab === "gastos_operativos" && (
+                <OperationalExpenses 
+                  onExpenseAdded={fetchDashboardData}
+                />
+              )}
+
+              {activeTab === "gastos" && (
+                <DailyCashClosing 
+                  currentRevenue={dashboardData.summary.totalRevenues}
+                />
+              )}
+
+              {activeTab === "sueldos" && (
+                <SalaryManagement 
+                  professionalStats={dashboardData.professionalProfitability}
+                />
+              )}
+
+              {activeTab === "conciliacion" && (
+                <BankReconciliation />
+              )}
+
+              {activeTab === "servicios" && (
+                <ServiceProfitability 
+                  serviceStats={dashboardData.serviceProfitability}
+                />
+              )}
+
+              {activeTab === "profesionales" && (
+                <ProfessionalProfitability 
+                  professionalStats={dashboardData.professionalProfitability}
+                />
+              )}
+
+              {activeTab === "simulador" && (
+                <FinancialSimulator 
+                  baseRevenue={dashboardData.summary.totalRevenues}
+                  baseExpenses={dashboardData.summary.totalExpenses}
+                />
+              )}
+
+              {activeTab === "reportes" && (
+                <FinancialReports 
+                  recentTransactions={dashboardData.recentTransactions}
+                />
+              )}
+
+              {activeTab === "auditoria" && (
+                <FinancialAudit />
+              )}
+            </div>
           )}
-
-          {activeTab === "gastos_operativos" && (
-            <OperationalExpenses 
-              onExpenseAdded={fetchDashboardData}
-            />
-          )}
-
-          {activeTab === "gastos" && (
-            <DailyCashClosing 
-              currentRevenue={dashboardData.summary.totalRevenues}
-            />
-          )}
-
-          {activeTab === "sueldos" && (
-            <SalaryManagement 
-              professionalStats={dashboardData.professionalProfitability}
-            />
-          )}
-
-          {activeTab === "conciliacion" && (
-            <BankReconciliation />
-          )}
-
-          {activeTab === "servicios" && (
-            <ServiceProfitability 
-              serviceStats={dashboardData.serviceProfitability}
-            />
-          )}
-
-          {activeTab === "profesionales" && (
-            <ProfessionalProfitability 
-              professionalStats={dashboardData.professionalProfitability}
-            />
-          )}
-
-          {activeTab === "simulador" && (
-            <FinancialSimulator 
-              baseRevenue={dashboardData.summary.totalRevenues}
-              baseExpenses={dashboardData.summary.totalExpenses}
-            />
-          )}
-
-          {activeTab === "reportes" && (
-            <FinancialReports 
-              recentTransactions={dashboardData.recentTransactions}
-            />
-          )}
-
-          {activeTab === "auditoria" && (
-            <FinancialAudit />
-          )}
-        </div>
-      )}
+        </Col>
+      </Row>
 
       {/* MODAL PARA AGREGAR NUEVO EGRESO */}
       <Modal show={showExpenseModal} onHide={() => setShowExpenseModal(false)} centered className="border-0 shadow-lg">

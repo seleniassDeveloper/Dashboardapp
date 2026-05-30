@@ -1,5 +1,6 @@
 import { initializeApp, getApps } from "firebase/app";
 import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY?.trim(),
@@ -23,10 +24,12 @@ export function firebaseConfigOk() {
 }
 
 let firebaseAuth = null;
+let firestoreDb = null;
 
 if (firebaseConfigOk()) {
   const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
   firebaseAuth = getAuth(app);
+  firestoreDb = getFirestore(app);
 }
 
-export { firebaseAuth };
+export { firebaseAuth, firestoreDb };

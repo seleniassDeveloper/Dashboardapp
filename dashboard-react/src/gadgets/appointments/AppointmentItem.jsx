@@ -3,17 +3,6 @@ import React, { useMemo, useState } from "react";
 import { ListGroup, Button, Form, Modal, Badge, Alert } from "react-bootstrap";
 import { Edit2, Trash2 } from "lucide-react";
 
-// ✅ Config simple AR (solo datos de transferencia, NO afecta el teléfono)
-const PAYMENT_AR = {
-  businessName: "Tu negocio",
-  currency: "ARS",
-  alias: "TU.ALIAS.AQUI",
-  cbu: "0000000000000000000000",
-  holder: "Nombre Titular",
-  bank: "Banco",
-  mpLink: "", // opcional
-};
-
 function statusLabel(status) {
   const map = {
     CONFIRMED: "Confirmada",
@@ -80,6 +69,36 @@ export default function AppointmentItem({ appt, onEdit, onDelete, onChangeStatus
   const [pendingStatus, setPendingStatus] = useState(null);
   const [payMethod, setPayMethod] = useState("TRANSFER");
 
+  // Dynamic payment info loaded from business configuration or local storage
+  const paymentDetails = useMemo(() => {
+    const saved = localStorage.getItem("crm_payment_ar");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return {
+          businessName: appt?.business?.name || "Mi Negocio",
+          currency: "ARS",
+          alias: parsed.alias || "TU.ALIAS.AQUI",
+          cbu: parsed.cbu || "0000000000000000000000",
+          holder: parsed.holder || "Nombre Titular",
+          bank: parsed.bank || "Banco",
+          mpLink: parsed.mpLink || "",
+        };
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return {
+      businessName: appt?.business?.name || "Mi Negocio",
+      currency: "ARS",
+      alias: "TU.ALIAS.AQUI",
+      cbu: "0000000000000000000000",
+      holder: "Nombre Titular",
+      bank: "Banco",
+      mpLink: "",
+    };
+  }, [appt]);
+
   const clientName =
     appt?.client
       ? `${appt.client.firstName || ""} ${appt.client.lastName || ""}`.trim()
@@ -117,10 +136,10 @@ export default function AppointmentItem({ appt, onEdit, onDelete, onChangeStatus
       payMethod === "TRANSFER"
         ? [
             "• Transferencia:",
-            `  - Alias: ${PAYMENT_AR.alias}`,
-            PAYMENT_AR.cbu ? `  - CBU: ${PAYMENT_AR.cbu}` : null,
-            `  - Titular: ${PAYMENT_AR.holder}`,
-            PAYMENT_AR.bank ? `  - Banco: ${PAYMENT_AR.bank}` : null,
+            `  - Alias: ${paymentDetails.alias}`,
+            paymentDetails.cbu ? `  - CBU/CVU: ${paymentDetails.cbu}` : null,
+            `  - Titular: ${paymentDetails.holder}`,
+            paymentDetails.bank ? `  - Banco: ${paymentDetails.bank}` : null,
           ]
         : [];
 
@@ -135,15 +154,15 @@ export default function AppointmentItem({ appt, onEdit, onDelete, onChangeStatus
       "",
       "💳 Formas de pago:",
       ...transferLines.filter(Boolean),
-      PAYMENT_AR.mpLink ? `• Link MercadoPago: ${PAYMENT_AR.mpLink}` : null,
+      paymentDetails.mpLink ? `• Link MercadoPago: ${paymentDetails.mpLink}` : null,
       "",
       "Gracias 🙌",
-      PAYMENT_AR.businessName ? `${PAYMENT_AR.businessName}` : null,
+      paymentDetails.businessName ? `${paymentDetails.businessName}` : null,
     ].filter(Boolean);
 
     const text = msgLines.join("\n");
     return `https://wa.me/${waPhone}?text=${encodeURIComponent(text)}`;
-  }, [waPhone, clientName, serviceName, when, price, payMethod]);
+  }, [waPhone, clientName, serviceName, when, price, payMethod, paymentDetails]);
 
   const handleSelectStatus = (nextStatus) => {
     if (nextStatus === "DONE") {
@@ -291,22 +310,22 @@ export default function AppointmentItem({ appt, onEdit, onDelete, onChangeStatus
                 </div>
                 <div style={{ fontSize: 13 }}>
                   <div>
-                    <span className="text-muted">Alias:</span> <b>{PAYMENT_AR.alias}</b>
+                    <span className="text-muted">Alias:</span> <b>{paymentDetails.alias}</b>
                   </div>
                   <div>
-                    <span className="text-muted">Titular:</span> <b>{PAYMENT_AR.holder}</b>
+                    <span className="text-muted">Titular:</span> <b>{paymentDetails.holder}</b>
                   </div>
                   <div>
-                    <span className="text-muted">Banco:</span> <b>{PAYMENT_AR.bank}</b>
+                    <span className="text-muted">Banco:</span> <b>{paymentDetails.bank}</b>
                   </div>
-                  {PAYMENT_AR.cbu ? (
+                  {paymentDetails.cbu ? (
                     <div>
-                      <span className="text-muted">CBU:</span> <b>{PAYMENT_AR.cbu}</b>
+                      <span className="text-muted">CBU/CVU:</span> <b>{paymentDetails.cbu}</b>
                     </div>
                   ) : null}
-                  {PAYMENT_AR.mpLink ? (
+                  {paymentDetails.mpLink ? (
                     <div className="mt-2">
-                      <a href={PAYMENT_AR.mpLink} target="_blank" rel="noreferrer">
+                      <a href={paymentDetails.mpLink} target="_blank" rel="noreferrer">
                         Abrir link MercadoPago
                       </a>
                     </div>
@@ -317,7 +336,7 @@ export default function AppointmentItem({ appt, onEdit, onDelete, onChangeStatus
 
             {!waPhone ? (
               <Alert variant="warning" className="mb-0">
-                El cliente no tiene teléfono válido. Guardalo con código de país, por ejemplo: <b>+16263849997</b>
+                El cliente no tiene teléfono válido. Guardalo con código de país, por ejemplo: <b>+5491134922342</b>
               </Alert>
             ) : (
               <Button variant="success" onClick={sendWhatsApp}>

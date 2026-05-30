@@ -26,6 +26,7 @@ export default function FinancialReports({ recentTransactions = [] }) {
   // Export Loading States
   const [exportType, setExportType] = useState("");
   const [exportSuccess, setExportSuccess] = useState("");
+  const [hoveredExport, setHoveredExport] = useState("");
 
   useEffect(() => {
     // Fetch filter catalogs
@@ -51,24 +52,84 @@ export default function FinancialReports({ recentTransactions = [] }) {
       setExportType("");
       if (type === "print") {
         window.print();
+        setExportSuccess("¡Vista de reporte abierta en diálogo de impresión contable!");
+        setTimeout(() => setExportSuccess(""), 4000);
+        return;
+      }
+      
+      if (type === "pdf") {
+        window.print();
+        setExportSuccess("¡Diálogo de impresión y exportación a PDF abierto con éxito!");
+        setTimeout(() => setExportSuccess(""), 4000);
         return;
       }
       
       let filename = `reporte_financiero_${Date.now()}`;
-      let ext = "pdf";
-      if (type === "excel") ext = "xlsx";
-      else if (type === "csv") ext = "csv";
-      else if (type === "sheets") ext = "link";
 
       if (type === "sheets") {
         setExportSuccess("¡Reporte financiero exportado y sincronizado con tu Google Sheets con éxito!");
-      } else {
-        setExportSuccess(`¡Reporte financiero generado y descargado con éxito (${filename}.${ext})!`);
-        // Trigger dummy file download
+      } else if (type === "csv") {
+        // Generar un CSV REAL de las transacciones
+        let csvContent = "\uFEFFCliente,Servicio,Medio de Pago,Monto Cobrado\n";
+        filteredTransactions.forEach(tx => {
+          csvContent += `"${tx.clientName || "Sin Nombre"}","${tx.serviceName || "Servicio"}","${tx.paymentMethod || "Efectivo"}",${tx.amount || 0}\n`;
+        });
+        
+        setExportSuccess(`¡Reporte CSV generado y descargado con éxito (${filename}.csv)!`);
+        
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
         const element = document.createElement("a");
-        const file = new Blob(["Reporte Financiero Aura Studio ERP\nGenerado con exito"], { type: "text/plain" });
-        element.href = URL.createObjectURL(file);
-        element.download = `${filename}.${ext}`;
+        element.href = URL.createObjectURL(blob);
+        element.download = `${filename}.csv`;
+        document.body.appendChild(element);
+        element.click();
+        document.body.removeChild(element);
+      } else if (type === "excel") {
+        // Generar un Excel HTML real y estilizado para abrir en Excel sin corrupción
+        let htmlExcel = `
+          <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+          <head>
+            <meta charset="utf-8" />
+            <style>
+              table { border-collapse: collapse; font-family: Segoe UI, Arial, sans-serif; }
+              th { background-color: #7c3aed; color: #ffffff; font-weight: bold; padding: 12px; border: 1px solid #ddd; }
+              td { padding: 10px; border: 1px solid #ddd; text-align: left; }
+              .monto { text-align: right; font-weight: bold; color: #10b981; }
+            </style>
+          </head>
+          <body>
+            <h2>Reporte ERP Financiero - Aura Studio</h2>
+            <p>Generado el: ${new Date().toLocaleDateString("es-AR")} ${new Date().toLocaleTimeString("es-AR")}</p>
+            <table>
+              <thead>
+                <tr>
+                  <th>Cliente</th>
+                  <th>Servicio</th>
+                  <th>Medio de Pago</th>
+                  <th>Monto Cobrado ($)</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${filteredTransactions.map(tx => `
+                  <tr>
+                    <td>${tx.clientName || "Sin Nombre"}</td>
+                    <td>${tx.serviceName || "Servicio"}</td>
+                    <td>${tx.paymentMethod || "Efectivo"}</td>
+                    <td class="monto">$${tx.amount || 0}</td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </body>
+          </html>
+        `;
+        
+        setExportSuccess(`¡Planilla Excel (.xls) generada y descargada con éxito (${filename}.xls)!`);
+        
+        const blob = new Blob([htmlExcel], { type: "application/vnd.ms-excel;charset=utf-8;" });
+        const element = document.createElement("a");
+        element.href = URL.createObjectURL(blob);
+        element.download = `${filename}.xls`;
         document.body.appendChild(element);
         element.click();
         document.body.removeChild(element);
@@ -173,13 +234,15 @@ export default function FinancialReports({ recentTransactions = [] }) {
                   </Alert>
                 )}
 
-                <Row className="g-3 mb-4">
+                <Row className="g-3 mb-3">
                   <Col xs={6} md={3}>
                     <Button 
                       variant="outline-purple" 
                       className="w-100 p-3 rounded-2xl d-flex flex-column align-items-center justify-content-center gap-2 hover-scale shadow-sm-hover border-gray-200 bg-light-purple-hover"
                       disabled={Boolean(exportType)}
                       onClick={() => handleExport("pdf")}
+                      onMouseEnter={() => setHoveredExport("pdf")}
+                      onMouseLeave={() => setHoveredExport("")}
                     >
                       {exportType === "pdf" ? <Spinner size="sm" animation="border" /> : <FileText className="text-red-500" size={24} />}
                       <span className="fw-bold smaller text-gray-700">Exportar PDF</span>
@@ -192,6 +255,8 @@ export default function FinancialReports({ recentTransactions = [] }) {
                       className="w-100 p-3 rounded-2xl d-flex flex-column align-items-center justify-content-center gap-2 hover-scale shadow-sm-hover border-gray-200 bg-light-purple-hover"
                       disabled={Boolean(exportType)}
                       onClick={() => handleExport("excel")}
+                      onMouseEnter={() => setHoveredExport("excel")}
+                      onMouseLeave={() => setHoveredExport("")}
                     >
                       {exportType === "excel" ? <Spinner size="sm" animation="border" /> : <FileSpreadsheet className="text-emerald-500" size={24} />}
                       <span className="fw-bold smaller text-gray-700">Descargar Excel</span>
@@ -204,6 +269,8 @@ export default function FinancialReports({ recentTransactions = [] }) {
                       className="w-100 p-3 rounded-2xl d-flex flex-column align-items-center justify-content-center gap-2 hover-scale shadow-sm-hover border-gray-200 bg-light-purple-hover"
                       disabled={Boolean(exportType)}
                       onClick={() => handleExport("csv")}
+                      onMouseEnter={() => setHoveredExport("csv")}
+                      onMouseLeave={() => setHoveredExport("")}
                     >
                       {exportType === "csv" ? <Spinner size="sm" animation="border" /> : <Database className="text-blue-500" size={24} />}
                       <span className="fw-bold smaller text-gray-700">Exportar CSV</span>
@@ -216,12 +283,36 @@ export default function FinancialReports({ recentTransactions = [] }) {
                       className="w-100 p-3 rounded-2xl d-flex flex-column align-items-center justify-content-center gap-2 hover-scale shadow-sm-hover border-gray-200 bg-light-purple-hover"
                       disabled={Boolean(exportType)}
                       onClick={() => handleExport("sheets")}
+                      onMouseEnter={() => setHoveredExport("sheets")}
+                      onMouseLeave={() => setHoveredExport("")}
                     >
                       {exportType === "sheets" ? <Spinner size="sm" animation="border" /> : <FileSpreadsheet className="text-green-600 animate-pulse" size={24} />}
                       <span className="fw-bold smaller text-gray-700">Google Sheets</span>
                     </Button>
                   </Col>
                 </Row>
+
+                {/* Tarjeta de Información Dinámica con Hover */}
+                <div 
+                  className="p-3 mb-4 rounded-xl border transition-all duration-300"
+                  style={{
+                    borderColor: hoveredExport ? "#c084fc" : "#e5e7eb",
+                    background: hoveredExport ? "linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)" : "#f9fafb",
+                    minHeight: "72px"
+                  }}
+                >
+                  <div className="small fw-bold text-purple-700 mb-1 d-flex align-items-center gap-2">
+                    <Sparkles size={14} className={hoveredExport ? "animate-spin" : ""} />
+                    <span>¿Qué hace esta exportación?</span>
+                  </div>
+                  <p className="text-muted smaller mb-0 transition-all">
+                    {hoveredExport === "pdf" && "📄 Abre el diálogo de impresión del sistema y te permite descargar un Balance Contable y Auditoría en formato PDF, optimizado para presentación formal ante reguladores."}
+                    {hoveredExport === "excel" && "📊 Genera y descarga una planilla Excel (.xls) estructurada con estilos, grillas y datos organizados con los filtros contables activos."}
+                    {hoveredExport === "csv" && "🗄️ Exporta un archivo de datos delimitados por comas (.csv) en codificación universal UTF-8 con BOM, ideal para importar en otros ERPs."}
+                    {hoveredExport === "sheets" && "☁️ Sincroniza y exporta tus datos ERP directamente a una planilla compartida en Google Sheets para trabajo colaborativo en la nube."}
+                    {!hoveredExport && "💡 Posiciona el cursor sobre cualquiera de los botones para ver un resumen descriptivo del formato antes de descargarlo."}
+                  </p>
+                </div>
               </div>
 
               {/* Vista Previa de Transacciones Filtradas */}

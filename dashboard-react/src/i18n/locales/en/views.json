@@ -136,7 +136,8 @@
       "registry": "Field catalog",
       "assign": "Assign to components",
       "modules": "Active modules",
-      "booking": "Online bookings"
+      "booking": "Online bookings",
+      "users": "Collaborators & Permissions"
     },
     "workflowHint": {
       "title": "Workflows with transitions and screens",
@@ -201,5 +202,110 @@
       "subtitle": "Dashboard OS is designed to grow with you.",
       "cta": "Get started"
     }
+  },
+  "workflowsBuilder": {
+    "stats": {
+      "active": "Active Automations",
+      "total": "Total Flows",
+      "runs": "Persisted Executions",
+      "loading": "Loading automation flows..."
+    },
+    "tabs": {
+      "flows": "Configured Flows",
+      "logs": "Audit Log"
+    },
+    "empty": {
+      "title": "Create your first automation flow",
+      "subtitle": "Set up real-time triggers (appointments, stock, payments) and branch dynamic decisions to send WhatsApps, emails, or team tasks.",
+      "btn": "Design first workflow"
+    },
+    "builder": {
+      "errorSave": "Error saving automation to server.",
+      "errorFields": "Please complete the name, trigger, and at least one action.",
+      "placeholderName": "Automation name...",
+      "save": "Save Automation",
+      "saving": "Saving...",
+      "test": "Test Flow",
+      "canvasHelp": "Drag nodes to move. Connect nodes by dragging line between them.",
+      "deleteNode": "Delete Node",
+      "deleteTrans": "Delete Connection",
+      "zoom": "Zoom",
+      "close": "Close",
+      "triggerTitle": "📅 Trigger",
+      "actionTitle": "⚡ Action",
+      "logicTitle": "🧠 Logic & Control"
+    },
+    "nodes": {
+      "nueva-cita": { "name": "📅 New Appointment", "desc": "Triggers when booking an appointment." },
+      "cita-confirmada": { "name": "✅ Appointment Confirmed", "desc": "Triggers when confirming an appointment." },
+      "cita-cancelada": { "name": "❌ Appointment Cancelled", "desc": "Triggers when cancelling an appointment." },
+      "cita-finalizada": { "name": "🏁 Appointment Finished", "desc": "Triggers when marking appointment as done." },
+      "cliente-nuevo": { "name": "👤 New Client", "desc": "Triggers when creating a client." },
+      "cliente-inactivo": { "name": "⚠️ Inactive Client", "desc": "Triggers when client has no visits for 60d." },
+      "stock-bajo": { "name": "📦 Low Stock", "desc": "Triggers when stock crosses minimum level." },
+      "pago-recibido": { "name": "💸 Payment Received", "desc": "Triggers when recording a payment." },
+      "whatsapp": { "name": "📱 WhatsApp", "desc": "Sends a message via WhatsApp link." },
+      "email": { "name": "✉️ Email Message", "desc": "Sends a formal email via Gmail API." },
+      "notificacion": { "name": "🔔 Push Alert", "desc": "Displays internal bell notification." },
+      "crear-tarea": { "name": "📝 Create Task", "desc": "Assigns a team task." },
+      "condition": { "name": "🧠 Condition (IF/ELSE)", "desc": "Branches the logical path." },
+      "delay": { "name": "⏳ Delay Time", "desc": "Waits before proceeding." }
+    },
+    "inspector": {
+      "title": "Node Inspector",
+      "empty": "Select a node on the canvas to configure its parameters, thresholds, conditions, and automations.",
+      "labelName": "Node Label",
+      "labelDesc": "Description / Note",
+      "placeholderDesc": "What this step does...",
+      "messagingSection": "Messaging Settings",
+      "messageTitle": "Notification Title *",
+      "titlePlaceholder": "e.g., Appointment Confirmation",
+      "editorLabel": "Dynamic Message Template",
+      "editorPlaceholder": "Write your message here...",
+      "taskSection": "Task Settings",
+      "taskPlaceholder": "e.g., Call client to verify",
+      "taskDesc": "Task Description",
+      "conditionSection": "Conditional Branching (IF)",
+      "condLabel": "Salón Property / Field",
+      "condVip": "Is Client VIP?",
+      "condBranch": "Branch to check",
+      "condBranchVal": "Value to match",
+      "delaySection": "Execution Delay (Delay)",
+      "delayValue": "Duration",
+      "delayUnit": "Unit",
+      "unitHours": "Hours",
+      "unitDays": "Days",
+      "unitMinutes": "Minutes",
+      "tipTitle": "System Tip:",
+      "tipBody": "You can reference dynamic salon variables in any text field in the workflow. They will be computed automatically before execution."
+    },
+    "logs": {
+      "title": "Audit & Execution Ledger (Logs)",
+      "subtitle": "Track each automation in real-time with processing times and response logs.",
+      "updateBtn": "Refresh Ledger",
+      "empty": "No registered executions found in the ledger.",
+      "traceTitle": "Execution Flow Traceability (Step-by-step):",
+      "emptyTrace": "No detailed sub-logs for this execution.",
+      "successDefault": "Action completed successfully.",
+      "errorDefault": "Automation execution failed.",
+      "errorLoading": "Could not load execution logs."
+    },
+    "simulator": {
+      "title": "Live Workflow Simulator",
+      "subtitle": "Simulate live salon events to test automation logic and watch branches traverse the canvas.",
+      "triggerBtn": "Simulate Trigger",
+      "statusDraft": "Draft - Simulator Mode",
+      "statusActive": "Active - Live Mode",
+      "nodeSuccess": "Node processed successfully",
+      "nodeFail": "Node execution failed",
+      "runComplete": "Simulation finished successfully!"
+    }
+  },
+  "unauthorized": {
+    "title": "Restricted Access",
+    "subtitle": "You do not have sufficient permissions to access this section.",
+    "description": "Your current role in the business does not possess the privileges required to view this content. If you believe this is an error, please contact the account administrator or owner.",
+    "goBack": "Go Back",
+    "goHome": "Go to Dashboard"
   }
 }

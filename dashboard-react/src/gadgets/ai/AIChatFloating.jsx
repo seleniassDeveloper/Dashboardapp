@@ -4,10 +4,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, X } from "lucide-react";
 import AIChat from "./AIChat";
 import { useAiAssistantTheme } from "./useAiAssistantTheme";
+import { useTranslation } from "react-i18next";
 
 export default function AIChatFloating({ onAddWidget }) {
   const [open, setOpen] = useState(false);
   const t = useAiAssistantTheme();
+  const { i18n } = useTranslation();
+  const isEs = i18n.language === "es";
 
   // Cerrar al presionar Esc
   useEffect(() => {
@@ -74,10 +77,10 @@ export default function AIChatFloating({ onAddWidget }) {
                   </div>
                   <div>
                     <h5 className="fw-bold m-0 text-dark" style={{ fontSize: "15px" }}>
-                      Asistente IA Copilot
+                      {isEs ? "Asistente IA Copilot" : "AI Copilot Assistant"}
                     </h5>
                     <span className="text-muted" style={{ fontSize: "11px" }}>
-                      Analíticas y Configuración del Negocio
+                      {isEs ? "Analíticas y Configuración del Negocio" : "Analytics & Business Configuration"}
                     </span>
                   </div>
                 </div>
@@ -125,8 +128,8 @@ export default function AIChatFloating({ onAddWidget }) {
           cursor: "pointer",
         }}
         className="hover-scale btn-premium"
-        aria-label="Abrir Asistente Copilot"
-        title="Copilot IA"
+        aria-label={isEs ? "Abrir Asistente Copilot" : "Open Copilot Assistant"}
+        title={isEs ? "Copilot IA" : "AI Copilot"}
       >
         <Sparkles size={22} className="animate-pulse" />
       </Button>

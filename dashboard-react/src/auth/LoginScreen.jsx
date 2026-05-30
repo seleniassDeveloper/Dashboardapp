@@ -1,86 +1,22 @@
 import React, { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "./AuthProvider.jsx";
 import LanguageSwitcher from "../components/language/LanguageSwitcher.jsx";
+import { Shield } from "lucide-react";
 import "./LoginScreen.css";
 
 export default function LoginScreen() {
   const { t } = useTranslation(["auth", "common"]);
   const {
-    loginWithEmailPassword,
-    registerWithEmailPassword,
     loginWithGoogle,
-    sendPasswordReset,
     firebaseErrorMessage,
     authError,
     clearAuthError,
   } = useAuth();
 
-  const navigate = useNavigate();
-  const location = useLocation();
-  const redirectTo = location?.state?.from || "/app";
-
-  const [tab, setTab] = useState("login");
-  const [forgotOpen, setForgotOpen] = useState(false);
-
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-
-  const [rFirst, setRFirst] = useState("");
-  const [rLast, setRLast] = useState("");
-  const [rEmail, setREmail] = useState("");
-  const [rPassword, setRPassword] = useState("");
-  const [rConfirm, setRConfirm] = useState("");
-
-  const [forgotEmail, setForgotEmail] = useState("");
-  const [forgotMessage, setForgotMessage] = useState("");
-
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [errorCode, setErrorCode] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-
-  async function onLoginSubmit(e) {
-    e.preventDefault();
-    setError("");
-    setErrorCode("");
-    setSubmitting(true);
-    try {
-      await loginWithEmailPassword(email, password);
-      navigate(redirectTo, { replace: true });
-    } catch (err) {
-      console.error("Login error:", err);
-      setErrorCode(err?.code || "");
-      setError(firebaseErrorMessage(err));
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  async function onRegisterSubmit(e) {
-    e.preventDefault();
-    setError("");
-    setErrorCode("");
-    if (rPassword !== rConfirm) {
-      setError(t("register.passwordsDoNotMatch"));
-      return;
-    }
-    setSubmitting(true);
-    try {
-      await registerWithEmailPassword({
-        firstName: rFirst,
-        lastName: rLast,
-        email: rEmail,
-        password: rPassword,
-      });
-      navigate(redirectTo, { replace: true });
-    } catch (err) {
-      setErrorCode(err?.code || "");
-      setError(firebaseErrorMessage(err));
-    } finally {
-      setSubmitting(false);
-    }
-  }
 
   async function onGoogleClick() {
     setError("");
@@ -90,248 +26,75 @@ export default function LoginScreen() {
     try {
       await loginWithGoogle();
     } catch (err) {
+      console.error("Google Auth error:", err);
       setErrorCode(err?.code || "");
       setError(firebaseErrorMessage(err));
       setSubmitting(false);
     }
-  }
-
-  async function onForgotSubmit(e) {
-    e.preventDefault();
-    setError("");
-    setErrorCode("");
-    setForgotMessage("");
-    setSubmitting(true);
-    try {
-      await sendPasswordReset(forgotEmail);
-      setForgotMessage(t("forgot.checkInbox"));
-    } catch (err) {
-      setErrorCode(err?.code || "");
-      setError(firebaseErrorMessage(err));
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  if (forgotOpen) {
-    return (
-      <div className="login-container">
-        <div className="login-card">
-          <div className="login-lang-floater">
-            <LanguageSwitcher />
-          </div>
-          <div className="login-header">
-            <div className="login-logo">DS</div>
-            <h1 className="login-title">{t("forgot.title")}</h1>
-            <p className="login-subtitle">{t("forgot.subtitle")}</p>
-          </div>
-
-          <form onSubmit={onForgotSubmit}>
-            <div className="form-group">
-              <label className="form-label">{t("forgot.email")}</label>
-              <input
-                type="email"
-                className="form-input"
-                placeholder={t("forgot.emailPlaceholder")}
-                value={forgotEmail}
-                onChange={(e) => setForgotEmail(e.target.value)}
-                required
-                disabled={submitting}
-              />
-            </div>
-
-            {error && <div className="error-msg">{error}</div>}
-            {forgotMessage && <div className="success-msg">{forgotMessage}</div>}
-
-            <button type="submit" className="btn-primary-custom" disabled={submitting}>
-              {submitting ? t("forgot.submitting") : t("forgot.submit")}
-            </button>
-
-            <div className="text-center mt-4">
-              <button
-                type="button"
-                className="forgot-link"
-                onClick={() => {
-                  setForgotOpen(false);
-                  setError("");
-                }}
-              >
-                {t("forgot.back")}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    );
   }
 
   return (
-    <div className="login-container">
-      <div className="login-card">
-        <div className="login-lang-floater">
+    <div 
+      className="login-container d-flex align-items-center justify-content-center min-vh-100"
+      style={{
+        background: "radial-gradient(circle at 50% 50%, #fcfbff 0%, #f3ebff 100%)",
+        fontFamily: "'Outfit', sans-serif"
+      }}
+    >
+      <div 
+        className="login-card p-5 rounded-5 shadow-lg text-center"
+        style={{
+          background: "rgba(255, 255, 255, 0.45)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+          border: "1px solid rgba(255, 255, 255, 0.35)",
+          maxWidth: "440px",
+          width: "100%",
+          boxShadow: "0 20px 50px rgba(124, 58, 237, 0.06)",
+        }}
+      >
+        <div className="login-lang-floater" style={{ position: "absolute", top: "20px", right: "20px" }}>
           <LanguageSwitcher />
         </div>
-        <div className="login-header">
-          <div className="login-logo">DS</div>
-          <h1 className="login-title">{t("login.welcome")}</h1>
-          <p className="login-subtitle">{t("login.subtitle")}</p>
+
+        <div className="login-header mb-4">
+          <div 
+            className="login-logo mx-auto mb-3.5 d-flex align-items-center justify-content-center rounded-circle text-white shadow-sm"
+            style={{
+              width: "64px",
+              height: "64px",
+              background: "linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)",
+              boxShadow: "0 8px 20px rgba(124, 58, 237, 0.25)"
+            }}
+          >
+            <Shield size={28} />
+          </div>
+          <h1 className="fw-black text-dark h3 mb-2" style={{ letterSpacing: "-0.02em" }}>
+            Aura Studio
+          </h1>
+          <p className="text-secondary small px-3">
+            Inicia sesión de forma segura usando tu cuenta comercial de Google.
+          </p>
         </div>
 
         {(authError || error) && (
-          <div className="error-msg mb-3">{authError || error}</div>
-        )}
-
-        <div className="auth-tabs-nav">
-          <div
-            className={`auth-tab-item ${tab === "login" ? "active" : ""}`}
-            onClick={() => {
-              setTab("login");
-              setError("");
-            }}
-          >
-            {t("login.tabLogin")}
+          <div className="error-msg mb-4 p-2.5 rounded-3 text-danger small bg-danger bg-opacity-10 border border-danger border-opacity-10">
+            {authError || error}
           </div>
-          <div
-            className={`auth-tab-item ${tab === "register" ? "active" : ""}`}
-            onClick={() => {
-              setTab("register");
-              setError("");
-            }}
-          >
-            {t("login.tabRegister")}
-          </div>
-        </div>
-
-        {tab === "login" ? (
-          <form onSubmit={onLoginSubmit}>
-            <div className="form-group">
-              <label className="form-label">{t("login.email")}</label>
-              <input
-                type="email"
-                className="form-input"
-                placeholder={t("login.emailPlaceholder")}
-                autoComplete="username"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={submitting}
-              />
-            </div>
-            <div className="form-group">
-              <div className="d-flex justify-content-between align-items-center mb-1">
-                <label className="form-label mb-0">{t("login.password")}</label>
-                <button
-                  type="button"
-                  className="forgot-link"
-                  style={{ fontSize: '0.75rem' }}
-                  onClick={() => setForgotOpen(true)}
-                >
-                  {t("login.forgotPassword")}
-                </button>
-              </div>
-              <input
-                type="password"
-                className="form-input"
-                placeholder={t("login.passwordPlaceholder")}
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={submitting}
-              />
-            </div>
-
-            {error && <div className="error-msg">{error}</div>}
-
-            <button type="submit" className="btn-primary-custom" disabled={submitting}>
-              {submitting ? t("login.submitting") : t("login.submit")}
-            </button>
-          </form>
-        ) : (
-          <form onSubmit={onRegisterSubmit}>
-            <div className="row g-2">
-              <div className="col-6">
-                <div className="form-group">
-                  <label className="form-label">{t("register.firstName")}</label>
-                  <input
-                    className="form-input"
-                    value={rFirst}
-                    onChange={(e) => setRFirst(e.target.value)}
-                    placeholder={t("register.firstNamePlaceholder")}
-                    required
-                    disabled={submitting}
-                  />
-                </div>
-              </div>
-              <div className="col-6">
-                <div className="form-group">
-                  <label className="form-label">{t("register.lastName")}</label>
-                  <input
-                    className="form-input"
-                    value={rLast}
-                    onChange={(e) => setRLast(e.target.value)}
-                    placeholder={t("register.lastNamePlaceholder")}
-                    required
-                    disabled={submitting}
-                  />
-                </div>
-              </div>
-            </div>
-            <div className="form-group">
-              <label className="form-label">{t("register.email")}</label>
-              <input
-                type="email"
-                className="form-input"
-                value={rEmail}
-                onChange={(e) => setREmail(e.target.value)}
-                placeholder={t("register.emailPlaceholder")}
-                required
-                disabled={submitting}
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">{t("register.password")}</label>
-              <input
-                type="password"
-                className="form-input"
-                value={rPassword}
-                onChange={(e) => setRPassword(e.target.value)}
-                placeholder={t("register.passwordHint")}
-                required
-                minLength={6}
-                disabled={submitting}
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">{t("register.confirmPassword")}</label>
-              <input
-                type="password"
-                className="form-input"
-                value={rConfirm}
-                onChange={(e) => setRConfirm(e.target.value)}
-                placeholder={t("register.confirmPasswordPlaceholder")}
-                required
-                disabled={submitting}
-              />
-            </div>
-
-            {error && <div className="error-msg">{error}</div>}
-
-            <button type="submit" className="btn-primary-custom" disabled={submitting}>
-              {submitting ? t("register.submitting") : t("register.submit")}
-            </button>
-          </form>
         )}
-
-        <div className="divider">
-          <span>{t("login.continueWith")}</span>
-        </div>
 
         <button
           type="button"
-          className="btn-google"
+          className="btn-google w-100 py-3 rounded-pill d-flex align-items-center justify-content-center gap-2 border shadow-sm fw-bold transition-all hover-scale-subtle"
           onClick={onGoogleClick}
           disabled={submitting}
+          style={{
+            background: "#ffffff",
+            borderColor: "rgba(0, 0, 0, 0.08)",
+            color: "#1e1b4b",
+            fontSize: "14px",
+            transition: "all 0.2s ease"
+          }}
         >
           <svg width="20" height="20" viewBox="0 0 24 24">
             <path
@@ -351,22 +114,20 @@ export default function LoginScreen() {
               d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 12-4.53z"
             />
           </svg>
-          {submitting ? t("login.googleRedirecting") : t("login.google")}
+          {submitting ? "Redireccionando a Google..." : "Iniciar sesión con Google"}
         </button>
 
         {errorCode === "auth/unauthorized-domain" && (
           <div
-            className="error-msg mt-3"
-            style={{ background: "rgba(251, 191, 36, 0.1)", color: "#fbbf24", borderColor: "rgba(251, 191, 36, 0.2)" }}
+            className="error-msg mt-4 p-2.5 rounded-3 text-warning small"
+            style={{ background: "rgba(251, 191, 36, 0.1)", color: "#d97706", borderColor: "rgba(251, 191, 36, 0.2)" }}
             dangerouslySetInnerHTML={{ __html: t("errors.unauthorizedDomain") }}
           />
         )}
 
-        {errorCode === "auth/operation-not-allowed" && (
-          <div className="error-msg mt-3" style={{ background: 'rgba(251, 191, 36, 0.1)', color: '#fbbf24', borderColor: 'rgba(251, 191, 36, 0.2)' }}>
-            {t("errors.operationNotAllowed")}
-          </div>
-        )}
+        <div className="mt-4 pt-3.5 border-top border-opacity-10 text-muted" style={{ fontSize: "11px", letterSpacing: "0.01em" }}>
+          Al ingresar aceptas los términos de servicio y políticas de seguridad de datos.
+        </div>
       </div>
     </div>
   );

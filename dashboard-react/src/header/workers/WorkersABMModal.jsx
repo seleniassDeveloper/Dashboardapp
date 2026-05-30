@@ -27,6 +27,8 @@ function normalizeWorker(raw) {
     id: String(w.id || ""),
     firstName: w.firstName || "",
     lastName: w.lastName || "",
+    email: w.email || "",
+    phone: w.phone || "",
     schedules: safeArray(w.schedules).map((sc) => ({
       dayOfWeek: Number(sc?.dayOfWeek) || 0,
       startTime: sc?.startTime || "09:00",
@@ -116,8 +118,9 @@ export default function WorkersABMModal({ show, onHide }) {
 
     return workers.filter((w) => {
       const name = `${w.firstName} ${w.lastName}`.toLowerCase();
+      const email = (w.email || "").toLowerCase();
       const svcs = safeArray(w.services).map((s) => s.name.toLowerCase()).join(" ");
-      return name.includes(term) || svcs.includes(term);
+      return name.includes(term) || email.includes(term) || svcs.includes(term);
     });
   }, [workers, q]);
 
@@ -146,6 +149,8 @@ export default function WorkersABMModal({ show, onHide }) {
       id: w.id,
       firstName: w.firstName,
       lastName: w.lastName,
+      email: w.email,
+      phone: w.phone,
       serviceIds: safeArray(w.services).map((s) => s.id).filter(Boolean),
       schedules: safeArray(w.schedules),
     });
@@ -285,7 +290,12 @@ export default function WorkersABMModal({ show, onHide }) {
                         <div className="fw-semibold">
                           {w.firstName} {w.lastName}
                         </div>
-                        <div className="text-muted" style={{ fontSize: 12 }}>
+                        {w.email && (
+                          <div className="text-muted" style={{ fontSize: 11.5 }}>
+                            {w.email}
+                          </div>
+                        )}
+                        <div className="text-muted" style={{ fontSize: 10, opacity: 0.7 }}>
                           ID: {w.id.slice(0, 8)}…
                         </div>
                       </td>

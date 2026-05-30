@@ -111,7 +111,7 @@ export default function FieldRegistryEditor() {
           {visible.map((field, index) => {
             const realIndex = fields.findIndex((f) => f.id === field.id);
             return (
-              <div key={field.id} className="p-3 border rounded-3">
+              <div key={`registry-field-${field.id || index}-${index}`} className="p-3 border rounded-3">
                 <div className="d-flex gap-2 mb-2 flex-wrap">
                   <Badge bg={field.system ? "secondary" : "primary"}>
                     {field.system ? "Sistema" : "Custom"}

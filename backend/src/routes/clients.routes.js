@@ -6,13 +6,14 @@ import {
   updateClient,
   deleteClient,
 } from "../controllers/clients.controller.js";
+import { requirePermission } from "../middleware/rbac.middleware.js";
 
 const router = Router();
 
-router.get("/", listClients);
-router.get("/:id/appointments", getClientAppointments);
-router.post("/", createClient);
-router.put("/:id", updateClient);
-router.delete("/:id", deleteClient);
+router.get("/", requirePermission(["clients.view.all", "clients.view.assigned"]), listClients);
+router.get("/:id/appointments", requirePermission(["clients.view.all", "clients.view.assigned"]), getClientAppointments);
+router.post("/", requirePermission("clients.create"), createClient);
+router.put("/:id", requirePermission("clients.edit"), updateClient);
+router.delete("/:id", requirePermission("clients.delete"), deleteClient);
 
 export default router;

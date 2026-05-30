@@ -39,6 +39,13 @@ function currency(n) {
 export default function DashboardView() {
   const { brand } = useBrand();
   const { t, i18n } = useTranslation(["dashboard", "common"]);
+  const isEs = i18n.language === "es";
+
+  const currency = (n) => new Intl.NumberFormat(isEs ? "es-AR" : "en-US", {
+    style: "currency",
+    currency: isEs ? "ARS" : "USD",
+    maximumFractionDigits: 0,
+  }).format(n || 0);
 
   const [widgets, setWidgets] = useState([]);
   const [appointments, setAppointments] = useState([]);
@@ -203,7 +210,7 @@ export default function DashboardView() {
       topWorkerName,
       topWorkerCount,
     };
-  }, [appointments, clients]);
+  }, [appointments, clients, t]);
 
   // --- Filtrado Reactivo de Citas y Clientes por Búsqueda ---
   const filteredAppointments = useMemo(() => {

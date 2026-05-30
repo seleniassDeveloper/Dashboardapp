@@ -5,6 +5,7 @@ import {
   UserPlus, DollarSign, Package, AlertCircle, 
   Trash2, Mail, Bell, ClipboardList, CheckSquare 
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 const NODE_COLORS = {
   trigger: {
@@ -73,6 +74,9 @@ export default function WorkflowNode({
   onDragStart,
   isExecuting 
 }) {
+  const { t, i18n } = useTranslation("views");
+  const isEs = i18n.language === "es";
+
   const meta = NODE_COLORS[node.type] || NODE_COLORS.action;
   const Icon = ICON_MAP[node.subtype] || (node.type === "trigger" ? Zap : node.type === "condition" ? GitFork : Clock);
 
@@ -130,13 +134,13 @@ export default function WorkflowNode({
       {/* Node Body */}
       <div className="p-3 bg-white rounded-b-2xl small" style={{ fontSize: "11.5px" }}>
         <p className="text-muted mb-0 fw-medium" style={{ lineHeight: "1.4" }}>
-          {node.description || "Sin descripción de parámetros."}
+          {node.description || (isEs ? "Sin descripción de parámetros." : "No parameter description set.")}
         </p>
 
         {node.type === "condition" && (
           <div className="d-flex justify-content-between mt-2.5 pt-2 border-top text-muted font-bold">
-            <span className="text-success d-flex align-items-center gap-1">🟢 SÍ</span>
-            <span className="text-danger d-flex align-items-center gap-1">🔴 NO</span>
+            <span className="text-success d-flex align-items-center gap-1">{isEs ? "🟢 SÍ" : "🟢 YES"}</span>
+            <span className="text-danger d-flex align-items-center gap-1">{isEs ? "🔴 NO" : "🔴 NO"}</span>
           </div>
         )}
       </div>

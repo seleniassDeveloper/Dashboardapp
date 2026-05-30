@@ -4,6 +4,7 @@ import {
   GitBranch, Play, Save, X, Plus, Sparkles, 
   Terminal, ShieldAlert, Layers, HelpCircle, Bot 
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import WorkflowCanvas from "./WorkflowCanvas.jsx";
 import WorkflowInspector from "./WorkflowInspector.jsx";
 import WorkflowSimulator from "./WorkflowSimulator.jsx";
@@ -39,6 +40,9 @@ export default function WorkflowBuilder({
   initialData = null,
   onSaved
 }) {
+  const { t, i18n } = useTranslation("views");
+  const isEs = i18n.language === "es";
+
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState("DRAFT");
@@ -83,25 +87,25 @@ export default function WorkflowBuilder({
         const builtNodes = [
           { 
             id: "node-trigger", 
-            name: "⚡ Disparador", 
+            name: t("workflowsBuilder.builder.triggerTitle", { defaultValue: "⚡ Disparador" }), 
             type: "trigger", 
             subtype: triggerType, 
             x: 100, 
             y: 200, 
-            description: "Carga de disparo del sistema" 
+            description: isEs ? "Carga de disparo del sistema" : "System trigger payload" 
           }
         ];
 
         stepsList.forEach((s, idx) => {
           builtNodes.push({
             id: s.id || `node-${idx + 1}`,
-            name: s.name || `Paso ${idx + 1}`,
+            name: s.name || `${isEs ? "Paso" : "Step"} ${idx + 1}`,
             type: "action",
             subtype: s.type || "whatsapp",
             x: 100 + (idx + 1) * 300,
             y: 200,
             config: s.config || {},
-            description: s.description || "Acción del flujo"
+            description: s.description || (isEs ? "Acción del flujo" : "Flow action")
           });
         });
 
@@ -126,12 +130,12 @@ export default function WorkflowBuilder({
       setNodes([
         { 
           id: "trigger-1", 
-          name: "📅 Nueva Cita", 
+          name: t("workflowsBuilder.nodes.nueva-cita.name", { defaultValue: "📅 Nueva Cita" }), 
           type: "trigger", 
           subtype: "nueva-cita", 
           x: 120, 
           y: 220, 
-          description: "Se ejecuta al agendar cita." 
+          description: t("workflowsBuilder.nodes.nueva-cita.desc", { defaultValue: "Se ejecuta al agendar cita." }) 
         }
       ]);
       setTransitions([]);
@@ -156,18 +160,18 @@ export default function WorkflowBuilder({
     const newId = `${comp.type}_${Date.now()}`;
     const newNode = {
       id: newId,
-      name: comp.name,
+      name: t(`workflowsBuilder.nodes.${comp.subtype}.name`, { defaultValue: comp.name }),
       type: comp.type,
       subtype: comp.subtype,
       x: 350 + Math.floor(Math.random() * 80),
       y: 200 + Math.floor(Math.random() * 80),
-      description: comp.desc,
+      description: t(`workflowsBuilder.nodes.${comp.subtype}.desc`, { defaultValue: comp.desc }),
       config: comp.subtype === "whatsapp" || comp.subtype === "email" 
-        ? { message: "Hola {{cliente}}! Tu cita de {{servicio}} con {{profesional}} está confirmada." }
+        ? { message: isEs ? "Hola {{cliente}}! Tu cita de {{servicio}} con {{profesional}} está confirmada." : "Hi {{cliente}}! Your appointment for {{servicio}} with {{profesional}} is confirmed." }
         : comp.subtype === "condition"
           ? { property: "cliente.vip", operator: "==", value: "true" }
           : comp.subtype === "delay"
-            ? { timeValue: 2, timeUnit: "horas" }
+            ? { timeValue: 2, timeUnit: isEs ? "horas" : "hours" }
             : {}
     };
 
@@ -224,13 +228,13 @@ export default function WorkflowBuilder({
   // Save visual nodes to relational database format
   const handleSaveWorkflow = async () => {
     if (!name.trim()) {
-      setError("Por favor escribe el nombre del workflow.");
+      setError(isEs ? "Por favor escribe el nombre del workflow." : "Please enter the workflow name.");
       return;
     }
 
     const triggerNode = nodes.find(n => n.type === "trigger");
     if (!triggerNode) {
-      setError("El workflow debe tener al menos un nodo Disparador (Trigger).");
+      setError(isEs ? "El workflow debe tener al menos un nodo Disparador (Trigger)." : "The workflow must have at least one Trigger node.");
       return;
     }
 
@@ -256,12 +260,12 @@ export default function WorkflowBuilder({
       const url = isEdit ? `/workflows/${initialData.id}` : `/workflows`;
       const res = isEdit ? await api.put(url, payload) : await api.post(url, payload);
 
-      setSuccessMsg("¡Workflow guardado con éxito en Neon PostgreSQL!");
+      setSuccessMsg(isEs ? "¡Workflow guardado con éxito!" : "Workflow saved successfully!");
       onSaved?.(res.data);
       setTimeout(() => onHide(), 1000);
     } catch (err) {
       console.error(err);
-      setError("Error al guardar la automatización en el servidor.");
+      setError(t("workflowsBuilder.builder.errorSave", { defaultValue: "Error al guardar la automatización en el servidor." }));
     } finally {
       setSaving(false);
     }
@@ -285,7 +289,7 @@ export default function WorkflowBuilder({
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Nombre de la automatización..."
+                placeholder={t("workflowsBuilder.builder.placeholderName", { defaultValue: "Nombre de la automatización..." })}
                 className="fw-black text-gray-900 border-0 p-0 fs-5 border-hover-bottom"
                 style={{ width: "320px", background: "transparent", borderBottom: "2px solid transparent" }}
               />
@@ -293,7 +297,7 @@ export default function WorkflowBuilder({
                 type="text"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Escribe una breve descripción del flujo..."
+                placeholder={isEs ? "Escribe una breve descripción del flujo..." : "Write a brief description of the flow..."}
                 className="text-muted border-0 p-0 smaller mt-0.5"
                 style={{ width: "400px", background: "transparent" }}
               />
@@ -307,9 +311,9 @@ export default function WorkflowBuilder({
               className="rounded-xl border-gray-200 py-1.5 fw-bold text-gray-700 small"
               style={{ width: "130px" }}
             >
-              <option value="DRAFT">📋 Borrador</option>
-              <option value="ACTIVE">🟢 Activo</option>
-              <option value="PAUSED">🟡 Pausado</option>
+              <option value="DRAFT">📋 {isEs ? "Borrador" : "Draft"}</option>
+              <option value="ACTIVE">🟢 {isEs ? "Activo" : "Active"}</option>
+              <option value="PAUSED">🟡 {isEs ? "Pausado" : "Paused"}</option>
             </Form.Select>
 
             <Button
@@ -318,7 +322,7 @@ export default function WorkflowBuilder({
               className="rounded-xl px-3 py-1.5 fw-bold text-purple-700 border-purple-300 hover-bg-purple-50 d-flex align-items-center gap-1.5 small"
             >
               <Play size={14} />
-              <span>Probar</span>
+              <span>{t("workflowsBuilder.builder.test", { defaultValue: "Probar" })}</span>
             </Button>
 
             <Button
@@ -328,7 +332,7 @@ export default function WorkflowBuilder({
               className="rounded-xl px-4 py-1.5 fw-bold text-white bg-purple-600 hover-bg-purple-700 border-0 d-flex align-items-center gap-1.5 shadow-sm small"
             >
               <Save size={14} />
-              <span>Guardar</span>
+              <span>{saving ? t("workflowsBuilder.builder.saving", { defaultValue: "Guardando..." }) : t("workflowsBuilder.builder.save", { defaultValue: "Guardar" })}</span>
             </Button>
 
             <button 
@@ -350,24 +354,24 @@ export default function WorkflowBuilder({
           <Col lg={3} md={4} className="h-100 d-flex flex-column" style={{ overflow: "hidden" }}>
             <Card className="card-premium border-0 shadow-sm bg-white p-3 rounded-2xl h-100 d-flex flex-column" style={{ overflow: "hidden" }}>
               <div className="fw-black text-gray-900 small mb-3 px-1 text-uppercase tracking-wider" style={{ fontSize: "10.5px" }}>
-                Nodos del Constructor
+                {isEs ? "Nodos del Constructor" : "Constructor Nodes"}
               </div>
 
               <div className="flex-grow-1 overflow-auto pe-1 scrollbar-none" style={{ overflowY: "auto" }}>
                 {/* CATEGORÍA 1: TRIGGERS */}
                 <div className="mb-3.5">
                   <span className="smaller text-orange-600 fw-bold px-1 text-uppercase tracking-wider d-block mb-2" style={{ fontSize: "8.5px" }}>
-                    ⚡ Disparadores (Triggers)
+                    {t("workflowsBuilder.builder.triggerTitle", { defaultValue: "⚡ Disparadores (Triggers)" })}
                   </span>
                   <div className="d-flex flex-column gap-1.5">
-                    {SYNC_TRIGGERS.map((t) => (
+                    {SYNC_TRIGGERS.map((tItem) => (
                       <button
-                        key={t.subtype}
-                        onClick={() => handleAddComponent(t)}
+                        key={tItem.subtype}
+                        onClick={() => handleAddComponent(tItem)}
                         className="btn btn-outline-orange w-100 rounded-xl px-2.5 py-1.8 text-start small border-orange-200 hover-bg-orange-50 d-grid gap-0.5"
                       >
-                        <strong className="text-gray-800" style={{ fontSize: "11.5px" }}>{t.name}</strong>
-                        <span className="smaller text-muted" style={{ fontSize: "9.5px", lineHeight: "1.2" }}>{t.desc}</span>
+                        <strong className="text-gray-800" style={{ fontSize: "11.5px" }}>{t(`workflowsBuilder.nodes.${tItem.subtype}.name`, { defaultValue: tItem.name })}</strong>
+                        <span className="smaller text-muted" style={{ fontSize: "9.5px", lineHeight: "1.2" }}>{t(`workflowsBuilder.nodes.${tItem.subtype}.desc`, { defaultValue: tItem.desc })}</span>
                       </button>
                     ))}
                   </div>
@@ -376,7 +380,7 @@ export default function WorkflowBuilder({
                 {/* CATEGORÍA 2: ACTIONS */}
                 <div className="mb-3.5">
                   <span className="smaller text-purple-600 fw-bold px-1 text-uppercase tracking-wider d-block mb-2" style={{ fontSize: "8.5px" }}>
-                    🟢 Acciones del Sistema
+                    {t("workflowsBuilder.builder.actionTitle", { defaultValue: "🟢 Acciones del Sistema" })}
                   </span>
                   <div className="d-flex flex-column gap-1.5">
                     {SYNC_ACTIONS.map((a) => (
@@ -385,8 +389,8 @@ export default function WorkflowBuilder({
                         onClick={() => handleAddComponent(a)}
                         className="btn btn-outline-purple w-100 rounded-xl px-2.5 py-1.8 text-start small border-purple-200 hover-bg-purple-50 d-grid gap-0.5"
                       >
-                        <strong className="text-gray-800" style={{ fontSize: "11.5px" }}>{a.name}</strong>
-                        <span className="smaller text-muted" style={{ fontSize: "9.5px", lineHeight: "1.2" }}>{a.desc}</span>
+                        <strong className="text-gray-800" style={{ fontSize: "11.5px" }}>{t(`workflowsBuilder.nodes.${a.subtype}.name`, { defaultValue: a.name })}</strong>
+                        <span className="smaller text-muted" style={{ fontSize: "9.5px", lineHeight: "1.2" }}>{t(`workflowsBuilder.nodes.${a.subtype}.desc`, { defaultValue: a.desc })}</span>
                       </button>
                     ))}
                   </div>
@@ -395,7 +399,7 @@ export default function WorkflowBuilder({
                 {/* CATEGORÍA 3: LOGICS */}
                 <div>
                   <span className="smaller text-amber-600 fw-bold px-1 text-uppercase tracking-wider d-block mb-2" style={{ fontSize: "8.5px" }}>
-                    🔀 Control de Flujo
+                    {t("workflowsBuilder.builder.logicTitle", { defaultValue: "🔀 Control de Flujo" })}
                   </span>
                   <div className="d-flex flex-column gap-1.5">
                     {SYNC_LOGIC.map((l) => (
@@ -404,8 +408,8 @@ export default function WorkflowBuilder({
                         onClick={() => handleAddComponent(l)}
                         className="btn btn-outline-amber w-100 rounded-xl px-2.5 py-1.8 text-start small border-amber-200 hover-bg-amber-50 d-grid gap-0.5"
                       >
-                        <strong className="text-gray-800" style={{ fontSize: "11.5px" }}>{l.name}</strong>
-                        <span className="smaller text-muted" style={{ fontSize: "9.5px", lineHeight: "1.2" }}>{l.desc}</span>
+                        <strong className="text-gray-800" style={{ fontSize: "11.5px" }}>{t(`workflowsBuilder.nodes.${l.subtype}.name`, { defaultValue: l.name })}</strong>
+                        <span className="smaller text-muted" style={{ fontSize: "9.5px", lineHeight: "1.2" }}>{t(`workflowsBuilder.nodes.${l.subtype}.desc`, { defaultValue: l.desc })}</span>
                       </button>
                     ))}
                   </div>

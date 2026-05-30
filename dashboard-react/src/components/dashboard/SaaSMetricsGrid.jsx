@@ -1,5 +1,6 @@
 import React from "react";
 import { ArrowUpRight, ArrowDownRight, Minus, Calendar, CreditCard, Users, XCircle, Percent, Award } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export default function SaaSMetricsGrid({
   stats = {},
@@ -8,6 +9,8 @@ export default function SaaSMetricsGrid({
   clients = [],
   workers = []
 }) {
+  const { i18n } = useTranslation("dashboard");
+  const isEs = i18n.language === "es";
   // Datos formateados de stats
   const apptsToday = stats.apptsTodayCount ?? 0;
   const revenueToday = stats.revenueToday ?? 0;
@@ -146,13 +149,13 @@ export default function SaaSMetricsGrid({
   const activeAppts = appointments.filter((a) => a.status !== "CANCELLED");
   const totalActiveCount = activeAppts.length;
   const topWorkerCount = stats.topWorkerCount ?? 0;
-  const topWorkerFullName = stats.topWorkerName && stats.topWorkerName !== "Ninguno" 
+  const topWorkerFullName = stats.topWorkerName && stats.topWorkerName !== "Ninguno" && stats.topWorkerName !== "None"
     ? stats.topWorkerName 
     : "Andrea";
   const topWorkerFirstName = topWorkerFullName.split(" ")[0];
 
   const getInitials = (name) => {
-    if (!name || name === "Ninguno") return "AN";
+    if (!name || name === "Ninguno" || name === "None") return "AN";
     const parts = name.split(" ");
     if (parts.length >= 2) {
       return (parts[0][0] + parts[1][0]).toUpperCase();
@@ -168,9 +171,9 @@ export default function SaaSMetricsGrid({
     othersPercent = 100 - topWorkerPercent;
   }
 
-  const formattedRevenue = revenueToday === 0 ? "$0" : new Intl.NumberFormat("es-AR", {
+  const formattedRevenue = revenueToday === 0 ? "$0" : new Intl.NumberFormat(isEs ? "es-AR" : "en-US", {
     style: "currency",
-    currency: "ARS",
+    currency: isEs ? "ARS" : "USD",
     maximumFractionDigits: 0,
   }).format(revenueToday);
 
@@ -219,7 +222,7 @@ export default function SaaSMetricsGrid({
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", width: "100%" }}>
             <div>
               <div style={{ fontSize: "10px", color: "#6b7280", fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-                Citas Hoy
+                {isEs ? "Citas Hoy" : "Appointments Today"}
               </div>
               <h2 style={{ fontSize: "32px", color: "#111827", fontWeight: 500, margin: "6px 0 0 0", letterSpacing: "-0.02em" }}>
                 {apptsToday}
@@ -243,7 +246,7 @@ export default function SaaSMetricsGrid({
           {/* Mini gráfica de línea azul con punto hueco */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "16px", width: "100%" }}>
             <span style={{ fontSize: "11px", color: "#6b7280", fontWeight: 400 }}>
-              Lun → Hoy {apptsToday}
+              {isEs ? `Lun → Hoy ${apptsToday}` : `Mon → Today ${apptsToday}`}
             </span>
             <div style={{ width: "80px", height: "25px" }}>
               <svg width="80" height="25" viewBox="0 0 80 25">
@@ -273,7 +276,7 @@ export default function SaaSMetricsGrid({
               }}
             >
               <Minus size={11} style={{ marginRight: "4px" }} />
-              0% vs ayer
+              {isEs ? "0% vs ayer" : "0% vs yesterday"}
             </span>
           </div>
         </div>
@@ -294,7 +297,7 @@ export default function SaaSMetricsGrid({
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", width: "100%" }}>
             <div>
               <div style={{ fontSize: "10px", color: "#6b7280", fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-                Ingresos Hoy
+                {isEs ? "Ingresos Hoy" : "Today's Revenue"}
               </div>
               <h2 style={{ fontSize: "32px", color: "#111827", fontWeight: 500, margin: "6px 0 0 0", letterSpacing: "-0.02em" }}>
                 {formattedRevenue}
@@ -318,7 +321,7 @@ export default function SaaSMetricsGrid({
           {/* Mini gráfica de área verde */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "16px", width: "100%" }}>
             <span style={{ fontSize: "11px", color: "#6b7280", fontWeight: 400 }}>
-              Lun → Hoy {formattedRevenue}
+              {isEs ? `Lun → Hoy ${formattedRevenue}` : `Mon → Today ${formattedRevenue}`}
             </span>
             <div style={{ width: "80px", height: "25px" }}>
               <svg width="80" height="25" viewBox="0 0 80 25">
@@ -356,7 +359,7 @@ export default function SaaSMetricsGrid({
               }}
             >
               <Minus size={11} style={{ marginRight: "4px" }} />
-              0% vs ayer
+              {isEs ? "0% vs ayer" : "0% vs yesterday"}
             </span>
           </div>
         </div>
@@ -377,7 +380,7 @@ export default function SaaSMetricsGrid({
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", width: "100%" }}>
             <div>
               <div style={{ fontSize: "10px", color: "#6b7280", fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-                Clientes Activos
+                {isEs ? "Clientes Activos" : "Active Clients"}
               </div>
               <h2 style={{ fontSize: "32px", color: "#111827", fontWeight: 500, margin: "6px 0 0 0", letterSpacing: "-0.02em" }}>
                 {clientsCount}
@@ -401,7 +404,7 @@ export default function SaaSMetricsGrid({
           {/* Barras verticales ascendentes moradas */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "16px", width: "100%" }}>
             <span style={{ fontSize: "11px", color: "#6b7280", fontWeight: 400 }}>
-              Hace 6m → Hoy ({clientsCount})
+              {isEs ? `Hace 6m → Hoy (${clientsCount})` : `6m ago → Today (${clientsCount})`}
             </span>
             <div style={{ width: "80px", height: "25px", display: "flex", alignItems: "end", justifyContent: "space-between" }}>
               {barHeights.map((h, i) => (
@@ -445,7 +448,7 @@ export default function SaaSMetricsGrid({
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", width: "100%" }}>
             <div>
               <div style={{ fontSize: "10px", color: "#6b7280", fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-                Cancelaciones
+                {isEs ? "Cancelaciones" : "Cancellations"}
               </div>
               <h2 style={{ fontSize: "32px", color: "#111827", fontWeight: 500, margin: "6px 0 0 0", letterSpacing: "-0.02em" }}>
                 {cancellationsToday}
@@ -469,7 +472,7 @@ export default function SaaSMetricsGrid({
           {/* Barras verticales irregulares en rojo/rosa, hoy casi en cero */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "16px", width: "100%" }}>
             <span style={{ fontSize: "11px", color: "#6b7280", fontWeight: 400 }}>
-              Lun → Hoy {cancellationsToday}
+              {isEs ? `Lun → Hoy ${cancellationsToday}` : `Mon → Today ${cancellationsToday}`}
             </span>
             <div style={{ width: "80px", height: "25px", display: "flex", alignItems: "end", justifyContent: "space-between" }}>
               {cancelBarHeights.map((h, i) => (
@@ -492,7 +495,7 @@ export default function SaaSMetricsGrid({
               }}
             >
               <Minus size={11} style={{ marginRight: "4px" }} />
-              0% hoy
+              {isEs ? "0% hoy" : "0% today"}
             </span>
           </div>
         </div>
@@ -513,7 +516,7 @@ export default function SaaSMetricsGrid({
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", width: "100%" }}>
             <div>
               <div style={{ fontSize: "10px", color: "#6b7280", fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-                Ocupación
+                {isEs ? "Ocupación" : "Occupancy"}
               </div>
               <h2 style={{ fontSize: "32px", color: "#111827", fontWeight: 500, margin: "6px 0 0 0", letterSpacing: "-0.02em" }}>
                 {occupancyRate}%
@@ -539,11 +542,11 @@ export default function SaaSMetricsGrid({
             <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "10px", color: "#6b7280", fontWeight: 400 }}>
                 <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#f97316" }}></span>
-                <span>Ocupado</span>
+                <span>{isEs ? "Ocupado" : "Occupied"}</span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "10px", color: "#6b7280", fontWeight: 400 }}>
                 <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#d1d5db" }}></span>
-                <span>Disponible</span>
+                <span>{isEs ? "Disponible" : "Available"}</span>
               </div>
             </div>
             <div style={{ width: "32px", height: "32px" }}>
@@ -599,7 +602,7 @@ export default function SaaSMetricsGrid({
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", width: "100%" }}>
             <div>
               <div style={{ fontSize: "10px", color: "#6b7280", fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-                Colaborador Top
+                {isEs ? "Colaborador Top" : "Top Performer"}
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "6px" }}>
                 <div
@@ -647,7 +650,7 @@ export default function SaaSMetricsGrid({
             </div>
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "#6b7280", marginBottom: "2px", fontWeight: 400 }}>
-                <span>Otros</span>
+                <span>{isEs ? "Otros" : "Others"}</span>
                 <span>{othersPercent}%</span>
               </div>
               <div style={{ width: "100%", height: "4px", background: "#e5e7eb", borderRadius: "9999px" }}>

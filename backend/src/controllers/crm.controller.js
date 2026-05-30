@@ -227,9 +227,21 @@ export async function getClientCRMProfile(req, res) {
         }
       });
     });
-
     // Sort timeline descending by date
     timeline.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    // Validaciones de seguridad para protección de campos sensibles
+    const userRole = req.user?.role || "";
+    const userPermissions = req.user?.permissions || [];
+
+    const hasPrivateNotesView = userRole === "owner" || userPermissions.includes("clients.privateNotes.view");
+    const hasFinancialHistoryView = userRole === "owner" || userPermissions.includes("clients.financialHistory.view");
+
+    // Filtrar timeline (remover notas clínicas si no tiene permiso)
+    const filteredTimeline = timeline.filter(item => {
+      if (item.type === "clinical_note") return hasPrivateNotesView;
+      return true;
+    });
 
     // Response profile
     const profile = {
@@ -245,8 +257,8 @@ export async function getClientCRMProfile(req, res) {
       metrics: {
         loyaltyStatus,
         totalVisits,
-        totalSpent,
-        avgTicket,
+        totalSpent: hasFinancialHistoryView ? totalSpent : null,
+        avgTicket: hasFinancialHistoryView ? avgTicket : null,
         visitFrequencyDays,
         favoriteProfessional,
         favoriteService,
@@ -254,8 +266,8 @@ export async function getClientCRMProfile(req, res) {
         daysSinceLastVisit,
         upcomingVisitsCount: upcomingAppointments.length,
       },
-      timeline,
-      clinicalHistory: client.clinicalNotes,
+      timeline: filteredTimeline,
+      clinicalHistory: hasPrivateNotesView ? client.clinicalNotes : [],
       gallery: client.appointmentPhotos,
     };
 

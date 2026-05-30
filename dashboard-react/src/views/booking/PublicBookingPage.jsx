@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Container, Row, Col, Card, Button, Form, Spinner, Alert } from "react-bootstrap";
-import { Calendar, User, Clock, CheckCircle2, ChevronRight, ArrowLeft, Heart } from "lucide-react";
+import { Container, Row, Col, Card, Button, Form, Spinner, Alert, Modal, InputGroup } from "react-bootstrap";
+import { 
+  Calendar, User, Clock, CheckCircle2, ChevronRight, ArrowLeft, Heart, 
+  ShieldCheck, CreditCard, Lock, MessageSquare, Mail, Award, CheckCircle, 
+  HelpCircle, Eye, EyeOff, Globe, Sparkles 
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "../../components/language/LanguageSwitcher.jsx";
 import api from "../../lib/api.js";
@@ -17,7 +21,8 @@ function useCurrency() {
 }
 
 export default function PublicBookingPage() {
-  const { t } = useTranslation("booking");
+  const { t, i18n } = useTranslation("booking");
+  const isEs = i18n.language === "es";
   const currency = useCurrency();
   const { businessSlug } = useParams();
   const navigate = useNavigate();
@@ -32,7 +37,7 @@ export default function PublicBookingPage() {
   const [professionals, setProfessionals] = useState([]);
 
   // Reservas - Flujo
-  const [step, setStep] = useState(1); // 1: Servicio, 2: Profesional, 3: Fecha/Hora, 4: Datos Cliente
+  const [step, setStep] = useState(1); // 1: Servicio, 2: Profesional, 3: Fecha/Hora, 4: Datos Cliente, 5: Pago de Seña
 
   // Selecciones
   const [selService, setSelService] = useState(null);
@@ -54,6 +59,35 @@ export default function PublicBookingPage() {
   });
   const [submitting, setSubmitting] = useState(false);
 
+  // Estados de Seña (Paso 5)
+  const [paymentMethod, setPaymentMethod] = useState("mercadopago");
+  const [cardForm, setCardForm] = useState({
+    number: "",
+    name: "",
+    expiry: "",
+    cvv: "",
+  });
+  const [paying, setPaying] = useState(false);
+
+  // === ESTADOS SIMULADOR MERCADO PAGO ===
+  const [showMpCheckout, setShowMpCheckout] = useState(false);
+  const [mpStep, setMpStep] = useState("select_method"); // select_method, account_login, otp_entry, balance_confirm, card_entry, debin_select, debin_auth, cash_receipt, processing, success
+  const [mpEmail, setMpEmail] = useState("");
+  const [mpPassword, setMpPassword] = useState("");
+  const [mpOtp, setMpOtp] = useState(["", "", "", "", "", ""]);
+  const [showMpPassword, setShowMpPassword] = useState(false);
+  const [isCardFlipped, setIsCardFlipped] = useState(false);
+  const [selectedBank, setSelectedBank] = useState("");
+  const [mpTxId, setMpTxId] = useState("");
+
+  const getDownpaymentAmount = () => {
+    if (!business || !selService) return 0;
+    if (business.bookingDownpaymentAmount) {
+      return business.bookingDownpaymentAmount;
+    }
+    return Math.round((selService.price * (business.bookingDownpaymentPercent || 30)) / 100);
+  };
+
   // Cargar info del negocio, servicios y profesionales
   useEffect(() => {
     const loadBusinessData = async () => {
@@ -61,11 +95,9 @@ export default function PublicBookingPage() {
         setLoading(true);
         setError("");
 
-        // 1. Obtener negocio
         const bizRes = await api.get(`/public/business/${businessSlug}`);
         setBusiness(bizRes.data);
 
-        // 2. Obtener servicios y profesionales
         const [servicesRes, professionalsRes] = await Promise.all([
           api.get(`/public/business/${businessSlug}/services`),
           api.get(`/public/business/${businessSlug}/professionals`),
@@ -80,64 +112,35 @@ export default function PublicBookingPage() {
         setLoading(false);
       }
     };
-
-    if (businessSlug) {
-      loadBusinessData();
-    }
+    loadBusinessData();
   }, [businessSlug]);
 
-  // Cargar disponibilidad horaria (slots) al cambiar fecha o profesional
+  // Cargar slots cuando cambia la fecha o el profesional
   useEffect(() => {
-    if (step === 3 && selService && selDate) {
-      const fetchSlots = async () => {
-        try {
-          setLoadingSlots(true);
-          setSlots([]);
+    if (!selService || !selDate) return;
+    const loadSlots = async () => {
+      try {
+        setLoadingSlots(true);
+        const workerId = selProfessional ? selProfessional.id : "";
+        const res = await api.get(
+          `/public/business/${businessSlug}/slots?serviceId=${selService.id}&workerId=${workerId}&date=${selDate}`
+        );
+        setSlots(res.data || []);
+      } catch (e) {
+        console.error(e);
+        setSlots([]);
+      } finally {
+        setLoadingSlots(false);
+      }
+    };
+    loadSlots();
+  }, [selService, selProfessional, selDate]);
 
-          // Si es "Cualquiera", mandar el ID del primer profesional disponible que haga ese servicio
-          const workerId = selProfessional
-            ? selProfessional.id
-            : professionals.find((p) => p.serviceIds.includes(selService.id))?.id;
-
-          if (!workerId) {
-            setSlots([]);
-            return;
-          }
-
-          const res = await api.get(`/public/business/${businessSlug}/availability`, {
-            params: {
-              serviceId: selService.id,
-              professionalId: workerId,
-              date: selDate,
-            },
-          });
-          setSlots(res.data);
-        } catch (e) {
-          console.error(e);
-        } finally {
-          setLoadingSlots(false);
-        }
-      };
-
-      fetchSlots();
-    }
-  }, [step, selService, selProfessional, selDate, professionals, businessSlug]);
-
-  const handleNextStep = () => {
-    setStep((s) => s + 1);
-  };
-
-  const handleBackStep = () => {
-    setStep((s) => s - 1);
-  };
-
-  const handleFormChange = (e) => {
-    const { name, value } = e.target;
-    setClientForm((p) => ({ ...p, [name]: value }));
-  };
+  const handleNextStep = () => setStep((p) => p + 1);
+  const handleBackStep = () => setStep((p) => p - 1);
 
   const handleBook = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     try {
       setSubmitting(true);
       setError("");
@@ -155,12 +158,14 @@ export default function PublicBookingPage() {
       };
 
       const res = await api.post(`/public/business/${businessSlug}/bookings`, payload);
-      
-      // Ir a la pantalla de éxito
       navigate(`/booking/${businessSlug}/success`, {
         state: {
           message: res.data.message || t("form.successFallback"),
-          booking: res.data.booking,
+          booking: {
+            ...res.data.booking,
+            service: selService,
+            worker: selProfessional || professionals.find((p) => p.id === workerId),
+          },
           color: business.bookingPrimaryColor,
         },
       });
@@ -172,106 +177,207 @@ export default function PublicBookingPage() {
     }
   };
 
+  const handleStep4Submit = (e) => {
+    e.preventDefault();
+    if (business?.bookingDownpaymentEnabled) {
+      handleNextStep();
+    } else {
+      handleBook(e);
+    }
+  };
+
+  const handlePaymentAndBook = async (customTxId = null) => {
+    try {
+      setPaying(true);
+      setError("");
+
+      const workerId = selProfessional
+        ? selProfessional.id
+        : professionals.find((p) => p.serviceIds.includes(selService.id))?.id;
+
+      const downpayment = getDownpaymentAmount();
+      const transactionId = customTxId || (paymentMethod === "mercadopago" 
+        ? `MP-${Math.floor(10000000 + Math.random() * 90000000)}` 
+        : `TX-${Math.floor(10000000 + Math.random() * 90000000)}`);
+
+      const payload = {
+        ...clientForm,
+        serviceId: selService.id,
+        professionalId: workerId,
+        date: selDate,
+        time: selTime,
+        downpaymentPaid: downpayment,
+        downpaymentStatus: "PAID",
+        downpaymentTransactionId: transactionId,
+      };
+
+      const res = await api.post(`/public/business/${businessSlug}/bookings`, payload);
+      
+      navigate(`/booking/${businessSlug}/success`, {
+        state: {
+          message: res.data.message || t("form.successFallback"),
+          booking: {
+            ...res.data.booking,
+            downpaymentPaid: downpayment,
+            service: selService,
+            worker: selProfessional || professionals.find((p) => p.id === workerId),
+          },
+          color: business.bookingPrimaryColor,
+        },
+      });
+    } catch (e) {
+      console.error(e);
+      setError(e?.response?.data?.error || t("form.bookingError"));
+      setShowMpCheckout(false);
+    } finally {
+      setPaying(false);
+    }
+  };
+
+  const handleLaunchMpCheckout = () => {
+    // Generate transaction ID
+    const generatedId = `MP-${Math.floor(100000000 + Math.random() * 900000000)}`;
+    setMpTxId(generatedId);
+    setMpStep("select_method");
+    setMpEmail("");
+    setMpPassword("");
+    setMpOtp(["", "", "", "", "", ""]);
+    setShowMpCheckout(true);
+  };
+
+  const handleMpConfirmPayment = async () => {
+    setMpStep("processing");
+    await new Promise((resolve) => setTimeout(resolve, 1800));
+    setMpStep("success");
+    // Show success confeti screen for 2 seconds before writing booking
+    await new Promise((resolve) => setTimeout(resolve, 2200));
+    setShowMpCheckout(false);
+    handlePaymentAndBook(mpTxId);
+  };
+
+  const handleOtpChange = (element, index) => {
+    if (isNaN(element.value)) return false;
+    let newOtp = [...mpOtp];
+    newOtp[index] = element.value;
+    setMpOtp(newOtp);
+
+    // Auto-focus next field
+    if (element.nextSibling && element.value !== "") {
+      element.nextSibling.focus();
+    }
+
+    // Auto-verify if all 6 digits entered
+    if (newOtp.join("").length === 6) {
+      setTimeout(() => {
+        setMpStep("balance_confirm");
+      }, 500);
+    }
+  };
+
+  const handleOtpKeyDown = (e, index) => {
+    if (e.key === "Backspace" && !mpOtp[index] && e.target.previousSibling) {
+      e.target.previousSibling.focus();
+    }
+  };
+
+  const getCardBrand = (num) => {
+    const cleanNum = num.replace(/\s?/g, "");
+    if (cleanNum.startsWith("4")) return "VISA";
+    if (cleanNum.startsWith("5")) return "MASTERCARD";
+    if (cleanNum.startsWith("3")) return "AMEX";
+    if (cleanNum.startsWith("6")) return "CABAL";
+    return "TARJETA";
+  };
+
   if (loading) {
     return (
-      <div className="d-flex flex-column align-items-center justify-content-center" style={{ minHeight: "100vh", background: "#fafafa" }}>
-        <Spinner animation="border" className="text-primary mb-3" />
-        <p className="text-muted small">{t("public.loading")}</p>
+      <div className="d-flex align-items-center justify-content-center min-vh-100 bg-light">
+        <div className="text-center">
+          <Spinner animation="border" variant="dark" className="mb-2" />
+          <p className="text-muted smaller mb-0">Cargando asistente de reserva…</p>
+        </div>
       </div>
     );
   }
 
   if (error && !business) {
     return (
-      <Container className="py-5 text-center">
-        <Alert variant="danger" className="mx-auto" style={{ maxWidth: "500px" }}>
-          {error}
-        </Alert>
-        <Button variant="link" onClick={() => navigate("/")} className="text-muted">
-          {t("public.backHome")}
-        </Button>
-      </Container>
+      <div className="d-flex align-items-center justify-content-center min-vh-100 bg-light">
+        <Container style={{ maxWidth: "480px" }}>
+          <Alert variant="danger" className="text-center rounded-3 shadow-sm">
+            <h4 className="fw-bold mb-2">Error de Conexión</h4>
+            <p className="smaller mb-0">{error}</p>
+          </Alert>
+        </Container>
+      </div>
     );
   }
 
-  const primaryColor = business.bookingPrimaryColor || "#10b981";
+  const primaryColor = business?.bookingPrimaryColor || "#10b981";
 
   return (
-    <div style={{ background: "#f3f4f6", minHeight: "100vh" }} className="py-5">
-      <Container style={{ maxWidth: "720px" }}>
-        <div className="d-flex justify-content-end mb-3">
-          <LanguageSwitcher />
-        </div>
-
-        {/* Encabezado del Negocio */}
-        <div className="text-center mb-4">
-          {business.logo && (
-            <img
-              src={business.logo}
-              alt="Logo"
-              className="rounded-circle mb-3 border shadow-sm"
-              style={{ width: "80px", height: "80px", objectFit: "cover" }}
-            />
-          )}
-          <h1 className="fw-black h3 mb-1">{business.name || "Aura Studio"}</h1>
-          <p className="text-muted small mx-auto" style={{ maxWidth: "480px" }}>
-            {business.description || t("public.defaultDescription")}
-          </p>
-        </div>
-
-        <Card className="border-0 shadow-sm rounded-4 overflow-hidden bg-white">
-          {/* Barra de Progreso */}
-          <div className="px-4 py-2 border-bottom bg-light d-flex align-items-center justify-content-between">
-            <span className="small text-muted fw-bold">{t("form.stepOf", { step, total: 4 })}</span>
-            <div className="d-flex gap-1">
-              {[1, 2, 3, 4].map((i) => (
-                <div
-                  key={i}
-                  style={{
-                    width: "16px",
-                    height: "6px",
-                    borderRadius: "999px",
-                    background: i <= step ? primaryColor : "#e5e7eb",
-                    transition: "background 0.3s ease",
-                  }}
-                />
-              ))}
+    <div className="min-vh-100 bg-light py-4 py-md-5 position-relative" style={{ fontFamily: "Outfit, sans-serif" }}>
+      
+      {/* LANGUAGE & BRAND FLOATING BAR */}
+      <Container className="d-flex justify-content-between align-items-center mb-4" style={{ maxWidth: "720px" }}>
+        <div className="d-flex align-items-center gap-2">
+          {business?.logo ? (
+            <img src={business.logo} alt="Logo" className="rounded-circle border" style={{ width: "36px", height: "36px", objectFit: "cover" }} />
+          ) : (
+            <div className="rounded-circle d-flex align-items-center justify-content-center fw-bold text-white shadow-sm" style={{ width: "36px", height: "36px", background: `linear-gradient(135deg, ${primaryColor} 0%, #1f2937 100%)`, fontSize: "12px" }}>
+              {business?.name?.substring(0, 2).toUpperCase() || "BIZ"}
             </div>
+          )}
+          <strong className="text-dark small">{business?.name || "Reservas Online"}</strong>
+        </div>
+        <LanguageSwitcher />
+      </Container>
+
+      <Container style={{ maxWidth: "720px" }}>
+        
+        {/* STEP PROGRESS BAR */}
+        <div className="card-premium border bg-white p-3 rounded-2xl shadow-sm mb-4">
+          <div className="d-flex justify-content-between align-items-center small text-muted px-1 mb-2">
+            <span>Progreso de Reserva</span>
+            <strong className="text-dark">{step} de {business?.bookingDownpaymentEnabled ? 5 : 4}</strong>
           </div>
+          <div className="w-100 bg-light rounded-pill" style={{ height: "6px", overflow: "hidden" }}>
+            <div 
+              className="h-100 rounded-pill transition-all" 
+              style={{ 
+                width: `${(step / (business?.bookingDownpaymentEnabled ? 5 : 4)) * 100}%`,
+                backgroundColor: primaryColor,
+                transition: "width 0.4s cubic-bezier(0.4, 0, 0.2, 1)"
+              }}
+            />
+          </div>
+        </div>
 
-          <Card.Body className="p-4">
-            {error && <Alert variant="danger">{error}</Alert>}
+        {error && <Alert variant="danger" className="rounded-2xl border-0 shadow-sm mb-4">{error}</Alert>}
 
-            {/* PASO 1: Selección de Servicio */}
+        <Card className="card-premium border bg-white rounded-2xl shadow-sm overflow-hidden">
+          <Card.Body className="p-4 p-md-5">
+            
+            {/* PASO 1: SELECCIONAR SERVICIO */}
             {step === 1 && (
-              <div>
-                <h2 className="h6 fw-bold mb-3 d-flex align-items-center gap-2">
-                  <Heart size={16} style={{ color: primaryColor }} />
-                  <span>{t("form.selectService")}</span>
-                </h2>
-                <div className="d-flex flex-column gap-2">
+              <div className="animate-fade-in">
+                <h2 className="h5 fw-black text-gray-900 mb-1">Selecciona el Servicio</h2>
+                <p className="text-muted smaller mb-4">Elegí el tratamiento contable o estético que deseas agendar.</p>
+                
+                <div className="d-flex flex-column gap-3">
                   {services.map((s) => (
-                    <div
+                    <div 
                       key={s.id}
-                      onClick={() => {
-                        setSelService(s);
-                        handleNextStep();
-                      }}
-                      className="p-3 border rounded-3 d-flex justify-content-between align-items-center hover-scale cursor-pointer"
-                      style={{
-                        borderColor: selService?.id === s.id ? primaryColor : "#e5e7eb",
-                        background: selService?.id === s.id ? `${primaryColor}08` : "#fff",
-                      }}
+                      onClick={() => { setSelService(s); handleNextStep(); }}
+                      className={`p-3 border rounded-2xl cursor-pointer transition-all hover-row-focus d-flex justify-content-between align-items-center gap-3 ${selService?.id === s.id ? "border-dark bg-light bg-opacity-30" : "border-gray-200"}`}
                     >
                       <div>
-                        <div className="fw-bold text-dark">{s.name}</div>
-                        <div className="text-muted small">{s.duration} {t("form.minutesService")}</div>
+                        <strong className="text-gray-900 d-block small">{s.name}</strong>
+                        <span className="smaller text-muted d-block mt-0.5">{s.duration} min • Con profesional capacitado</span>
                       </div>
-                      <div className="d-flex align-items-center gap-3">
-                        <span className="fw-black text-dark" style={{ fontSize: "15px" }}>
-                          {currency(s.price)}
-                        </span>
-                        <ChevronRight size={18} className="text-muted" />
+                      <div className="text-end d-flex align-items-center gap-2">
+                        <strong className="text-purple-600" style={{ fontSize: "15px" }}>{currency(s.price)}</strong>
+                        <ChevronRight size={16} className="text-muted" />
                       </div>
                     </div>
                   ))}
@@ -279,227 +385,389 @@ export default function PublicBookingPage() {
               </div>
             )}
 
-            {/* PASO 2: Selección de Profesional */}
+            {/* PASO 2: SELECCIONAR PROFESIONAL */}
             {step === 2 && (
-              <div>
-                <h2 className="h6 fw-bold mb-3 d-flex align-items-center gap-2">
-                  <User size={16} style={{ color: primaryColor }} />
-                  <span>{t("form.selectProfessional")}</span>
-                </h2>
+              <div className="animate-fade-in">
+                <h2 className="h5 fw-black text-gray-900 mb-1">Selecciona el Profesional</h2>
+                <p className="text-muted smaller mb-4">¿Quién te gustaría que realice el servicio?</p>
 
-                {/* Filtro: Solo mostrar los profesionales que hagan el servicio seleccionado */}
-                <div className="d-flex flex-column gap-2">
-                  {/* Opción "Cualquiera" */}
-                  <div
-                    onClick={() => {
-                      setSelProfessional(null);
-                      handleNextStep();
-                    }}
-                    className="p-3 border rounded-3 d-flex justify-content-between align-items-center hover-scale cursor-pointer"
-                    style={{
-                      borderColor: selProfessional === null ? primaryColor : "#e5e7eb",
-                      background: selProfessional === null ? `${primaryColor}08` : "#fff",
-                    }}
+                <div className="d-flex flex-column gap-3">
+                  {/* Cualquier Profesional */}
+                  <div 
+                    onClick={() => { setSelProfessional(null); handleNextStep(); }}
+                    className={`p-3 border rounded-2xl cursor-pointer transition-all hover-row-focus d-flex justify-content-between align-items-center gap-3 ${selProfessional === null ? "border-dark bg-light bg-opacity-30" : "border-gray-200"}`}
                   >
                     <div>
-                      <div className="fw-bold">{t("form.anyProfessional")}</div>
-                      <div className="text-muted small">{t("form.anyProfessionalHint")}</div>
+                      <strong className="text-gray-900 d-block small">Cualquier Profesional disponible</strong>
+                      <span className="smaller text-muted d-block mt-0.5">Asigna automáticamente al miembro libre para mayor velocidad.</span>
                     </div>
-                    <ChevronRight size={18} className="text-muted" />
+                    <ChevronRight size={16} className="text-muted" />
                   </div>
 
                   {professionals
                     .filter((p) => p.serviceIds.includes(selService.id))
                     .map((p) => (
-                      <div
+                      <div 
                         key={p.id}
-                        onClick={() => {
-                          setSelProfessional(p);
-                          handleNextStep();
-                        }}
-                        className="p-3 border rounded-3 d-flex justify-content-between align-items-center hover-scale cursor-pointer"
-                        style={{
-                          borderColor: selProfessional?.id === p.id ? primaryColor : "#e5e7eb",
-                          background: selProfessional?.id === p.id ? `${primaryColor}08` : "#fff",
-                        }}
+                        onClick={() => { setSelProfessional(p); handleNextStep(); }}
+                        className={`p-3 border rounded-2xl cursor-pointer transition-all hover-row-focus d-flex justify-content-between align-items-center gap-3 ${selProfessional?.id === p.id ? "border-dark bg-light bg-opacity-30" : "border-gray-200"}`}
                       >
-                        <div>
-                          <div className="fw-bold">{p.name}</div>
-                          <div className="text-muted small">{p.roleTitle}</div>
+                        <div className="d-flex align-items-center gap-3">
+                          <div className="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold" style={{ width: "36px", height: "36px", background: "linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)", fontSize: "11px" }}>
+                            {p.firstName?.charAt(0)}{p.lastName?.charAt(0)}
+                          </div>
+                          <div>
+                            <strong className="text-gray-900 d-block small">{p.firstName} {p.lastName}</strong>
+                            <span className="smaller text-muted d-block mt-0.5">Especialista en {selService?.name}</span>
+                          </div>
                         </div>
-                        <ChevronRight size={18} className="text-muted" />
+                        <ChevronRight size={16} className="text-muted" />
                       </div>
                     ))}
                 </div>
               </div>
             )}
 
-            {/* PASO 3: Selección de Fecha y Hora */}
+            {/* PASO 3: SELECCIONAR FECHA Y HORA */}
             {step === 3 && (
-              <div>
-                <h2 className="h6 fw-bold mb-3 d-flex align-items-center gap-2">
-                  <Clock size={16} style={{ color: primaryColor }} />
-                  <span>{t("form.selectDateAndTime")}</span>
-                </h2>
+              <div className="animate-fade-in">
+                <h2 className="h5 fw-black text-gray-900 mb-1">Selecciona Fecha y Hora</h2>
+                <p className="text-muted smaller mb-4">Escoge el bloque de tiempo de tu preferencia.</p>
 
                 <Row className="g-3">
                   <Col md={6}>
-                    <Form.Group>
-                      <Form.Label className="fw-semibold small">{t("form.appointmentDate")}</Form.Label>
+                    <Form.Group className="mb-3">
+                      <Form.Label className="fw-semibold small">Fecha del Turno</Form.Label>
                       <Form.Control
                         type="date"
                         value={selDate}
-                        onChange={(e) => {
-                          setSelDate(e.target.value);
-                          setSelTime("");
-                        }}
-                        min={new Date().toISOString().slice(0, 10)}
-                        required
+                        min={new Date().toISOString().split("T")[0]}
+                        onChange={(e) => { setSelDate(e.target.value); setSelTime(""); }}
+                        className="rounded-xl border-gray-200 py-2.5"
                       />
                     </Form.Group>
                   </Col>
-
+                  
                   <Col md={6}>
-                    <Form.Group>
-                      <Form.Label className="fw-semibold small">{t("form.availableTimes")}</Form.Label>
-
-                      {!selDate ? (
-                        <div className="text-muted small py-2">{t("form.pickDateHint")}</div>
-                      ) : loadingSlots ? (
-                        <div className="d-flex align-items-center gap-2 text-muted small py-2">
-                          <Spinner size="sm" />
-                          <span>{t("form.searchingSlots")}</span>
-                        </div>
-                      ) : slots.length === 0 ? (
-                        <div className="text-danger small py-2">
-                          {t("form.noSlots")}
-                        </div>
-                      ) : (
-                        <div
-                          className="d-flex gap-2 flex-wrap mt-1 overflow-auto"
-                          style={{ maxHeight: "180px" }}
-                        >
-                          {slots.map((t) => (
-                            <Button
-                              key={t}
-                              size="sm"
-                              variant={selTime === t ? "dark" : "outline-dark"}
-                              onClick={() => setSelTime(t)}
-                              style={{
-                                borderRadius: "8px",
-                                borderColor: selTime === t ? "black" : "#e5e7eb",
-                              }}
-                            >
-                              {t}
-                            </Button>
-                          ))}
-                        </div>
-                      )}
-                    </Form.Group>
+                    <Form.Label className="fw-semibold small">Horarios Disponibles</Form.Label>
+                    {!selDate ? (
+                      <div className="p-3 border border-dashed rounded-2xl text-center text-muted smaller">
+                        Selecciona primero una fecha para ver horarios.
+                      </div>
+                    ) : loadingSlots ? (
+                      <div className="text-center py-4">
+                        <Spinner size="sm" className="me-2" /> buscando slots libres...
+                      </div>
+                    ) : slots.length === 0 ? (
+                      <div className="p-3 border border-dashed rounded-2xl text-center text-danger smaller">
+                        No hay horarios disponibles para esta fecha. Intentá con otro día.
+                      </div>
+                    ) : (
+                      <div className="d-grid gap-2 border p-3 rounded-2xl bg-light bg-opacity-30 overflow-auto scrollbar-none" style={{ maxHeight: "200px" }}>
+                        {slots.map((tSlot) => (
+                          <Button
+                            key={tSlot}
+                            variant={selTime === tSlot ? "dark" : "outline-dark"}
+                            size="sm"
+                            className="rounded-xl py-2 fw-semibold"
+                            onClick={() => setSelTime(tSlot)}
+                          >
+                            {tSlot}
+                          </Button>
+                        ))}
+                      </div>
+                    )}
                   </Col>
                 </Row>
               </div>
             )}
 
-            {/* PASO 4: Ingresar Información del Cliente */}
+            {/* PASO 4: DATOS DEL CLIENTE */}
             {step === 4 && (
-              <Form onSubmit={handleBook} className="d-grid gap-3">
-                <h2 className="h6 fw-bold mb-3 d-flex align-items-center gap-2">
-                  <CheckCircle2 size={16} style={{ color: primaryColor }} />
-                  <span>{t("form.yourInfo")}</span>
-                </h2>
+              <div className="animate-fade-in">
+                <h2 className="h5 fw-black text-gray-900 mb-1">Ingresa tus Datos</h2>
+                <p className="text-muted smaller mb-4">Completá el formulario para registrar tu cita.</p>
 
-                <Row className="g-3">
-                  <Col md={6}>
-                    <Form.Group>
-                      <Form.Label className="fw-semibold small">{t("form.firstNameRequired")}</Form.Label>
-                      <Form.Control
-                        name="firstName"
-                        value={clientForm.firstName}
-                        onChange={handleFormChange}
-                        placeholder={t("form.firstNamePlaceholder")}
-                        required
-                      />
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <Form.Group>
-                      <Form.Label className="fw-semibold small">{t("form.lastNameRequired")}</Form.Label>
-                      <Form.Control
-                        name="lastName"
-                        value={clientForm.lastName}
-                        onChange={handleFormChange}
-                        placeholder={t("form.lastNamePlaceholder")}
-                        required
-                      />
-                    </Form.Group>
-                  </Col>
-                </Row>
+                <Form onSubmit={handleStep4Submit} className="d-grid gap-3">
+                  <Row className="g-2">
+                    <Col xs={6}>
+                      <Form.Group>
+                        <Form.Label className="fw-semibold small">Nombre *</Form.Label>
+                        <Form.Control
+                          type="text"
+                          required
+                          value={clientForm.firstName}
+                          onChange={(e) => setClientForm({ ...clientForm, firstName: e.target.value })}
+                          placeholder="Juan"
+                          className="rounded-xl border-gray-200 py-2.5"
+                        />
+                      </Form.Group>
+                    </Col>
+                    <Col xs={6}>
+                      <Form.Group>
+                        <Form.Label className="fw-semibold small">Apellido *</Form.Label>
+                        <Form.Control
+                          type="text"
+                          required
+                          value={clientForm.lastName}
+                          onChange={(e) => setClientForm({ ...clientForm, lastName: e.target.value })}
+                          placeholder="Pérez"
+                          className="rounded-xl border-gray-200 py-2.5"
+                        />
+                      </Form.Group>
+                    </Col>
+                  </Row>
 
-                <Row className="g-3">
-                  <Col md={6}>
-                    <Form.Group>
-                      <Form.Label className="fw-semibold small">{t("form.phone")}</Form.Label>
-                      <Form.Control
-                        type="tel"
-                        name="phone"
-                        value={clientForm.phone}
-                        onChange={handleFormChange}
-                        placeholder={t("form.phonePlaceholder")}
-                        required
-                      />
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <Form.Group>
-                      <Form.Label className="fw-semibold small">{t("form.email")}</Form.Label>
-                      <Form.Control
-                        type="email"
-                        name="email"
-                        value={clientForm.email}
-                        onChange={handleFormChange}
-                        placeholder={t("form.emailPlaceholder")}
-                      />
-                    </Form.Group>
-                  </Col>
-                </Row>
+                  <Form.Group>
+                    <Form.Label className="fw-semibold small">WhatsApp (Con código de país, ej. +54911...) *</Form.Label>
+                    <Form.Control
+                      type="tel"
+                      required
+                      value={clientForm.phone}
+                      onChange={(e) => setClientForm({ ...clientForm, phone: e.target.value })}
+                      placeholder="+54 9 11 3492-2342"
+                      className="rounded-xl border-gray-200 py-2.5"
+                    />
+                  </Form.Group>
 
-                <Form.Group>
-                  <Form.Label className="fw-semibold small">{t("form.notes")}</Form.Label>
-                  <Form.Control
-                    name="notes"
-                    as="textarea"
-                    rows={2}
-                    value={clientForm.notes}
-                    onChange={handleFormChange}
-                    placeholder={t("form.notesPlaceholder")}
-                  />
-                </Form.Group>
+                  <Form.Group>
+                    <Form.Label className="fw-semibold small">Correo Electrónico *</Form.Label>
+                    <Form.Control
+                      type="email"
+                      required
+                      value={clientForm.email}
+                      onChange={(e) => setClientForm({ ...clientForm, email: e.target.value })}
+                      placeholder="juan.perez@ejemplo.com"
+                      className="rounded-xl border-gray-200 py-2.5"
+                    />
+                  </Form.Group>
 
-                <div className="mt-3 p-3 bg-light rounded-3 small">
-                  <div className="fw-bold mb-1">{t("form.summary")}</div>
-                  <div className="text-muted">
-                    {t("form.summaryService")} <strong>{selService.name}</strong> ({currency(selService.price)})<br />
-                    {t("form.summaryProfessional")} <strong>{selProfessional ? selProfessional.name : t("form.anyAvailable")}</strong><br />
-                    {t("form.summaryDate")} <strong>{selDate} {selTime}</strong>
+                  <Form.Group>
+                    <Form.Label className="fw-semibold small">Notas / Preferencias (Opcional)</Form.Label>
+                    <Form.Control
+                      as="textarea"
+                      rows={2}
+                      value={clientForm.notes}
+                      onChange={(e) => setClientForm({ ...clientForm, notes: e.target.value })}
+                      placeholder="Ej: Tengo piel sensible / Alergia a ciertos tintes."
+                      className="rounded-xl border-gray-200 py-2"
+                    />
+                  </Form.Group>
+
+                  <Button 
+                    type="submit"
+                    disabled={submitting}
+                    className="w-100 py-2.5 rounded-pill fw-bold text-white shadow-sm mt-3 border-0 btn-premium"
+                    style={{ background: primaryColor }}
+                  >
+                    {submitting ? (
+                      <>
+                        <Spinner size="sm" animation="border" className="me-1" />
+                        Confirmando...
+                      </>
+                    ) : business?.bookingDownpaymentEnabled ? (
+                      "Proceder al Pago de Seña"
+                    ) : (
+                      "Confirmar Reserva"
+                    )}
+                  </Button>
+                </Form>
+              </div>
+            )}
+
+            {/* PASO 5: PAGO DE SEÑA */}
+            {step === 5 && (
+              <div className="animate-fade-in">
+                <h2 className="h5 fw-black text-gray-900 mb-1">Abonar Pago de Seña Obligatoria</h2>
+                <p className="text-muted smaller mb-4">El establecimiento exige una seña previa para confirmar de manera efectiva tu turno.</p>
+
+                {/* Desglose de Precios */}
+                <div className="p-3.5 border rounded-2xl bg-light bg-opacity-40 mb-4">
+                  <div className="d-flex justify-content-between align-items-center pb-2 border-bottom mb-2">
+                    <span className="smaller text-muted">Precio del Servicio</span>
+                    <strong className="text-gray-900">{currency(selService.price)}</strong>
+                  </div>
+                  <div className="d-flex justify-content-between align-items-center py-1">
+                    <div>
+                      <span className="smaller text-success d-block fw-bold">Monto de Seña Requerido</span>
+                      <span className="smaller text-muted" style={{ fontSize: "10.5px" }}>* Se cobra en línea ahora</span>
+                    </div>
+                    <strong className="text-success h4 mb-0">{currency(getDownpaymentAmount())}</strong>
+                  </div>
+                  <div className="d-flex justify-content-between align-items-center pt-2 border-top mt-2">
+                    <span className="smaller text-muted">Saldo restante en Salón</span>
+                    <strong className="text-muted small">{currency(selService.price - getDownpaymentAmount())}</strong>
+                  </div>
+                  <div className="text-muted smaller mt-3" style={{ fontSize: "11px", lineHeight: "1.4" }}>
+                    * Los pagos son procesados de forma 100% segura y encriptada. El monto abonado se descontará del precio final en el local.
                   </div>
                 </div>
 
-                <div className="d-flex justify-content-end mt-4 pt-3 border-top gap-2">
+                {/* Selectores de Pasarela */}
+                <div className="d-flex gap-2.5 mb-4">
+                  <Button 
+                    variant={paymentMethod === "mercadopago" ? "primary" : "outline-secondary"}
+                    className="flex-fill rounded-xl py-2.5 fw-bold d-flex align-items-center justify-content-center gap-2 border-0"
+                    onClick={() => setPaymentMethod("mercadopago")}
+                    style={paymentMethod === "mercadopago" ? { background: "#00b1ea" } : { background: "#e2e8f0", color: "#475569" }}
+                  >
+                    <span>Mercado Pago</span>
+                  </Button>
+                  <Button 
+                    variant={paymentMethod === "card" ? "dark" : "outline-secondary"}
+                    className="flex-fill rounded-xl py-2.5 fw-bold"
+                    onClick={() => setPaymentMethod("card")}
+                    style={paymentMethod === "card" ? { background: "#1e293b", border: "0" } : { background: "#e2e8f0", color: "#475569", border: "0" }}
+                  >
+                    Tarjeta de Crédito
+                  </Button>
+                </div>
+
+                {/* Vista Mercado Pago */}
+                {paymentMethod === "mercadopago" ? (
+                  <div className="text-center py-4 border rounded-2xl bg-white p-3.5 shadow-sm d-flex flex-column align-items-center gap-3">
+                    <img 
+                      src="https://img.icons8.com/color/96/000000/mercado-pago.png" 
+                      alt="Mercado Pago" 
+                      style={{ height: "46px", objectFit: "contain" }} 
+                    />
+                    <div>
+                      <div className="fw-bold small text-gray-800 mb-1">Aboná de forma segura con Mercado Pago</div>
+                      <p className="text-muted smaller mb-0 max-w-sm mx-auto" style={{ fontSize: "11.5px" }}>
+                        Podés pagar usando tu saldo en cuenta de Mercado Pago, transferencias DEBIN inmediatas, o tarjetas de crédito/débito locales.
+                      </p>
+                    </div>
+                    <Button 
+                      onClick={handleLaunchMpCheckout}
+                      className="w-100 py-2.5 rounded-pill fw-bold text-white shadow-sm border-0 btn-premium mt-2"
+                      style={{ background: "#00b1ea", fontSize: "14.5px" }}
+                    >
+                      Pagar con Mercado Pago: {currency(getDownpaymentAmount())}
+                    </Button>
+                  </div>
+                ) : (
+                  /* Formulario de Tarjeta de Crédito Tradicional */
+                  <Form onSubmit={(e) => { e.preventDefault(); handlePaymentAndBook(); }} className="d-grid gap-3">
+                    
+                    {/* Tarjeta de Crédito Interactiva */}
+                    <div 
+                      className="p-4 rounded-4 text-white shadow-lg d-flex flex-column justify-content-between mb-2 overflow-hidden position-relative animate-fade-in"
+                      style={{
+                        minHeight: "165px",
+                        background: `linear-gradient(135deg, ${primaryColor}, #1f2937)`,
+                        fontFamily: "'Courier New', Courier, monospace",
+                        borderRadius: "16px"
+                      }}
+                    >
+                      <div className="d-flex justify-content-between align-items-center">
+                        <div className="small fw-semibold letter-spacing-1" style={{ fontSize: "10px" }}>SECURE CHECKOUT</div>
+                        <div className="fw-bold" style={{ fontSize: "18px" }}>
+                          {getCardBrand(cardForm.number)}
+                        </div>
+                      </div>
+                      <div className="h5 my-3 text-center tracking-widest" style={{ letterSpacing: "2.5px", fontSize: "18px" }}>
+                        {cardForm.number ? cardForm.number.replace(/(.{4})/g, "$1 ").trim() : "•••• •••• •••• ••••"}
+                      </div>
+                      <div className="d-flex justify-content-between align-items-center small">
+                        <div>
+                          <div className="text-muted" style={{ fontSize: "8px" }}>TITULAR</div>
+                          <div className="fw-bold text-uppercase" style={{ fontSize: "12px" }}>{cardForm.name || "NOMBRE COMPLETO"}</div>
+                        </div>
+                        <div className="text-end">
+                          <div className="text-muted" style={{ fontSize: "8px" }}>VENCE</div>
+                          <div className="fw-bold" style={{ fontSize: "12px" }}>{cardForm.expiry || "MM/YY"}</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Form.Group>
+                      <Form.Label className="fw-semibold small">Número de la Tarjeta</Form.Label>
+                      <Form.Control
+                        type="text"
+                        placeholder="4517 8492 0012 3456"
+                        maxLength={19}
+                        value={cardForm.number}
+                        required
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/\D/g, "");
+                          setCardForm(p => ({ ...p, number: val }));
+                        }}
+                        className="rounded-xl border-gray-200"
+                      />
+                    </Form.Group>
+
+                    <Row className="g-2">
+                      <Col xs={8}>
+                        <Form.Group>
+                          <Form.Label className="fw-semibold small">Nombre del Titular</Form.Label>
+                          <Form.Control
+                            type="text"
+                            placeholder="Juan Pérez"
+                            value={cardForm.name}
+                            required
+                            onChange={(e) => setCardForm(p => ({ ...p, name: e.target.value }))}
+                            className="rounded-xl border-gray-200"
+                          />
+                        </Form.Group>
+                      </Col>
+                      <Col xs={4}>
+                        <Form.Group>
+                          <Form.Label className="fw-semibold small">Vencimiento</Form.Label>
+                          <Form.Control
+                            type="text"
+                            placeholder="MM/YY"
+                            maxLength={5}
+                            value={cardForm.expiry}
+                            required
+                            onChange={(e) => {
+                              let val = e.target.value;
+                              if (val.length === 2 && !val.includes("/")) val += "/";
+                              setCardForm(p => ({ ...p, expiry: val }));
+                            }}
+                            className="rounded-xl border-gray-200"
+                          />
+                        </Form.Group>
+                      </Col>
+                    </Row>
+
+                    <Form.Group>
+                      <Form.Label className="fw-semibold small">Código de Seguridad (CVV)</Form.Label>
+                      <Form.Control
+                        type="password"
+                        placeholder="•••"
+                        maxLength={3}
+                        value={cardForm.cvv}
+                        required
+                        onChange={(e) => setCardForm(p => ({ ...p, cvv: e.target.value.replace(/\D/g, "") }))}
+                        style={{ width: "100px" }}
+                        className="rounded-xl border-gray-200"
+                      />
+                    </Form.Group>
+
+                    <Button 
+                      type="submit"
+                      disabled={paying}
+                      className="w-100 py-2.5 rounded-pill fw-bold text-white shadow-sm mt-2 border-0 btn-premium"
+                      style={{ background: primaryColor }}
+                    >
+                      {paying ? (
+                        <>
+                          <Spinner size="sm" animation="border" className="me-1" />
+                          Procesando Pago...
+                        </>
+                      ) : (
+                        `Pagar Seña: ${currency(getDownpaymentAmount())}`
+                      )}
+                    </Button>
+                  </Form>
+                )}
+
+                <div className="d-flex justify-content-start mt-4 pt-3 border-top">
                   <Button variant="outline-secondary" onClick={handleBackStep} className="rounded-pill px-4">
                     {t("form.back")}
                   </Button>
-                  <Button
-                    type="submit"
-                    variant="dark"
-                    disabled={submitting}
-                    className="rounded-pill px-4 btn-premium"
-                    style={{ background: primaryColor, borderColor: primaryColor }}
-                  >
-                    {submitting ? t("form.submitting") : t("form.submit")}
-                  </Button>
                 </div>
-              </Form>
+              </div>
             )}
 
             {/* Controles de Navegación del Paso 1, 2, 3 */}
@@ -518,10 +786,10 @@ export default function PublicBookingPage() {
                     variant="dark"
                     disabled={!selDate || !selTime}
                     onClick={handleNextStep}
-                    className="rounded-pill px-4 btn-premium"
-                    style={{ background: primaryColor, borderColor: primaryColor }}
+                    className="rounded-pill px-4 btn-premium border-0"
+                    style={{ background: primaryColor }}
                   >
-                    {t("form.next", { defaultValue: "Next" })}
+                    {t("form.next", { defaultValue: "Siguiente" })}
                   </Button>
                 )}
               </div>
@@ -529,6 +797,644 @@ export default function PublicBookingPage() {
           </Card.Body>
         </Card>
       </Container>
+
+      {/* === SUPER SIMULADOR DE CHECKOUT DE MERCADO PAGO === */}
+      {showMpCheckout && (
+        <div 
+          className="position-fixed top-0 start-0 w-100 h-100 bg-white"
+          style={{ 
+            zIndex: 9999, 
+            overflowY: "auto", 
+            backgroundColor: "#f4f5f7",
+            fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+          }}
+        >
+          {/* Header Oficial Azul */}
+          <header className="d-flex justify-content-between align-items-center px-4 py-3 text-white border-bottom shadow-sm" style={{ background: "#009ee3" }}>
+            <div className="d-flex align-items-center gap-2.5">
+              <span className="fw-black tracking-tighter fs-5 d-flex align-items-center">
+                <span className="opacity-90">mercado</span>
+                <span className="fw-bold text-white ms-0.5">pago</span>
+              </span>
+              <span className="px-2 py-0.5 rounded bg-white bg-opacity-20 text-white font-bold" style={{ fontSize: "9px", fontWeight: 700 }}>CHECKOUT PRO</span>
+            </div>
+            
+            <div className="text-end">
+              <span className="smaller opacity-80 d-block" style={{ fontSize: "10.5px" }}>{isEs ? `Abonarás a ${business?.name || "Establecimiento"}` : `You will pay ${business?.name || "Establishment"}`}</span>
+              <strong className="fs-5">{currency(getDownpaymentAmount())}</strong>
+            </div>
+          </header>
+
+          {/* Secure lock indicator */}
+          <div className="bg-light py-2 text-center text-muted small border-bottom d-flex align-items-center justify-content-center gap-1.5" style={{ fontSize: "11px" }}>
+            <Lock size={12} className="text-success" />
+            <span>{isEs ? "Conexión encriptada SSL de 256 bits • Compra 100% Protegida" : "Encrypted 256-bit SSL connection • 100% Protected Purchase"}</span>
+          </div>
+
+          <Container className="py-4 py-md-5" style={{ maxWidth: "800px" }}>
+            
+            {/* Step Selection screen */}
+            {mpStep === "select_method" && (
+              <div className="animate-fade-in">
+                <h3 className="h5 fw-bold text-gray-800 mb-4 px-1">{isEs ? "¿Cómo querés pagar?" : "How would you like to pay?"}</h3>
+                
+                <Row className="g-3">
+                  <Col md={8}>
+                    <div className="d-flex flex-column gap-3">
+                      {/* Opción 1: Dinero en Cuenta */}
+                      <div 
+                        onClick={() => setMpStep("account_login")}
+                        className="p-3 bg-white border rounded-3 cursor-pointer hover-mp-card d-flex align-items-center justify-content-between transition-all"
+                      >
+                        <div className="d-flex align-items-center gap-3">
+                          <div className="p-2 bg-light bg-opacity-70 text-info rounded-circle d-flex align-items-center justify-content-center" style={{ width: "38px", height: "38px" }}>
+                            <span className="fw-black text-info" style={{ fontSize: "13px" }}>MP</span>
+                          </div>
+                          <div>
+                            <strong className="text-gray-800 d-block small">{isEs ? "Dinero en mi cuenta de Mercado Pago" : "Mercado Pago account balance"}</strong>
+                            <span className="smaller text-muted d-block mt-0.5">{isEs ? "Iniciá sesión de forma segura y pagá con tu saldo disponible." : "Log in securely and pay with your available balance."}</span>
+                          </div>
+                        </div>
+                        <ChevronRight size={16} className="text-muted" />
+                      </div>
+
+                      {/* Opción 2: Nueva Tarjeta */}
+                      <div 
+                        onClick={() => setMpStep("card_entry")}
+                        className="p-3 bg-white border rounded-3 cursor-pointer hover-mp-card d-flex align-items-center justify-content-between transition-all"
+                      >
+                        <div className="d-flex align-items-center gap-3">
+                          <div className="p-2 bg-light bg-opacity-70 text-purple-600 rounded-circle d-flex align-items-center justify-content-center" style={{ width: "38px", height: "38px" }}>
+                            <CreditCard size={18} />
+                          </div>
+                          <div>
+                            <strong className="text-gray-800 d-block small">{isEs ? "Nueva Tarjeta de Crédito o Débito" : "New Credit or Debit Card"}</strong>
+                            <span className="smaller text-muted d-block mt-0.5">Visa, Mastercard, American Express, Cabal, Naranja.</span>
+                          </div>
+                        </div>
+                        <ChevronRight size={16} className="text-muted" />
+                      </div>
+
+                      {/* Opción 3: DEBIN / Transferencia */}
+                      <div 
+                        onClick={() => setMpStep("debin_select")}
+                        className="p-3 bg-white border rounded-3 cursor-pointer hover-mp-card d-flex align-items-center justify-content-between transition-all"
+                      >
+                        <div className="d-flex align-items-center gap-3">
+                          <div className="p-2 bg-light bg-opacity-70 text-primary rounded-circle d-flex align-items-center justify-content-center" style={{ width: "38px", height: "38px" }}>
+                            <Globe size={18} />
+                          </div>
+                          <div>
+                            <strong className="text-gray-800 d-block small">{isEs ? "Transferencia Bancaria (DEBIN inmediato)" : "Bank Transfer (Instant DEBIN)"}</strong>
+                            <span className="smaller text-muted d-block mt-0.5">{isEs ? "Acreditación instantánea desde tu homebanking." : "Instant accreditation from your home banking."}</span>
+                          </div>
+                        </div>
+                        <ChevronRight size={16} className="text-muted" />
+                      </div>
+
+                      {/* Opción 4: Rapipago / Pago Fácil */}
+                      <div 
+                        onClick={() => setMpStep("cash_receipt")}
+                        className="p-3 bg-white border rounded-3 cursor-pointer hover-mp-card d-flex align-items-center justify-content-between transition-all"
+                      >
+                        <div className="d-flex align-items-center gap-3">
+                          <div className="p-2 bg-light bg-opacity-70 text-warning rounded-circle d-flex align-items-center justify-content-center" style={{ width: "38px", height: "38px" }}>
+                            <Award size={18} />
+                          </div>
+                          <div>
+                            <strong className="text-gray-800 d-block small">{isEs ? "Efectivo en Puntos de Pago" : "Cash at Payment Points"}</strong>
+                            <span className="smaller text-muted d-block mt-0.5">{isEs ? "Generá un cupón de barra para abonar en Rapipago o Pago Fácil." : "Generate a barcode coupon to pay at Rapipago or Pago Fácil."}</span>
+                          </div>
+                        </div>
+                        <ChevronRight size={16} className="text-muted" />
+                      </div>
+                    </div>
+
+                    <div className="mt-4 pt-3 border-top d-flex gap-2">
+                      <Button variant="outline-secondary" className="rounded-xl px-4 font-semibold" onClick={() => setShowMpCheckout(false)}>
+                        {isEs ? "Volver al Salón" : "Return to Salon"}
+                      </Button>
+                    </div>
+                  </Col>
+
+                  {/* Detalle resumido lateral en Checkout */}
+                  <Col md={4}>
+                    <div className="bg-white border rounded-3 p-3 shadow-sm d-grid gap-2">
+                      <strong className="text-gray-900 small d-block mb-1 border-bottom pb-1">{isEs ? "Resumen del Turno" : "Appointment Summary"}</strong>
+                      <div className="small"><span className="text-muted">{isEs ? "Servicio:" : "Service:"}</span> <strong>{selService?.name}</strong></div>
+                      <div className="small"><span className="text-muted">{isEs ? "Profesional:" : "Professional:"}</span> <strong>{selProfessional ? `${selProfessional.firstName}` : (isEs ? "Cualquiera" : "Any")}</strong></div>
+                      <div className="small"><span className="text-muted">{isEs ? "Fecha:" : "Date:"}</span> <strong>{new Date(selDate + "T00:00:00").toLocaleDateString(isEs ? "es-AR" : "en-US", { weekday: 'long', day: 'numeric', month: 'long' })}</strong></div>
+                      <div className="small"><span className="text-muted">{isEs ? "Hora:" : "Time:"}</span> <strong>{selTime} hs</strong></div>
+                      <div className="small border-top pt-2 mt-1 d-flex justify-content-between align-items-center text-success">
+                        <span>{isEs ? "Monto de Seña" : "Downpayment Amount"}</span>
+                        <strong className="fs-6">{currency(getDownpaymentAmount())}</strong>
+                      </div>
+                    </div>
+                  </Col>
+                </Row>
+              </div>
+            )}
+
+            {/* MP PASO: LOGIN MP (Dinero en Cuenta) */}
+            {mpStep === "account_login" && (
+              <div className="animate-fade-in mx-auto" style={{ maxWidth: "420px" }}>
+                <Card className="border bg-white rounded-3 shadow-sm p-4">
+                  <div className="text-center mb-4">
+                    <span className="fw-black tracking-tighter fs-4 d-inline-flex align-items-center mb-1 text-info">
+                      <span>mercado</span>
+                      <span className="fw-bold ms-0.5">pago</span>
+                    </span>
+                    <h4 className="fw-bold h6 text-gray-800">{isEs ? "Iniciá sesión en Mercado Pago" : "Log in to Mercado Pago"}</h4>
+                    <p className="text-muted smaller">{isEs ? "Ingresá tu cuenta comercial o personal de cobros." : "Enter your commercial or personal checkout account."}</p>
+                  </div>
+
+                  <Form onSubmit={(e) => { e.preventDefault(); setMpStep("otp_entry"); }} className="d-grid gap-3">
+                    <Form.Group>
+                      <Form.Label className="smaller text-muted fw-bold">{isEs ? "E-mail o Teléfono *" : "E-mail or Phone *"}</Form.Label>
+                      <Form.Control
+                        type="email"
+                        required
+                        value={mpEmail}
+                        onChange={(e) => setMpEmail(e.target.value)}
+                        placeholder="nombre@email.com"
+                        className="rounded-xl border-gray-200 py-2"
+                      />
+                    </Form.Group>
+
+                    <Form.Group>
+                      <Form.Label className="smaller text-muted fw-bold">{isEs ? "Contraseña *" : "Password *"}</Form.Label>
+                      <div className="position-relative">
+                        <Form.Control
+                          type={showMpPassword ? "text" : "password"}
+                          required
+                          value={mpPassword}
+                          onChange={(e) => setMpPassword(e.target.value)}
+                          placeholder={isEs ? "Tu clave secreta" : "Your secret password"}
+                          className="rounded-xl border-gray-200 py-2 pe-5"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowMpPassword(!showMpPassword)}
+                          className="position-absolute border-0 bg-transparent text-secondary"
+                          style={{ right: "12px", top: "50%", transform: "translateY(-50%)" }}
+                        >
+                          {showMpPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </div>
+                    </Form.Group>
+
+                    <Button type="submit" className="w-100 py-2 rounded-xl fw-bold text-white border-0" style={{ background: "#009ee3" }}>
+                      {isEs ? "Ingresar" : "Log In"}
+                    </Button>
+                    
+                    <Button variant="link" size="sm" className="text-muted text-decoration-none" onClick={() => setMpStep("select_method")}>
+                      {isEs ? "Cambiar método de pago" : "Change payment method"}
+                    </Button>
+                  </Form>
+                </Card>
+              </div>
+            )}
+
+            {/* MP PASO: SMS OTP (Dinero en Cuenta) */}
+            {mpStep === "otp_entry" && (
+              <div className="animate-fade-in mx-auto" style={{ maxWidth: "420px" }}>
+                <Card className="border bg-white rounded-3 shadow-sm p-4">
+                  <div className="text-center mb-4">
+                    <Lock className="text-info animate-bounce mb-2" size={28} />
+                    <h4 className="fw-bold h6 text-gray-800">{isEs ? "Verificación de Identidad" : "Identity Verification"}</h4>
+                    <p className="text-muted smaller px-2">
+                      {isEs 
+                        ? "Enviamos un código de seguridad de 6 dígitos vía SMS a tu teléfono terminado en " 
+                        : "We sent a 6-digit verification code via SMS to your phone ending in "}
+                      <strong>*3824</strong>.
+                    </p>
+                  </div>
+
+                  <div className="d-flex justify-content-center gap-2.5 mb-4">
+                    {mpOtp.map((data, index) => (
+                      <input
+                        key={index}
+                        type="text"
+                        maxLength="1"
+                        value={data}
+                        onChange={(e) => handleOtpChange(e.target, index)}
+                        onKeyDown={(e) => handleOtpKeyDown(e, index)}
+                        onFocus={(e) => e.target.select()}
+                        className="text-center fw-bold fs-5 rounded-xl border border-gray-300"
+                        style={{ width: "42px", height: "45px", background: "#f8fafc" }}
+                      />
+                    ))}
+                  </div>
+
+                  <div className="text-center small text-muted">
+                    {isEs ? "¿No recibiste el código?" : "Didn't receive the code?"} <Button variant="link" className="p-0 smaller font-semibold" style={{ color: "#009ee3" }} onClick={() => setMpOtp(["", "", "", "", "", ""])}>{isEs ? "Reenviar SMS" : "Resend SMS"}</Button>
+                  </div>
+                  
+                  <hr className="my-3.5" />
+                  
+                  <Button variant="outline-secondary" className="w-100 py-2 rounded-xl" onClick={() => setMpStep("account_login")}>
+                    {isEs ? "Atrás" : "Back"}
+                  </Button>
+                </Card>
+              </div>
+            )}
+
+            {/* MP PASO: CONFIRMAR SALDO (Dinero en Cuenta) */}
+            {mpStep === "balance_confirm" && (
+              <div className="animate-fade-in mx-auto" style={{ maxWidth: "450px" }}>
+                <Card className="border bg-white rounded-3 shadow-sm p-4">
+                  <div className="border-bottom pb-3 mb-3">
+                    <span className="smaller text-muted d-block mb-1">{isEs ? "Monto de la Operación" : "Operation Amount"}</span>
+                    <strong className="fs-3 text-gray-900">{currency(getDownpaymentAmount())}</strong>
+                  </div>
+
+                  <div className="p-3 bg-light bg-opacity-70 rounded-3 border d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                      <strong className="d-block small text-gray-800">{isEs ? "Saldo en Cuenta Mercado Pago" : "Mercado Pago Account Balance"}</strong>
+                      <span className="smaller text-muted">{isEs ? "Disponible inmediato" : "Available immediately"}</span>
+                    </div>
+                    <div className="text-end">
+                      <strong className="text-success d-block small">$34,500.00</strong>
+                      <span className="smaller text-muted" style={{ fontSize: "10px" }}>{isEs ? "Pesos Argentinos" : "Argentine Pesos"}</span>
+                    </div>
+                  </div>
+
+                  <Alert variant="info" className="rounded-xl border-0 shadow-sm small py-2.5 mb-4">
+                    {isEs 
+                      ? "✓ Al presionar Confirmar Pago, el importe de la seña se debitará de forma instantánea de tu cuenta." 
+                      : "✓ By pressing Confirm Payment, the downpayment amount will be immediately debited from your account."}
+                  </Alert>
+
+                  <div className="d-grid gap-2.5">
+                    <Button 
+                      onClick={handleMpConfirmPayment}
+                      className="w-100 py-2.5 rounded-xl fw-bold text-white border-0 shadow-sm" 
+                      style={{ background: "#009ee3", fontSize: "14.5px" }}
+                    >
+                      {isEs ? "Confirmar Pago:" : "Confirm Payment:"} {currency(getDownpaymentAmount())}
+                    </Button>
+                    <Button variant="outline-secondary" className="w-100 py-2 rounded-xl" onClick={() => setMpStep("select_method")}>
+                      {isEs ? "Cambiar medio de pago" : "Change payment method"}
+                    </Button>
+                  </div>
+                </Card>
+              </div>
+            )}
+
+            {/* MP PASO: TARJETA DE CRÉDITO DE MERCADO PAGO */}
+            {mpStep === "card_entry" && (
+              <div className="animate-fade-in mx-auto" style={{ maxWidth: "450px" }}>
+                <Card className="border bg-white rounded-3 shadow-sm p-4">
+                  
+                  {/* Tarjeta de Crédito 3D Interactiva */}
+                  <div 
+                    className="p-4 text-white shadow-lg d-flex flex-column justify-content-between mb-4 overflow-hidden position-relative card-mp-graphic"
+                    style={{
+                      minHeight: "165px",
+                      background: isCardFlipped ? "linear-gradient(135deg, #1e293b, #0f172a)" : "linear-gradient(135deg, #009ee3, #005a9c)",
+                      fontFamily: "'Courier New', Courier, monospace",
+                      borderRadius: "16px",
+                      transition: "transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)"
+                    }}
+                  >
+                    {!isCardFlipped ? (
+                      <>
+                        <div className="d-flex justify-content-between align-items-center">
+                          <div className="small fw-semibold letter-spacing-1" style={{ fontSize: "10px" }}>{isEs ? "MERCADO PAGO TARJETA" : "MERCADO PAGO CARD"}</div>
+                          <strong className="fs-6 font-bold">{getCardBrand(cardForm.number)}</strong>
+                        </div>
+                        <div className="h5 my-3 text-center tracking-widest" style={{ letterSpacing: "2.5px", fontSize: "18px" }}>
+                          {cardForm.number ? cardForm.number.replace(/(.{4})/g, "$1 ").trim() : "•••• •••• •••• ••••"}
+                        </div>
+                        <div className="d-flex justify-content-between align-items-center small">
+                          <div>
+                            <div className="text-muted" style={{ fontSize: "8px" }}>{isEs ? "TITULAR" : "HOLDER"}</div>
+                            <div className="fw-bold text-uppercase" style={{ fontSize: "12px" }}>{cardForm.name || (isEs ? "NOMBRE COMPLETO" : "FULL NAME")}</div>
+                          </div>
+                          <div className="text-end">
+                            <div className="text-muted" style={{ fontSize: "8px" }}>{isEs ? "VENCE" : "EXPIRY"}</div>
+                            <div className="fw-bold" style={{ fontSize: "12px" }}>{cardForm.expiry || "MM/YY"}</div>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="w-100 h-100 d-flex flex-column justify-content-between py-2">
+                        <div className="bg-dark w-100 position-absolute" style={{ height: "38px", left: 0, top: "20px" }} />
+                        <div className="text-end mt-5 pt-3 pe-4">
+                          <span className="text-muted d-block mb-1" style={{ fontSize: "8px" }}>CVV</span>
+                          <span className="bg-white text-dark px-3 py-1.5 rounded fw-bold font-mono">{cardForm.cvv || "•••"}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <Form onSubmit={(e) => { e.preventDefault(); handleMpConfirmPayment(); }} className="d-grid gap-3">
+                    <Form.Group>
+                      <Form.Label className="smaller text-muted fw-bold">{isEs ? "Número de Tarjeta *" : "Card Number *"}</Form.Label>
+                      <Form.Control
+                        type="text"
+                        required
+                        maxLength={19}
+                        value={cardForm.number}
+                        onFocus={() => setIsCardFlipped(false)}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/\D/g, "");
+                          setCardForm({ ...cardForm, number: val });
+                        }}
+                        placeholder="0000 0000 0000 0000"
+                        className="rounded-xl border-gray-200"
+                      />
+                    </Form.Group>
+
+                    <Row className="g-2">
+                      <Col xs={8}>
+                        <Form.Group>
+                          <Form.Label className="smaller text-muted fw-bold">{isEs ? "Nombre del Titular *" : "Holder's Name *"}</Form.Label>
+                          <Form.Control
+                            type="text"
+                            required
+                            value={cardForm.name}
+                            onFocus={() => setIsCardFlipped(false)}
+                            onChange={(e) => setCardForm({ ...cardForm, name: e.target.value })}
+                            placeholder={isEs ? "Ej: Juan Pérez" : "e.g., John Doe"}
+                            className="rounded-xl border-gray-200"
+                          />
+                        </Form.Group>
+                      </Col>
+                      <Col xs={4}>
+                        <Form.Group>
+                          <Form.Label className="smaller text-muted fw-bold">{isEs ? "Vencimiento *" : "Expiry *"}</Form.Label>
+                          <Form.Control
+                            type="text"
+                            required
+                            maxLength={5}
+                            value={cardForm.expiry}
+                            onFocus={() => setIsCardFlipped(false)}
+                            onChange={(e) => {
+                              let val = e.target.value;
+                              if (val.length === 2 && !val.includes("/")) val += "/";
+                              setCardForm({ ...cardForm, expiry: val });
+                            }}
+                            placeholder="MM/YY"
+                            className="rounded-xl border-gray-200"
+                          />
+                        </Form.Group>
+                      </Col>
+                    </Row>
+
+                    <Form.Group>
+                      <Form.Label className="smaller text-muted fw-bold">{isEs ? "Código de Seguridad (CVV) *" : "Security Code (CVV) *"}</Form.Label>
+                      <Form.Control
+                        type="password"
+                        required
+                        maxLength={3}
+                        value={cardForm.cvv}
+                        onFocus={() => setIsCardFlipped(true)}
+                        onBlur={() => setIsCardFlipped(false)}
+                        onChange={(e) => setCardForm({ ...cardForm, cvv: e.target.value.replace(/\D/g, "") })}
+                        placeholder="123"
+                        style={{ width: "100px" }}
+                        className="rounded-xl border-gray-200"
+                      />
+                    </Form.Group>
+
+                    <div className="d-grid gap-2 mt-2">
+                      <Button type="submit" className="w-100 py-2.5 rounded-xl fw-bold text-white border-0 shadow-sm" style={{ background: "#009ee3" }}>
+                        {isEs ? "Confirmar y Pagar:" : "Confirm & Pay:"} {currency(getDownpaymentAmount())}
+                      </Button>
+                      <Button variant="outline-secondary" className="w-100 py-2 rounded-xl" onClick={() => setMpStep("select_method")}>
+                        {isEs ? "Atrás" : "Back"}
+                      </Button>
+                    </div>
+                  </Form>
+                </Card>
+              </div>
+            )}
+
+            {/* MP PASO: SELECTOR BANCO DEBIN */}
+            {mpStep === "debin_select" && (
+              <div className="animate-fade-in mx-auto" style={{ maxWidth: "480px" }}>
+                <Card className="border bg-white rounded-3 shadow-sm p-4">
+                  <h4 className="fw-bold h6 text-gray-800 mb-3 text-center">{isEs ? "Selecciona tu Banco" : "Select your Bank"}</h4>
+                  <p className="text-muted smaller text-center mb-4">{isEs ? "Te redirigiremos a tu portal bancario para autorizar el débito inmediato." : "We will redirect you to your bank portal to authorize the instant debit."}</p>
+
+                  <div className="d-grid gap-2 mb-4" style={{ maxHeight: "250px", overflowY: "auto" }}>
+                    {["Banco Galicia", "Banco Santander", "BBVA Argentina", "Banco Macro", "Banco Provincia", "Banco Nación", "Brubank", "Ualá"].map((bank) => (
+                      <div
+                        key={bank}
+                        onClick={() => { setSelectedBank(bank); setMpStep("debin_auth"); }}
+                        className="p-3 border rounded-3 cursor-pointer hover-mp-card d-flex align-items-center justify-content-between transition-all"
+                      >
+                        <strong className="text-gray-800 small">{bank}</strong>
+                        <ChevronRight size={15} className="text-muted" />
+                      </div>
+                    ))}
+                  </div>
+
+                  <Button variant="outline-secondary" className="w-100 py-2 rounded-xl" onClick={() => setMpStep("select_method")}>
+                    {isEs ? "Atrás" : "Back"}
+                  </Button>
+                </Card>
+              </div>
+            )}
+
+            {/* MP PASO: AUTORIZAR DEBIN */}
+            {mpStep === "debin_auth" && (
+              <div className="animate-fade-in mx-auto" style={{ maxWidth: "420px" }}>
+                <Card className="border bg-white rounded-3 shadow-sm p-4 text-center">
+                  <Globe className="text-primary animate-spin mb-3 mx-auto" size={32} style={{ animationDuration: "6s" }} />
+                  <strong className="text-gray-900 d-block mb-1">{isEs ? "Autorizando Débito Directo" : "Authorizing Direct Debit"}</strong>
+                  <span className="smaller text-muted d-block mb-4">
+                    {isEs ? "Conectando con la pasarela segura de " : "Connecting with the secure gateway of "}<strong>{selectedBank}</strong>...
+                  </span>
+
+                  <Alert variant="success" className="rounded-xl border-0 shadow-sm small py-2 mb-4">
+                    {isEs ? "✓ Credenciales y token bancarios validados con éxito." : "✓ Banking credentials and token successfully validated."}
+                  </Alert>
+
+                  <Button 
+                    onClick={handleMpConfirmPayment}
+                    className="w-100 py-2.5 rounded-xl fw-bold text-white border-0 shadow-sm" 
+                    style={{ background: "#009ee3" }}
+                  >
+                    {isEs ? "Confirmar Transferencia" : "Confirm Transfer"}
+                  </Button>
+                </Card>
+              </div>
+            )}
+
+            {/* MP PASO: RAPIPAGO / PAGO FÁCIL CUPÓN */}
+            {mpStep === "cash_receipt" && (
+              <div className="animate-fade-in mx-auto" style={{ maxWidth: "480px" }}>
+                <Card className="border bg-white rounded-3 shadow-sm p-4">
+                  <div className="text-center mb-3">
+                    <Award className="text-warning mb-2 animate-bounce" size={32} />
+                    <strong className="text-gray-900 d-block">{isEs ? "Generación de Cupón de Pago" : "Payment Coupon Generation"}</strong>
+                    <span className="smaller text-muted">{isEs ? "Aboná en efectivo en cualquier sucursal Rapipago o Pago Fácil." : "Pay in cash at any Rapipago or Pago Fácil branch."}</span>
+                  </div>
+
+                  {/* Cupón renderizado */}
+                  <div className="p-3 border rounded-3 bg-light bg-opacity-40 d-grid gap-2.5 my-3.5" style={{ borderStyle: "dashed" }}>
+                    <div className="d-flex justify-content-between text-muted smaller">
+                      <span>{isEs ? "Convenio de Recaudación" : "Collection Agreement"}</span>
+                      <strong className="text-dark">MP-RECAUDO-409</strong>
+                    </div>
+                    <div className="d-flex justify-content-between text-muted smaller">
+                      <span>{isEs ? "Código de Pago Fácil / Rapipago" : "Pago Fácil / Rapipago Code"}</span>
+                      <strong className="text-purple-600 font-mono">104 294 3849 0294</strong>
+                    </div>
+                    <div className="d-flex justify-content-between text-muted smaller border-top pt-2">
+                      <span>{isEs ? "Monto de la Seña" : "Downpayment Amount"}</span>
+                      <strong className="text-dark fs-6">{currency(getDownpaymentAmount())}</strong>
+                    </div>
+
+                    {/* Código de barra visual */}
+                    <div className="bg-white border p-3 rounded-3 mt-2 text-center">
+                      <div className="font-mono text-muted tracking-widest smaller" style={{ letterSpacing: "3px", fontSize: "11px" }}>
+                        ||| | || || ||| || ||| || ||| || ||| || |||
+                      </div>
+                      <span className="smaller text-muted font-mono d-block mt-1" style={{ fontSize: "10px" }}>Ref: {mpTxId}</span>
+                    </div>
+                  </div>
+
+                  <Alert variant="warning" className="rounded-xl border-0 shadow-sm small py-2 mb-4">
+                    {isEs 
+                      ? "⚠️ Tenés 48 horas hábiles para abonar en caja. La cita se agendará como confirmada de forma temporal." 
+                      : "⚠️ You have 48 business hours to pay at the checkout. The appointment will be temporarily scheduled as confirmed."}
+                  </Alert>
+
+                  <div className="d-grid gap-2">
+                    <Button 
+                      onClick={handleMpConfirmPayment}
+                      className="w-100 py-2.5 rounded-xl fw-bold text-white border-0 shadow-sm" 
+                      style={{ background: "#009ee3" }}
+                    >
+                      {isEs ? "Confirmar y Descargar Cupón" : "Confirm and Download Coupon"}
+                    </Button>
+                    <Button variant="outline-secondary" className="w-100 py-2 rounded-xl" onClick={() => setMpStep("select_method")}>
+                      {isEs ? "Cambiar método de pago" : "Change payment method"}
+                    </Button>
+                  </div>
+                </Card>
+              </div>
+            )}
+
+            {/* MP PASO: PROCESANDO CARGA DE SEÑA */}
+            {mpStep === "processing" && (
+              <div className="animate-fade-in text-center py-5">
+                <Spinner animation="border" variant="primary" className="mb-4" style={{ width: "3.5rem", height: "3.5rem", borderWidth: "4px" }} />
+                <h4 className="fw-bold text-gray-800">{isEs ? "Procesando tu pago..." : "Processing your payment..."}</h4>
+                <p className="text-muted smaller">{isEs ? "Conectando de forma segura con los servidores de Mercado Pago." : "Securely connecting to Mercado Pago servers."}</p>
+              </div>
+            )}
+
+            {/* MP PASO: CHECK GREEN ANIMADO CON CONFETI */}
+            {mpStep === "success" && (
+              <div className="animate-fade-in text-center py-5 position-relative overflow-hidden">
+                {/* Confeti Particle Simulation */}
+                <div className="confetti-holder position-absolute w-100 h-100 top-0 start-0 pointer-events-none">
+                  {[...Array(20)].map((_, i) => (
+                    <div 
+                      key={i} 
+                      className={`confetti-particle p-${i%5} color-${i%3}`} 
+                      style={{
+                        left: `${Math.random() * 100}%`,
+                        top: `${Math.random() * 100}%`,
+                        animationDelay: `${Math.random() * 1.5}s`
+                      }}
+                    />
+                  ))}
+                </div>
+
+                <div 
+                  className="mx-auto rounded-circle d-flex align-items-center justify-content-center text-white shadow-lg animate-elastic" 
+                  style={{ 
+                    width: "80px", 
+                    height: "80px", 
+                    backgroundColor: "#00a650",
+                    animationDuration: "0.6s"
+                  }}
+                >
+                  <CheckCircle size={44} />
+                </div>
+                
+                <h3 className="fw-black text-gray-900 mt-4 mb-2 animate-fade-in" style={{ animationDelay: "0.2s" }}>{isEs ? "¡Pago Completado!" : "Payment Completed!"}</h3>
+                <p className="text-success small fw-bold mb-3 animate-fade-in" style={{ animationDelay: "0.3s" }}>{isEs ? "✓ Operación Exitosa" : "✓ Operation Successful"}</p>
+                <div className="p-3 border rounded-3 bg-white shadow-sm inline-block px-4 mb-2 animate-fade-in" style={{ animationDelay: "0.4s", display: "inline-block" }}>
+                  <span className="smaller text-muted d-block">{isEs ? "ID de Transacción de Mercado Pago" : "Mercado Pago Transaction ID"}</span>
+                  <strong className="font-mono text-gray-800 small">{mpTxId}</strong>
+                </div>
+              </div>
+            )}
+
+          </Container>
+
+          <style>{`
+            .hover-mp-card {
+              transition: all 0.25s ease;
+            }
+            .hover-mp-card:hover {
+              transform: translateY(-2px);
+              box-shadow: 0 8px 16px -8px rgba(0,0,0,0.1);
+              border-color: #009ee3 !important;
+            }
+            .animate-elastic {
+              animation: elastic-in 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+            }
+            @keyframes elastic-in {
+              0% { transform: scale(0.3); opacity: 0; }
+              50% { transform: scale(1.1); }
+              70% { transform: scale(0.9); }
+              100% { transform: scale(1.0); opacity: 1; }
+            }
+            .confetti-particle {
+              position: absolute;
+              width: 8px;
+              height: 12px;
+              background-color: #fcd34d;
+              opacity: 0.8;
+              border-radius: 2px;
+              animation: confetti-fall 2.5s linear infinite;
+            }
+            .confetti-particle.color-0 { background-color: #3b82f6; }
+            .confetti-particle.color-1 { background-color: #10b981; }
+            .confetti-particle.color-2 { background-color: #ec4899; }
+            .confetti-particle.p-0 { transform: rotate(15deg); }
+            .confetti-particle.p-1 { transform: rotate(-35deg); width: 10px; height: 10px; }
+            .confetti-particle.p-2 { transform: rotate(45deg); }
+            @keyframes confetti-fall {
+              0% { transform: translateY(-50px) rotate(0deg); opacity: 1; }
+              100% { transform: translateY(300px) rotate(360deg); opacity: 0; }
+            }
+          `}</style>
+        </div>
+      )}
+
+      <style>{`
+        .bg-success-soft {
+          background-color: rgba(16, 185, 129, 0.08) !important;
+        }
+        .bg-danger-soft {
+          background-color: rgba(239, 68, 68, 0.08) !important;
+        }
+        .bg-warning-soft {
+          background-color: rgba(245, 158, 11, 0.08) !important;
+        }
+        .hover-row-focus {
+          transition: background-color 0.2s ease, border-color 0.2s ease;
+        }
+        .hover-row-focus:hover {
+          background-color: rgba(248, 250, 252, 0.8) !important;
+          border-color: #475569 !important;
+        }
+        .btn-premium {
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .btn-premium:hover:not(:disabled) {
+          transform: translateY(-1.5px);
+          box-shadow: 0 8px 16px -8px rgba(0,0,0,0.2) !important;
+        }
+      `}</style>
     </div>
   );
 }
