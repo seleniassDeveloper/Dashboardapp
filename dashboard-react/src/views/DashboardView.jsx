@@ -412,18 +412,7 @@ export default function DashboardView() {
         workers={workers}
       />
 
-      {/* SECCIÓN DE INFORMES INTELIGENTES Y GADGETS DINÁMICOS */}
-      <Container fluid className="px-0">
-        <SmartReports
-          appointments={appointments}
-          clients={clients}
-          workers={workers}
-          services={services}
-          brand={brand}
-        />
-      </Container>
-
-      {/* 3-7. GRID DE WIDGETS CONFIGURABLES */}
+      {/* 3-7. GRID DE WIDGETS CONFIGURABLES (MÉTRICAS Y GADGETS ARRIBA) */}
       <Container fluid className="px-0">
         <DashboardGrid
           widgets={widgets}
@@ -453,6 +442,17 @@ export default function DashboardView() {
           onEditWorker={(id) => {
             alert(t("errors.configureScheduleHint"));
           }}
+        />
+      </Container>
+
+      {/* SECCIÓN DE INFORMES INTELIGENTES Y COPILOT IA AL FINAL */}
+      <Container fluid className="px-0">
+        <SmartReports
+          appointments={appointments}
+          clients={clients}
+          workers={workers}
+          services={services}
+          brand={brand}
         />
       </Container>
 

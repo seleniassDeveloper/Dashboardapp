@@ -363,46 +363,7 @@ export default function SmartReports({ appointments = [], clients = [], workers 
       };
     },
 
-    "agenda-dia": () => {
-      const todayStr = new Date().toISOString().slice(0, 10);
-      const todayAppts = appointments.filter(
-        a => new Date(a.startsAt).toISOString().slice(0, 10) === todayStr
-      );
-      const active = todayAppts.filter(a => a.status !== "CANCELLED");
 
-      const chartData = [
-        { name: isEs ? "Confirmadas/Hechas" : "Confirmed/Done", value: active.length },
-        { name: isEs ? "Canceladas" : "Cancelled", value: todayAppts.length - active.length }
-      ];
-
-      return {
-        title: isEs ? "Agenda del Día" : "Daily Agenda",
-        description: isEs ? "Compendio operativo de las reservas y estados calendarizados para hoy." : "Operational digest of bookings and scheduled states for today.",
-        summary: isEs 
-          ? `Hoy se programaron ${todayAppts.length} citas totales en la agenda. Actualmente tenés ${active.length} turnos operativos y ${todayAppts.length - active.length} cancelados.`
-          : `Today, a total of ${todayAppts.length} appointments were scheduled. Currently you have ${active.length} active slots and ${todayAppts.length - active.length} cancelled.`,
-        kpis: [
-          { label: isEs ? "Turnos Totales Hoy" : "Total Bookings Today", value: isEs ? `${todayAppts.length} reservas` : `${todayAppts.length} bookings`, icon: <Calendar size={18} className="text-primary" /> },
-          { label: isEs ? "Confirmados" : "Confirmed", value: isEs ? `${active.length} activos` : `${active.length} active`, icon: <CheckCircle size={18} className="text-success" /> },
-          { label: isEs ? "Cancelados Hoy" : "Cancelled Today", value: isEs ? `${todayAppts.length - active.length} turnos` : `${todayAppts.length - active.length} bookings`, icon: <XCircle size={18} className="text-danger" /> }
-        ],
-        chart: {
-          type: "pie",
-          title: isEs ? "Estado de la Agenda de Hoy" : "Today's Agenda Status",
-          data: chartData
-        },
-        table: {
-          headers: isEs ? ["Hora", "Cliente", "Servicio", "Colaborador", "Estado"] : ["Time", "Client", "Service", "Staff", "Status"],
-          rows: todayAppts.map(a => [
-            new Date(a.startsAt).toLocaleTimeString(isEs ? "es-AR" : "en-US", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" }),
-            `${a.client?.firstName || (isEs ? "Cliente" : "Client")} ${a.client?.lastName || ""}`.trim(),
-            a.service?.name || (isEs ? "Servicio" : "Service"),
-            a.worker?.firstName || (isEs ? "Profesional" : "Staff"),
-            a.status === "CANCELLED" ? (isEs ? "Cancelado" : "Cancelled") : a.status === "DONE" ? (isEs ? "Finalizado" : "Completed") : (isEs ? "Confirmado" : "Confirmed")
-          ])
-        }
-      };
-    },
 
     "bajo-stock": () => {
       const lowStockProducts = INITIAL_PRODUCTS.filter(p => p.stock < p.limit);
@@ -1180,7 +1141,6 @@ export default function SmartReports({ appointments = [], clients = [], workers 
                   { id: "servicios-solicitados", label: isEs ? "Servicios estrella" : "Star services", color: "primary" },
                   { id: "clientes-frecuentes", label: isEs ? "Clientes frecuentes" : "Frequent clients", color: "info" },
                   { id: "ingresos-metodo-pago", label: isEs ? "Métodos de Pago" : "Payment methods", color: "success" },
-                  { id: "agenda-dia", label: isEs ? "Agenda del día" : "Daily schedule", color: "primary" },
                   { id: "bajo-stock", label: isEs ? "Bajo Stock" : "Low Stock", color: "warning" },
                   { id: "rendimiento-empleado", label: isEs ? "Rendimiento Equipo" : "Team Performance", color: "info" },
                   { id: "finanzas-mes", label: isEs ? "Finanzas del mes" : "Monthly finances", color: "success" },
