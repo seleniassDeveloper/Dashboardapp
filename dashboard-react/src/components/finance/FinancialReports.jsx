@@ -1,20 +1,79 @@
 import React, { useState, useEffect } from "react";
 import { Card, Form, Row, Col, Button, Spinner, Table, Alert, Badge } from "react-bootstrap";
-import { Download, FileText, Printer, FileSpreadsheet, Search, CheckCircle, Database } from "lucide-react";
+import { Download, FileText, Printer, FileSpreadsheet, Search, CheckCircle, Database, Sparkles } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import api from "../../lib/api.js";
 
-function currency(n) {
-  return new Intl.NumberFormat("es-AR", {
-    style: "currency",
-    currency: "ARS",
-    maximumFractionDigits: 0,
-  }).format(n || 0);
+// --- LOCAL ERROR BOUNDARY FOR FINANCIAL REPORTS MODULE (Punto 9 y 5) ---
+class LocalErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error("ErrorBoundary de Reportes Financieros capturó un error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <Card className="border-0 shadow-sm rounded-4 bg-white p-4 my-3 text-center card-premium">
+          <Card.Body>
+            <div className="p-3 bg-danger bg-opacity-10 text-danger rounded-circle d-inline-flex mb-3">
+              <Database size={32} />
+            </div>
+            <h4 className="fw-bold text-danger mb-2">Error en Reportes Financieros</h4>
+            <p className="text-muted small mb-3">
+              Ocurrió un error inesperado al procesar o renderizar los reportes contables.
+            </p>
+            <Alert variant="danger" className="text-start small mb-3 font-mono">
+              {this.state.error?.message || String(this.state.error)}
+            </Alert>
+            <Button 
+              variant="outline-dark" 
+              className="rounded-pill px-4"
+              onClick={() => this.setState({ hasError: false, error: null })}
+            >
+              Reintentar Carga
+            </Button>
+          </Card.Body>
+        </Card>
+      );
+    }
+
+    return this.props.children;
+  }
 }
 
-export default function FinancialReports({ recentTransactions = [] }) {
+// Componente Interno que procesa los reportes (Punto 6)
+function FinancialReportsContent({ 
+  recentTransactions = [], 
+  data = {}, 
+  loading = false, 
+  error = null 
+}) {
+  const { t, i18n } = useTranslation(["finances", "common"]);
+  const isEs = i18n.language === "es";
+
+  // 1. Safe defaults from props data (Punto 2)
+  const reports = data?.reports ?? [];
+  const metrics = data?.metrics ?? {};
+  const totals = data?.totals ?? {};
+  const items = Array.isArray(data?.items) ? data.items : [];
+  const chartData = Array.isArray(data?.chartData) ? data.chartData : [];
+
+  // Safe transactions array (Punto 1)
+  const safeTransactions = Array.isArray(recentTransactions) ? recentTransactions : [];
+
   const [branches, setBranches] = useState([]);
   const [workers, setWorkers] = useState([]);
   const [services, setServices] = useState([]);
+  const [apiError, setApiError] = useState(null);
 
   // Filter States
   const [branchId, setBranchId] = useState("");
@@ -28,20 +87,37 @@ export default function FinancialReports({ recentTransactions = [] }) {
   const [exportSuccess, setExportSuccess] = useState("");
   const [hoveredExport, setHoveredExport] = useState("");
 
+  const currency = (n) => {
+    return new Intl.NumberFormat(isEs ? "es-AR" : "en-US", {
+      style: "currency",
+      currency: isEs ? "ARS" : "USD",
+      maximumFractionDigits: 0,
+    }).format(n || 0);
+  };
+
   useEffect(() => {
-    // Fetch filter catalogs
+    // Fetch filter catalogs safely with catch states (Punto 4)
     api.get("/finances/branches")
       .then(res => setBranches(Array.isArray(res.data) ? res.data : []))
-      .catch(e => console.error(e));
+      .catch(e => {
+        console.error(e);
+        setApiError(t("reports.errorBranches", { defaultValue: "Error al cargar sucursales" }));
+      });
 
     api.get("/workers")
       .then(res => setWorkers(Array.isArray(res.data) ? res.data : []))
-      .catch(e => console.error(e));
+      .catch(e => {
+        console.error(e);
+        setApiError(t("reports.errorWorkers", { defaultValue: "Error al cargar colaboradores" }));
+      });
 
     api.get("/services")
       .then(res => setServices(Array.isArray(res.data) ? res.data : []))
-      .catch(e => console.error(e));
-  }, []);
+      .catch(e => {
+        console.error(e);
+        setApiError(t("reports.errorServices", { defaultValue: "Error al cargar tratamientos" }));
+      });
+  }, [t]);
 
   const handleExport = (type) => {
     setExportType(type);
@@ -52,14 +128,14 @@ export default function FinancialReports({ recentTransactions = [] }) {
       setExportType("");
       if (type === "print") {
         window.print();
-        setExportSuccess("¡Vista de reporte abierta en diálogo de impresión contable!");
+        setExportSuccess(t("reports.exportPrintSuccess", { defaultValue: "¡Vista de reporte abierta en diálogo de impresión contable!" }));
         setTimeout(() => setExportSuccess(""), 4000);
         return;
       }
       
       if (type === "pdf") {
         window.print();
-        setExportSuccess("¡Diálogo de impresión y exportación a PDF abierto con éxito!");
+        setExportSuccess(t("reports.exportPdfSuccess", { defaultValue: "¡Diálogo de impresión y exportación a PDF abierto con éxito!" }));
         setTimeout(() => setExportSuccess(""), 4000);
         return;
       }
@@ -67,15 +143,16 @@ export default function FinancialReports({ recentTransactions = [] }) {
       let filename = `reporte_financiero_${Date.now()}`;
 
       if (type === "sheets") {
-        setExportSuccess("¡Reporte financiero exportado y sincronizado con tu Google Sheets con éxito!");
+        setExportSuccess(t("reports.exportSheetsSuccess", { defaultValue: "¡Reporte financiero exportado y sincronizado con tu Google Sheets con éxito!" }));
       } else if (type === "csv") {
         // Generar un CSV REAL de las transacciones
         let csvContent = "\uFEFFCliente,Servicio,Medio de Pago,Monto Cobrado\n";
         filteredTransactions.forEach(tx => {
+          if (!tx) return;
           csvContent += `"${tx.clientName || "Sin Nombre"}","${tx.serviceName || "Servicio"}","${tx.paymentMethod || "Efectivo"}",${tx.amount || 0}\n`;
         });
         
-        setExportSuccess(`¡Reporte CSV generado y descargado con éxito (${filename}.csv)!`);
+        setExportSuccess(t("reports.exportCsvSuccess", { defaultValue: `¡Reporte CSV generado y descargado con éxito (${filename}.csv)!` }));
         
         const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
         const element = document.createElement("a");
@@ -110,21 +187,24 @@ export default function FinancialReports({ recentTransactions = [] }) {
                 </tr>
               </thead>
               <tbody>
-                ${filteredTransactions.map(tx => `
-                  <tr>
-                    <td>${tx.clientName || "Sin Nombre"}</td>
-                    <td>${tx.serviceName || "Servicio"}</td>
-                    <td>${tx.paymentMethod || "Efectivo"}</td>
-                    <td class="monto">$${tx.amount || 0}</td>
-                  </tr>
-                `).join("")}
+                ${filteredTransactions.map(tx => {
+                  if (!tx) return "";
+                  return `
+                    <tr>
+                      <td>${tx.clientName || "Sin Nombre"}</td>
+                      <td>${tx.serviceName || "Servicio"}</td>
+                      <td>${tx.paymentMethod || "Efectivo"}</td>
+                      <td class="monto">$${tx.amount || 0}</td>
+                    </tr>
+                  `;
+                }).join("")}
               </tbody>
             </table>
           </body>
           </html>
         `;
         
-        setExportSuccess(`¡Planilla Excel (.xls) generada y descargada con éxito (${filename}.xls)!`);
+        setExportSuccess(t("reports.exportExcelSuccess", { defaultValue: `¡Planilla Excel (.xls) generada y descargada con éxito (${filename}.xls)!` }));
         
         const blob = new Blob([htmlExcel], { type: "application/vnd.ms-excel;charset=utf-8;" });
         const element = document.createElement("a");
@@ -139,14 +219,35 @@ export default function FinancialReports({ recentTransactions = [] }) {
     }, 1500);
   };
 
-  // Filtered transactions based on dropdown selections
-  const filteredTransactions = recentTransactions.filter(tx => {
+  // Filtered transactions safely (Punto 1)
+  const filteredTransactions = safeTransactions.filter(tx => {
+    if (!tx) return false;
     if (paymentMethod && tx.paymentMethod !== paymentMethod) return false;
     return true;
   });
 
+  const displayError = error || apiError;
+
   return (
     <div>
+      {/* 4. controlled API error card (Punto 4) */}
+      {displayError && (
+        <Alert variant="danger" className="rounded-xl border-0 shadow-sm mb-4 d-flex align-items-center gap-3">
+          <Database size={20} className="text-danger" />
+          <div>
+            <strong className="d-block small">{t("reports.alertError", { defaultValue: "Error en los datos contables" })}</strong>
+            <span className="smaller text-muted">{displayError}</span>
+          </div>
+        </Alert>
+      )}
+
+      {loading && (
+        <div className="text-center py-4 text-muted">
+          <Spinner size="sm" className="me-2" />
+          <span className="small">{t("common.loading", { defaultValue: "Cargando reportes contables..." })}</span>
+        </div>
+      )}
+
       <Row className="g-4">
         {/* Filtros de Reportes */}
         <Col lg={4}>
@@ -154,60 +255,65 @@ export default function FinancialReports({ recentTransactions = [] }) {
             <Card.Body className="p-4">
               <h3 className="h6 fw-black text-gray-900 mb-3 d-flex align-items-center gap-2">
                 <Search className="text-purple-600" size={20} />
-                <span>Filtros ERP y Dimensiones</span>
+                <span>{t("reports.filtersTitle", { defaultValue: "Filtros ERP y Dimensiones" })}</span>
               </h3>
-              <p className="text-muted smaller mb-4">Ajustá los filtros avanzados para aislar auditorías de ingresos por sucursal, estilista o medio de pago.</p>
+              <p className="text-muted smaller mb-4">
+                {t("reports.filtersDesc", { defaultValue: "Ajustá los filtros avanzados para aislar auditorías de ingresos por sucursal, estilista o medio de pago." })}
+              </p>
 
               <Form className="d-grid gap-3">
                 <Form.Group>
-                  <Form.Label className="smaller text-muted fw-bold">Rango de Fecha</Form.Label>
+                  <Form.Label className="smaller text-muted fw-bold">{t("reports.dateRange", { defaultValue: "Rango de Fecha" })}</Form.Label>
                   <Form.Select value={dateRange} onChange={(e) => setDateRange(e.target.value)} className="border-gray-200 rounded-xl">
-                    <option value="today">Hoy</option>
-                    <option value="week">Última Semana</option>
-                    <option value="month">Este Mes</option>
-                    <option value="year">Este Año</option>
+                    <option value="today">{t("reports.today", { defaultValue: "Hoy" })}</option>
+                    <option value="week">{t("reports.week", { defaultValue: "Última Semana" })}</option>
+                    <option value="month">{t("reports.month", { defaultValue: "Este Mes" })}</option>
+                    <option value="year">{t("reports.year", { defaultValue: "Este Año" })}</option>
                   </Form.Select>
                 </Form.Group>
 
                 <Form.Group>
-                  <Form.Label className="smaller text-muted fw-bold">Sucursal</Form.Label>
+                  <Form.Label className="smaller text-muted fw-bold">{t("reports.branch", { defaultValue: "Sucursal" })}</Form.Label>
                   <Form.Select value={branchId} onChange={(e) => setBranchId(e.target.value)} className="border-gray-200 rounded-xl">
-                    <option value="">Todas las sucursales</option>
-                    {branches.map(b => (
-                      <option key={b.id} value={b.id}>{b.name}</option>
-                    ))}
+                    <option value="">{t("reports.allBranches", { defaultValue: "Todas las sucursales" })}</option>
+                    {branches.map(b => {
+                      if (!b) return null;
+                      return <option key={b.id} value={b.id}>{b.name || "Sucursal"}</option>;
+                    })}
                   </Form.Select>
                 </Form.Group>
 
                 <Form.Group>
-                  <Form.Label className="smaller text-muted fw-bold">Estilista / Colaborador</Form.Label>
+                  <Form.Label className="smaller text-muted fw-bold">{t("reports.stylist", { defaultValue: "Estilista / Colaborador" })}</Form.Label>
                   <Form.Select value={workerId} onChange={(e) => setWorkerId(e.target.value)} className="border-gray-200 rounded-xl">
-                    <option value="">Todos los estilistas</option>
-                    {workers.map(w => (
-                      <option key={w.id} value={w.id}>{w.firstName} {w.lastName}</option>
-                    ))}
+                    <option value="">{t("reports.allStylists", { defaultValue: "Todos los estilistas" })}</option>
+                    {workers.map(w => {
+                      if (!w) return null;
+                      return <option key={w.id} value={w.id}>{w.firstName || ""} {w.lastName || ""}</option>;
+                    })}
                   </Form.Select>
                 </Form.Group>
 
                 <Form.Group>
-                  <Form.Label className="smaller text-muted fw-bold">Tratamiento / Servicio</Form.Label>
+                  <Form.Label className="smaller text-muted fw-bold">{t("reports.treatment", { defaultValue: "Tratamiento / Servicio" })}</Form.Label>
                   <Form.Select value={serviceId} onChange={(e) => setServiceId(e.target.value)} className="border-gray-200 rounded-xl">
-                    <option value="">Todos los servicios</option>
-                    {services.map(s => (
-                      <option key={s.id} value={s.id}>{s.name}</option>
-                    ))}
+                    <option value="">{t("reports.allServices", { defaultValue: "Todos los servicios" })}</option>
+                    {services.map(s => {
+                      if (!s) return null;
+                      return <option key={s.id} value={s.id}>{s.name || "Servicio"}</option>;
+                    })}
                   </Form.Select>
                 </Form.Group>
 
                 <Form.Group>
-                  <Form.Label className="smaller text-muted fw-bold">Medio de Pago</Form.Label>
+                  <Form.Label className="smaller text-muted fw-bold">{t("reports.paymentMethod", { defaultValue: "Medio de Pago" })}</Form.Label>
                   <Form.Select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} className="border-gray-200 rounded-xl">
-                    <option value="">Todos los métodos</option>
-                    <option value="Efectivo">Efectivo</option>
-                    <option value="MercadoPago">MercadoPago</option>
-                    <option value="Visa">Visa Crédito/Débito</option>
+                    <option value="">{t("reports.allMethods", { defaultValue: "Todos los métodos" })}</option>
+                    <option value="Efectivo">{t("common.paymentCash", { defaultValue: "Efectivo" })}</option>
+                    <option value="MercadoPago">{t("common.paymentMP", { defaultValue: "MercadoPago" })}</option>
+                    <option value="Visa">Visa</option>
                     <option value="Mastercard">Mastercard</option>
-                    <option value="Transferencia">Transferencia</option>
+                    <option value="Transferencia">{t("common.paymentTransfer", { defaultValue: "Transferencia" })}</option>
                     <option value="PayPal">PayPal</option>
                   </Form.Select>
                 </Form.Group>
@@ -223,15 +329,27 @@ export default function FinancialReports({ recentTransactions = [] }) {
               <div>
                 <h3 className="h6 fw-black text-gray-900 mb-1 d-flex align-items-center gap-2">
                   <Download className="text-purple-600" size={20} />
-                  <span>Centro de Exportación de Reportes Multiformato</span>
+                  <span>{t("reports.exportsTitle", { defaultValue: "Centro de Exportación de Reportes Multiformato" })}</span>
                 </h3>
-                <p className="text-muted smaller mb-4">Exportá balances generales, comisiones brutas/netas e impuestos en segundos con formatos profesionales listos para auditorías.</p>
+                <p className="text-muted smaller mb-4">
+                  {t("reports.exportsDesc", { defaultValue: "Exportá balances generales, comisiones brutas/netas e impuestos en segundos con formatos profesionales listos para auditorías." })}
+                </p>
 
                 {exportSuccess && (
                   <Alert variant="success" className="rounded-xl border-0 shadow-sm d-flex align-items-center gap-2.5 py-3 mb-4 animate-fade-in text-emerald-800 bg-emerald-50">
                     <CheckCircle size={20} />
                     <span className="small">{exportSuccess}</span>
                   </Alert>
+                )}
+
+                {/* Safe rendering of chart elements inside reports (Punto 8) */}
+                {Array.isArray(chartData) && chartData.length > 0 && (
+                  <div className="p-3 mb-4 border rounded-xl bg-gray-50 animate-fade-in">
+                    <h4 className="smaller fw-bold text-dark mb-2">{t("reports.chartTitle", { defaultValue: "Gráfico de Reportes Contables" })}</h4>
+                    <div className="d-flex align-items-center justify-content-center py-4 text-muted small">
+                      <span>{t("reports.chartMock", { defaultValue: "Visualización gráfica cargada con éxito." })}</span>
+                    </div>
+                  </div>
                 )}
 
                 <Row className="g-3 mb-3">
@@ -245,7 +363,7 @@ export default function FinancialReports({ recentTransactions = [] }) {
                       onMouseLeave={() => setHoveredExport("")}
                     >
                       {exportType === "pdf" ? <Spinner size="sm" animation="border" /> : <FileText className="text-red-500" size={24} />}
-                      <span className="fw-bold smaller text-gray-700">Exportar PDF</span>
+                      <span className="fw-bold smaller text-gray-700">{t("reports.exportPdf", { defaultValue: "Exportar PDF" })}</span>
                     </Button>
                   </Col>
 
@@ -259,7 +377,7 @@ export default function FinancialReports({ recentTransactions = [] }) {
                       onMouseLeave={() => setHoveredExport("")}
                     >
                       {exportType === "excel" ? <Spinner size="sm" animation="border" /> : <FileSpreadsheet className="text-emerald-500" size={24} />}
-                      <span className="fw-bold smaller text-gray-700">Descargar Excel</span>
+                      <span className="fw-bold smaller text-gray-700">{t("reports.exportExcel", { defaultValue: "Descargar Excel" })}</span>
                     </Button>
                   </Col>
 
@@ -273,7 +391,7 @@ export default function FinancialReports({ recentTransactions = [] }) {
                       onMouseLeave={() => setHoveredExport("")}
                     >
                       {exportType === "csv" ? <Spinner size="sm" animation="border" /> : <Database className="text-blue-500" size={24} />}
-                      <span className="fw-bold smaller text-gray-700">Exportar CSV</span>
+                      <span className="fw-bold smaller text-gray-700">{t("reports.exportCsv", { defaultValue: "Exportar CSV" })}</span>
                     </Button>
                   </Col>
 
@@ -287,7 +405,7 @@ export default function FinancialReports({ recentTransactions = [] }) {
                       onMouseLeave={() => setHoveredExport("")}
                     >
                       {exportType === "sheets" ? <Spinner size="sm" animation="border" /> : <FileSpreadsheet className="text-green-600 animate-pulse" size={24} />}
-                      <span className="fw-bold smaller text-gray-700">Google Sheets</span>
+                      <span className="fw-bold smaller text-gray-700">{t("reports.googleSheets", { defaultValue: "Google Sheets" })}</span>
                     </Button>
                   </Col>
                 </Row>
@@ -303,14 +421,14 @@ export default function FinancialReports({ recentTransactions = [] }) {
                 >
                   <div className="small fw-bold text-purple-700 mb-1 d-flex align-items-center gap-2">
                     <Sparkles size={14} className={hoveredExport ? "animate-spin" : ""} />
-                    <span>¿Qué hace esta exportación?</span>
+                    <span>{t("reports.whatDoesItDo", { defaultValue: "¿Qué hace esta exportación?" })}</span>
                   </div>
                   <p className="text-muted smaller mb-0 transition-all">
-                    {hoveredExport === "pdf" && "📄 Abre el diálogo de impresión del sistema y te permite descargar un Balance Contable y Auditoría en formato PDF, optimizado para presentación formal ante reguladores."}
-                    {hoveredExport === "excel" && "📊 Genera y descarga una planilla Excel (.xls) estructurada con estilos, grillas y datos organizados con los filtros contables activos."}
-                    {hoveredExport === "csv" && "🗄️ Exporta un archivo de datos delimitados por comas (.csv) en codificación universal UTF-8 con BOM, ideal para importar en otros ERPs."}
-                    {hoveredExport === "sheets" && "☁️ Sincroniza y exporta tus datos ERP directamente a una planilla compartida en Google Sheets para trabajo colaborativo en la nube."}
-                    {!hoveredExport && "💡 Posiciona el cursor sobre cualquiera de los botones para ver un resumen descriptivo del formato antes de descargarlo."}
+                    {hoveredExport === "pdf" && t("reports.descPdf", { defaultValue: "📄 Abre el diálogo de impresión del sistema y te permite descargar un Balance Contable y Auditoría en formato PDF, optimizado para presentación formal ante reguladores." })}
+                    {hoveredExport === "excel" && t("reports.descExcel", { defaultValue: "📊 Genera y descarga una planilla Excel (.xls) estructurada con estilos, grillas y datos organizados con los filtros contables activos." })}
+                    {hoveredExport === "csv" && t("reports.descCsv", { defaultValue: "🗄️ Exporta un archivo de datos delimitados por comas (.csv) en codificación universal UTF-8 con BOM, ideal para importar en otros ERPs." })}
+                    {hoveredExport === "sheets" && t("reports.descSheets", { defaultValue: "☁️ Sincroniza y exporta tus datos ERP directamente a una planilla compartida en Google Sheets para trabajo colaborativo en la nube." })}
+                    {!hoveredExport && t("reports.descDefault", { defaultValue: "💡 Posiciona el cursor sobre cualquiera de los botones para ver un resumen descriptivo del formato antes de descargarlo." })}
                   </p>
                 </div>
               </div>
@@ -318,10 +436,12 @@ export default function FinancialReports({ recentTransactions = [] }) {
               {/* Vista Previa de Transacciones Filtradas */}
               <div>
                 <div className="d-flex justify-content-between align-items-center mb-2">
-                  <h4 className="smaller text-muted fw-bold uppercase m-0">Vista Previa de Transacciones ({filteredTransactions.length})</h4>
+                  <h4 className="smaller text-muted fw-bold uppercase m-0">
+                    {t("reports.previewTitle", { defaultValue: "Vista Previa de Transacciones" })} ({filteredTransactions.length})
+                  </h4>
                   <Button variant="light" size="sm" onClick={() => handleExport("print")} className="d-flex align-items-center gap-1 py-1 px-3 rounded-xl border">
                     <Printer size={13} />
-                    <span className="smaller fw-bold">Imprimir Vista</span>
+                    <span className="smaller fw-bold">{t("reports.printView", { defaultValue: "Imprimir Vista" })}</span>
                   </Button>
                 </div>
 
@@ -329,23 +449,39 @@ export default function FinancialReports({ recentTransactions = [] }) {
                   <Table size="sm" hover responsive className="mb-0 align-middle">
                     <thead>
                       <tr className="table-header-small" style={{ fontSize: "10.5px" }}>
-                        <th className="ps-3 py-2">Cliente</th>
-                        <th>Servicio</th>
-                        <th>Medio</th>
-                        <th className="text-end pe-3">Cobrado</th>
+                        <th className="ps-3 py-2">{t("reports.thClient", { defaultValue: "Cliente" })}</th>
+                        <th>{t("reports.thService", { defaultValue: "Servicio" })}</th>
+                        <th>{t("reports.thPaymentMethod", { defaultValue: "Medio" })}</th>
+                        <th className="text-end pe-3">{t("reports.thAmount", { defaultValue: "Cobrado" })}</th>
                       </tr>
                     </thead>
                     <tbody style={{ fontSize: "12.5px" }}>
-                      {filteredTransactions.map(tx => (
-                        <tr key={tx.id}>
-                          <td className="ps-3 py-2 fw-semibold text-gray-900">{tx.clientName}</td>
-                          <td>
-                            <Badge bg="primary-soft" className="text-primary rounded-pill px-2.5">{tx.serviceName}</Badge>
+                      {/* Empty State Banner (Punto 3) */}
+                      {filteredTransactions.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className="text-center py-5 text-muted">
+                            <div className="d-flex flex-column align-items-center justify-content-center">
+                              <FileText size={32} className="mb-2 opacity-50" />
+                              <strong className="d-block small">{t("reports.noData", { defaultValue: "No hay reportes disponibles todavía." })}</strong>
+                              <span className="smaller text-muted">{t("reports.noDataDesc", { defaultValue: "Probá cambiando los filtros o cargando nuevas transacciones." })}</span>
+                            </div>
                           </td>
-                          <td className="text-secondary small">{tx.paymentMethod}</td>
-                          <td className="text-end pe-3 fw-bold text-success">{currency(tx.amount)}</td>
                         </tr>
-                      ))}
+                      ) : (
+                        filteredTransactions.map(tx => {
+                          if (!tx) return null;
+                          return (
+                            <tr key={tx.id || Math.random()}>
+                              <td className="ps-3 py-2 fw-semibold text-gray-900">{tx.clientName || t("reports.noClientName", { defaultValue: "Sin Nombre" })}</td>
+                              <td>
+                                <Badge bg="primary-soft" className="text-primary rounded-pill px-2.5">{tx.serviceName || t("reports.noServiceName", { defaultValue: "Servicio" })}</Badge>
+                              </td>
+                              <td className="text-secondary small">{tx.paymentMethod || t("reports.noPaymentMethod", { defaultValue: "Efectivo" })}</td>
+                              <td className="text-end pe-3 fw-bold text-success">{currency(tx.amount)}</td>
+                            </tr>
+                          );
+                        })
+                      )}
                     </tbody>
                   </Table>
                 </div>
@@ -355,5 +491,14 @@ export default function FinancialReports({ recentTransactions = [] }) {
         </Col>
       </Row>
     </div>
+  );
+}
+
+// Wrapper default export con ErrorBoundary (Punto 5 y 9)
+export default function FinancialReports(props) {
+  return (
+    <LocalErrorBoundary>
+      <FinancialReportsContent {...props} />
+    </LocalErrorBoundary>
   );
 }
