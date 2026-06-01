@@ -402,20 +402,29 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
 
     if (!isEdit) {
       if (initialData?.startsAt) {
-        const { date: appointmentDate, time: appointmentTime } = splitDatetimeLocal(
-          toDatetimeLocal(initialData.startsAt)
-        );
-        const cleanTime = appointmentTime === "00:00" ? "" : appointmentTime;
-        
-        let finalTime = cleanTime;
-        const targetWorkerId = initialData.workerId || (workers[0]?.id || "");
-        const worker = workers.find(w => w.id === targetWorkerId);
-        if (finalTime && worker) {
-          const check = checkLaborHoursLocal(worker, appointmentDate, finalTime);
-          if (!check.valid) {
-            finalTime = "";
+        const isDateOnly = /^\d{4}-\d{2}-\d{2}$/.test(initialData.startsAt);
+        let appointmentDate = "";
+        let finalTime = "";
+
+        if (isDateOnly) {
+          appointmentDate = initialData.startsAt;
+          finalTime = "";
+        } else {
+          const parsed = splitDatetimeLocal(toDatetimeLocal(initialData.startsAt));
+          appointmentDate = parsed.date;
+          finalTime = parsed.time === "00:00" ? "" : parsed.time;
+          
+          const targetWorkerId = initialData.workerId || (workers[0]?.id || "");
+          const worker = workers.find(w => w.id === targetWorkerId);
+          if (finalTime && worker) {
+            const check = checkLaborHoursLocal(worker, appointmentDate, finalTime);
+            if (!check.valid) {
+              finalTime = "";
+            }
           }
         }
+
+        const targetWorkerId = initialData.workerId || (workers[0]?.id || "");
 
         setForm({
           ...emptyForm,
