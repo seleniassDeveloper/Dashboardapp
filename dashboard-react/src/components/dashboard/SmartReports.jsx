@@ -308,7 +308,10 @@ export default function SmartReports({ appointments = [], clients = [], workers 
   const handleSaveBuilder = () => {
     if (!selectedGadget) return;
 
-    // Generar datos ficticios coherentes si cambia el tipo de gráfico
+    // Verificar si es un gadget nuevo (no existe en el estado)
+    const isNew = !gadgets.some(g => g.id === selectedGadget.id);
+
+    // Generar datos ficticios coherentes si cambia el tipo de gráfico o si es un gadget nuevo
     let updatedChartData = selectedGadget.chartData;
     let updatedTableRows = selectedGadget.tableRows;
     let updatedTableHeaders = selectedGadget.tableHeaders;
@@ -316,8 +319,8 @@ export default function SmartReports({ appointments = [], clients = [], workers 
     let updatedKpiValue = selectedGadget.kpiValue;
     let updatedKpiChange = selectedGadget.kpiChange;
 
-    if (formType !== selectedGadget.type) {
-      // Si cambia el tipo, le inyectamos datos coherentes acordes al nuevo tipo
+    if (isNew || formType !== selectedGadget.type) {
+      // Si es nuevo o cambia el tipo, le inyectamos datos coherentes acordes al nuevo tipo
       if (formType === "kpi") {
         updatedKpiValue = formDataSource === "Ventas" ? 4850000 : 280;
         updatedKpiChange = "+15%";
@@ -350,27 +353,36 @@ export default function SmartReports({ appointments = [], clients = [], workers 
       }
     }
 
-    setGadgets(prev => prev.map(g => {
-      if (g.id === selectedGadget.id) {
-        return {
-          ...g,
-          title: formTitle,
-          type: formType,
-          dataSource: formDataSource,
-          period: formPeriod,
-          groupBy: formGroupBy,
-          filter: formFilter,
-          color: formColor,
-          kpiValue: updatedKpiValue,
-          kpiChange: updatedKpiChange,
-          chartData: updatedChartData,
-          tableHeaders: updatedTableHeaders,
-          tableRows: updatedTableRows,
-          rankingData: updatedRankingData
-        };
-      }
-      return g;
-    }));
+    // Determinar categoría basada en el origen de datos
+    let category = "General";
+    if (formDataSource === "Ventas") category = "Finanzas";
+    else if (formDataSource === "Clientes") category = "Clientes";
+    else if (formDataSource === "Servicios") category = "Servicios";
+    else if (formDataSource === "Equipo") category = "Equipo";
+
+    const savedGadget = {
+      ...selectedGadget,
+      title: formTitle,
+      type: formType,
+      dataSource: formDataSource,
+      period: formPeriod,
+      groupBy: formGroupBy,
+      filter: formFilter,
+      color: formColor,
+      category,
+      kpiValue: updatedKpiValue,
+      kpiChange: updatedKpiChange,
+      chartData: updatedChartData,
+      tableHeaders: updatedTableHeaders,
+      tableRows: updatedTableRows,
+      rankingData: updatedRankingData
+    };
+
+    if (isNew) {
+      setGadgets(prev => [savedGadget, ...prev]);
+    } else {
+      setGadgets(prev => prev.map(g => g.id === selectedGadget.id ? savedGadget : g));
+    }
 
     setShowEditModal(false);
     setSuccessMessage(isEs ? "¡Gadget guardado con éxito!" : "Gadget saved successfully!");
