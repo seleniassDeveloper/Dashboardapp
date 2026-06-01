@@ -50,7 +50,10 @@ export default function DashboardLayout({ children }) {
       
       <motion.main 
         className={`main-content ${isCollapsed ? "main-content--collapsed" : ""}`}
-        animate={{ marginLeft: isCollapsed ? "var(--space-sidebar-collapsed)" : "var(--space-sidebar)" }}
+        animate={{ 
+          marginLeft: isCollapsed ? "var(--space-sidebar-collapsed)" : "var(--space-sidebar)",
+          width: isCollapsed ? "calc(100% - var(--space-sidebar-collapsed))" : "calc(100% - var(--space-sidebar))"
+        }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
       >
         <TopBar 
