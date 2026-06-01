@@ -377,25 +377,25 @@ export default function DashboardView() {
 
             <Button
               variant="outline-dark"
-              onClick={() => setShowAppointmentModal(true)}
-              className="rounded-pill px-3 py-2 small fw-bold d-flex align-items-center gap-1.5 hover-scale border"
-              style={{ fontSize: "12px" }}
-            >
-              <Plus size={14} />
-              <span>{t("header.quickActions.appointment")}</span>
-            </Button>
-
-            <Button
-              variant="dark"
               onClick={() => {
                 setSelectedWidget(null);
                 setShowConfigModal(true);
               }}
-              className="rounded-pill px-3 py-2 small fw-bold d-flex align-items-center gap-1.5 hover-scale btn-premium"
-              style={{ fontSize: "12px", background: brand.accentColor || "#10b981" }}
+              className="rounded-pill px-3 py-2 small fw-bold d-flex align-items-center gap-1.5 hover-scale border"
+              style={{ fontSize: "12px" }}
             >
               <Plus size={14} />
               <span>{t("header.quickActions.widget")}</span>
+            </Button>
+
+            <Button
+              variant="dark"
+              onClick={() => setShowAppointmentModal(true)}
+              className="rounded-pill px-3 py-2 small fw-bold d-flex align-items-center gap-1.5 hover-scale btn-premium"
+              style={{ fontSize: "12px", background: brand.accentColor || "#10b981", borderColor: brand.accentColor || "#10b981" }}
+            >
+              <Plus size={14} />
+              <span>{t("header.quickActions.appointment")}</span>
             </Button>
           </div>
         </div>

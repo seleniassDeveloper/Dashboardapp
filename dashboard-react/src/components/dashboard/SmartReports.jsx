@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Row, Col, Card, Button, Form, Table, Badge, Spinner, Alert, InputGroup } from "react-bootstrap";
+import { Row, Col, Card, Button, Form, Table, Badge, Spinner, Alert, Modal, Dropdown } from "react-bootstrap";
 import {
   Sparkles,
   Search,
@@ -22,7 +22,15 @@ import {
   Briefcase,
   Layers,
   ArrowRight,
-  MessageSquare
+  MessageSquare,
+  MoreVertical,
+  Edit2,
+  Copy,
+  RefreshCw,
+  Trash2,
+  HelpCircle,
+  BarChart2,
+  Plus
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -30,21 +38,17 @@ import {
   Bar,
   LineChart,
   Line,
-  AreaChart,
-  Area,
   PieChart,
   Pie,
   Cell,
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
-  Legend
+  Tooltip
 } from "recharts";
 import { motion, AnimatePresence } from "framer-motion";
-import { postGadgetAiReport } from "../../gadgets/ai/gadgetReportApi.js";
-import "../../styles/smart-reports.css";
 import { useTranslation } from "react-i18next";
+import "../../styles/smart-reports.css";
 
 // Helper de formato de moneda
 function currencyHelper(n, isEs = true) {
@@ -55,1009 +59,620 @@ function currencyHelper(n, isEs = true) {
   }).format(n || 0);
 }
 
-function translatePaymentMethod(method, isEs) {
-  if (isEs) return method;
-  if (method === "Efectivo") return "Cash";
-  if (method === "Tarjeta de Crédito" || method === "Tarjeta") return "Credit Card";
-  if (method === "Transferencia MP" || method === "Transferencia") return "Bank Transfer";
-  if (method === "Débito") return "Debit Card";
-  return method;
-}
-
-// Lista estática de productos para el inventario (coincide con InventoryView.jsx)
-const INITIAL_PRODUCTS = [
-  { id: 1, name: "Tinta L'Oreal Majirel 7.1", category: "Coloración", stock: 3, limit: 8, cost: 4500, provider: "Distribuidora Belleza Sur" },
-  { id: 2, name: "Shampoo PH Neutro Premium 5L", category: "Lavado", stock: 1, limit: 3, cost: 12000, provider: "L'Oreal Express" },
-  { id: 3, name: "Keratina Hidrolizada 1L", category: "Tratamientos", stock: 6, limit: 5, cost: 28000, provider: "Distribuidora Belleza Sur" },
-  { id: 4, name: "Esmalte Meliné Semipermanente", category: "Manicuría", stock: 14, limit: 5, cost: 3200, provider: "Manicura Pro" },
-  { id: 5, name: "Crema Oxidante 20 Vol 1L", category: "Coloración", stock: 2, limit: 4, cost: 6500, provider: "Distribuidora Belleza Sur" }
+// ---------------------------------------------------------
+// DATA INICIAL PRE-ESTABLECIDA DE GADGETS
+// ---------------------------------------------------------
+const INITIAL_GADGETS_DATA = [
+  {
+    id: "gadget-kpi-1",
+    title: "Facturación Mensual",
+    type: "kpi",
+    dataSource: "Ventas",
+    period: "Este mes",
+    groupBy: "Total",
+    filter: "Ninguno",
+    color: "#10b981",
+    kpiValue: 4850000,
+    kpiChange: "+12%",
+    kpiPositive: true,
+    category: "Finanzas"
+  },
+  {
+    id: "gadget-line-2",
+    title: "Facturación últimos 12 meses",
+    type: "line",
+    dataSource: "Ventas",
+    period: "Último año",
+    groupBy: "Mes",
+    filter: "Ninguno",
+    color: "#8b5cf6",
+    chartData: [
+      { name: "May", value: 2100000 },
+      { name: "Jun", value: 2500000 },
+      { name: "Jul", value: 2000000 },
+      { name: "Ago", value: 1800000 },
+      { name: "Sep", value: 2300000 },
+      { name: "Oct", value: 2800000 },
+      { name: "Nov", value: 3100000 },
+      { name: "Dic", value: 2900000 },
+      { name: "Ene", value: 3500000 },
+      { name: "Feb", value: 3800000 },
+      { name: "Mar", value: 4100000 },
+      { name: "Abr", value: 4850000 }
+    ],
+    category: "Finanzas"
+  },
+  {
+    id: "gadget-bar-3",
+    title: "Servicios más vendidos",
+    type: "bar",
+    dataSource: "Servicios",
+    period: "Este mes",
+    groupBy: "Categoría",
+    filter: "Solo finalizados",
+    color: "#6d28d9",
+    chartData: [
+      { name: "Cabello", value: 160 },
+      { name: "Uñas", value: 110 },
+      { name: "Spa", value: 80 },
+      { name: "Barbería", value: 65 },
+      { name: "Otros", value: 30 }
+    ],
+    category: "Servicios"
+  },
+  {
+    id: "gadget-dona-4",
+    title: "Métodos de Pago",
+    type: "dona",
+    dataSource: "Ventas",
+    period: "Este mes",
+    groupBy: "Método",
+    filter: "Ninguno",
+    color: "#3b82f6",
+    chartData: [
+      { name: "Mercado Pago", value: 48 },
+      { name: "Efectivo", value: 28 },
+      { name: "Tarjeta Débito", value: 15 },
+      { name: "Tarjeta Crédito", value: 9 }
+    ],
+    category: "Finanzas"
+  },
+  {
+    id: "gadget-table-5",
+    title: "Top Clientes",
+    type: "table",
+    dataSource: "Clientes",
+    period: "Últimos 6 meses",
+    groupBy: "Visitas",
+    filter: "VIP",
+    color: "#f59e0b",
+    tableHeaders: ["Cliente", "Visitas", "Gasto Total"],
+    tableRows: [
+      ["Selenia Sanchez", "18 visitas", 320000],
+      ["Carlos Pérez", "14 visitas", 240000],
+      ["María Rodríguez", "12 visitas", 195000],
+      ["Ana Gómez", "10 visitas", 160000],
+      ["Laura Silva", "8 visitas", 130000]
+    ],
+    category: "Clientes"
+  },
+  {
+    id: "gadget-heatmap-6",
+    title: "Ocupación Semanal",
+    type: "heatmap",
+    dataSource: "Citas",
+    period: "Esta semana",
+    groupBy: "Día/Hora",
+    filter: "Ninguno",
+    color: "#8b5cf6",
+    category: "Servicios"
+  },
+  {
+    id: "gadget-ranking-7",
+    title: "Profesionales más rentables",
+    type: "ranking",
+    dataSource: "Equipo",
+    period: "Este mes",
+    groupBy: "Facturación",
+    filter: "Ninguno",
+    color: "#8b5cf6",
+    rankingData: [
+      { rank: 1, name: "Valeria Gómez", value: 1250000, pct: 100 },
+      { rank: 2, name: "Sofía Martínez", value: 980000, pct: 78 },
+      { rank: 3, name: "Lucas Silva", value: 820000, pct: 65 },
+      { rank: 4, name: "Marcos Díaz", value: 640000, pct: 51 },
+      { rank: 5, name: "Paula Ruiz", value: 450000, pct: 36 }
+    ],
+    category: "Equipo"
+  }
 ];
 
-export default function SmartReports({ appointments = [], clients = [], workers = [], services = [], brand = {} }) {
-  const { t, i18n } = useTranslation("dashboard");
+export default function SmartReports({ appointments = [], clients = [], workers = [], services = [] }) {
+  const { i18n } = useTranslation("dashboard");
   const isEs = i18n.language === "es";
   const currency = (n) => currencyHelper(n, isEs);
 
-  // Estados principales
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("Todos");
-  const [aiQuestion, setAiQuestion] = useState("");
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiError, setAiError] = useState("");
-  
-  // Estado para el informe visual activo
-  const [activeReport, setActiveReport] = useState(null);
-  
-  // Mensajes de éxito flotantes
+  // Estados
+  const [gadgets, setGadgets] = useState(INITIAL_GADGETS_DATA);
+  const [aiInput, setAiInput] = useState("");
+  const [isAiGenerating, setIsAiGenerating] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
-  // Auto-limpieza de mensajes de éxito
+  // Estado del modal constructor
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedGadget, setSelectedGadget] = useState(null);
+  
+  // Variables del formulario del modal (edit / custom preview)
+  const [formTitle, setFormTitle] = useState("");
+  const [formType, setFormType] = useState("kpi");
+  const [formDataSource, setFormDataSource] = useState("Ventas");
+  const [formPeriod, setFormPeriod] = useState("Este mes");
+  const [formGroupBy, setFormGroupBy] = useState("Total");
+  const [formFilter, setFormFilter] = useState("Ninguno");
+  const [formColor, setFormColor] = useState("#8b5cf6");
+
+  // Alerta de éxito flotante temporizador
   useEffect(() => {
     if (successMessage) {
-      const timer = setTimeout(() => setSuccessMessage(""), 4000);
-      return () => clearTimeout(timer);
+      const t = setTimeout(() => setSuccessMessage(""), 3500);
+      return () => clearTimeout(t);
     }
   }, [successMessage]);
 
-  // Asignar métodos de pago estables simulados a las citas
-  const appointmentsWithPayment = useMemo(() => {
-    const paymentMethods = ["Efectivo", "Tarjeta de Crédito", "Transferencia MP", "Débito"];
-    return appointments.map((appt, idx) => {
-      // Determinista usando el ID
-      const paymentIndex = Math.abs(String(appt.id).charCodeAt(0) + idx) % paymentMethods.length;
-      return {
-        ...appt,
-        paymentMethod: paymentMethods[paymentIndex]
-      };
-    });
-  }, [appointments]);
+  // Filtrado de Gadgets por búsqueda
+  const filteredGadgets = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return gadgets;
+    return gadgets.filter(g => 
+      g.title.toLowerCase().includes(q) || 
+      g.type.toLowerCase().includes(q) || 
+      g.dataSource.toLowerCase().includes(q) || 
+      g.category?.toLowerCase().includes(q)
+    );
+  }, [searchQuery, gadgets]);
 
-  // --- CÁLCULO DE INFORMES PREDETERMINADOS EN TIEMPO REAL ---
-  const reportDataCalculators = {
-    "ventas-dia": () => {
-      const todayStr = new Date().toISOString().slice(0, 10);
-      const todayAppts = appointmentsWithPayment.filter(
-        a => a.status !== "CANCELLED" && new Date(a.startsAt).toISOString().slice(0, 10) === todayStr
-      );
-      const total = todayAppts.reduce((sum, a) => sum + Number(a.service?.price || 0), 0);
-      
-      // Agrupación por servicio para gráfico
-      const servMap = {};
-      todayAppts.forEach(a => {
-        const n = a.service?.name || "Otros";
-        servMap[n] = (servMap[n] || 0) + Number(a.service?.price || 0);
-      });
-      const chartData = Object.entries(servMap).map(([name, value]) => ({ name, value }));
-
-      return {
-        title: isEs ? "Ventas del Día" : "Today's Sales",
-        description: isEs ? "Análisis y volumen de facturación registrados en la jornada de hoy." : "Analysis and billing volume recorded today.",
-        summary: isEs 
-          ? `Hoy se registraron ${todayAppts.length} citas operativas con un total facturado de ${currency(total)}. El ticket promedio de hoy se sitúa en ${currency(todayAppts.length ? total / todayAppts.length : 0)}.`
-          : `Today, there were ${todayAppts.length} active appointments with a total billed amount of ${currency(total)}. Today's average ticket is ${currency(todayAppts.length ? total / todayAppts.length : 0)}.`,
-        kpis: [
-          { label: isEs ? "Total Vendido Hoy" : "Total Sold Today", value: currency(total), icon: <DollarSign size={18} className="text-success" /> },
-          { label: isEs ? "Citas Operativas" : "Active Appointments", value: isEs ? `${todayAppts.length} turnos` : `${todayAppts.length} slots`, icon: <CheckCircle size={18} className="text-primary" /> },
-          { label: isEs ? "Ticket Promedio" : "Average Ticket", value: currency(todayAppts.length ? total / todayAppts.length : 0), icon: <TrendingUp size={18} className="text-warning" /> }
-        ],
-        chart: {
-          type: "bar",
-          title: isEs ? "Facturación por Servicio (Hoy)" : "Billing by Service (Today)",
-          data: chartData.length ? chartData : [{ name: isEs ? "Sin Ventas" : "No Sales", value: 0 }]
-        },
-        table: {
-          headers: isEs ? ["Cliente", "Servicio", "Colaborador", "M. Pago", "Importe"] : ["Client", "Service", "Staff", "Payment Method", "Amount"],
-          rows: todayAppts.map(a => [
-            `${a.client?.firstName || (isEs ? "Cliente" : "Client")} ${a.client?.lastName || ""}`.trim(),
-            a.service?.name || (isEs ? "Servicio" : "Service"),
-            `${a.worker?.firstName || (isEs ? "Profesional" : "Staff")}`.trim(),
-            translatePaymentMethod(a.paymentMethod, isEs),
-            currency(a.service?.price)
-          ])
-        }
-      };
-    },
-
-    "ventas-semana": () => {
-      const now = new Date();
-      const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      const weekAppts = appointmentsWithPayment.filter(
-        a => a.status !== "CANCELLED" && new Date(a.startsAt) >= oneWeekAgo
-      );
-      const total = weekAppts.reduce((sum, a) => sum + Number(a.service?.price || 0), 0);
-
-      // Agrupación por día de la semana
-      const days = isEs 
-        ? ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"] 
-        : ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-      const dailyMap = {};
-      // Inicializar últimos 7 días
-      for (let i = 6; i >= 0; i--) {
-        const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
-        dailyMap[days[d.getDay()]] = 0;
-      }
-      
-      weekAppts.forEach(a => {
-        const dayName = days[new Date(a.startsAt).getDay()];
-        if (dailyMap[dayName] !== undefined) {
-          dailyMap[dayName] += Number(a.service?.price || 0);
-        }
-      });
-
-      const chartData = Object.entries(dailyMap).map(([name, value]) => ({ name, value }));
-
-      return {
-        title: isEs ? "Ventas de la Semana" : "Weekly Sales",
-        description: isEs ? "Monitoreo de ingresos móviles de los últimos 7 días con tendencia diaria." : "Monitoring of mobile income over the last 7 days with daily trend.",
-        summary: isEs 
-          ? `Los ingresos totales acumulados en los últimos 7 días ascienden a ${currency(total)} distribuidos en ${weekAppts.length} citas. Esto marca un promedio de facturación diario de ${currency(total / 7)}.`
-          : `Total accumulated income in the last 7 days amounts to ${currency(total)} across ${weekAppts.length} appointments. This marks a daily billing average of ${currency(total / 7)}.`,
-        kpis: [
-          { label: isEs ? "Ventas Semanales" : "Weekly Sales", value: currency(total), icon: <DollarSign size={18} className="text-success" /> },
-          { label: isEs ? "Servicios Realizados" : "Completed Services", value: isEs ? `${weekAppts.length} turnos` : `${weekAppts.length} slots`, icon: <CheckCircle size={18} className="text-primary" /> },
-          { label: isEs ? "Promedio Diario" : "Daily Average", value: currency(total / 7), icon: <TrendingUp size={18} className="text-info" /> }
-        ],
-        chart: {
-          type: "area",
-          title: isEs ? "Evolución Semanal de Ventas (ARS)" : "Weekly Sales Trend",
-          data: chartData
-        },
-        table: {
-          headers: isEs ? ["Fecha", "Cliente", "Servicio", "Colaborador", "Total"] : ["Date", "Client", "Service", "Staff", "Total"],
-          rows: weekAppts.slice(0, 10).map(a => [
-            new Date(a.startsAt).toLocaleDateString(isEs ? "es-AR" : "en-US", { day: "numeric", month: "short" }),
-            `${a.client?.firstName || (isEs ? "Cliente" : "Client")} ${a.client?.lastName || ""}`.trim(),
-            a.service?.name || (isEs ? "Servicio" : "Service"),
-            a.worker?.firstName || (isEs ? "Profesional" : "Staff"),
-            currency(a.service?.price)
-          ])
-        }
-      };
-    },
-
-    "servicios-solicitados": () => {
-      const activeAppts = appointments.filter(a => a.status !== "CANCELLED");
-      const serviceCounts = {};
-      const serviceRev = {};
-      
-      activeAppts.forEach(a => {
-        const name = a.service?.name || (isEs ? "Otros" : "Others");
-        serviceCounts[name] = (serviceCounts[name] || 0) + 1;
-        serviceRev[name] = (serviceRev[name] || 0) + Number(a.service?.price || 0);
-      });
-
-      const sortedServices = Object.entries(serviceCounts)
-        .map(([name, count]) => ({
-          name,
-          count,
-          revenue: serviceRev[name] || 0
-        }))
-        .sort((a, b) => b.count - a.count);
-
-      const chartData = sortedServices.map(s => ({ name: s.name, value: s.count }));
-
-      return {
-        title: isEs ? "Servicios Más Solicitados" : "Most Requested Services",
-        description: isEs ? "Identificación de los tratamientos estrella de tu salón por número de reservas." : "Identification of your salon's star treatments by number of bookings.",
-        summary: sortedServices.length 
-          ? (isEs 
-              ? `El servicio más solicitado es "${sortedServices[0].name}" con ${sortedServices[0].count} turnos realizados, generando una facturación de ${currency(sortedServices[0].revenue)}.` 
-              : `The most requested service is "${sortedServices[0].name}" with ${sortedServices[0].count} completed bookings, generating a total billing of ${currency(sortedServices[0].revenue)}.`)
-          : (isEs ? "No se registran servicios activos." : "No active services recorded."),
-        kpis: [
-          { label: isEs ? "Servicio Top" : "Top Service", value: sortedServices[0]?.name || (isEs ? "Ninguno" : "None"), icon: <TrendingUp size={18} className="text-success" /> },
-          { label: isEs ? "Volumen Reservas" : "Booking Volume", value: isEs ? `${sortedServices[0]?.count || 0} turnos` : `${sortedServices[0]?.count || 0} bookings`, icon: <CheckCircle size={18} className="text-primary" /> },
-          { label: isEs ? "Servicios Únicos" : "Unique Services", value: isEs ? `${sortedServices.length} categorías` : `${sortedServices.length} categories`, icon: <Layers size={18} className="text-warning" /> }
-        ],
-        chart: {
-          type: "bar",
-          title: isEs ? "Reservas por Tipo de Servicio (Cant.)" : "Bookings by Service Type (Qty)",
-          data: chartData.length ? chartData : [{ name: isEs ? "Ninguno" : "None", value: 0 }]
-        },
-        table: {
-          headers: isEs ? ["Nombre del Servicio", "Cantidad de Turnos", "Participación", "Ingresos Generados"] : ["Service Name", "Booking Qty", "Share %", "Generated Revenue"],
-          rows: sortedServices.map(s => [
-            s.name,
-            isEs ? `${s.count} turnos` : `${s.count} bookings`,
-            `${Math.round((s.count / (activeAppts.length || 1)) * 100)}%`,
-            currency(s.revenue)
-          ])
-        }
-      };
-    },
-
-    "clientes-frecuentes": () => {
-      const activeAppts = appointments.filter(a => a.status !== "CANCELLED");
-      const clientMap = {};
-      
-      activeAppts.forEach(a => {
-        if (!a.clientId) return;
-        const key = a.clientId;
-        if (!clientMap[key]) {
-          clientMap[key] = {
-            name: `${a.client?.firstName || ""} ${a.client?.lastName || ""}`.trim() || (isEs ? "Cliente Anónimo" : "Anonymous Client"),
-            count: 0,
-            spend: 0,
-            email: a.client?.email || (isEs ? "Sin email" : "No email"),
-            phone: a.client?.phone || (isEs ? "Sin teléfono" : "No phone")
-          };
-        }
-        clientMap[key].count += 1;
-        clientMap[key].spend += Number(a.service?.price || 0);
-      });
-
-      const sortedClients = Object.values(clientMap)
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 10);
-
-      const chartData = sortedClients.map(c => ({ name: c.name, value: c.count }));
-
-      return {
-        title: isEs ? "Clientes Frecuentes" : "Frequent Clients",
-        description: isEs ? "Listado de tus clientes recurrentes con mayor concurrencia en reservas." : "List of your recurring clients with the highest booking attendance.",
-        summary: sortedClients.length
-          ? (isEs 
-              ? `Tu cliente más recurrente es "${sortedClients[0].name}" con ${sortedClients[0].count} visitas en el sistema y un aporte monetario acumulado de ${currency(sortedClients[0].spend)}.`
-              : `Your most recurring client is "${sortedClients[0].name}" with ${sortedClients[0].count} visits in the system and an accumulated contribution of ${currency(sortedClients[0].spend)}.`)
-          : (isEs ? "No hay registros de clientes recurrentes." : "No recurring clients recorded."),
-        kpis: [
-          { label: isEs ? "Cliente Más Activo" : "Most Active Client", value: sortedClients[0]?.name || (isEs ? "Ninguno" : "None"), icon: <User size={18} className="text-success" /> },
-          { label: isEs ? "Máximo de Reservas" : "Max Bookings", value: isEs ? `${sortedClients[0]?.count || 0} visitas` : `${sortedClients[0]?.count || 0} visits`, icon: <CheckCircle size={18} className="text-primary" /> },
-          { label: isEs ? "Clientes Fidelizados" : "Loyal Clients", value: isEs ? `${Object.keys(clientMap).length} activos` : `${Object.keys(clientMap).length} active`, icon: <Users size={18} className="text-info" /> }
-        ],
-        chart: {
-          type: "pie",
-          title: isEs ? "Cuota de Reservas por Cliente Frecuente" : "Booking Share by Frequent Client",
-          data: chartData.length ? chartData : [{ name: isEs ? "Ninguno" : "None", value: 0 }]
-        },
-        table: {
-          headers: isEs ? ["Cliente", "Teléfono / Contacto", "Cantidad Visitas", "Gasto Acumulado"] : ["Client", "Phone / Contact", "Visits Count", "Accumulated Spend"],
-          rows: sortedClients.map(c => [
-            c.name,
-            c.phone,
-            isEs ? `${c.count} visitas` : `${c.count} visits`,
-            currency(c.spend)
-          ])
-        }
-      };
-    },
-
-    "ingresos-metodo-pago": () => {
-      const activeAppts = appointmentsWithPayment.filter(a => a.status !== "CANCELLED");
-      const methodMap = { "Efectivo": 0, "Tarjeta de Crédito": 0, "Transferencia MP": 0, "Débito": 0 };
-      
-      activeAppts.forEach(a => {
-        if (methodMap[a.paymentMethod] !== undefined) {
-          methodMap[a.paymentMethod] += Number(a.service?.price || 0);
-        }
-      });
-
-      const total = Object.values(methodMap).reduce((sum, v) => sum + v, 0);
-      const chartData = Object.entries(methodMap).map(([name, value]) => ({ name: translatePaymentMethod(name, isEs), value }));
-      const topMethod = Object.entries(methodMap).reduce((max, cur) => cur[1] > max[1] ? cur : max, ["Ninguno", 0]);
-
-      return {
-        title: isEs ? "Ingresos por Método de Pago" : "Revenue by Payment Method",
-        description: isEs ? "Distribución monetaria de la facturación según los canales de cobro utilizados." : "Monetary distribution of billing according to payment channels used.",
-        summary: isEs 
-          ? `El canal de cobro principal es "${translatePaymentMethod(topMethod[0], true)}" captando el ${Math.round((topMethod[1] / (total || 1)) * 100)}% de los ingresos totales (${currency(topMethod[1])}).`
-          : `The primary payment channel is "${translatePaymentMethod(topMethod[0], false)}" capturing ${Math.round((topMethod[1] / (total || 1)) * 100)}% of total revenue (${currency(topMethod[1])}).`,
-        kpis: [
-          { label: isEs ? "Canal Preferido" : "Preferred Channel", value: translatePaymentMethod(topMethod[0], isEs), icon: <CreditCard size={18} className="text-success" /> },
-          { label: isEs ? "Participación Top" : "Top Share", value: `${Math.round((topMethod[1] / (total || 1)) * 100)}%`, icon: <Percent size={18} className="text-primary" /> },
-          { label: isEs ? "Total Conciliado" : "Total Reconciled", value: currency(total), icon: <DollarSign size={18} className="text-warning" /> }
-        ],
-        chart: {
-          type: "pie",
-          title: isEs ? "Desglose Financiero por Método de Pago" : "Financial Breakdown by Payment Method",
-          data: chartData
-        },
-        table: {
-          headers: isEs ? ["Método de Pago", "Participación %", "Facturación Total"] : ["Payment Method", "Share %", "Total Billing"],
-          rows: Object.entries(methodMap).map(([name, value]) => [
-            translatePaymentMethod(name, isEs),
-            `${Math.round((value / (total || 1)) * 100)}%`,
-            currency(value)
-          ])
-        }
-      };
-    },
-
-
-
-    "bajo-stock": () => {
-      const lowStockProducts = INITIAL_PRODUCTS.filter(p => p.stock < p.limit);
-      const totalVal = INITIAL_PRODUCTS.reduce((sum, p) => sum + (p.stock * p.cost), 0);
-      const chartData = INITIAL_PRODUCTS.map(p => ({ name: p.name, value: p.stock }));
-
-      return {
-        title: isEs ? "Productos con Bajo Stock" : "Low Stock Products",
-        description: isEs ? "Listado crítico de insumos del salón que requieren reposición inmediata." : "Critical list of salon supplies requiring immediate replenishment.",
-        summary: isEs 
-          ? `Tenés ${lowStockProducts.length} productos bajo el stock límite de seguridad. Es de alta prioridad iniciar pedidos de reposición.`
-          : `You have ${lowStockProducts.length} products below the safety stock limit. Replenishment orders are high priority.`,
-        kpis: [
-          { label: isEs ? "Productos Críticos" : "Critical Products", value: isEs ? `${lowStockProducts.length} insumos` : `${lowStockProducts.length} items`, icon: <AlertTriangle size={18} className="text-danger" /> },
-          { label: isEs ? "Valuación Inventario" : "Inventory Valuation", value: currency(totalVal), icon: <Package size={18} className="text-success" /> },
-          { label: isEs ? "Artículos Únicos" : "Unique Items", value: isEs ? `${INITIAL_PRODUCTS.length} productos` : `${INITIAL_PRODUCTS.length} products`, icon: <Layers size={18} className="text-primary" /> }
-        ],
-        chart: {
-          type: "bar",
-          title: isEs ? "Nivel de Stock Actual por Insumo" : "Current Stock Level by Item",
-          data: chartData
-        },
-        table: {
-          headers: isEs ? ["Nombre Insumo", "Categoría", "Stock Actual", "Límite Alerta", "Costo Unidad"] : ["Item Name", "Category", "Current Stock", "Alert Limit", "Unit Cost"],
-          rows: lowStockProducts.map(p => [
-            p.name,
-            p.category,
-            isEs ? `${p.stock} un.` : `${p.stock} units`,
-            isEs ? `${p.limit} un.` : `${p.limit} units`,
-            currency(p.cost)
-          ])
-        }
-      };
-    },
-
-    "rendimiento-empleado": () => {
-      const activeAppts = appointments.filter(a => a.status !== "CANCELLED");
-      const workerCounts = {};
-      const workerRevenue = {};
-
-      activeAppts.forEach(a => {
-        const name = a.worker ? `${a.worker.firstName} ${a.worker.lastName}`.trim() : (isEs ? "Sin profesional" : "Unassigned");
-        workerCounts[name] = (workerCounts[name] || 0) + 1;
-        workerRevenue[name] = (workerRevenue[name] || 0) + Number(a.service?.price || 0);
-      });
-
-      const chartData = Object.entries(workerRevenue).map(([name, value]) => ({ name, value }));
-      const topWorker = Object.entries(workerCounts).reduce((max, cur) => cur[1] > max[1] ? cur : max, ["Ninguno", 0]);
-
-      return {
-        title: isEs ? "Rendimiento por Colaborador" : "Staff Performance",
-        description: isEs ? "Carga de trabajo, productividad e ingresos generados por cada estilista." : "Workload, productivity, and revenue generated by each stylist.",
-        summary: isEs 
-          ? `El colaborador con más turnos atendidos es "${topWorker[0]}" con un volumen de ${topWorker[1]} citas en el sistema.`
-          : `The staff member with the most completed appointments is "${topWorker[0]}" with ${topWorker[1]} bookings in the system.`,
-        kpis: [
-          { label: isEs ? "Estilista Top" : "Top Stylist", value: topWorker[0] === "Ninguno" ? (isEs ? "Ninguno" : "None") : topWorker[0], icon: <User size={18} className="text-success" /> },
-          { label: isEs ? "Citas Atendidas" : "Appointments Handled", value: isEs ? `${topWorker[1]} turnos` : `${topWorker[1]} slots`, icon: <CheckCircle size={18} className="text-primary" /> },
-          { label: isEs ? "Colaboradores Activos" : "Active Staff", value: isEs ? `${workers.length} profesionales` : `${workers.length} professionals`, icon: <Briefcase size={18} className="text-info" /> }
-        ],
-        chart: {
-          type: "bar",
-          title: isEs ? "Ingresos Generados por Colaborador (ARS)" : "Revenue Generated by Staff",
-          data: chartData.length ? chartData : [{ name: isEs ? "Ninguno" : "None", value: 0 }]
-        },
-        table: {
-          headers: isEs ? ["Colaborador", "Citas Realizadas", "Participación %", "Total Facturado"] : ["Staff", "Completed Slots", "Share %", "Total Billed"],
-          rows: Object.entries(workerCounts).map(([name, count]) => [
-            name,
-            isEs ? `${count} turnos` : `${count} slots`,
-            `${Math.round((count / (activeAppts.length || 1)) * 100)}%`,
-            currency(workerRevenue[name] || 0)
-          ])
-        }
-      };
-    },
-
-    "finanzas-mes": () => {
-      const now = new Date();
-      const currentMonth = now.getMonth();
-      const currentYear = now.getFullYear();
-
-      const monthAppts = appointmentsWithPayment.filter(a => {
-        const d = new Date(a.startsAt);
-        return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-      });
-
-      const active = monthAppts.filter(a => a.status !== "CANCELLED");
-      const total = active.reduce((sum, a) => sum + Number(a.service?.price || 0), 0);
-      
-      // Agrupación de ingresos por categoría de servicio
-      const catMap = {};
-      active.forEach(a => {
-        const cat = a.service?.category || (isEs ? "Estética" : "Aesthetic");
-        catMap[cat] = (catMap[cat] || 0) + Number(a.service?.price || 0);
-      });
-      const chartData = Object.entries(catMap).map(([name, value]) => ({ name, value }));
-
-      return {
-        title: isEs ? "Finanzas del Mes" : "Monthly Finances",
-        description: isEs ? "Monitoreo consolidado de facturación, comisiones y volumen financiero mensual." : "Consolidated monitoring of monthly billing, commissions, and financial volume.",
-        summary: isEs 
-          ? `En el mes de ${now.toLocaleDateString("es-AR", { month: "long" })}, se han facturado ${currency(total)} a través de ${active.length} reservas activas.`
-          : `In the month of ${now.toLocaleDateString("en-US", { month: "long" })}, a total of ${currency(total)} has been billed across ${active.length} active bookings.`,
-        kpis: [
-          { label: isEs ? "Ingresos Mensuales" : "Monthly Income", value: currency(total), icon: <DollarSign size={18} className="text-success" /> },
-          { label: isEs ? "Citas Confirmadas" : "Confirmed Bookings", value: isEs ? `${active.length} turnos` : `${active.length} slots`, icon: <CheckCircle size={18} className="text-primary" /> },
-          { label: isEs ? "Tasa Cancelación Mes" : "Monthly Cancellation Rate", value: `${monthAppts.length ? Math.round(((monthAppts.length - active.length) / monthAppts.length) * 100) : 0}%`, icon: <XCircle size={18} className="text-danger" /> }
-        ],
-        chart: {
-          type: "pie",
-          title: isEs ? "Participación Financiera por Categoría de Servicio" : "Financial Share by Service Category",
-          data: chartData.length ? chartData : [{ name: isEs ? "Ninguno" : "None", value: 0 }]
-        },
-        table: {
-          headers: isEs ? ["Categoría de Servicio", "Participación %", "Facturado"] : ["Service Category", "Share %", "Billed"],
-          rows: Object.entries(catMap).map(([name, value]) => [
-            name,
-            `${Math.round((value / (total || 1)) * 100)}%`,
-            currency(value)
-          ])
-        }
-      };
-    },
-
-    "cancelaciones-ausencias": () => {
-      const cancelledAppts = appointments.filter(a => a.status === "CANCELLED");
-      const totalApptsCount = appointments.length;
-      const cancellationRate = totalApptsCount ? Math.round((cancelledAppts.length / totalApptsCount) * 100) : 0;
-      
-      const lostRevenue = cancelledAppts.reduce((sum, a) => sum + Number(a.service?.price || 0), 0);
-
-      // Agrupación por servicio cancelado
-      const serviceCancelMap = {};
-      cancelledAppts.forEach(a => {
-        const name = a.service?.name || (isEs ? "Otros" : "Others");
-        serviceCancelMap[name] = (serviceCancelMap[name] || 0) + 1;
-      });
-      const chartData = Object.entries(serviceCancelMap).map(([name, value]) => ({ name, value }));
-
-      return {
-        title: isEs ? "Cancelaciones y Ausencias" : "Cancellations & Absences",
-        description: isEs ? "Análisis operativo de citas caídas e ingresos perdidos para optimizar políticas del salón." : "Operational analysis of missed appointments and lost revenue to optimize salon policies.",
-        summary: isEs 
-          ? `El salón registra una tasa de cancelación del ${cancellationRate}% con un total de ${cancelledAppts.length} citas canceladas históricas. Esto representa una pérdida de facturación estimada de ${currency(lostRevenue)}.`
-          : `The salon records a cancellation rate of ${cancellationRate}% with a total of ${cancelledAppts.length} historic cancelled appointments. This represents an estimated billing loss of ${currency(lostRevenue)}.`,
-        kpis: [
-          { label: isEs ? "Tasa Cancelaciones" : "Cancellation Rate", value: `${cancellationRate}%`, icon: <Percent size={18} className="text-danger" /> },
-          { label: isEs ? "Citas Canceladas" : "Cancelled Bookings", value: isEs ? `${cancelledAppts.length} turnos` : `${cancelledAppts.length} slots`, icon: <XCircle size={18} className="text-warning" /> },
-          { label: isEs ? "Facturación Perdida" : "Lost Revenue", value: currency(lostRevenue), icon: <DollarSign size={18} className="text-danger" /> }
-        ],
-        chart: {
-          type: "bar",
-          title: isEs ? "Cancelaciones por Tipo de Servicio (Cantidad)" : "Cancellations by Service Type (Qty)",
-          data: chartData.length ? chartData : [{ name: isEs ? "Ninguno" : "None", value: 0 }]
-        },
-        table: {
-          headers: isEs ? ["Fecha Cita", "Cliente", "Servicio que Iba a Realizarse", "Profesional Asignado", "Importe Pérdida"] : ["Appointment Date", "Client", "Intended Service", "Assigned Stylist", "Lost Revenue"],
-          rows: cancelledAppts.slice(0, 10).map(a => [
-            new Date(a.startsAt).toLocaleDateString(isEs ? "es-AR" : "en-US", { day: "numeric", month: "short" }),
-            `${a.client?.firstName || (isEs ? "Cliente" : "Client")} ${a.client?.lastName || ""}`.trim(),
-            a.service?.name || (isEs ? "Servicio" : "Service"),
-            a.worker?.firstName || (isEs ? "Profesional" : "Staff"),
-            currency(a.service?.price)
-          ])
-        }
-      };
-    }
+  // Acciones de Gadgets
+  const handleRefresh = (id) => {
+    setSuccessMessage(isEs ? "¡Datos actualizados con éxito!" : "Data refreshed successfully!");
   };
 
-  const handleSelectPredefinedReport = (reportId) => {
-    if (reportDataCalculators[reportId]) {
-      const report = reportDataCalculators[reportId]();
-      setActiveReport({
-        id: reportId,
-        ...report
-      });
-    }
+  const handleDuplicate = (gadget) => {
+    const duplicated = {
+      ...gadget,
+      id: `gadget-dup-${Date.now()}`,
+      title: `${gadget.title} (Copia)`
+    };
+    setGadgets(prev => [duplicated, ...prev]);
+    setSuccessMessage(isEs ? "¡Gadget duplicado con éxito!" : "Gadget duplicated successfully!");
   };
 
-  // --- CONSULTAS PERSONALIZADAS CON IA ---
-  const handleAiQuerySubmit = async (e) => {
-    e.preventDefault();
-    const query = aiQuestion.trim();
-    if (!query) return;
-
-    setAiLoading(true);
-    setAiError("");
-    setActiveReport(null);
-
-    try {
-      // 1. Llamar al backend real /ai/report
-      const payload = await postGadgetAiReport({
-        question: query,
-        viewPreferences: {
-          showSummary: true,
-          showInsights: true,
-          showKpis: true,
-          showChart: true,
-          showActions: true
-        }
-      });
-
-      // 2. Mapear la respuesta de la IA a la estructura de reporte visual premium
-      const mappedReport = {
-        title: "Análisis Inteligente Aura Copilot",
-        description: `Resultado de tu consulta: "${query}"`,
-        summary: payload.summary,
-        insights: payload.insights || [],
-        kpis: (payload.kpis || []).map((k, idx) => ({
-          label: k.label,
-          value: k.value,
-          icon: idx === 0 ? <TrendingUp size={18} className="text-success" /> : idx === 1 ? <DollarSign size={18} className="text-primary" /> : <CheckCircle size={18} className="text-info" />
-        })),
-        chart: payload.chart ? {
-          type: payload.chart.type || "bar",
-          title: payload.chart.title || "Métricas Resultantes",
-          data: payload.chart.data || []
-        } : null,
-        // Generar una tabla de desglose a partir de los datos del gráfico si aplica
-        table: payload.chart?.data ? {
-          headers: ["Concepto", "Valor / Métrica"],
-          rows: payload.chart.data.map(d => [d.name, typeof d.value === "number" && d.name.toLowerCase().includes("ingres") ? currency(d.value) : d.value])
-        } : null
-      };
-
-      setActiveReport(mappedReport);
-      setSuccessMessage("¡Informe de IA generado con éxito con datos en tiempo real!");
-    } catch (err) {
-      console.warn("Fallo de conexión real de IA. Aplicando fallback heurístico local...", err);
-      // Fallback Heurístico Local Robusto
-      runLocalQueryFallback(query);
-    } finally {
-      setAiLoading(false);
-      setAiQuestion("");
-    }
+  const handleDelete = (id) => {
+    setGadgets(prev => prev.filter(g => g.id !== id));
+    setSuccessMessage(isEs ? "¡Gadget eliminado con éxito!" : "Gadget deleted successfully!");
   };
 
-  // Heurística local en caso de que falle la conexión con OpenAI o no esté configurado
-  const runLocalQueryFallback = (query) => {
-    const q = query.toLowerCase();
+  const handleExportCSV = (gadget) => {
+    let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
     
-    if (q.includes("venta") || q.includes("ganamos") || q.includes("factura") || q.includes("ingreso")) {
-      if (q.includes("semana") || q.includes("7 dias")) {
-        handleSelectPredefinedReport("ventas-semana");
-        setSuccessMessage("Interpretado como: Ventas de la semana.");
-      } else if (q.includes("mes") || q.includes("30 dias")) {
-        handleSelectPredefinedReport("finanzas-mes");
-        setSuccessMessage("Interpretado como: Finanzas del mes.");
-      } else {
-        handleSelectPredefinedReport("ventas-dia");
-        setSuccessMessage("Interpretado como: Ventas del día.");
-      }
-    } else if (q.includes("cliente")) {
-      if (q.includes("gastaron") || q.includes("mas dinero") || q.includes("vip")) {
-        // Clientes con mayor facturación
-        const activeAppts = appointments.filter(a => a.status !== "CANCELLED");
-        const clientMap = {};
-        activeAppts.forEach(a => {
-          if (!a.clientId) return;
-          const k = a.clientId;
-          if (!clientMap[k]) clientMap[k] = { name: `${a.client?.firstName || ""} ${a.client?.lastName || ""}`.trim(), spend: 0, count: 0 };
-          clientMap[k].spend += Number(a.service?.price || 0);
-          clientMap[k].count++;
-        });
-        const topSpend = Object.values(clientMap).sort((a, b) => b.spend - a.spend).slice(0, 5);
-        setActiveReport({
-          title: "Top Clientes que más Gastaron",
-          description: "Análisis de ticket de clientes VIP con mayor facturación acumulada.",
-          summary: `Los clientes más rentables del salón acumulan un volumen conjunto importante. "${topSpend[0]?.name || "N/A"}" encabeza la lista con ${currency(topSpend[0]?.spend || 0)} aportados.`,
-          kpis: [
-            { label: "Cliente Top Gasto", value: topSpend[0]?.name || "N/A", icon: <User size={18} className="text-success" /> },
-            { label: "Gasto Máximo", value: currency(topSpend[0]?.spend || 0), icon: <DollarSign size={18} className="text-primary" /> },
-            { label: "Visitas Realizadas", value: `${topSpend[0]?.count || 0} turnos`, icon: <CheckCircle size={18} className="text-warning" /> }
-          ],
-          chart: {
-            type: "bar",
-            title: "Facturación por Cliente (ARS)",
-            data: topSpend.map(t => ({ name: t.name, value: t.spend }))
-          },
-          table: {
-            headers: ["Cliente", "Reservas Finalizadas", "Gasto Total Acumulado"],
-            rows: topSpend.map(t => [t.name, `${t.count} visitas`, currency(t.spend)])
-          }
-        });
-        setSuccessMessage("Interpretado como: Clientes de mayor facturación.");
-      } else {
-        handleSelectPredefinedReport("clientes-frecuentes");
-        setSuccessMessage("Interpretado como: Clientes frecuentes.");
-      }
-    } else if (q.includes("servicio") || q.includes("corte" || q.includes("color"))) {
-      handleSelectPredefinedReport("servicios-solicitados");
-      setSuccessMessage("Interpretado como: Servicios más solicitados.");
-    } else if (q.includes("producto") || q.includes("stock") || q.includes("inventario") || q.includes("acaband")) {
-      handleSelectPredefinedReport("bajo-stock");
-      setSuccessMessage("Interpretado como: Insumos bajo stock crítico.");
-    } else if (q.includes("dia") && (q.includes("reserva") || q.includes("turno") || q.includes("cita"))) {
-      // Días con más reservas
-      const days = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
-      const dayCounts = { "Lunes": 0, "Martes": 0, "Miércoles": 0, "Jueves": 0, "Viernes": 0, "Sábado": 0 };
-      appointments.filter(a => a.status !== "CANCELLED").forEach(a => {
-        const dayName = days[new Date(a.startsAt).getDay()];
-        if (dayCounts[dayName] !== undefined) dayCounts[dayName]++;
+    if (gadget.type === "kpi") {
+      csvContent += "Métrica,Valor,Periodo,Cambio\n";
+      csvContent += `"${gadget.title}","${gadget.kpiValue}","${gadget.period}","${gadget.kpiChange}"\n`;
+    } else if (gadget.chartData) {
+      csvContent += "Concepto,Valor\n";
+      gadget.chartData.forEach(row => {
+        csvContent += `"${row.name}","${row.value}"\n`;
       });
-      const topDay = Object.entries(dayCounts).reduce((max, cur) => cur[1] > max[1] ? cur : max, ["Ninguno", 0]);
-      setActiveReport({
-        title: "Días con Más Reservas",
-        description: "Análisis histórico de reservas por día de la semana para optimizar dotación de personal.",
-        summary: `El día con mayor congestión en la agenda es el "${topDay[0]}" con un total acumulado de ${topDay[1]} citas confirmadas.`,
-        kpis: [
-          { label: "Día Pico", value: topDay[0], icon: <Calendar size={18} className="text-success" /> },
-          { label: "Reservas Totales", value: `${topDay[1]} turnos`, icon: <CheckCircle size={18} className="text-primary" /> },
-          { label: "Días Cubiertos", value: "6 días hábiles", icon: <Clock size={18} className="text-warning" /> }
-        ],
-        chart: {
-          type: "area",
-          title: "Concurrencia por Día de la Semana (Citas)",
-          data: Object.entries(dayCounts).map(([name, value]) => ({ name, value }))
-        },
-        table: {
-          headers: ["Día", "Citas Confirmadas", "Estado Operativo"],
-          rows: Object.entries(dayCounts).map(([name, value]) => [name, `${value} reservas`, value > 10 ? "Alta Demanda" : "Normal"])
-        }
+    } else if (gadget.tableRows) {
+      csvContent += `${gadget.tableHeaders.join(",")}\n`;
+      gadget.tableRows.forEach(row => {
+        csvContent += row.map(v => `"${v}"`).join(",") + "\n";
       });
-      setSuccessMessage("Interpretado como: Reservas por día de la semana.");
+    } else if (gadget.rankingData) {
+      csvContent += "Puesto,Nombre,Facturado,Porcentaje\n";
+      gadget.rankingData.forEach(row => {
+        csvContent += `"${row.rank}","${row.name}","${row.value}","${row.pct}%"\n`;
+      });
     } else {
-      // Si no coincide con nada, usar "ventas del día" por defecto
-      handleSelectPredefinedReport("ventas-dia");
-      setSuccessMessage("Mostrando reporte por defecto: Ventas del día.");
+      csvContent += "Dia,09h,11h,13h,15h,17h,19h\n";
+      csvContent += "Lunes,45%,60%,85%,70%,90%,40%\n";
+      csvContent += "Martes,30%,55%,75%,80%,85%,60%\n";
+      csvContent += "Miercoles,50%,65%,80%,75%,95%,50%\n";
     }
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `Reporte_${gadget.title.replace(/\s+/g, "_")}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    setSuccessMessage(isEs ? "¡Archivo CSV descargado!" : "CSV file downloaded successfully!");
   };
 
-  // --- RENDERIZACIÓN DINÁMICA DE GADGETS Y FILTRADO ---
-  const gadgetsList = useMemo(() => {
-    return [
-      {
-        id: "total-vendido",
-        title: isEs ? "Total Vendido" : "Total Sold",
-        category: isEs ? "Finanzas" : "Finances",
-        description: isEs ? "Visualización de facturación neta acumulada en tiempo real." : "Real-time visualization of net accumulated billing.",
-        keywords: ["ventas", "ingresos", "dinero", "caja", "pagos", "facturacion", "total"],
-        component: () => {
-          const total = appointments.filter(a => a.status !== "CANCELLED").reduce((sum, a) => sum + Number(a.service?.price || 0), 0);
-          return (
-            <div className="text-center py-2">
-              <div className="text-muted smaller mb-1">{isEs ? "Facturación Histórica" : "Historical Billing"}</div>
-              <h4 className="fw-black text-success mb-2" style={{ fontSize: "22px" }}>{currency(total)}</h4>
-              <Badge bg="success-soft" className="text-success rounded-pill px-2 py-1 small">
-                <TrendingUp size={11} className="me-1" /> {isEs ? "Activo" : "Active"}
-              </Badge>
+  // Abrir Modal de Edición
+  const handleOpenEdit = (gadget) => {
+    setSelectedGadget(gadget);
+    setFormTitle(gadget.title);
+    setFormType(gadget.type);
+    setFormDataSource(gadget.dataSource);
+    setFormPeriod(gadget.period);
+    setFormGroupBy(gadget.groupBy);
+    setFormFilter(gadget.filter);
+    setFormColor(gadget.color || "#8b5cf6");
+    setShowEditModal(true);
+  };
+
+  // Guardar Cambios del Constructor Visual
+  const handleSaveBuilder = () => {
+    if (!selectedGadget) return;
+
+    // Generar datos ficticios coherentes si cambia el tipo de gráfico
+    let updatedChartData = selectedGadget.chartData;
+    let updatedTableRows = selectedGadget.tableRows;
+    let updatedTableHeaders = selectedGadget.tableHeaders;
+    let updatedRankingData = selectedGadget.rankingData;
+    let updatedKpiValue = selectedGadget.kpiValue;
+    let updatedKpiChange = selectedGadget.kpiChange;
+
+    if (formType !== selectedGadget.type) {
+      // Si cambia el tipo, le inyectamos datos coherentes acordes al nuevo tipo
+      if (formType === "kpi") {
+        updatedKpiValue = formDataSource === "Ventas" ? 4850000 : 280;
+        updatedKpiChange = "+15%";
+      } else if (formType === "line" || formType === "bar") {
+        updatedChartData = [
+          { name: "Opción A", value: 120 },
+          { name: "Opción B", value: 185 },
+          { name: "Opción C", value: 240 },
+          { name: "Opción D", value: 95 }
+        ];
+      } else if (formType === "dona") {
+        updatedChartData = [
+          { name: "A", value: 45 },
+          { name: "B", value: 30 },
+          { name: "C", value: 25 }
+        ];
+      } else if (formType === "table") {
+        updatedTableHeaders = ["Concepto", "Categoría", "Total"];
+        updatedTableRows = [
+          ["Item 1", "Tipo X", "150"],
+          ["Item 2", "Tipo Y", "95"],
+          ["Item 3", "Tipo Z", "60"]
+        ];
+      } else if (formType === "ranking") {
+        updatedRankingData = [
+          { rank: 1, name: "Valeria Gómez", value: 500000, pct: 100 },
+          { rank: 2, name: "Sofía Martínez", value: 400000, pct: 80 },
+          { rank: 3, name: "Lucas Silva", value: 300000, pct: 60 }
+        ];
+      }
+    }
+
+    setGadgets(prev => prev.map(g => {
+      if (g.id === selectedGadget.id) {
+        return {
+          ...g,
+          title: formTitle,
+          type: formType,
+          dataSource: formDataSource,
+          period: formPeriod,
+          groupBy: formGroupBy,
+          filter: formFilter,
+          color: formColor,
+          kpiValue: updatedKpiValue,
+          kpiChange: updatedKpiChange,
+          chartData: updatedChartData,
+          tableHeaders: updatedTableHeaders,
+          tableRows: updatedTableRows,
+          rankingData: updatedRankingData
+        };
+      }
+      return g;
+    }));
+
+    setShowEditModal(false);
+    setSuccessMessage(isEs ? "¡Gadget guardado con éxito!" : "Gadget saved successfully!");
+  };
+
+  // Motor de Interpretación Conversacional Aura IA
+  const handleAiInterpret = (text) => {
+    if (!text.trim()) return;
+
+    setIsAiGenerating(true);
+    
+    // Simular el proceso de IA de Aura de 1.5 segundos
+    setTimeout(() => {
+      const q = text.toLowerCase();
+      let type = "bar";
+      let title = "Análisis IA";
+      let dataSource = "Ventas";
+      let groupBy = "Categoría";
+      let period = "Este mes";
+      let color = "#8b5cf6";
+      let category = "Finanzas";
+
+      // Lógicas Heurísticas de interpretación de Aura AI
+      if (q.includes("mes") || q.includes("mensual") || q.includes("12 meses")) {
+        type = "line";
+        title = "Ventas Mensuales (Aura IA)";
+        period = "Último año";
+        groupBy = "Mes";
+      } else if (q.includes("profesional") || q.includes("estilistas") || q.includes("rentables")) {
+        type = "ranking";
+        title = "Productividad Profesional (Aura IA)";
+        dataSource = "Equipo";
+        groupBy = "Facturación";
+        category = "Equipo";
+      } else if (q.includes("clientes nuevos") || q.includes("recurrentes") || q.includes("frecuentes")) {
+        type = "line";
+        title = "Clientes Nuevos vs Recurrentes (Aura IA)";
+        dataSource = "Clientes";
+        groupBy = "Fidelidad";
+        category = "Clientes";
+      } else if (q.includes("servicios") || q.includes("rentables")) {
+        type = "bar";
+        title = "Servicios más Rentables (Aura IA)";
+        dataSource = "Servicios";
+        groupBy = "Categoría";
+        category = "Servicios";
+      } else if (q.includes("ocupacion") || q.includes("semanal")) {
+        type = "heatmap";
+        title = "Ocupación Semanal (Aura IA)";
+        dataSource = "Citas";
+        groupBy = "Día/Hora";
+        category = "Servicios";
+      } else if (q.includes("productos") || q.includes("inventario") || q.includes("agotar")) {
+        type = "table";
+        title = "Productos Próximos a Agotarse (Aura IA)";
+        dataSource = "Inventario";
+        groupBy = "Stock";
+        category = "Inventario";
+      } else if (q.includes("ticket") || q.includes("promedio") || q.includes("sucursal")) {
+        type = "kpi";
+        title = "Ticket Promedio (Aura IA)";
+        groupBy = "Promedio";
+      } else {
+        // Fallback genérico
+        type = "bar";
+        title = `Análisis de ${text}`;
+      }
+
+      // Crear nuevo gadget adaptado
+      const newGadget = {
+        id: `gadget-ai-${Date.now()}`,
+        title,
+        type,
+        dataSource,
+        period,
+        groupBy,
+        filter: "Filtrado por IA",
+        color,
+        category,
+        kpiValue: 18500,
+        kpiChange: "+8%",
+        kpiPositive: true,
+        chartData: [
+          { name: isEs ? "Ene" : "Jan", value: 1200000 },
+          { name: isEs ? "Feb" : "Feb", value: 1800000 },
+          { name: isEs ? "Mar" : "Mar", value: 2900000 },
+          { name: isEs ? "Abr" : "Apr", value: 4850000 }
+        ],
+        tableHeaders: ["Insumo", "Stock", "Alerta"],
+        tableRows: [
+          ["Shampoo PH Neutro", "1 un.", "Crítico 🚨"],
+          ["Tinta L'Oreal Majirel", "3 un.", "Bajo"],
+          ["Crema Oxidante 20 Vol", "2 un.", "Crítico 🚨"]
+        ],
+        rankingData: [
+          { rank: 1, name: "Valeria Gómez", value: 1250000, pct: 100 },
+          { rank: 2, name: "Sofía Martínez", value: 980000, pct: 78 },
+          { rank: 3, name: "Lucas Silva", value: 820000, pct: 65 }
+        ]
+      };
+
+      setGadgets(prev => [newGadget, ...prev]);
+      setIsAiGenerating(false);
+      setAiInput("");
+      setSuccessMessage(isEs ? "¡Aura ha generado el gadget con éxito en tu panel!" : "Aura generated the gadget successfully!");
+    }, 1500);
+  };
+
+  // Render del contenido del Gadget según su Tipo
+  const renderGadgetBody = (g) => {
+    switch (g.type) {
+      case "kpi":
+        return (
+          <div className="kpi-widget-container">
+            <div className="kpi-widget-value">{currency(g.kpiValue)}</div>
+            <div className="kpi-widget-footer">
+              <span className={`kpi-trend-badge ${g.kpiPositive ? "positive" : "negative"}`}>
+                {g.kpiChange}
+              </span>
+              <span className="kpi-widget-footer-text">{g.period}</span>
             </div>
-          );
-        }
-      },
-      {
-        id: "ventas-dia-chart",
-        title: isEs ? "Ventas por Día" : "Daily Sales",
-        category: isEs ? "Finanzas" : "Finances",
-        description: isEs ? "Monitoreo dinámico del histórico diario de ventas." : "Dynamic monitoring of daily sales history.",
-        keywords: ["ventas", "ingresos", "dias", "diario", "grafico", "evolucion"],
-        component: () => {
-          // Últimos 5 días con facturación
-          const daysMap = {};
-          appointments.filter(a => a.status !== "CANCELLED").slice(-15).forEach(a => {
-            const dateStr = new Date(a.startsAt).toLocaleDateString(isEs ? "es-AR" : "en-US", { day: "numeric", month: "short" });
-            daysMap[dateStr] = (daysMap[dateStr] || 0) + Number(a.service?.price || 0);
-          });
-          const chartData = Object.entries(daysMap).slice(-5).map(([name, value]) => ({ name, value }));
-          return (
-            <div style={{ height: "90px", width: "100%" }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData.length ? chartData : [{ name: isEs ? "Sin datos" : "No data", value: 0 }]}>
-                  <Tooltip formatter={(v) => currency(v)} />
-                  <Area type="monotone" dataKey="value" stroke="#10b981" fill="rgba(16,185,129,0.08)" strokeWidth={2} />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          );
-        }
-      },
-      {
-        id: "metodo-pago-pie",
-        title: isEs ? "Método de Pago" : "Payment Method",
-        category: isEs ? "Finanzas" : "Finances",
-        description: isEs ? "Canales de cobro utilizados por los clientes." : "Payment channels used by customers.",
-        keywords: ["metodo", "pago", "ingresos", "efectivo", "transferencia", "tarjeta", "canales"],
-        component: () => {
-          const methodMap = { "Efectivo": 0, "Tarjeta": 0, "Transferencia": 0 };
-          appointmentsWithPayment.forEach(a => {
-            const cat = a.paymentMethod.includes("Tarjeta") ? "Tarjeta" : a.paymentMethod.includes("Transferencia") ? "Transferencia" : "Efectivo";
-            methodMap[cat] += Number(a.service?.price || 0);
-          });
-          const chartData = Object.entries(methodMap).map(([name, value]) => ({ name: translatePaymentMethod(name, isEs), value }));
-          return (
-            <div style={{ height: "90px", width: "100%" }}>
+          </div>
+        );
+
+      case "line":
+        const defaultLineData = g.chartData || [
+          { name: "A", value: 10 },
+          { name: "B", value: 25 },
+          { name: "C", value: 15 },
+          { name: "D", value: 40 }
+        ];
+        return (
+          <div style={{ height: "130px", width: "100%" }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={defaultLineData}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <Tooltip formatter={(v) => typeof v === "number" && v > 1000 ? currency(v) : v} />
+                <Line
+                  type="monotone"
+                  dataKey="value"
+                  stroke={g.color || "#8b5cf6"}
+                  strokeWidth={3}
+                  dot={{ r: 3, fill: "#ffffff", stroke: g.color || "#8b5cf6", strokeWidth: 2 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        );
+
+      case "bar":
+        const defaultBarData = g.chartData || [
+          { name: "A", value: 50 },
+          { name: "B", value: 80 },
+          { name: "C", value: 40 }
+        ];
+        return (
+          <div style={{ height: "130px", width: "100%" }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={defaultBarData}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <Tooltip formatter={(v) => typeof v === "number" && v > 1000 ? currency(v) : v} />
+                <Bar dataKey="value" fill={g.color || "#8b5cf6"} radius={[4, 4, 0, 0]} maxBarSize={32} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        );
+
+      case "dona":
+        const defaultPieData = g.chartData || [
+          { name: "Efectivo", value: 50 },
+          { name: "Digital", value: 50 }
+        ];
+        const colors = [g.color || "#8b5cf6", "#10b981", "#f59e0b", "#ec4899"];
+        return (
+          <div className="d-flex align-items-center" style={{ height: "130px" }}>
+            <div style={{ height: "100%", width: "55%" }}>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Tooltip formatter={(v) => currency(v)} />
-                  <Pie data={chartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={35} fill="#10b981">
-                    {chartData.map((e, i) => (
-                      <Cell key={i} fill={["#10b981", "#3b82f6", "#f59e0b"][i % 3]} />
+                  <Tooltip />
+                  <Pie data={defaultPieData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={24} outerRadius={42} fill="#8b5cf6">
+                    {defaultPieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
                     ))}
                   </Pie>
                 </PieChart>
               </ResponsiveContainer>
             </div>
-          );
-        }
-      },
-      {
-        id: "servicios-mas-vendidos",
-        title: isEs ? "Servicios Más Vendidos" : "Top Selling Services",
-        category: isEs ? "Finanzas" : "Finances",
-        description: isEs ? "Los servicios más solicitados de Aura Studio." : "The most requested services of Aura Studio.",
-        keywords: ["ventas", "servicios", "solicitados", "mas vendidos", "corte", "color"],
-        component: () => {
-          const counts = {};
-          appointments.forEach(a => {
-            const name = a.service?.name || (isEs ? "Otros" : "Others");
-            counts[name] = (counts[name] || 0) + 1;
-          });
-          const top = Object.entries(counts).sort((a,b) => b[1] - a[1]).slice(0, 2);
-          return (
-            <div className="d-grid gap-2 text-dark">
-              {top.map(([name, val], i) => (
-                <div key={i} className="d-flex justify-content-between align-items-center smaller border-bottom pb-1">
-                  <span className="fw-semibold text-truncate" style={{ maxWidth: "70%" }}>{name}</span>
-                  <Badge bg="primary-soft" className="text-primary rounded-pill">{val} {isEs ? "turnos" : "bookings"}</Badge>
+            <div className="d-grid gap-1.5" style={{ width: "45%", paddingLeft: "8px" }}>
+              {defaultPieData.map((d, i) => (
+                <div key={i} className="d-flex align-items-center gap-1.5" style={{ fontSize: "10px", fontWeight: "700" }}>
+                  <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: colors[i % colors.length] }} />
+                  <span className="text-truncate text-dark" style={{ maxWidth: "60px" }}>{d.name}</span>
+                  <span className="text-muted ml-auto">{d.value}%</span>
                 </div>
               ))}
             </div>
-          );
-        }
-      },
-      {
-        id: "clientes-frecuentes-list",
-        title: isEs ? "Clientes Frecuentes" : "Frequent Clients",
-        category: isEs ? "Clientes" : "Clients",
-        description: isEs ? "Listado rápido de visitas recurrentes de clientes fidelizados." : "Quick list of recurring visits from loyal clients.",
-        keywords: ["clientes", "frecuentes", "recurrentes", "fidelidad", "top"],
-        component: () => {
-          const clientMap = {};
-          appointments.forEach(a => {
-            if (!a.clientId) return;
-            const name = `${a.client?.firstName || ""} ${a.client?.lastName || ""}`.trim();
-            clientMap[name] = (clientMap[name] || 0) + 1;
-          });
-          const top = Object.entries(clientMap).sort((a,b) => b[1]-a[1]).slice(0, 3);
-          return (
-            <div className="d-grid gap-1.5 smaller">
-              {top.map(([name, val], i) => (
-                <div key={i} className="d-flex justify-content-between align-items-center text-dark">
-                  <span className="fw-semibold text-truncate">{name}</span>
-                  <strong className="text-muted">{val} {isEs ? "visitas" : "visits"}</strong>
+          </div>
+        );
+
+      case "table":
+        const headers = g.tableHeaders || ["Col 1", "Col 2"];
+        const rows = g.tableRows || [["Valor 1", "Valor 2"]];
+        return (
+          <div className="overflow-auto" style={{ maxHeight: "140px" }}>
+            <div className="table-widget-header">
+              {headers.map((h, idx) => (
+                <div key={idx} style={{ width: idx === 0 ? "50%" : "25%", textAlign: idx > 0 ? "right" : "left" }}>
+                  {h}
                 </div>
               ))}
             </div>
-          );
-        }
-      },
-      {
-        id: "ultima-visita-table",
-        title: isEs ? "Última Visita" : "Last Visit",
-        category: isEs ? "Clientes" : "Clients",
-        description: isEs ? "Listado de últimas visitas calendarizadas en el salón." : "List of the last scheduled visits in the salon.",
-        keywords: ["clientes", "visitas", "ultima visita", "fechas", "agenda", "historico"],
-        component: () => {
-          const recent = appointments.slice(-3).reverse();
-          return (
-            <div className="d-grid gap-1 text-dark smaller">
-              {recent.map((a, i) => (
-                <div key={i} className="d-flex justify-content-between align-items-center border-bottom pb-1">
-                  <span className="fw-semibold text-truncate" style={{ maxWidth: "60%" }}>{a.client?.firstName} {a.client?.lastName}</span>
-                  <span className="text-muted smaller">{new Date(a.startsAt).toLocaleDateString(isEs ? "es-AR" : "en-US", { day: "numeric", month: "short" })}</span>
-                </div>
-              ))}
-            </div>
-          );
-        }
-      },
-      {
-        id: "total-gastado-list",
-        title: isEs ? "Total Gastado" : "Total Spent",
-        category: isEs ? "Clientes" : "Clients",
-        description: isEs ? "Top 3 clientes VIP que más ingresos aportaron al negocio." : "Top 3 VIP clients who contributed the most revenue to the business.",
-        keywords: ["clientes", "gasto", "total gastado", "dinero", "ingresos", "vip"],
-        component: () => {
-          const spendMap = {};
-          appointments.forEach(a => {
-            if (!a.clientId) return;
-            const name = `${a.client?.firstName || ""} ${a.client?.lastName || ""}`.trim();
-            spendMap[name] = (spendMap[name] || 0) + Number(a.service?.price || 0);
-          });
-          const top = Object.entries(spendMap).sort((a,b) => b[1]-a[1]).slice(0, 3);
-          return (
-            <div className="d-grid gap-2 text-dark smaller">
-              {top.map(([name, val], i) => (
-                <div key={i} className="d-flex justify-content-between align-items-center">
-                  <span className="fw-semibold text-truncate">{name}</span>
-                  <strong className="text-success">{currency(val)}</strong>
-                </div>
-              ))}
-            </div>
-          );
-        }
-      },
-      {
-        id: "bajo-stock-list",
-        title: isEs ? "Bajo Stock" : "Low Stock",
-        category: isEs ? "Inventario" : "Inventory",
-        description: isEs ? "Alerta crítica de insumos que necesitan reposición inmediata." : "Critical alert for supplies needing immediate replenishment.",
-        keywords: ["bajo stock", "productos", "inventario", "insumos", "alerta", "reposicion"],
-        component: () => {
-          const low = INITIAL_PRODUCTS.filter(p => p.stock < p.limit).slice(0, 3);
-          return (
-            <div className="d-grid gap-1.5 text-dark smaller">
-              {low.map((p, i) => (
-                <div key={i} className="d-flex justify-content-between align-items-center border-bottom pb-1">
-                  <span className="fw-semibold text-truncate" style={{ maxWidth: "60%" }}>{p.name}</span>
-                  <Badge bg="danger-soft" className="text-danger rounded-pill">{p.stock} {isEs ? "en stock" : "in stock"}</Badge>
-                </div>
-              ))}
-            </div>
-          );
-        }
-      },
-      {
-        id: "productos-mas-vendidos",
-        title: isEs ? "Productos Más Vendidos" : "Top Selling Products",
-        category: isEs ? "Inventario" : "Inventory",
-        description: isEs ? "Insumos y productos de mayor rotación comercial." : "Highest commercial turnover supplies and products.",
-        keywords: ["productos", "vendidos", "rotacion", "consumo", "insumos", "salida"],
-        component: () => {
-          return (
-            <div className="d-grid gap-2 text-dark smaller">
-              <div className="d-flex justify-content-between">
-                <span className="fw-semibold">1. Shampoo PH Neutro</span>
-                <span className="text-muted">12 {isEs ? "un." : "units"}</span>
-              </div>
-              <div className="d-flex justify-content-between">
-                <span className="fw-semibold">2. Tinta L'Oreal Majirel</span>
-                <span className="text-muted">9 {isEs ? "un." : "units"}</span>
-              </div>
-            </div>
-          );
-        }
-      },
-      {
-        id: "valor-inventario-stat",
-        title: isEs ? "Valor del Inventario" : "Inventory Value",
-        category: isEs ? "Inventario" : "Inventory",
-        description: isEs ? "Valuación monetaria total del stock físico en el salón." : "Total monetary valuation of the physical stock in the salon.",
-        keywords: ["valor", "inventario", "insumos", "valuacion", "costo", "total"],
-        component: () => {
-          const totalVal = INITIAL_PRODUCTS.reduce((sum, p) => sum + (p.stock * p.cost), 0);
-          return (
-            <div className="text-center py-2">
-              <div className="text-muted smaller mb-1">{isEs ? "Capital en Insumos" : "Supplies Capital"}</div>
-              <h4 className="fw-black text-dark mb-2" style={{ fontSize: "22px" }}>{currency(totalVal)}</h4>
-              <span className="text-muted smaller">{isEs ? "Valuación Real" : "Real Valuation"}</span>
-            </div>
-          );
-        }
-      },
-      {
-        id: "alertas-reposicion",
-        title: isEs ? "Alertas de Reposición" : "Replenishment Alerts",
-        category: isEs ? "Inventario" : "Inventory",
-        description: isEs ? "Recomendaciones de órdenes de compra automáticas." : "Recommendations of automatic purchase orders.",
-        keywords: ["alertas", "reposicion", "comprar", "pedido", "inventario", "insumos"],
-        component: () => {
-          const low = INITIAL_PRODUCTS.filter(p => p.stock < p.limit).length;
-          return (
-            <div className="text-center py-2">
-              {low > 0 ? (
-                <>
-                  <div className="p-2 bg-danger bg-opacity-10 text-danger rounded-4 d-inline-flex mb-2">
-                    <AlertTriangle size={20} />
+            {rows.map((row, rIdx) => (
+              <div className="table-widget-row" key={rIdx}>
+                {row.map((cell, cIdx) => (
+                  <div
+                    key={cIdx}
+                    className={cIdx === 0 ? "table-cell-bold text-truncate" : "table-cell-muted"}
+                    style={{
+                      width: cIdx === 0 ? "50%" : "25%",
+                      textAlign: cIdx > 0 ? "right" : "left"
+                    }}
+                  >
+                    {typeof cell === "number" ? currency(cell) : cell}
                   </div>
-                  <div className="small fw-semibold text-danger">{low} {isEs ? "Insumos críticos" : "Critical supplies"}</div>
-                </>
-              ) : (
-                <div className="small text-success fw-bold">{isEs ? "Stock en nivel óptimo" : "Stock at optimal level"}</div>
-              )}
+                ))}
+              </div>
+            ))}
+          </div>
+        );
+
+      case "heatmap":
+        const days = isEs 
+          ? ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
+          : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+        const opacities = [0.15, 0.45, 0.85, 0.6, 0.95, 0.3, 0.1];
+        return (
+          <div className="heatmap-grid-container py-2">
+            <div className="heatmap-hours-header">
+              <span className="heatmap-hour-label">09h</span>
+              <span className="heatmap-hour-label">12h</span>
+              <span className="heatmap-hour-label">15h</span>
+              <span className="heatmap-hour-label">18h</span>
+              <span className="heatmap-hour-label">21h</span>
             </div>
-          );
-        }
-      }
-    ];
-  }, [appointments, appointmentsWithPayment, isEs]);
+            <div className="heatmap-grid">
+              {days.map((day, idx) => (
+                <div className="heatmap-row" key={idx}>
+                  <span className="heatmap-label">{day}</span>
+                  <div className="heatmap-cells-container">
+                    {[0, 1, 2, 3, 4, 5, 6].map((cellIdx) => {
+                      // Simular opacidad variable
+                      const randomOpacity = opacities[(idx + cellIdx) % opacities.length];
+                      return (
+                        <div
+                          className="heatmap-cell"
+                          key={cellIdx}
+                          style={{
+                            background: g.color || "#8b5cf6",
+                            opacity: randomOpacity
+                          }}
+                          title={`Ocupación: ${Math.round(randomOpacity * 100)}%`}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
 
-  // --- FILTRO DE GADGETS ---
-  const filteredGadgets = useMemo(() => {
-    let list = gadgetsList;
+      case "ranking":
+        const rankList = g.rankingData || [];
+        return (
+          <div className="ranking-list py-1">
+            {rankList.map((item, idx) => (
+              <div className="ranking-item" key={idx}>
+                <span className="ranking-medal">
+                  {item.rank === 1 ? "🥇" : item.rank === 2 ? "🥈" : item.rank === 3 ? "🥉" : ""}
+                  {item.rank > 3 && <div className="ranking-badge-num">{item.rank}</div>}
+                </span>
+                <span className="ranking-name text-truncate">{item.name}</span>
+                <div className="ranking-bar-wrapper">
+                  <div className="ranking-bar-container">
+                    <div
+                      className="ranking-bar"
+                      style={{
+                        width: `${item.pct}%`,
+                        background: `linear-gradient(90deg, ${g.color || "#8b5cf6"}cc 0%, ${g.color || "#8b5cf6"} 100%)`
+                      }}
+                    />
+                  </div>
+                </div>
+                <span className="ranking-val">{currency(item.value)}</span>
+              </div>
+            ))}
+          </div>
+        );
 
-    // 1. Filtrar por categoría (Chips)
-    if (selectedCategory !== "Todos") {
-      list = list.filter(g => g.category === selectedCategory);
+      default:
+        return <div className="text-muted smaller">Visualización no soportada</div>;
     }
-
-    // 2. Si el input coincide con palabras mágicas específicas del requerimiento (Punto 3):
-    const q = searchQuery.toLowerCase().trim();
-    if (q === "ventas") {
-      return gadgetsList.filter(g => ["total-vendido", "ventas-dia-chart", "metodo-pago-pie", "servicios-mas-vendidos"].includes(g.id));
-    }
-    if (q === "clientes") {
-      return gadgetsList.filter(g => ["clientes-frecuentes-list", "ultima-visita-table", "total-gastado-list", "servicios-mas-vendidos"].includes(g.id));
-    }
-    if (q === "inventario") {
-      return gadgetsList.filter(g => ["bajo-stock-list", "productos-mas-vendidos", "valor-inventario-stat", "alertas-reposicion"].includes(g.id));
-    }
-
-    // 3. Filtro general funcional (Punto 4)
-    if (q) {
-      list = list.filter(g => {
-        const titleMatch = g.title.toLowerCase().includes(q);
-        const descMatch = g.description.toLowerCase().includes(q);
-        const categoryMatch = g.category.toLowerCase().includes(q);
-        const keywordsMatch = g.keywords.some(kw => kw.toLowerCase().includes(q));
-        return titleMatch || descMatch || categoryMatch || keywordsMatch;
-      });
-    }
-
-    return list;
-  }, [searchQuery, selectedCategory, gadgetsList]);
-
-  // --- EXPORTAR A CSV (Real y Funcional) ---
-  const handleExportCSV = () => {
-    if (!activeReport || !activeReport.table) return;
-    
-    const headers = activeReport.table.headers.join(",");
-    const rows = activeReport.table.rows.map(row => 
-      row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(",")
-    );
-    
-    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers, ...rows].join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `Reporte_Aura_${activeReport.title.replace(/\s+/g, "_")}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    setSuccessMessage("¡Reporte exportado como archivo CSV exitosamente!");
-  };
-
-  // --- ENVIAR POR WHATSAPP (Real y Funcional) ---
-  const handleSendWhatsApp = () => {
-    if (!activeReport) return;
-    
-    let text = `*Reporte de Aura Studio* 💡\n`;
-    text += `*${activeReport.title}*\n`;
-    text += `_${activeReport.description}_\n\n`;
-    text += `*Resumen:* ${activeReport.summary}\n\n`;
-    
-    if (activeReport.kpis && activeReport.kpis.length) {
-      text += `*Métricas Claves:*\n`;
-      activeReport.kpis.forEach(k => {
-        text += `- ${k.label}: ${k.value}\n`;
-      });
-    }
-
-    const encodedText = encodeURIComponent(text);
-    window.open(`https://wa.me/?text=${encodedText}`, "_blank");
-    setSuccessMessage("¡Redirigiendo a WhatsApp con el borrador del reporte!");
-  };
-
-  // --- ENVIAR POR EMAIL ---
-  const handleSendEmail = () => {
-    if (!activeReport) return;
-    
-    const subject = encodeURIComponent(`Informe Inteligente - Aura Studio - ${activeReport.title}`);
-    let body = `Hola Selenia,\n\nTe comparto el informe inteligente de Aura Studio:\n\n`;
-    body += `${activeReport.title}\n`;
-    body += `${activeReport.description}\n\n`;
-    body += `Resumen:\n${activeReport.summary}\n\n`;
-    
-    if (activeReport.kpis && activeReport.kpis.length) {
-      body += `Métricas Claves:\n`;
-      activeReport.kpis.forEach(k => {
-        body += `- ${k.label}: ${k.value}\n`;
-      });
-    }
-
-    body += `\nGenerado automáticamente por el Copilot Inteligente de Aura Studio.`;
-    
-    window.open(`mailto:?subject=${subject}&body=${encodeURIComponent(body)}`);
-    setSuccessMessage("¡Bandeja de correo abierta con el informe pre-redactado!");
-  };
-
-  // --- GUARDAR REPORTE ---
-  const handleSaveReport = () => {
-    setSuccessMessage("¡El informe ha sido guardado con éxito en tu panel de control!");
   };
 
   return (
@@ -1072,364 +687,458 @@ export default function SmartReports({ appointments = [], clients = [], workers 
             className="position-fixed top-0 start-50 translate-middle-x z-3 mt-4"
             style={{ zIndex: 9999 }}
           >
-            <Alert variant="success" className="shadow-lg border-2 rounded-4 px-4 py-3 d-flex align-items-center gap-2">
-              <CheckCircle size={18} className="text-success animate-pulse" />
-              <span className="fw-semibold text-dark smaller">{successMessage}</span>
+            <Alert variant="dark" className="floating-success-alert px-4 py-2.5 d-flex align-items-center gap-2">
+              <CheckCircle size={16} className="text-success animate-pulse" />
+              <span className="fw-bold text-white small" style={{ fontSize: "12.5px" }}>{successMessage}</span>
             </Alert>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <Card className="reports-card-container border-0 mb-4">
-        <Card.Body className="p-0">
-          
-          {/* HEADER DE LA SECCIÓN */}
-          <div className="d-flex align-items-center gap-2.5 mb-4">
-            <div className="p-2.5 bg-success bg-opacity-10 text-success rounded-4 pulse-sparkle">
-              <Sparkles size={24} />
-            </div>
-            <div>
-              <h2 className="h5 fw-black text-dark mb-0.5">{isEs ? "Informes Inteligentes & Copilot IA" : "Smart Reports & AI Copilot"}</h2>
-              <p className="text-muted smaller mb-0">{isEs ? "Generá reportes con accesos rápidos, consultas en lenguaje natural o explorá gadgets." : "Generate reports with quick access, natural language queries, or explore gadgets."}</p>
-            </div>
-          </div>
+      {/* HEADER PRINCIPAL */}
+      <div className="d-flex align-items-center gap-2.5 mb-4">
+        <div className="p-2.5 bg-primary bg-opacity-10 text-primary rounded-4 pulse-sparkle" style={{ color: "#8b5cf6" }}>
+          <Sparkles size={24} />
+        </div>
+        <div>
+          <h2 className="h4 fw-black text-dark mb-0.5">{isEs ? "Informes Inteligentes & Copilot IA" : "Smart Reports & AI Copilot"}</h2>
+          <p className="text-muted smaller mb-0">{isEs ? "Generá reportes dinámicos conversacionales, visualizá gadgets y automatizá análisis con Aura Copilot." : "Generate dynamic conversational reports, view gadgets, and automate analysis with Aura Copilot."}</p>
+        </div>
+      </div>
 
-          <Row className="g-4 mb-4">
-            
-            {/* COLUMNA IZQUIERDA: BUSCADOR & FILTROS & INFORMES PREDETERMINADOS */}
-            <Col lg={7} className="border-end pe-lg-4">
-              <h3 className="smaller text-muted fw-bold uppercase mb-3" style={{ letterSpacing: "0.08em" }}>
-                {isEs ? "1. Informes Predeterminados & Filtros" : "1. Predefined Reports & Filters"}
-              </h3>
+      {/* SECCIÓN 1: AURA ANALYTICS BUILDER */}
+      <Card className="aura-builder-card border-0 mb-4 p-4">
+        <Row className="g-4 align-items-stretch">
+          <Col lg={8} className="d-flex flex-column justify-content-between">
+            <div>
+              <h3 className="builder-title mb-1">Aura Analytics Builder</h3>
+              <p className="builder-subtitle">{isEs ? "Preguntá en lenguaje natural y generá dashboards inteligentes en segundos." : "Ask in natural language and generate smart dashboards in seconds."}</p>
               
-              {/* Buscador de gadgets */}
-              <div className="search-glow-container mb-3.5">
-                <Search size={16} className="search-icon-inside" />
+              {/* IA input console */}
+              <div className="ai-input-glow-wrapper mb-3">
+                <Sparkles size={20} className="ai-input-icon animate-pulse" />
                 <Form.Control
-                  type="text"
-                  placeholder={isEs ? "Buscar gadget por título, descripción o palabra clave..." : "Search gadget by title, description, or keyword..."}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="search-glow-input"
+                  as="textarea"
+                  placeholder={isEs ? "Ej: Mostrar ventas por categoría últimos 6 meses" : "Ex: Show sales by category for the last 6 months"}
+                  value={aiInput}
+                  onChange={(e) => setAiInput(e.target.value)}
+                  disabled={isAiGenerating}
+                  className="ai-textarea shadow-none border-0"
                 />
+                <Button
+                  onClick={() => handleAiInterpret(aiInput)}
+                  disabled={isAiGenerating || !aiInput.trim()}
+                  className="btn-ai-generate"
+                >
+                  {isAiGenerating ? (
+                    <>
+                      <Spinner animation="border" size="sm" className="text-white" />
+                      <span>{isEs ? "Generando..." : "Generating..."}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={14} />
+                      <span>{isEs ? "Generar Gadget IA" : "Generate AI Gadget"}</span>
+                    </>
+                  )}
+                </Button>
               </div>
 
-              {/* Chips de categorías */}
-              <div className="category-chips-wrapper mb-4">
-                {["Todos", "Finanzas", "Clientes", "Inventario"].map((cat) => (
+              {/* Chips sugerencias */}
+              <div className="chips-label">{isEs ? "Sugerencias Populares" : "Popular Suggestions"}</div>
+              <div className="chips-container">
+                {[
+                  isEs ? "Ventas por mes" : "Sales by month",
+                  isEs ? "Clientes nuevos vs recurrentes" : "New vs recurring clients",
+                  isEs ? "Servicios más rentables" : "Most profitable services",
+                  isEs ? "Ocupación semanal" : "Weekly occupation",
+                  isEs ? "Ingresos por profesional" : "Stylist revenue",
+                  isEs ? "Productos próximos a agotarse" : "Low stock items",
+                  isEs ? "Ticket promedio por sucursal" : "Average ticket"
+                ].map((chipText, idx) => (
                   <button
-                    key={cat}
-                    onClick={() => setSelectedCategory(cat)}
-                    className={`category-chip ${selectedCategory === cat ? "active" : ""}`}
+                    key={idx}
+                    disabled={isAiGenerating}
+                    onClick={() => {
+                      setAiInput(chipText);
+                      handleAiInterpret(chipText);
+                    }}
+                    className="suggestion-chip"
                   >
-                    {cat === "Todos" ? <Layers size={13} /> : cat === "Finanzas" ? <CreditCard size={13} /> : cat === "Clientes" ? <Users size={13} /> : <Package size={13} />}
-                    <span>{cat === "Todos" ? (isEs ? "Todos" : "All") : cat === "Finanzas" ? (isEs ? "Finanzas" : "Finances") : cat === "Clientes" ? (isEs ? "Clientes" : "Clients") : (isEs ? "Inventario" : "Inventory")}</span>
+                    <Plus size={11} className="text-muted" />
+                    <span>{chipText}</span>
                   </button>
                 ))}
               </div>
+            </div>
+          </Col>
 
-              {/* Grid de informes predeterminados rápidos */}
-              <h4 className="smaller text-dark fw-bold mb-3 d-flex align-items-center gap-1.5">
-                <FileText size={14} className="text-success" />
-                <span>{isEs ? "Accesos rápidos de Informes" : "Quick Report Access"}</span>
+          {/* Right step panel */}
+          <Col lg={4}>
+            <div className="how-it-works-panel">
+              <h4 className="how-it-works-title">
+                <HelpCircle size={14} className="text-primary" style={{ color: "#8b5cf6" }} />
+                <span>{isEs ? "¿Cómo funciona?" : "How it works?"}</span>
               </h4>
-              
-              <Row className="g-2.5">
-                {[
-                  { id: "ventas-dia", label: isEs ? "Ventas de hoy" : "Today's sales", color: "success" },
-                  { id: "ventas-semana", label: isEs ? "Ventas semanales" : "Weekly sales", color: "success" },
-                  { id: "servicios-solicitados", label: isEs ? "Servicios estrella" : "Star services", color: "primary" },
-                  { id: "clientes-frecuentes", label: isEs ? "Clientes frecuentes" : "Frequent clients", color: "info" },
-                  { id: "ingresos-metodo-pago", label: isEs ? "Métodos de Pago" : "Payment methods", color: "success" },
-                  { id: "bajo-stock", label: isEs ? "Bajo Stock" : "Low Stock", color: "warning" },
-                  { id: "rendimiento-empleado", label: isEs ? "Rendimiento Equipo" : "Team Performance", color: "info" },
-                  { id: "finanzas-mes", label: isEs ? "Finanzas del mes" : "Monthly finances", color: "success" },
-                  { id: "cancelaciones-ausencias", label: isEs ? "Cancelaciones" : "Cancellations", color: "danger" }
-                ].map((rep) => (
-                  <Col xs={6} md={4} key={rep.id}>
-                    <Button
-                      variant={activeReport?.id === rep.id ? rep.color : "outline-dark"}
-                      onClick={() => handleSelectPredefinedReport(rep.id)}
-                      className="w-100 py-2.5 rounded-4 small fw-bold text-truncate border text-start d-flex align-items-center gap-2 hover-scale"
-                      style={{ fontSize: "11.5px" }}
-                    >
-                      <div className={`rounded-circle bg-${rep.color}`} style={{ width: "6px", height: "6px" }} />
-                      <span>{rep.label}</span>
-                    </Button>
-                  </Col>
-                ))}
+              <div className="d-grid gap-3">
+                <div className="step-item">
+                  <div className="step-badge">1</div>
+                  <div className="step-text">{isEs ? "Escribí tu pregunta sobre ventas, clientes, equipo o stock." : "Write your question about sales, clients, staff or stock."}</div>
+                </div>
+                <div className="step-item">
+                  <div className="step-badge">2</div>
+                  <div className="step-text">{isEs ? "Aura AI interpreta métricas, agrupaciones, periodos y filtros." : "Aura AI interprets metrics, groupings, periods, and filters."}</div>
+                </div>
+                <div className="step-item">
+                  <div className="step-badge">3</div>
+                  <div className="step-text">{isEs ? "Genera el gadget visual personalizado al instante." : "Generates the customized visual gadget instantly."}</div>
+                </div>
+                <div className="step-item">
+                  <div className="step-badge">4</div>
+                  <div className="step-text">{isEs ? "Visualizalo y guardalo de forma persistente en tu control." : "View it and save it persistently inside your control panel."}</div>
+                </div>
+              </div>
+            </div>
+          </Col>
+        </Row>
+      </Card>
+
+      {/* SECCIÓN 2: INFORMES RÁPIDOS */}
+      <h3 className="smaller text-muted fw-bold uppercase mb-2" style={{ letterSpacing: "0.08em", fontSize: "11px" }}>
+        {isEs ? "Informes rápidos (Accesos directos)" : "Quick Reports (Direct Access)"}
+      </h3>
+      
+      <div className="quick-reports-row mb-4">
+        {[
+          { title: isEs ? "Ventas de hoy" : "Today's sales", icon: <DollarSign size={13} />, bg: "#ecfdf5", color: "#10b981", prompt: "Ventas de hoy" },
+          { title: isEs ? "Ventas semanales" : "Weekly sales", icon: <TrendingUp size={13} />, bg: "#f0fdf4", color: "#22c55e", prompt: "Ventas semanales" },
+          { title: isEs ? "Clientes frecuentes" : "Frequent clients", icon: <Users size={13} />, bg: "#eff6ff", color: "#3b82f6", prompt: "Clientes más frecuentes" },
+          { title: isEs ? "Métodos de pago" : "Payment methods", icon: <CreditCard size={13} />, bg: "#fef2f2", color: "#ef4444", prompt: "Métodos de pago este mes" },
+          { title: isEs ? "Finanzas del mes" : "Monthly finances", icon: <Layers size={13} />, bg: "#fdf4ff", color: "#d946ef", prompt: "Ventas por mes de este año" },
+          { title: isEs ? "Bajo stock" : "Low stock", icon: <Package size={13} />, bg: "#fffbeb", color: "#f59e0b", prompt: "Productos próximos a agotarse" },
+          { title: isEs ? "Cancelaciones" : "Cancellations", icon: <XCircle size={13} />, bg: "#faf5ff", color: "#a855f7", prompt: "Citas canceladas" },
+          { title: isEs ? "Rendimiento equipo" : "Team Performance", icon: <Briefcase size={13} />, bg: "#f0fdfa", color: "#14b8a6", prompt: "Profesionales más rentables" }
+        ].map((item, idx) => (
+          <div
+            key={idx}
+            className="quick-report-mini-card"
+            onClick={() => {
+              setAiInput(item.prompt);
+              handleAiInterpret(item.prompt);
+            }}
+          >
+            <div className="quick-card-icon-wrapper" style={{ background: item.bg, color: item.color }}>
+              {item.icon}
+            </div>
+            <span className="quick-card-title">{item.title}</span>
+            <span className="quick-card-action">{isEs ? "Ir" : "Go"}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* SECCIÓN 3: MIS GADGETS IA */}
+      <div className="gadgets-header-container">
+        <div>
+          <h3 className="h5 fw-black text-dark mb-0.5">{isEs ? "Mis Gadgets" : "My Gadgets"}</h3>
+          <p className="text-muted smaller mb-0">{isEs ? "Visualizaciones creadas automáticamente por Aura." : "Visualizations automatically generated by Aura."}</p>
+        </div>
+
+        {/* Buscador de widgets */}
+        <div className="d-flex align-items-center gap-2">
+          <div className="position-relative" style={{ width: "240px" }}>
+            <Search size={14} className="position-absolute text-muted" style={{ left: "12px", top: "50%", transform: "translateY(-50%)" }} />
+            <Form.Control
+              type="text"
+              placeholder={isEs ? "Buscar gadgets..." : "Search gadgets..."}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="rounded-pill pl-4 small py-1.5 border"
+              style={{ paddingLeft: "32px", fontSize: "12.5px" }}
+            />
+          </div>
+
+          <Button
+            variant="dark"
+            onClick={() => {
+              const newCustom = {
+                id: `gadget-custom-${Date.now()}`,
+                title: isEs ? "Nuevo Gadget Custom" : "New Custom Gadget",
+                type: "kpi",
+                dataSource: "Ventas",
+                period: "Este mes",
+                groupBy: "Total",
+                filter: "Ninguno",
+                color: "#8b5cf6",
+                kpiValue: 150000,
+                kpiChange: "+5%",
+                kpiPositive: true,
+                category: "Finanzas"
+              };
+              handleOpenEdit(newCustom);
+            }}
+            className="rounded-pill px-3 py-1.5 fw-bold small border-0 bg-success d-flex align-items-center gap-1"
+            style={{ fontSize: "12.5px" }}
+          >
+            <Plus size={14} />
+            <span>{isEs ? "Crear Gadget" : "Create Gadget"}</span>
+          </Button>
+        </div>
+      </div>
+
+      {/* Grilla adaptativa de Gadgets */}
+      {filteredGadgets.length === 0 ? (
+        <div className="text-center py-5 border border-dashed rounded-4 bg-light">
+          <Search size={28} className="text-muted mb-2" />
+          <h5 className="fw-bold text-dark mb-1">{isEs ? "No encontramos gadgets" : "No gadgets found"}</h5>
+          <p className="text-muted smaller mb-0">{isEs ? "Probá buscando otra palabra o generá un gadget arriba." : "Try searching another keyword or generate a gadget above."}</p>
+        </div>
+      ) : (
+        <Row className="g-3">
+          <AnimatePresence>
+            {filteredGadgets.map((g) => (
+              <Col xs={12} md={6} lg={4} key={g.id} className="animate-fade-in">
+                <div className="premium-gadget-card">
+                  <div>
+                    {/* Header */}
+                    <div className="gadget-top-header">
+                      <span
+                        className="gadget-badge"
+                        style={{
+                          background: g.category === "Finanzas" ? "#ecfdf5" : g.category === "Clientes" ? "#eff6ff" : g.category === "Servicios" ? "#fdf4ff" : "#fffbeb",
+                          color: g.category === "Finanzas" ? "#059669" : g.category === "Clientes" ? "#1d4ed8" : g.category === "Servicios" ? "#d946ef" : "#d97706"
+                        }}
+                      >
+                        {g.category || "General"}
+                      </span>
+
+                      {/* Menú de acciones del gadget */}
+                      <Dropdown align="end">
+                        <Dropdown.Toggle as="button" className="btn-three-dots">
+                          <MoreVertical size={16} />
+                        </Dropdown.Toggle>
+                        <Dropdown.Menu className="shadow-lg border rounded-4 py-1.5 small" style={{ minWidth: "140px" }}>
+                          <Dropdown.Item onClick={() => handleOpenEdit(g)} className="d-flex align-items-center gap-2 py-1.5">
+                            <Edit2 size={13} className="text-primary" />
+                            <span>{isEs ? "Editar" : "Edit"}</span>
+                          </Dropdown.Item>
+                          <Dropdown.Item onClick={() => handleDuplicate(g)} className="d-flex align-items-center gap-2 py-1.5">
+                            <Copy size={13} className="text-success" />
+                            <span>{isEs ? "Duplicar" : "Duplicate"}</span>
+                          </Dropdown.Item>
+                          <Dropdown.Item onClick={() => handleRefresh(g.id)} className="d-flex align-items-center gap-2 py-1.5">
+                            <RefreshCw size={13} className="text-info" />
+                            <span>{isEs ? "Actualizar" : "Refresh"}</span>
+                          </Dropdown.Item>
+                          <Dropdown.Item onClick={() => handleExportCSV(g)} className="d-flex align-items-center gap-2 py-1.5">
+                            <Download size={13} className="text-warning" />
+                            <span>{isEs ? "Exportar" : "Export"}</span>
+                          </Dropdown.Item>
+                          <Dropdown.Divider />
+                          <Dropdown.Item onClick={() => handleDelete(g.id)} className="d-flex align-items-center gap-2 py-1.5 text-danger">
+                            <Trash2 size={13} />
+                            <span>{isEs ? "Eliminar" : "Delete"}</span>
+                          </Dropdown.Item>
+                        </Dropdown.Menu>
+                      </Dropdown>
+                    </div>
+
+                    <h4 className="gadget-content-title">{g.title}</h4>
+                    <p className="gadget-content-sub">{g.period} • {isEs ? "Agrupado por" : "Grouped by"} {g.groupBy}</p>
+                  </div>
+
+                  {/* Body interactivo del widget */}
+                  <div className="gadget-inner-body">
+                    {renderGadgetBody(g)}
+                  </div>
+                </div>
+              </Col>
+            ))}
+          </AnimatePresence>
+        </Row>
+      )}
+
+      {/* ---------------------------------------------------------
+          CONSTRUCTOR VISUAL: MODAL INTERACTIVO DE EDICIÓN & PREVIEW
+          --------------------------------------------------------- */}
+      <Modal
+        show={showEditModal}
+        onHide={() => setShowEditModal(false)}
+        size="lg"
+        centered
+        dialogClassName="modal-visual-builder-dialog"
+        contentClassName="modal-visual-builder"
+      >
+        <Modal.Header closeButton closeVariant="white" className="modal-builder-header">
+          <Modal.Title className="modal-builder-title d-flex align-items-center gap-2">
+            <BarChart2 size={18} className="text-success" />
+            <span>{isEs ? "Aura Visual Gadget Builder" : "Aura Visual Gadget Builder"}</span>
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="modal-builder-body">
+          <Row className="g-4">
+            
+            {/* Formulario de configuración (Izquierda) */}
+            <Col md={6} className="d-grid gap-3.5">
+              <div>
+                <label className="builder-label">{isEs ? "Título del Gadget" : "Gadget Title"}</label>
+                <Form.Control
+                  type="text"
+                  value={formTitle}
+                  onChange={(e) => setFormTitle(e.target.value)}
+                  className="builder-input"
+                />
+              </div>
+
+              <Row className="g-2">
+                <Col xs={6}>
+                  <label className="builder-label">{isEs ? "Tipo de gráfico" : "Chart Type"}</label>
+                  <Form.Select
+                    value={formType}
+                    onChange={(e) => setFormType(e.target.value)}
+                    className="builder-select"
+                  >
+                    <option value="kpi">KPI</option>
+                    <option value="line">Líneas</option>
+                    <option value="bar">Barras</option>
+                    <option value="dona">Dona</option>
+                    <option value="table">Tabla</option>
+                    <option value="heatmap">Heatmap</option>
+                    <option value="ranking">Ranking</option>
+                  </Form.Select>
+                </Col>
+                <Col xs={6}>
+                  <label className="builder-label">{isEs ? "Fuente de datos" : "Data Source"}</label>
+                  <Form.Select
+                    value={formDataSource}
+                    onChange={(e) => setFormDataSource(e.target.value)}
+                    className="builder-select"
+                  >
+                    <option value="Ventas">Ventas</option>
+                    <option value="Clientes">Clientes</option>
+                    <option value="Servicios">Servicios</option>
+                    <option value="Equipo">Equipo</option>
+                    <option value="Citas">Citas</option>
+                    <option value="Inventario">Inventario</option>
+                  </Form.Select>
+                </Col>
               </Row>
+
+              <Row className="g-2">
+                <Col xs={6}>
+                  <label className="builder-label">{isEs ? "Período" : "Period"}</label>
+                  <Form.Select
+                    value={formPeriod}
+                    onChange={(e) => setFormPeriod(e.target.value)}
+                    className="builder-select"
+                  >
+                    <option value="Hoy">Hoy</option>
+                    <option value="Esta semana">Esta semana</option>
+                    <option value="Este mes">Este mes</option>
+                    <option value="Últimos 6 meses">Últimos 6 meses</option>
+                    <option value="Último año">Último año</option>
+                  </Form.Select>
+                </Col>
+                <Col xs={6}>
+                  <label className="builder-label">{isEs ? "Agrupar por" : "Group by"}</label>
+                  <Form.Select
+                    value={formGroupBy}
+                    onChange={(e) => setFormGroupBy(e.target.value)}
+                    className="builder-select"
+                  >
+                    <option value="Total">Total</option>
+                    <option value="Categoría">Categoría</option>
+                    <option value="Día">Día</option>
+                    <option value="Mes">Mes</option>
+                    <option value="Método">Método</option>
+                    <option value="Profesional">Profesional</option>
+                  </Form.Select>
+                </Col>
+              </Row>
+
+              <div>
+                <label className="builder-label">{isEs ? "Filtros aplicados" : "Applied Filters"}</label>
+                <Form.Select
+                  value={formFilter}
+                  onChange={(e) => setFormFilter(e.target.value)}
+                  className="builder-select"
+                >
+                  <option value="Ninguno">Ninguno</option>
+                  <option value="Solo finalizados">Solo finalizados</option>
+                  <option value="VIP">Clientes VIP</option>
+                  <option value="Bajo stock">Bajo stock crítico</option>
+                </Form.Select>
+              </div>
+
+              <div>
+                <label className="builder-label">{isEs ? "Color principal de visualización" : "Main visual color"}</label>
+                <div className="color-picker-group">
+                  {["#8b5cf6", "#10b981", "#3b82f6", "#f59e0b", "#ec4899", "#ef4444"].map((c) => (
+                    <div
+                      key={c}
+                      className={`color-picker-circle ${formColor === c ? "active" : ""}`}
+                      style={{ background: c }}
+                      onClick={() => setFormColor(c)}
+                    />
+                  ))}
+                </div>
+              </div>
             </Col>
 
-            {/* COLUMNA DERECHA: CONSULTAS PERSONALIZADAS CON IA */}
-            <Col lg={5}>
-              <h3 className="smaller text-muted fw-bold uppercase mb-3" style={{ letterSpacing: "0.08em" }}>
-                {isEs ? "2. Consultas Personalizadas con IA" : "2. Custom AI Queries"}
-              </h3>
-              
-              <div className="ai-query-box">
-                <div className="d-flex align-items-center gap-2 mb-3">
-                  <Sparkles size={18} className="text-success animate-pulse" />
-                  <strong className="text-white small">{isEs ? "Preguntale a Aura Copilot" : "Ask Aura Copilot"}</strong>
+            {/* Vista Previa interactiva en Tiempo Real (Derecha) */}
+            <Col md={6}>
+              <div className="live-preview-pane">
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                  <span className="preview-badge-status">{isEs ? "Vista Previa en Vivo" : "Live Preview"}</span>
+                  <div className="text-muted smaller fw-bold">{formPeriod}</div>
                 </div>
-                
-                <p className="text-white-50 smaller mb-3.5">
-                  {isEs ? "Escribí en lenguaje natural y nuestro Copilot interpretará los datos o creará gadgets para vos." : "Write in natural language and our Copilot will interpret the data or create gadgets for you."}
-                </p>
 
-                <Form onSubmit={handleAiQuerySubmit} className="d-grid gap-3">
-                  <div className="ai-query-input-wrapper">
-                    <Form.Control
-                      type="text"
-                      placeholder={isEs ? "“¿Cuánto vendimos esta semana?”..." : "“How much did we sell this week?”..."}
-                      value={aiQuestion}
-                      onChange={(e) => setAiQuestion(e.target.value)}
-                      disabled={aiLoading}
-                      className="ai-query-input shadow-none"
-                    />
-                    <Button
-                      type="submit"
-                      disabled={aiLoading || !aiQuestion.trim()}
-                      className="btn-ai-submit py-2 px-3 small border-0"
-                    >
-                      {aiLoading ? (
-                        <Spinner animation="border" size="sm" className="text-white" />
-                      ) : (
-                        <>
-                          <Sparkles size={13} />
-                          <span>{isEs ? "Consultar" : "Submit"}</span>
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </Form>
+                <div className="mb-3">
+                  <h4 className="gadget-content-title text-dark">{formTitle || (isEs ? "Título temporal" : "Temporary title")}</h4>
+                  <p className="gadget-content-sub m-0">{isEs ? "Agrupado por" : "Grouped by"} {formGroupBy} • {isEs ? "Filtro:" : "Filter:"} {formFilter}</p>
+                </div>
 
-                {aiError && <Alert variant="danger" className="mt-3 py-2 small">{aiError}</Alert>}
-
-                {/* Preguntas frecuentes sugeridas */}
-                <div className="mt-4">
-                  <div className="text-white-50 smaller fw-bold mb-2">{isEs ? "Preguntas de ejemplo:" : "Example questions:"}</div>
-                  <div className="d-grid gap-1.5">
-                    {[
-                      isEs ? "¿Cuánto vendimos esta semana?" : "How much did we sell this week?",
-                      isEs ? "Muéstrame los clientes que más gastaron este mes" : "Show me the top spending clients this month",
-                      isEs ? "Qué servicios dejaron más dinero" : "Which services generated the most revenue",
-                      isEs ? "Qué productos se están acabando" : "Which products are running out",
-                      isEs ? "Cuáles son los días con más reservas" : "Which days have the most bookings"
-                    ].map((p, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => {
-                          setAiQuestion(p);
-                        }}
-                        className="btn btn-link text-start text-white-50 p-0 smaller text-decoration-none hover-text-white d-flex align-items-center gap-1 hover-scale"
-                        style={{ fontSize: "11px" }}
-                      >
-                        <ArrowRight size={10} className="text-success" />
-                        <span>“{p}”</span>
-                      </button>
-                    ))}
-                  </div>
+                {/* Render dinámico del preview */}
+                <div className="preview-rendered-area border rounded-4 p-3 bg-light d-flex flex-column justify-content-center" style={{ minHeight: "160px" }}>
+                  {renderGadgetBody({
+                    type: formType,
+                    color: formColor,
+                    kpiValue: formDataSource === "Ventas" ? 4850000 : 280,
+                    kpiChange: "+15%",
+                    kpiPositive: true,
+                    period: formPeriod,
+                    groupBy: formGroupBy,
+                    chartData: [
+                      { name: "Opción A", value: 120 },
+                      { name: "Opción B", value: 185 },
+                      { name: "Opción C", value: 240 },
+                      { name: "Opción D", value: 95 }
+                    ],
+                    tableHeaders: ["Concepto", "Categoría", "Total"],
+                    tableRows: [
+                      ["Item A", "Servicio", "$120.000"],
+                      ["Item B", "Venta", "$85.000"],
+                      ["Item C", "Servicio", "$40.000"]
+                    ],
+                    rankingData: [
+                      { rank: 1, name: "Valeria Gómez", value: 1250000, pct: 100 },
+                      { rank: 2, name: "Sofía Martínez", value: 980000, pct: 78 },
+                      { rank: 3, name: "Lucas Silva", value: 820000, pct: 65 }
+                    ]
+                  })}
                 </div>
               </div>
             </Col>
           </Row>
-
-          {/* ÁREA DE INFORME VISUAL ACTIVO */}
-          <AnimatePresence mode="wait">
-            {activeReport && (
-              <motion.div
-                key={activeReport.title}
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                className="report-sheet-container mb-4"
-              >
-                {/* Cabecera del informe */}
-                <div className="report-sheet-header d-flex justify-content-between align-items-center flex-wrap gap-3">
-                  <div>
-                    <h3 className="h6 fw-black text-dark mb-1">{activeReport.title}</h3>
-                    <p className="text-muted smaller mb-0">{activeReport.description}</p>
-                  </div>
-                  
-                  {/* Botones de acción del reporte */}
-                  <div className="d-flex align-items-center gap-2">
-                    <Button variant="outline-dark" size="sm" onClick={handleExportCSV} className="rounded-pill px-3 py-1.5 fw-bold small border d-flex align-items-center gap-1.5">
-                      <Download size={13} />
-                      <span>Exportar CSV</span>
-                    </Button>
-                    <Button variant="outline-dark" size="sm" onClick={handleSendWhatsApp} className="rounded-pill px-3 py-1.5 fw-bold small border d-flex align-items-center gap-1.5">
-                      <MessageSquare size={13} className="text-success" />
-                      <span>WhatsApp</span>
-                    </Button>
-                    <Button variant="outline-dark" size="sm" onClick={handleSendEmail} className="rounded-pill px-3 py-1.5 fw-bold small border d-flex align-items-center gap-1.5">
-                      <Send size={13} />
-                      <span>Email</span>
-                    </Button>
-                    <Button variant="dark" size="sm" onClick={handleSaveReport} className="rounded-pill px-3 py-1.5 fw-bold small border-0 d-flex align-items-center gap-1.5 bg-success">
-                      <Bookmark size={13} />
-                      <span>Guardar</span>
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="report-sheet-body">
-                  {/* Resumen explicativo */}
-                  <div className="p-3 bg-light rounded-4 border-start border-success border-4 mb-4 small fw-semibold text-dark">
-                    {activeReport.summary}
-                  </div>
-
-                  {/* KPIs del reporte */}
-                  <Row className="g-3 mb-4">
-                    {activeReport.kpis.map((k, idx) => (
-                      <Col md={4} key={idx}>
-                        <Card className="p-3 border rounded-4 bg-light shadow-none">
-                          <div className="d-flex justify-content-between align-items-start mb-2">
-                            <span className="text-muted smaller fw-bold">{k.label}</span>
-                            <div className="p-1.5 bg-white border rounded-3">{k.icon}</div>
-                          </div>
-                          <strong className="h5 fw-black text-dark m-0">{k.value}</strong>
-                        </Card>
-                      </Col>
-                    ))}
-                  </Row>
-
-                  <Row className="g-4">
-                    {/* Gráfico */}
-                    {activeReport.chart && (
-                      <Col md={activeReport.table ? 6 : 12}>
-                        <Card className="p-3 border rounded-4 bg-light shadow-none h-100">
-                          <h4 className="smaller text-dark fw-bold mb-3">{activeReport.chart.title}</h4>
-                          <div style={{ height: "240px", width: "100%" }}>
-                            <ResponsiveContainer width="100%" height="100%">
-                              {activeReport.chart.type === "bar" ? (
-                                <BarChart data={activeReport.chart.data}>
-                                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#64748b" }} axisLine={false} tickLine={false} />
-                                  <YAxis tick={{ fontSize: 10, fill: "#64748b" }} axisLine={false} tickLine={false} />
-                                  <Tooltip formatter={(v) => typeof v === "number" && activeReport.chart.title.includes("ARS") ? currency(v) : v} />
-                                  <Bar dataKey="value" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={45} />
-                                </BarChart>
-                              ) : activeReport.chart.type === "line" ? (
-                                <LineChart data={activeReport.chart.data}>
-                                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#64748b" }} axisLine={false} tickLine={false} />
-                                  <YAxis tick={{ fontSize: 10, fill: "#64748b" }} axisLine={false} tickLine={false} />
-                                  <Tooltip formatter={(v) => typeof v === "number" && activeReport.chart.title.includes("ARS") ? currency(v) : v} />
-                                  <Line type="monotone" dataKey="value" stroke="#10b981" strokeWidth={2.5} dot={{ r: 3, fill: "#fff", stroke: "#10b981", strokeWidth: 2 }} />
-                                </LineChart>
-                              ) : activeReport.chart.type === "area" ? (
-                                <AreaChart data={activeReport.chart.data}>
-                                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#64748b" }} axisLine={false} tickLine={false} />
-                                  <YAxis tick={{ fontSize: 10, fill: "#64748b" }} axisLine={false} tickLine={false} />
-                                  <Tooltip formatter={(v) => typeof v === "number" && activeReport.chart.title.includes("ARS") ? currency(v) : v} />
-                                  <Area type="monotone" dataKey="value" stroke="#10b981" fill="rgba(16,185,129,0.08)" strokeWidth={2.5} />
-                                </AreaChart>
-                              ) : (
-                                <PieChart>
-                                  <Pie
-                                    data={activeReport.chart.data}
-                                    dataKey="value"
-                                    nameKey="name"
-                                    cx="50%"
-                                    cy="50%"
-                                    outerRadius={75}
-                                    fill="#10b981"
-                                    label={({ name, percent }) => `${name.slice(0, 10)} (${(percent * 100).toFixed(0)}%)`}
-                                    style={{ fontSize: "9px", fontWeight: "700" }}
-                                  >
-                                    {activeReport.chart.data.map((entry, index) => (
-                                      <Cell key={`cell-${index}`} fill={["#10b981", "#3b82f6", "#f59e0b", "#ec4899", "#8b5cf6"][index % 5]} />
-                                    ))}
-                                  </Pie>
-                                  <Tooltip formatter={(v) => typeof v === "number" && activeReport.chart.title.includes("ARS") ? currency(v) : v} />
-                                </PieChart>
-                              )}
-                            </ResponsiveContainer>
-                          </div>
-                        </Card>
-                      </Col>
-                    )}
-
-                    {/* Tabla de resultados */}
-                    {activeReport.table && (
-                      <Col md={activeReport.chart ? 6 : 12}>
-                        <Card className="p-3 border rounded-4 bg-light shadow-none h-100 overflow-auto" style={{ maxHeight: "300px" }}>
-                          <h4 className="smaller text-dark fw-bold mb-3">Detalle del Registro</h4>
-                          <Table responsive hover size="sm" className="mb-0 align-middle">
-                            <thead>
-                              <tr style={{ fontSize: "10px" }}>
-                                {activeReport.table.headers.map((h, i) => (
-                                  <th key={i}>{h}</th>
-                                ))}
-                              </tr>
-                            </thead>
-                            <tbody style={{ fontSize: "12px" }}>
-                              {activeReport.table.rows.map((row, rIdx) => (
-                                <tr key={rIdx}>
-                                  {row.map((cell, cIdx) => (
-                                    <td key={cIdx} className={cIdx === 0 ? "fw-bold text-dark" : "text-muted"}>
-                                      {cell}
-                                    </td>
-                                  ))}
-                                </tr>
-                              ))}
-                            </tbody>
-                          </Table>
-                        </Card>
-                      </Col>
-                    )}
-                  </Row>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* GRID DE GADGETS DINÁMICOS */}
-          <h3 className="smaller text-muted fw-bold uppercase mb-3.5" style={{ letterSpacing: "0.08em" }}>
-            3. Panel de Gadgets Dinámicos ({filteredGadgets.length})
-          </h3>
-
-          {filteredGadgets.length === 0 ? (
-            <div className="text-center py-5 border border-dashed rounded-4 bg-light">
-              <Search size={32} className="text-muted mb-2.5" />
-              <h5 className="fw-bold text-dark mb-1">No encontramos gadgets relacionados</h5>
-              <p className="text-muted smaller mb-0">Escribí "ventas", "clientes" o "inventario" para ver grupos específicos.</p>
-            </div>
-          ) : (
-            <Row className="g-3">
-              {filteredGadgets.map((gadget) => (
-                <Col md={6} lg={3} key={gadget.id}>
-                  <div className="gadget-card-custom">
-                    <div>
-                      <div className="d-flex justify-content-between align-items-start">
-                        <span 
-                          className="gadget-badge-category"
-                          style={{
-                            background: gadget.category === "Finanzas" ? "#ecfdf5" : gadget.category === "Clientes" ? "#eff6ff" : "#fef3c7",
-                            color: gadget.category === "Finanzas" ? "#059669" : gadget.category === "Clientes" ? "#1d4ed8" : "#d97706"
-                          }}
-                        >
-                          {gadget.category}
-                        </span>
-                      </div>
-                      <h4 className="gadget-card-title">{gadget.title}</h4>
-                      <p className="gadget-card-desc">{gadget.description}</p>
-                    </div>
-                    
-                    {/* Renderizado del contenido interno del gadget */}
-                    <div className="mt-2 border-top pt-2">
-                      {gadget.component()}
-                    </div>
-                  </div>
-                </Col>
-              ))}
-            </Row>
-          )}
-
-        </Card.Body>
-      </Card>
+        </Modal.Body>
+        <Modal.Footer className="border-0 bg-light p-3">
+          <Button variant="outline-dark" onClick={() => setShowEditModal(false)} className="rounded-pill px-4 small fw-bold">
+            {isEs ? "Cancelar" : "Cancel"}
+          </Button>
+          <Button variant="dark" onClick={handleSaveBuilder} className="rounded-pill px-4 small fw-bold border-0 bg-success">
+            {isEs ? "Guardar Gadget" : "Save Gadget"}
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </section>
   );
 }
