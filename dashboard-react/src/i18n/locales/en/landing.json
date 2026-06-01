@@ -1,102 +1,181 @@
 {
   "nav": {
     "howItWorks": "How it works?",
-    "features": "Features",
+    "features": "Features & Scope",
     "pricing": "Pricing",
-    "enterApp": "Enter the system"
+    "enterApp": "Enter System"
   },
   "hero": {
-    "badge": "NEW VERSION 2.0",
-    "titleLine1": "Your business,",
-    "titleLine2": "under control.",
-    "subtitle": "Manage appointments, clients and your team in an interface designed for maximum speed. No distractions, just what matters for your growth.",
-    "ctaPrimary": "Get started",
-    "ctaSecondary": "How it works?",
-    "metricsEfficiency": "Efficiency",
-    "metricsClients": "Clients"
+    "badge": "VERSION 2.5 - ENTERPRISE READY",
+    "titleLine1": "Your entire business,",
+    "titleLine2": "under total control.",
+    "subtitle": "The ultimate SaaS OS for modern businesses. Streamline calendar bookings, automate workflows, configure live Mercado Pago sandboxes, trace ledger audits, and consult Aura AI in real time.",
+    "ctaPrimary": "Enter System",
+    "ctaSecondary": "Interactive Tour",
+    "metricsEfficiency": "Operational Speed",
+    "metricsClients": "Connected Businesses"
   },
   "features": {
-    "title": "Designed for action",
-    "subtitle": "We've removed the noise so you can manage your day with total clarity.",
+    "title": "Unrivaled Platform Capability",
+    "subtitle": "We've removed all complexity to deliver high-performance modules that put you in control.",
     "appointments": {
-      "title": "Appointment Management",
-      "desc": "Dynamic and intuitive calendar with customizable statuses."
-    },
-    "clients": {
-      "title": "Client Database",
-      "desc": "Complete CRM to build loyalty and manage your community."
+      "title": "Smart Calendar & CRM",
+      "desc": "An ultra-fast dynamic agenda with customized statuses, patient/client profiles, and direct customer onboarding database fields."
     },
     "automation": {
-      "title": "Automation",
-      "desc": "Workflows that save you hours of administration."
+      "title": "Workflow Engine & APIs",
+      "desc": "Connect triggers (like successful checkouts) to instant WhatsApp alerts, PostgreSQL entries, and Google Sheets logs automatically."
+    },
+    "mercadopago": {
+      "title": "Mercado Pago Simulator",
+      "desc": "Test real downpayments, dynamic QR codes, rapid wire alias/CBU setup, and WhatsApp automated billing links with zero risk."
     },
     "metrics": {
-      "title": "Real Metrics",
-      "desc": "Clean charts to understand your business performance."
+      "title": "Financial closing & LEDGER",
+      "desc": "Real-time liquidity graphics, monthly target progress trackers, secured cash closing registries, and relational ERP exports."
     },
     "multiDevice": {
-      "title": "Multi-device",
-      "desc": "Access from anywhere with an optimized interface."
+      "title": "Aura AI Copilot Engine",
+      "desc": "Ask business intelligence questions in natural language, retrieve reports immediately, and generate dynamic dashboard gadgets."
     },
     "aiSupport": {
-      "title": "AI Support",
-      "desc": "Smart assistance to optimize your schedules and tasks."
+      "title": "Multi-tenant RBAC",
+      "desc": "Securely onboard employee staff, assign roles (Owner, Manager, Staff), and fine-tune dynamic system access controls."
     }
   },
   "pricing": {
-    "title": "Transparent Pricing",
-    "subtitle": "Choose the plan that best fits your growth.",
+    "title": "Transparent, Scale-Ready Plans",
+    "subtitle": "No hidden fees. Choose the model that matches your current business scope.",
     "popular": "MOST POPULAR",
     "perMonth": "/month",
-    "cta": "Get started",
+    "cta": "Launch Workspace",
     "individual": {
-      "name": "Individual",
-      "f1": "1 User",
-      "f2": "Appointment Management",
-      "f3": "Client Database"
+      "name": "Starter",
+      "f1": "1 Active User & Calendar",
+      "f2": "Standard CRM Database",
+      "f3": "Simulated Cash Audits"
     },
     "professional": {
       "name": "Professional",
-      "f1": "3 Users",
-      "f2": "Advanced Metrics",
-      "f3": "WhatsApp Notifications"
+      "f1": "Up to 5 Onboarded Members",
+      "f2": "Mercado Pago Real & Sandbox",
+      "f3": "Aura AI Copilot (100 queries/mo)"
     },
     "business": {
-      "name": "Business",
-      "f1": "Unlimited",
-      "f2": "AI Support",
-      "f3": "Priority Support"
+      "name": "Enterprise",
+      "f1": "Unlimited Staff & Tenancy",
+      "f2": "Full PostgreSQL Relational Audits",
+      "f3": "Custom Workflows & Unlimited AI"
     }
   },
   "howItWorks": {
     "title": "How does Dashboard OS work?",
     "subtitle": "Explore the power of your new management tool.",
     "step1": {
-      "title": "Main Panel",
-      "desc": "360° view of your business with real-time metrics."
+      "title": "360° Main Panel",
+      "desc": "An unified command center displaying live operational speed, active client tallies, and prompt automation logs."
     },
     "step2": {
-      "title": "Smart Schedule",
-      "desc": "Dynamic calendar with color statuses and reminders."
+      "title": "Multi-role Smart Agenda",
+      "desc": "Color-coded booking slots with direct integration to client status trackers and custom drag-and-drop fields."
     },
     "step3": {
-      "title": "Client CRM",
-      "desc": "Centralized database with history and quick search."
+      "title": "Connected Workflows",
+      "desc": "Decouple manual routines. Set up rules like 'On New Appointment -> Alert Staff via WhatsApp and sync Sheets'."
     },
     "step4": {
-      "title": "Team Management",
-      "desc": "Manage staff, specialties and schedules."
+      "title": "Interactive Sandbox Checkout",
+      "desc": "Simulate and test customer online checkout journeys with credit cards, rapipago, bank entities, and digital wallet credits."
     },
     "step5": {
-      "title": "Finance Module",
-      "desc": "Full control of income, payments and monthly goals."
+      "title": "Financial Audit Logs",
+      "desc": "Fully compliant cash drawer closes, audit trails tracking user actor details, and CSV/Excel ERP database exporting."
     },
     "cta": "Get started now"
   },
+  "aiSimulator": {
+    "title": "Aura AI Copilot - Live Sandbox Simulator",
+    "subtitle": "Experience the intelligence of Aura AI. Select one of the preset business prompts below to see how she answers and generates dynamic layouts in real time.",
+    "features": {
+      "f1Title": "Conversational Data Intelligence",
+      "f1Desc": "Aura translates natural language into direct PostgreSQL queries to fetch financial records, productivity reports, and client metrics instantly.",
+      "f2Title": "Autonomous Workflow Engine",
+      "f2Desc": "Instruct Aura to design logics like 'When Mercado Pago payment succeeds, notify on WhatsApp' and she automatically builds the connection nodes.",
+      "f3Title": "Dynamic Widget Generator",
+      "f3Desc": "Aura designs, connects, and positions custom visual gadgets directly into your active dashboard command center."
+    },
+    "btnFinance": "📊 Analyze Finance & Objectives",
+    "btnWorkflow": "⚡ Build Booking Automation",
+    "btnAgenda": "📅 Check Daily Agenda Availability",
+    "typing": "Aura AI is querying your database...",
+    "financeResponse": {
+      "header": "AURA COPILOT // BUSINESS INTELLIGENCE",
+      "message": "Here is the real-time financial diagnosis of your workspace for this month:",
+      "target": "Sales Target Completion: 84.3%",
+      "liquidity": "Total Liquid Assets: $148,250 ARS",
+      "status": "Cash Closed Status: SECURE & BALANCED",
+      "tip": "Tip: You've completed 9 workflows this week, reducing client booking dropout rates by 18.4%."
+    },
+    "workflowResponse": {
+      "header": "AURA COPILOT // AUTOMATION DEPLOYED",
+      "message": "Automation logic successfully initialized and active:",
+      "trigger": "TRIGGER: On Customer Booking Approved (Mercado Pago / Bank)",
+      "action1": "ACTION 1: Send personalized WhatsApp template with check-in instructions",
+      "action2": "ACTION 2: Write log to relational PostgreSQL Audit Ledger",
+      "status": "Operational State: CONNECTED & RUNNING"
+    },
+    "agendaResponse": {
+      "header": "AURA COPILOT // DIARY DIAGNOSTIC",
+      "message": "Daily Schedule availability summary for today:",
+      "busy": "Booked slots: 8 appointments",
+      "free": "Available gaps: 3 spots (14:30, 16:00, 18:30)",
+      "staff": "Active On-duty Staff: 4 members on site",
+      "action": "Quick Action: Click here to broadcast notifications to clients on waitlist."
+    }
+  },
+  "pillars": {
+    "title": "Explore the 5 Pillars of Dashboard OS",
+    "subtitle": "Discover how the platform structures its deep features, providing enterprise-grade power for businesses of all scales.",
+    "agendaCrm": {
+      "tab": "Smart Agenda & CRM",
+      "title": "Sleek Booking & Multi-field CRM",
+      "bullet1": "High-contrast dynamic calendar cells with customized color indicators.",
+      "bullet2": "Rich customer records storing transaction histories, pending balances, and tags.",
+      "bullet3": "Direct public calendar url for frictionless client reservations."
+    },
+    "automations": {
+      "tab": "Workflows & Integrations",
+      "title": "Decoupled Automation Canvas",
+      "bullet1": "Visual triggers capturing bookings, payments, and inventory status updates.",
+      "bullet2": "Instant WhatsApp business reminders with dynamic custom text values.",
+      "bullet3": "Zero-code third party links (Google Sheets, email services, webhook feeds)."
+    },
+    "checkout": {
+      "tab": "Mercado Pago Simulator",
+      "title": "Full-fidelity Payment Gateway Simulator",
+      "bullet1": "Official lookalike Checkout Pro simulator supporting digital money credits.",
+      "bullet2": "3D Credit Card preview with automatic provider logo and security flip.",
+      "bullet3": "Automated billing messages triggered with bank Alias, CBU, and personal links."
+    },
+    "audit": {
+      "tab": "Finances & Ledger Logs",
+      "title": "Relational Financial Reports & Audit Ledgers",
+      "bullet1": "Safe cash close records tracking starting cash drawer flow, net earnings, and deviations.",
+      "bullet2": "PostgreSQL database audit trail showing actor email, timestamps, and metadata.",
+      "bullet3": "Fast data exports compatible with ERP systems and spreadsheet managers."
+    },
+    "rbac": {
+      "tab": "Multi-tenant RBAC Security",
+      "title": "Granular User Roles & Permissions Matrix",
+      "bullet1": "Simple member invitation portal supporting owner, manager, and receptionist roles.",
+      "bullet2": "Fool-proof access protection bypass rules protecting primary workspace operations.",
+      "bullet3": "Complete tenant isolation for clean multi-location business management."
+    }
+  },
   "footer": {
     "copyright": "Dashboard OS © 2026",
-    "privacy": "Privacy",
-    "terms": "Terms",
-    "contact": "Contact"
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "contact": "Contact Sales"
   }
 }

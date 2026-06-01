@@ -1,102 +1,181 @@
 {
   "nav": {
     "howItWorks": "¿Cómo funciona?",
-    "features": "Funcionalidades",
+    "features": "Funcionalidades y Alcance",
     "pricing": "Precios",
-    "enterApp": "Entrar al sistema"
+    "enterApp": "Entrar al Sistema"
   },
   "hero": {
-    "badge": "NUEVA VERSIÓN 2.0",
-    "titleLine1": "Tu negocio,",
-    "titleLine2": "bajo control.",
-    "subtitle": "Gestiona citas, clientes y equipo en una interfaz diseñada para la máxima velocidad. Sin distracciones, solo lo que importa para tu crecimiento.",
-    "ctaPrimary": "Empezar ahora",
-    "ctaSecondary": "¿Cómo funciona?",
-    "metricsEfficiency": "Eficiencia",
-    "metricsClients": "Clientes"
+    "badge": "VERSIÓN 2.5 - ENTERPRISE READY",
+    "titleLine1": "Todo tu negocio,",
+    "titleLine2": "bajo control absoluto.",
+    "subtitle": "El sistema operativo SaaS definitivo para negocios modernos. Centraliza tu agenda, automatiza flujos complejos, gestiona cobros integrados de Mercado Pago, audita con PostgreSQL y consulta a Aura AI en tiempo real.",
+    "ctaPrimary": "Entrar al Sistema",
+    "ctaSecondary": "Tour Interactivo",
+    "metricsEfficiency": "Velocidad Operativa",
+    "metricsClients": "Negocios Conectados"
   },
   "features": {
-    "title": "Diseñado para la acción",
-    "subtitle": "Hemos eliminado el ruido para que puedas gestionar tu día a día con total claridad.",
+    "title": "Capacidades sin precedentes",
+    "subtitle": "Hemos eliminado toda la complejidad para ofrecerte módulos de alto rendimiento que te otorgan el control total.",
     "appointments": {
-      "title": "Gestión de Citas",
-      "desc": "Calendario dinámico e intuitivo con estados personalizables."
-    },
-    "clients": {
-      "title": "Base de Clientes",
-      "desc": "CRM completo para fidelizar y gestionar tu comunidad."
+      "title": "Agenda Inteligente & CRM",
+      "desc": "Calendario dinámico ultra rápido con estados de color personalizados, fichas de clientes y campos personalizados configurables."
     },
     "automation": {
-      "title": "Automatización",
-      "desc": "Flujos de trabajo que te ahorran horas de administración."
+      "title": "Motor de Flujos & APIs",
+      "desc": "Conecta disparadores (como cobros aprobados) con alertas automáticas por WhatsApp, registros en PostgreSQL y Google Sheets al instante."
+    },
+    "mercadopago": {
+      "title": "Simulador de Mercado Pago",
+      "desc": "Prueba reservas reales, cobro de señas, configuración de Alias/CBU y links de facturación automática por WhatsApp sin riesgos."
     },
     "metrics": {
-      "title": "Métricas Reales",
-      "desc": "Gráficos limpios para entender el rendimiento de tu negocio."
+      "title": "Cierre de Caja & Ledger",
+      "desc": "Gráficos de liquidez en tiempo real, cumplimiento de metas de venta, cierres de caja blindados y exportación ERP relacional."
     },
     "multiDevice": {
-      "title": "Multi-dispositivo",
-      "desc": "Accede desde cualquier lugar con una interfaz optimizada."
+      "title": "Copiloto Aura AI",
+      "desc": "Realiza consultas de inteligencia de negocio en lenguaje natural, genera reportes instantáneos y widgets dinámicos para tu dashboard."
     },
     "aiSupport": {
-      "title": "IA de Soporte",
-      "desc": "Asistencia inteligente para optimizar tus horarios y tareas."
+      "title": "Seguridad RBAC Multi-tenant",
+      "desc": "Invita a tu equipo de trabajo, asigna roles (Dueño, Administrador, Staff) y define políticas finas de acceso sin fisuras."
     }
   },
   "pricing": {
-    "title": "Precios Transparentes",
-    "subtitle": "Elige el plan que mejor se adapte a tu crecimiento.",
+    "title": "Planes Transparentes y Escalables",
+    "subtitle": "Sin costos ocultos. Elige el modelo que mejor se adapte al tamaño actual de tu negocio.",
     "popular": "MÁS POPULAR",
     "perMonth": "/mes",
-    "cta": "Contratar ahora",
+    "cta": "Iniciar Workspace",
     "individual": {
-      "name": "Individual",
-      "f1": "1 Usuario",
-      "f2": "Gestión de Citas",
-      "f3": "Base de Clientes"
+      "name": "Starter",
+      "f1": "1 Usuario Activo y Agenda",
+      "f2": "Base de Datos CRM Estándar",
+      "f3": "Control de Caja Simulado"
     },
     "professional": {
       "name": "Professional",
-      "f1": "3 Usuarios",
-      "f2": "Métricas Avanzadas",
-      "f3": "Notificaciones WhatsApp"
+      "f1": "Hasta 5 Colaboradores",
+      "f2": "Mercado Pago Real & Sandbox",
+      "f3": "Aura AI Copilot (100 consultas/mes)"
     },
     "business": {
-      "name": "Business",
-      "f1": "Ilimitado",
-      "f2": "IA Support",
-      "f3": "Soporte Prioritario"
+      "name": "Enterprise",
+      "f1": "Miembros y Multi-tenant Ilimitados",
+      "f2": "Auditoría Relacional PostgreSQL Completa",
+      "f3": "Flujos Personalizados e IA Ilimitada"
     }
   },
   "howItWorks": {
     "title": "¿Cómo funciona Dashboard OS?",
-    "subtitle": "Explora la potencia de tu nueva herramienta de gestión.",
+    "subtitle": "Explora la potencia de tu nueva herramienta de gestión comercial.",
     "step1": {
-      "title": "Panel Principal",
-      "desc": "Vista 360° de tu negocio con métricas en tiempo real."
+      "title": "Panel Principal 360°",
+      "desc": "Centro de comando unificado que muestra la velocidad operativa en vivo, el total de clientes activos y el log de automatizaciones."
     },
     "step2": {
-      "title": "Agenda Inteligente",
-      "desc": "Calendario dinámico con estados por colores y recordatorios."
+      "title": "Agenda Multi-rol Inteligente",
+      "desc": "Bloques de citas con códigos de colores directamente integrados con estados de clientes y campos de arrastre personalizados."
     },
     "step3": {
-      "title": "CRM de Clientes",
-      "desc": "Base de datos centralizada con historial y búsqueda rápida."
+      "title": "Flujos Desacoplados",
+      "desc": "Elimina rutinas manuales. Define reglas como: 'Al recibir nueva reserva -> Alerta por WhatsApp al staff y sincroniza Google Sheets'."
     },
     "step4": {
-      "title": "Gestión de Equipo",
-      "desc": "Administra colaboradores, especialidades y horarios."
+      "title": "Checkout Pro Simulado",
+      "desc": "Simula y pon a prueba los flujos de pago de tus clientes mediante tarjetas de crédito, Rapipago, bancos locales o dinero en cuenta."
     },
     "step5": {
-      "title": "Módulo Financiero",
-      "desc": "Control total de ingresos, pagos y metas mensuales."
+      "title": "Auditorías de Finanzas",
+      "desc": "Cierres de caja herméticos, historial de auditorías que rastrea los detalles del actor en la base de datos y exportación ágil a ERP."
     },
     "cta": "Empezar ahora mismo"
   },
+  "aiSimulator": {
+    "title": "Aura AI Copilot - Simulador de Pruebas en Vivo",
+    "subtitle": "Experimenta la inteligencia de Aura AI. Selecciona uno de los prompts de negocio de prueba a continuación para ver cómo responde y genera estructuras dinámicas en tiempo real.",
+    "features": {
+      "f1Title": "Inteligencia de Datos Conversacional",
+      "f1Desc": "Aura traduce lenguaje natural a consultas directas en PostgreSQL para darte métricas financieras, reportes de personal y rendimiento al instante.",
+      "f2Title": "Motor de Automatización Autónomo",
+      "f2Desc": "Pídele a Aura estructurar lógicas como 'Si aprueban un pago de Mercado Pago, enviar WhatsApp', y ella creará los nodos de conexión automáticamente.",
+      "f3Title": "Generador Dinámico de Widgets",
+      "f3Desc": "Aura puede programar, insertar y personalizar tarjetas visuales en tiempo real directamente en tu panel de control basándose en tu solicitud."
+    },
+    "btnFinance": "📊 Analizar Finanzas & Metas",
+    "btnWorkflow": "⚡ Diseñar Automatización de Reservas",
+    "btnAgenda": "📅 Consultar Disponibilidad de Hoy",
+    "typing": "Aura AI está consultando tu base de datos relacional...",
+    "financeResponse": {
+      "header": "AURA COPILOT // INTELIGENCIA DE NEGOCIO",
+      "message": "Aquí tienes el diagnóstico financiero de tu workspace para este mes:",
+      "target": "Cumplimiento de Meta de Ventas: 84.3%",
+      "liquidity": "Total Activos Líquidos: $148,250 ARS",
+      "status": "Estado de Cierre de Caja: SEGURO & BALANCEADO",
+      "tip": "Consejo: Has completado 9 automatizaciones de flujos esta semana, bajando la tasa de deserción de clientes en un 18.4%."
+    },
+    "workflowResponse": {
+      "header": "AURA COPILOT // AUTOMATIZACIÓN DESPLEGADA",
+      "message": "La lógica de automatización ha sido inicializada y está activa:",
+      "trigger": "DISPARADOR: Al Aprobar Pago de Reserva (Mercado Pago / Banco)",
+      "action1": "ACCIÓN 1: Enviar plantilla de WhatsApp con instrucciones de ingreso",
+      "action2": "ACCIÓN 2: Registrar auditoría con metadatos en Ledger PostgreSQL",
+      "status": "Estado Operativo: CONECTADO & FUNCIONANDO"
+    },
+    "agendaResponse": {
+      "header": "AURA COPILOT // DIAGNÓSTICO DE AGENDA",
+      "message": "Resumen de disponibilidad para hoy en tu agenda comercial:",
+      "busy": "Bloques ocupados: 8 citas agendadas",
+      "free": "Espacios libres: 3 turnos (14:30, 16:00, 18:30)",
+      "staff": "Personal Activo en Turno: 4 colaboradores en salón",
+      "action": "Acción Rápida: Hacer clic aquí para enviar alertas de turnos libres a clientes en lista de espera."
+    }
+  },
+  "pillars": {
+    "title": "Explora los 5 Pilares de Dashboard OS",
+    "subtitle": "Descubre cómo se estructura la plataforma a nivel técnico, brindando robustez empresarial para negocios de cualquier tamaño.",
+    "agendaCrm": {
+      "tab": "Agenda Inteligente & CRM",
+      "title": "Agenda Fluida & CRM Multi-campo",
+      "bullet1": "Calendario dinámico con indicadores de estado de alta legibilidad.",
+      "bullet2": "Fichas de clientes robustas con historial transaccional, saldos pendientes y etiquetas.",
+      "bullet3": "Enlace público de reserva directa para captación fluida de clientes 24/7."
+    },
+    "automations": {
+      "tab": "Flujos & Integraciones",
+      "title": "Lienzo de Automatizaciones Desacopladas",
+      "bullet1": "Triggers visuales que capturan reservas, cobros e ingresos a inventario.",
+      "bullet2": "Recordatorios automáticos por WhatsApp con plantillas dinámicas y variables.",
+      "bullet3": "Integración nativa con Google Sheets, webhooks y correos electrónicos sin programar."
+    },
+    "checkout": {
+      "tab": "Simulador Mercado Pago",
+      "title": "Simulador de Pasarela de Pagos Oficial",
+      "bullet1": "Réplica exacta del Checkout Pro compatible con dinero digital, debito y efectivo.",
+      "bullet2": "Tarjeta de crédito interactiva en 3D con auto-detección de marca y flip de seguridad.",
+      "bullet3": "Generación automática de mensajes de cobro con Alias bancarios, CBU y enlaces personalizados."
+    },
+    "audit": {
+      "tab": "Finanzas & Ledger Logs",
+      "title": "Control Financiero & Auditoría Relacional",
+      "bullet1": "Cierres de caja herméticos que auditan saldo inicial, retiros y desvíos de dinero.",
+      "bullet2": "Historial de auditorías relacional PostgreSQL que detalla el actor, marcas temporales y metadatos.",
+      "bullet3": "Exportación rápida y limpia compatible con planillas de cálculo y sistemas ERP."
+    },
+    "rbac": {
+      "tab": "Seguridad Multi-tenant RBAC",
+      "title": "Políticas Finas de Acceso & Matriz de Permisos",
+      "bullet1": "Portal ágil de invitación de personal (Dueño, Administrador, Recepcionista).",
+      "bullet2": "Bypass de seguridad hermético que garantiza el acceso ininterrumpido del propietario.",
+      "bullet3": "Aislamiento total multi-tenant para administrar múltiples sucursales con seguridad."
+    }
+  },
   "footer": {
     "copyright": "Dashboard OS © 2026",
-    "privacy": "Privacidad",
-    "terms": "Términos",
-    "contact": "Contacto"
+    "privacy": "Política de Privacidad",
+    "terms": "Términos del Servicio",
+    "contact": "Contactar Ventas"
   }
 }

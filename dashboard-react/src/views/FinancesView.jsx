@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Container, Button, Modal, Form, Row, Col, Spinner, Alert, Badge } from "react-bootstrap";
 import {
   TrendingUp, TrendingDown, Landmark, ShieldCheck, DollarSign, Sparkles,
@@ -35,8 +36,12 @@ export default function FinancesView() {
   const [error, setError] = useState("");
   const [showAccessModal, setShowAccessModal] = useState(!isFinanceUnlocked);
   
-  // Tab State
-  const [activeTab, setActiveTab] = useState("resumen");
+  // Tab State Driven by URL SearchParams
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") || "resumen";
+  const setActiveTab = (newTab) => {
+    setSearchParams({ tab: newTab });
+  };
 
   // Dynamic Dashboard Data loaded from Neon DB
   const [dashboardData, setDashboardData] = useState(null);
@@ -200,137 +205,9 @@ export default function FinancesView() {
       </header>
 
       {error && <Alert variant="danger" className="rounded-2xl">{error}</Alert>}
-
       <Row className="g-4">
-        {/* PESTAÑAS DEL ERP FINANCIERO (Columna de Navegación Vertical en Escritorio) */}
-        <Col lg={3} md={4} xs={12}>
-          <div 
-            className="d-flex flex-md-column flex-row gap-2 overflow-auto scrollbar-none p-3 rounded-4 shadow-sm border bg-white"
-            style={{ 
-              borderColor: "#e5e7eb",
-              maxHeight: "none",
-              flexWrap: "nowrap",
-              overflowX: "auto"
-            }}
-          >
-            <h3 className="h6 fw-black text-gray-400 mb-2 px-2 text-uppercase tracking-wider d-none d-md-block" style={{ fontSize: "10px", letterSpacing: "1.2px" }}>
-              Módulos Financieros
-            </h3>
-            
-            <button
-              onClick={() => setActiveTab("resumen")}
-              className={`d-flex align-items-center gap-2 px-3 py-2.5 fw-bold rounded-xl border-0 transition-all text-start w-100 flex-shrink-0 ${
-                activeTab === "resumen" ? "bg-purple-600 text-white shadow-sm" : "bg-light text-muted hover-bg-gray-100"
-              }`}
-              style={{ fontSize: "13px", minWidth: "140px" }}
-            >
-              <TrendingUp size={16} />
-              <span>Resumen</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab("gastos_operativos")}
-              className={`d-flex align-items-center gap-2 px-3 py-2.5 fw-bold rounded-xl border-0 transition-all text-start w-100 flex-shrink-0 ${
-                activeTab === "gastos_operativos" ? "bg-purple-600 text-white shadow-sm" : "bg-light text-muted hover-bg-gray-100"
-              }`}
-              style={{ fontSize: "13px", minWidth: "140px" }}
-            >
-              <TrendingDown size={16} />
-              <span>Gastos</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab("gastos")}
-              className={`d-flex align-items-center gap-2 px-3 py-2.5 fw-bold rounded-xl border-0 transition-all text-start w-100 flex-shrink-0 ${
-                activeTab === "gastos" ? "bg-purple-600 text-white shadow-sm" : "bg-light text-muted hover-bg-gray-100"
-              }`}
-              style={{ fontSize: "13px", minWidth: "140px" }}
-            >
-              <ShieldCheck size={16} />
-              <span>Cierre Caja</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab("sueldos")}
-              className={`d-flex align-items-center gap-2 px-3 py-2.5 fw-bold rounded-xl border-0 transition-all text-start w-100 flex-shrink-0 ${
-                activeTab === "sueldos" ? "bg-purple-600 text-white shadow-sm" : "bg-light text-muted hover-bg-gray-100"
-              }`}
-              style={{ fontSize: "13px", minWidth: "140px" }}
-            >
-              <DollarSign size={16} />
-              <span>Nóminas</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab("conciliacion")}
-              className={`d-flex align-items-center gap-2 px-3 py-2.5 fw-bold rounded-xl border-0 transition-all text-start w-100 flex-shrink-0 ${
-                activeTab === "conciliacion" ? "bg-purple-600 text-white shadow-sm" : "bg-light text-muted hover-bg-gray-100"
-              }`}
-              style={{ fontSize: "13px", minWidth: "140px" }}
-            >
-              <Landmark size={16} />
-              <span>Conciliación</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab("servicios")}
-              className={`d-flex align-items-center gap-2 px-3 py-2.5 fw-bold rounded-xl border-0 transition-all text-start w-100 flex-shrink-0 ${
-                activeTab === "servicios" ? "bg-purple-600 text-white shadow-sm" : "bg-light text-muted hover-bg-gray-100"
-              }`}
-              style={{ fontSize: "13px", minWidth: "140px" }}
-            >
-              <Scissors size={16} />
-              <span>Servicios</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab("profesionales")}
-              className={`d-flex align-items-center gap-2 px-3 py-2.5 fw-bold rounded-xl border-0 transition-all text-start w-100 flex-shrink-0 ${
-                activeTab === "profesionales" ? "bg-purple-600 text-white shadow-sm" : "bg-light text-muted hover-bg-gray-100"
-              }`}
-              style={{ fontSize: "13px", minWidth: "140px" }}
-            >
-              <Award size={16} />
-              <span>Profesionales</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab("simulador")}
-              className={`d-flex align-items-center gap-2 px-3 py-2.5 fw-bold rounded-xl border-0 transition-all text-start w-100 flex-shrink-0 ${
-                activeTab === "simulador" ? "bg-purple-600 text-white shadow-sm" : "bg-light text-muted hover-bg-gray-100"
-              }`}
-              style={{ fontSize: "13px", minWidth: "140px" }}
-            >
-              <Sparkles size={16} />
-              <span>Simulador</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab("reportes")}
-              className={`d-flex align-items-center gap-2 px-3 py-2.5 fw-bold rounded-xl border-0 transition-all text-start w-100 flex-shrink-0 ${
-                activeTab === "reportes" ? "bg-purple-600 text-white shadow-sm" : "bg-light text-muted hover-bg-gray-100"
-              }`}
-              style={{ fontSize: "13px", minWidth: "140px" }}
-            >
-              <FileText size={16} />
-              <span>Reportes</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab("auditoria")}
-              className={`d-flex align-items-center gap-2 px-3 py-2.5 fw-bold rounded-xl border-0 transition-all text-start w-100 flex-shrink-0 ${
-                activeTab === "auditoria" ? "bg-purple-600 text-white shadow-sm" : "bg-light text-muted hover-bg-gray-100"
-              }`}
-              style={{ fontSize: "13px", minWidth: "140px" }}
-            >
-              <FileText size={16} />
-              <span>Auditoría</span>
-            </button>
-          </div>
-        </Col>
-
-        {/* CONTENIDO ACTIVO DEL ERP (Columna Derecha) */}
-        <Col lg={9} md={8} xs={12}>
+        {/* CONTENIDO ACTIVO DEL ERP (Columna Unificada de Ancho Completo) */}
+        <Col xs={12}>
           {dashboardData && (
             <div className="animate-fade-in">
               {activeTab === "resumen" && (

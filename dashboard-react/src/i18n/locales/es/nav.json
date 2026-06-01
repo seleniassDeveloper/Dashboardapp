@@ -14,7 +14,17 @@
     "history": "Historial",
     "config": "Configuración",
     "usersAdmin": "Usuarios (Admin)",
-    "automation_section": "Automatización"
+    "automation_section": "Automatización",
+    "sub_resumen": "Resumen",
+    "sub_gastos": "Gastos",
+    "sub_cierre_caja": "Cierre de Caja",
+    "sub_nominas": "Nóminas",
+    "sub_conciliacion": "Conciliación",
+    "sub_servicios": "Servicios",
+    "sub_profesionales": "Profesionales",
+    "sub_simulador": "Simulador",
+    "sub_reportes": "Reportes",
+    "sub_auditoria": "Auditoría"
   },
   "topbar": {
     "openMenu": "Abrir menú",

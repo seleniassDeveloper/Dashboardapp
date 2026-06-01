@@ -25,6 +25,31 @@ import { firebaseAuth, firebaseConfigOk, firestoreDb } from "../firebase/client.
 import i18n from "../i18n";
 
 const API_HOST = API_BASE_URL.replace(/\/api\/?$/, "");
+const AUTH_DISABLED = import.meta.env.VITE_AUTH_DISABLED === "true";
+
+const DEV_OWNER_PERMISSIONS = [
+  "view_finances",
+  "manage_settings",
+  "manage_users",
+  "appointments.view",
+  "clients.view",
+  "services.view",
+  "team.view",
+  "inventory.view",
+  "sheets.view",
+  "workflows.view",
+  "automations.view",
+];
+
+function applyLocalDevSession(setters) {
+  const { setRole, setPermissions, setIsUnauthorized, setBusiness, setFirestoreError } = setters;
+  setRole("owner");
+  setPermissions(DEV_OWNER_PERMISSIONS);
+  setIsUnauthorized(false);
+  setFirestoreError("");
+  setBusiness({ id: "business-default", name: "Aura Studio" });
+  localStorage.setItem("active_business_id", "business-default");
+}
 
 const AuthContext = createContext(null);
 
@@ -94,6 +119,13 @@ export function AuthProvider({ children }) {
       return;
     }
     console.log("[Diagnostic] 1. Active Google User:", firebaseUser.email, `(UID: ${firebaseUser.uid})`);
+
+    if (AUTH_DISABLED) {
+      console.log("[Diagnostic] VITE_AUTH_DISABLED=true — bypass local de autorización Firestore.");
+      applyLocalDevSession({ setRole, setPermissions, setIsUnauthorized, setBusiness, setFirestoreError });
+      console.groupEnd();
+      return;
+    }
 
     if (!firestoreDb) {
       console.error("[Diagnostic] 2. Firestore client is NOT initialized.");
@@ -390,7 +422,7 @@ export function AuthProvider({ children }) {
       user,
       authLoading,
       isAdmin: role === "owner",
-      authDisabled: false,
+      authDisabled: AUTH_DISABLED,
       authError,
       clearAuthError: () => setAuthError(""),
       firebaseConfigOk: firebaseConfigOk(),

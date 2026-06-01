@@ -45,6 +45,19 @@ const MENU_ITEMS = [
   
   { id: "config", icon: Settings, path: "/app/settings" },
 ];
+
+const FINANCE_SUB_ITEMS = [
+  { id: "resumen", path: "/app/finances?tab=resumen" },
+  { id: "gastos_operativos", path: "/app/finances?tab=gastos_operativos" },
+  { id: "gastos", path: "/app/finances?tab=gastos" },
+  { id: "sueldos", path: "/app/finances?tab=sueldos" },
+  { id: "conciliacion", path: "/app/finances?tab=conciliacion" },
+  { id: "servicios", path: "/app/finances?tab=servicios" },
+  { id: "profesionales", path: "/app/finances?tab=profesionales" },
+  { id: "simulador", path: "/app/finances?tab=simulador" },
+  { id: "reportes", path: "/app/finances?tab=reportes" },
+  { id: "auditoria", path: "/app/finances?tab=auditoria" },
+];
 const MENU_ITEM_PERMISSIONS = {
   appointments: "appointments.view",
   clients: "clients.view",
@@ -200,6 +213,41 @@ export default function Sidebar({
                   />
                 )}
               </Link>
+
+              {/* RENDER FINANCES SUBMENU IF ACTIVE & EXPANDED */}
+              {item.id === "finances" && isActive && !isCollapsed && (
+                <div className="sidebar__submenu ms-4 d-flex flex-column gap-1 my-1">
+                  {FINANCE_SUB_ITEMS.map((sub) => {
+                    const searchParams = new URLSearchParams(location.search);
+                    const currentTab = searchParams.get("tab") || "resumen";
+                    const isSubActive = currentTab === sub.id;
+                    
+                    return (
+                      <Link
+                        key={sub.id}
+                        to={sub.path}
+                        className={`sidebar__submenu-item d-flex align-items-center gap-2 px-3 py-1.5 rounded-xl text-decoration-none transition-all ${
+                          isSubActive
+                            ? "sidebar__submenu-item--active"
+                            : "sidebar__submenu-item--inactive"
+                        }`}
+                        style={{ fontSize: "12.5px" }}
+                        onClick={onClose}
+                      >
+                        <div 
+                          className="rounded-circle" 
+                          style={{ 
+                            width: "5px", 
+                            height: "5px", 
+                            backgroundColor: isSubActive ? (brand.accentColor || "#7c3aed") : "rgba(100, 116, 139, 0.4)" 
+                          }}
+                        />
+                        <span>{t(`menu.sub_${sub.id === "gastos_operativos" ? "gastos" : sub.id === "gastos" ? "cierre_caja" : sub.id === "sueldos" ? "nominas" : sub.id === "conciliacion" ? "conciliacion" : sub.id === "servicios" ? "servicios" : sub.id === "profesionales" ? "profesionales" : sub.id === "simulador" ? "simulador" : sub.id === "reportes" ? "reportes" : sub.id === "auditoria" ? "auditoria" : "resumen"}`)}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
             </React.Fragment>
           );
         })}
