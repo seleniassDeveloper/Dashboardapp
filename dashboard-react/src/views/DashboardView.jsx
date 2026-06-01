@@ -340,7 +340,7 @@ export default function DashboardView() {
             <span className="text-success small" style={{ fontSize: "11px", fontWeight: "600" }}>{t("header.operational")}</span>
           </div>
           <h1 className="fw-black text-dark h3 mb-1" style={{ letterSpacing: "-0.03em" }}>
-            {getGreeting()}, {t("header.defaultUserName")}
+            {getGreeting()}, {brand.userName || t("header.defaultUserName")}
           </h1>
           <p className="text-muted small mb-0 text-capitalize">
             {getFormattedDate()}

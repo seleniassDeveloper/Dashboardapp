@@ -290,7 +290,7 @@ export default function Sidebar({
           {!isCollapsed && (
             <div className="text-start text-truncate" style={{ maxWidth: "120px" }}>
               <strong className="text-dark small d-block text-truncate" style={{ fontSize: "11.5px", lineHeight: "1.2" }}>
-                {user.displayName || "Usuario"}
+                {brand.userName || user.displayName || "Usuario"}
               </strong>
               <span className="text-muted d-block text-truncate" style={{ fontSize: "9.5px", lineHeight: "1.2" }}>
                 {user.email}

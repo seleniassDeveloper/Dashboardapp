@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Modal, Button, Form, InputGroup } from "react-bootstrap";
+import { Modal, Button, Form, InputGroup, Row, Col } from "react-bootstrap";
 import { useBrand } from "./BrandProvider";
 
 const FONT_OPTIONS = [
@@ -64,6 +64,7 @@ export default function BrandModal({ show, onHide, forceRequired = false }) {
   const { brand, setBrand } = useBrand();
 
   const [companyName, setCompanyName] = useState("");
+  const [userName, setUserName] = useState("");
   const [slogan, setSlogan] = useState("");
   const [textColor, setTextColor] = useState("#1a1d24"); // lo usamos como accent
   const [coverUrl, setCoverUrl] = useState("");
@@ -78,6 +79,7 @@ export default function BrandModal({ show, onHide, forceRequired = false }) {
     if (!show) return;
 
     setCompanyName(brand.companyName || "");
+    setUserName(brand.userName || "");
     setSlogan(brand.slogan || "");
 
     // ✅ si ya existía textColor lo respetamos, si no usamos accentColor
@@ -115,182 +117,227 @@ export default function BrandModal({ show, onHide, forceRequired = false }) {
     setCoverUrl("");
   };
 
-const handleSave = () => {
-  if (!nameIsValid) return;
+  const handleSave = () => {
+    if (!nameIsValid) return;
 
-  setBrand((prev) => ({
-    ...prev,
-    companyName: companyName.trim(),
-    slogan: slogan.trim(),
-    coverImage: preview || prev.coverImage,
-    textColor,
-    accentColor: textColor,
-    fontFamily,
-    dashboardBg,
-    menuSelectionColor,
-  }));
+    setBrand((prev) => ({
+      ...prev,
+      companyName: companyName.trim(),
+      userName: userName.trim(),
+      slogan: slogan.trim(),
+      coverImage: preview || prev.coverImage,
+      textColor,
+      accentColor: textColor,
+      fontFamily,
+      dashboardBg,
+      menuSelectionColor,
+    }));
 
-  window.location.reload(); // 🔥 fuerza todo
-};
+    window.location.reload(); // 🔥 fuerza todo
+  };
 
   return (
     <Modal
       show={show}
+      size="lg"
       centered
       onHide={onHide}
       backdrop={forceRequired ? "static" : true}
       keyboard={!forceRequired}
+      dialogClassName="modal-brand-custom"
     >
-      <Modal.Header closeButton={!forceRequired}>
-        <Modal.Title>Personalizar header</Modal.Title>
+      <Modal.Header closeButton={!forceRequired} className="border-bottom-0 pb-0">
+        <Modal.Title className="fw-black text-dark" style={{ letterSpacing: "-0.02em" }}>Personalizar header</Modal.Title>
       </Modal.Header>
 
-      <Modal.Body>
-        <Form className="custom-form d-grid gap-3">
-          <Form.Group>
-            <Form.Label className="fw-semibold">Tema preestablecido de diseño</Form.Label>
-            <Form.Select
-              onChange={(e) => {
-                const idx = Number(e.target.value);
-                if (isNaN(idx)) return;
-                const preset = THEME_PRESETS[idx];
-                if (!preset) return;
-                setTextColor(preset.textColor);
-                setDashboardBg(preset.dashboardBg);
-                setMenuSelectionColor(preset.menuSelectionColor);
-                setFontFamily(preset.fontFamily);
-              }}
-              defaultValue=""
-            >
-              <option value="" disabled>Seleccionar paleta sugerida...</option>
-              {THEME_PRESETS.map((p, idx) => (
-                <option key={idx} value={idx}>
-                  {p.name}
-                </option>
-              ))}
-            </Form.Select>
-            <Form.Text className="text-muted">
-              Al elegir un tema se autocompletarán los colores y la tipografía sugeridos para ese nicho.
-            </Form.Text>
-          </Form.Group>
+      <Modal.Body className="pt-3">
+        <Form className="custom-form">
+          <Row className="g-4">
+            
+            {/* Columna Izquierda: Ajustes de Texto */}
+            <Col md={6} className="d-grid gap-3">
+              <Form.Group>
+                <Form.Label className="fw-bold text-dark small mb-1.5">Tema preestablecido de diseño</Form.Label>
+                <Form.Select
+                  onChange={(e) => {
+                    const idx = Number(e.target.value);
+                    if (isNaN(idx)) return;
+                    const preset = THEME_PRESETS[idx];
+                    if (!preset) return;
+                    setTextColor(preset.textColor);
+                    setDashboardBg(preset.dashboardBg);
+                    setMenuSelectionColor(preset.menuSelectionColor);
+                    setFontFamily(preset.fontFamily);
+                  }}
+                  defaultValue=""
+                  className="rounded-3 border-secondary-subtle small"
+                  style={{ height: "42px", fontSize: "13px" }}
+                >
+                  <option value="" disabled>Seleccionar paleta sugerida...</option>
+                  {THEME_PRESETS.map((p, idx) => (
+                    <option key={idx} value={idx}>
+                      {p.name}
+                    </option>
+                  ))}
+                </Form.Select>
+                <Form.Text className="text-muted smaller">
+                  Al elegir un tema se autocompletarán los colores y la tipografía sugeridos para ese nicho.
+                </Form.Text>
+              </Form.Group>
 
-          <Form.Group>
-            <Form.Label>Nombre de la empresa *</Form.Label>
-            <Form.Control
-              value={companyName}
-              onChange={(e) => setCompanyName(e.target.value)}
-              placeholder="Ej: Peluquería Selenia"
-            />
-            {!nameIsValid && (
-              <Form.Text className="text-danger">
-                El nombre es obligatorio.
-              </Form.Text>
-            )}
-          </Form.Group>
+              <Form.Group>
+                <Form.Label className="fw-bold text-dark small mb-1.5">Nombre de la empresa *</Form.Label>
+                <Form.Control
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  placeholder="Ej: Peluquería Selenia"
+                  className="rounded-3 border-secondary-subtle small"
+                  style={{ height: "42px", fontSize: "13px" }}
+                />
+                {!nameIsValid && (
+                  <Form.Text className="text-danger smaller">
+                    El nombre es obligatorio.
+                  </Form.Text>
+                )}
+              </Form.Group>
 
-          <Form.Group>
-            <Form.Label>Slogan / Indicaciones</Form.Label>
-            <Form.Control
-              value={slogan}
-              onChange={(e) => setSlogan(e.target.value)}
-              placeholder="Ej: Estética Profesional & Spa"
-            />
-          </Form.Group>
+              <Form.Group>
+                <Form.Label className="fw-bold text-dark small mb-1.5">Tu nombre de usuario / administrador</Form.Label>
+                <Form.Control
+                  value={userName}
+                  onChange={(e) => setUserName(e.target.value)}
+                  placeholder="Ej: Selenia Sanchez"
+                  className="rounded-3 border-secondary-subtle small"
+                  style={{ height: "42px", fontSize: "13px" }}
+                />
+                <Form.Text className="text-muted smaller">
+                  Se utilizará para los saludos y el perfil de la aplicación.
+                </Form.Text>
+              </Form.Group>
 
-          <Form.Group>
-            <Form.Label>Fondo del header</Form.Label>
+              <Form.Group>
+                <Form.Label className="fw-bold text-dark small mb-1.5">Slogan / Indicaciones</Form.Label>
+                <Form.Control
+                  value={slogan}
+                  onChange={(e) => setSlogan(e.target.value)}
+                  placeholder="Ej: Estética Profesional & Spa"
+                  className="rounded-3 border-secondary-subtle small"
+                  style={{ height: "42px", fontSize: "13px" }}
+                />
+              </Form.Group>
 
-            <InputGroup className="mb-2">
-              <Form.Control
-                value={coverUrl}
-                onChange={handleUrlChange}
-                placeholder="Pega un URL de imagen"
-              />
-              <Button variant="outline-secondary" onClick={clearImage}>
-                Limpiar
-              </Button>
-            </InputGroup>
+              <Form.Group>
+                <Form.Label className="fw-bold text-dark small mb-1.5">Fuente del dashboard</Form.Label>
+                <Form.Select 
+                  value={fontFamily} 
+                  onChange={(e) => setFontFamily(e.target.value)}
+                  className="rounded-3 border-secondary-subtle small"
+                  style={{ height: "42px", fontSize: "13px" }}
+                >
+                  {FONT_OPTIONS.map((f) => (
+                    <option key={f.label} value={f.value}>
+                      {f.label}
+                    </option>
+                  ))}
+                </Form.Select>
+                <div style={{ marginTop: 8, fontFamily, fontSize: 12, fontStyle: "italic" }} className="text-muted">
+                  Preview: El zorro rápido salta sobre el perro perezoso.
+                </div>
+              </Form.Group>
+            </Col>
 
-            <Form.Label className="small text-muted mb-1">O subir imagen desde archivo</Form.Label>
-            <Form.Control type="file" accept="image/*" onChange={handleFileChange} />
+            {/* Columna Derecha: Imagen de Fondo y Colores */}
+            <Col md={6} className="d-grid gap-3">
+              <Form.Group>
+                <Form.Label className="fw-bold text-dark small mb-1.5">Fondo del header (URL o Archivo)</Form.Label>
+                
+                <InputGroup className="mb-2">
+                  <Form.Control
+                    value={coverUrl}
+                    onChange={handleUrlChange}
+                    placeholder="Pega un URL de imagen"
+                    className="rounded-start-3 border-secondary-subtle small"
+                    style={{ height: "42px", fontSize: "13px" }}
+                  />
+                  <Button variant="outline-secondary" onClick={clearImage} className="rounded-end-3 small">
+                    Limpiar
+                  </Button>
+                </InputGroup>
 
-            {preview && (
-              <img
-                src={preview}
-                alt="Preview"
-                style={{
-                  marginTop: 10,
-                  width: "100%",
-                  height: 140,
-                  objectFit: "cover",
-                  borderRadius: 10,
-                  border: "1px solid rgba(0,0,0,0.1)",
-                }}
-                onError={() => setPreview("")}
-              />
-            )}
-          </Form.Group>
+                <Form.Label className="small text-muted mb-1">O subir imagen desde archivo</Form.Label>
+                <Form.Control type="file" accept="image/*" onChange={handleFileChange} className="rounded-3 small" />
 
-          <div className="d-flex flex-wrap gap-3">
-            <Form.Group style={{ minWidth: 160, flex: 1 }}>
-              <Form.Label>Color de marca</Form.Label>
-              <Form.Control
-                type="color"
-                value={textColor}
-                onChange={(e) => setTextColor(e.target.value)}
-                style={{ height: 44, padding: '4px', cursor: 'pointer' }}
-              />
-              <Form.Text className="text-muted">Primario.</Form.Text>
-            </Form.Group>
+                {preview && (
+                  <img
+                    src={preview}
+                    alt="Preview"
+                    style={{
+                      marginTop: 12,
+                      width: "100%",
+                      height: 110,
+                      objectFit: "cover",
+                      borderRadius: 12,
+                      border: "1px solid rgba(0,0,0,0.08)",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.03)"
+                    }}
+                    onError={() => setPreview("")}
+                  />
+                )}
+              </Form.Group>
 
-            <Form.Group style={{ minWidth: 160, flex: 1 }}>
-              <Form.Label>Fondo Dashboard</Form.Label>
-              <Form.Control
-                type="color"
-                value={dashboardBg}
-                onChange={(e) => setDashboardBg(e.target.value)}
-                style={{ height: 44, padding: '4px', cursor: 'pointer' }}
-              />
-              <Form.Text className="text-muted">General.</Form.Text>
-            </Form.Group>
-
-            <Form.Group style={{ minWidth: 160, flex: 1 }}>
-              <Form.Label>Selección Menú</Form.Label>
-              <Form.Control
-                type="color"
-                value={menuSelectionColor}
-                onChange={(e) => setMenuSelectionColor(e.target.value)}
-                style={{ height: 44, padding: '4px', cursor: 'pointer' }}
-              />
-              <Form.Text className="text-muted">Activo.</Form.Text>
-            </Form.Group>
-          </div>
-
-          <Form.Group className="flex-grow-1">
-              <Form.Label>Fuente del dashboard</Form.Label>
-              <Form.Select value={fontFamily} onChange={(e) => setFontFamily(e.target.value)}>
-                {FONT_OPTIONS.map((f) => (
-                  <option key={f.label} value={f.value}>
-                    {f.label}
-                  </option>
-                ))}
-              </Form.Select>
-
-              <div style={{ marginTop: 8, fontFamily, fontSize: 14 }}>
-                Preview: El zorro rápido salta sobre el perro perezoso.
+              <div className="d-grid gap-2 border-top pt-3">
+                <Form.Label className="fw-bold text-dark small mb-1">Paleta de Colores Corporativos</Form.Label>
+                <Row className="g-2">
+                  <Col xs={4}>
+                    <Form.Group>
+                      <Form.Label className="smaller text-muted mb-1 d-block text-truncate">Color marca</Form.Label>
+                      <Form.Control
+                        type="color"
+                        value={textColor}
+                        onChange={(e) => setTextColor(e.target.value)}
+                        style={{ height: 40, padding: '4px', cursor: 'pointer' }}
+                        className="rounded-3 border-secondary-subtle"
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col xs={4}>
+                    <Form.Group>
+                      <Form.Label className="smaller text-muted mb-1 d-block text-truncate">Fondo Dash</Form.Label>
+                      <Form.Control
+                        type="color"
+                        value={dashboardBg}
+                        onChange={(e) => setDashboardBg(e.target.value)}
+                        style={{ height: 40, padding: '4px', cursor: 'pointer' }}
+                        className="rounded-3 border-secondary-subtle"
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col xs={4}>
+                    <Form.Group>
+                      <Form.Label className="smaller text-muted mb-1 d-block text-truncate">Menú Activo</Form.Label>
+                      <Form.Control
+                        type="color"
+                        value={menuSelectionColor}
+                        onChange={(e) => setMenuSelectionColor(e.target.value)}
+                        style={{ height: 40, padding: '4px', cursor: 'pointer' }}
+                        className="rounded-3 border-secondary-subtle"
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
               </div>
-            </Form.Group>
-
+            </Col>
+          </Row>
         </Form>
       </Modal.Body>
 
-      <Modal.Footer>
+      <Modal.Footer className="border-top-0 pt-0">
         {!forceRequired && (
-          <Button variant="secondary" onClick={onHide}>
+          <Button variant="outline-dark" onClick={onHide} className="rounded-pill px-4 small fw-bold">
             Cancelar
           </Button>
         )}
-        <Button variant="primary" onClick={handleSave} disabled={!nameIsValid}>
+        <Button variant="primary" onClick={handleSave} disabled={!nameIsValid} className="rounded-pill px-4 small fw-bold border-0 bg-success">
           Guardar cambios
         </Button>
       </Modal.Footer>
