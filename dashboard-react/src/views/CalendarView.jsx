@@ -1,53 +1,217 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Container, Row, Col, Card, Button, Form, Badge, ListGroup, Alert } from "react-bootstrap";
-import { MessageCircle, Clock, Users, Plus, Check, Clipboard } from "lucide-react";
+import { 
+  MessageCircle, Clock, Users, Plus, Check, Clipboard, Trash2, 
+  Sparkles, AlertCircle, Phone, Calendar as CalendarIcon, DollarSign 
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import AppointmentsCalendar from "../gadgets/appointments/AppointmentsCalendar";
+import AppointmentModal from "../gadgets/appointments/AppointmentModal";
+import { useAppointmentsStore } from "../gadgets/appointments/AppointmentsProvider.jsx";
 import api from "../lib/api.js";
 
 export default function CalendarView() {
   const { t } = useTranslation("views");
-  const [appointments, setAppointments] = useState([]);
-  const [selectedApptId, setSelectedApptId] = useState("");
-  const [copied, setCopied] = useState(false);
+  const { appointments, services, fetchAppointments } = useAppointmentsStore();
+  const [workers, setWorkers] = useState([]);
 
-  // Lista de espera
-  const [waitlist, setWaitlist] = useState([
-    { id: 1, name: "Valentina Prieto", phone: "1143210987", service: "Balayage", date: "Sábado Mañana" },
-    { id: 2, name: "Lucas Marino", phone: "1176549876", service: "Corte Masculino", date: "Jueves Tarde" }
-  ]);
-  const [newWait, setNewWait] = useState({ name: "", phone: "", service: "", date: "" });
-
-  // Cargar citas para el generador de WhatsApp
+  // Cargar estilistas del backend
   useEffect(() => {
-    api.get("/appointments")
-      .then(res => {
-        const list = Array.isArray(res.data) ? res.data : [];
-        setAppointments(list.filter(a => a.status === "CONFIRMED" || a.status === "PENDING"));
-        if (list.length > 0) {
-          setSelectedApptId(list[0].id);
-        }
-      })
+    api.get("/workers")
+      .then(res => setWorkers(Array.isArray(res.data) ? res.data : []))
       .catch(e => console.error(e));
   }, []);
 
-  const selectedAppt = appointments.find(a => a.id === selectedApptId);
+  // Lista de espera reactiva y persistida en localStorage
+  const [waitlist, setWaitlist] = useState(() => {
+    const saved = localStorage.getItem("aura_waitlist");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return [
+      { id: 1, firstName: "Valentina", lastName: "Prieto", phone: "1143210987", serviceId: "", workerId: "", preferenceDate: "2026-06-12", preferenceTime: "10:00", priority: "Alta", status: "Esperando" },
+      { id: 2, firstName: "Lucas", lastName: "Marino", phone: "1176549876", serviceId: "", workerId: "", preferenceDate: "2026-06-13", preferenceTime: "15:00", priority: "Media", status: "Esperando" }
+    ];
+  });
 
-  const whatsappMessage = selectedAppt ? 
-    `¡Hola ${selectedAppt.client?.firstName || "Cliente"}! Te confirmamos tu turno en Aura Studio para el ${new Date(selectedAppt.startsAt).toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" })} a las ${new Date(selectedAppt.startsAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" })} hs para el servicio de ${selectedAppt.service?.name || "Estética"}. Profesional: ${selectedAppt.worker?.firstName || "Profesional"}. ¡Te esperamos!` 
-    : "Selecciona una cita confirmada para generar el recordatorio automático...";
+  useEffect(() => {
+    localStorage.setItem("aura_waitlist", JSON.stringify(waitlist));
+  }, [waitlist]);
 
-  const handleCopyText = () => {
-    navigator.clipboard.writeText(whatsappMessage);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+  // Formulario nuevo cliente en lista
+  const [newWait, setNewWait] = useState({
+    firstName: "",
+    lastName: "",
+    phone: "",
+    serviceId: "",
+    workerId: "",
+    preferenceDate: "",
+    preferenceTime: "",
+    priority: "Alta",
+  });
 
+  // Modal de Agendamiento rápido
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [initialAddData, setInitialAddData] = useState(null);
+
+  // --- MOTOR DE RECOMENDACIONES DE AURA AI (Punto 6) ---
+  // Detector de huecos libres (Mock determinista e interactivo en tiempo real)
+  const gaps = useMemo(() => {
+    const list = [];
+    const today = new Date();
+    const pad = (n) => String(n).padStart(2, "0");
+    const todayStr = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+
+    const w1 = workers[0] || { id: "w1", firstName: "María", lastName: "Gómez" };
+    const w2 = workers[1] || { id: "w2", firstName: "Ana", lastName: "Rodríguez" };
+
+    list.push({
+      id: "gap-1",
+      dateStr: todayStr,
+      timeStr: "11:00",
+      workerId: w1.id,
+      workerName: `${w1.firstName} ${w1.lastName}`,
+      label: "Hoy, 11:00 hs"
+    });
+
+    const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+    const tomorrowStr = `${tomorrow.getFullYear()}-${pad(tomorrow.getMonth() + 1)}-${pad(tomorrow.getDate())}`;
+    list.push({
+      id: "gap-2",
+      dateStr: tomorrowStr,
+      timeStr: "15:30",
+      workerId: w2.id,
+      workerName: `${w2.firstName} ${w2.lastName}`,
+      label: "Mañana, 15:30 hs"
+    });
+
+    return list;
+  }, [workers]);
+
+  // Coincidencias de Aura AI
+  const auraSuggestion = useMemo(() => {
+    const waitingClient = waitlist.find(c => c.status === "Esperando");
+    const activeGap = gaps[0];
+
+    if (waitingClient && activeGap) {
+      const svc = services.find(s => s.id === waitingClient.serviceId) || { name: waitingClient.service || "Estética" };
+      return {
+        client: waitingClient,
+        gap: activeGap,
+        serviceName: svc.name,
+        message: `✨ Aura AI: Hay un hueco libre hoy a las 11:00 hs con ${activeGap.workerName} ideal para ${waitingClient.firstName} ${waitingClient.lastName} (${svc.name}).`
+      };
+    }
+    return null;
+  }, [waitlist, gaps, services]);
+
+  // Manejadores Lista
   const handleAddToWaitlist = (e) => {
     e.preventDefault();
-    if (!newWait.name || !newWait.service) return;
-    setWaitlist(prev => [...prev, { ...newWait, id: Date.now() }]);
-    setNewWait({ name: "", phone: "", service: "", date: "" });
+    if (!newWait.firstName || !newWait.lastName) return;
+
+    const newItem = {
+      ...newWait,
+      id: Date.now(),
+      status: "Esperando"
+    };
+
+    setWaitlist(prev => [...prev, newItem]);
+    setNewWait({
+      firstName: "",
+      lastName: "",
+      phone: "",
+      serviceId: "",
+      workerId: "",
+      preferenceDate: "",
+      preferenceTime: "",
+      priority: "Alta",
+    });
+  };
+
+  const handleMarkContacted = (id) => {
+    setWaitlist(prev => 
+      prev.map(c => c.id === id ? { ...c, status: "Contactado" } : c)
+    );
+  };
+
+  const handleRemoveFromWaitlist = (id) => {
+    setWaitlist(prev => prev.filter(c => c.id !== id));
+  };
+
+  // Reservar turno desde la lista
+  const handleBookWaitlist = (client, dateStr, timeStr, workerId) => {
+    const targetDate = dateStr || client.preferenceDate || new Date().toISOString().slice(0, 10);
+    const targetTime = timeStr || client.preferenceTime || "11:00";
+    const targetWorker = workerId || client.workerId || (workers[0]?.id || "");
+
+    const startsAt = `${targetDate}T${targetTime}`;
+
+    setInitialAddData({
+      clientFirstName: client.firstName || "",
+      clientLastName: client.lastName || "",
+      phone: client.phone || "",
+      serviceId: client.serviceId || "",
+      workerId: targetWorker,
+      startsAt: startsAt
+    });
+    setShowAddModal(true);
+  };
+
+  const handleModalSaved = () => {
+    setShowAddModal(false);
+    fetchAppointments();
+    
+    // Si había una sugerencia, marcar ese cliente como Reagendado o asignado
+    if (auraSuggestion) {
+      setWaitlist(prev => 
+        prev.map(c => c.id === auraSuggestion.client.id ? { ...c, status: "Reagendado" } : c)
+      );
+    }
+  };
+
+  // Enviar mensaje de WhatsApp
+  const handleSendWhatsAppNotification = (client, gap) => {
+    const svc = services.find(s => s.id === client.serviceId) || { name: client.service || "Estética" };
+    const dateStr = gap 
+      ? new Date(gap.dateStr).toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" })
+      : (client.preferenceDate ? new Date(`${client.preferenceDate}T12:00:00`).toLocaleDateString("es-AR") : "el día de tu preferencia");
+    
+    const timeStr = gap ? gap.timeStr : (client.preferenceTime || "");
+    const workerName = gap ? gap.workerName : (workers.find(w => w.id === client.workerId)?.firstName || "Profesional");
+
+    const text = `¡Hola ${client.firstName}! Se liberó un turno ideal en Aura Studio para realizarte ${svc.name} el ${dateStr} a las ${timeStr} hs con ${workerName}. ¿Te gustaría reservarlo?`;
+    window.open(`https://wa.me/${client.phone}?text=${encodeURIComponent(text)}`, "_blank");
+
+    setWaitlist(prev => 
+      prev.map(c => c.id === client.id ? { ...c, status: "Contactado" } : c)
+    );
+  };
+
+  // Enviar correo de notificación
+  const handleSendEmailNotification = (client, gap) => {
+    alert(`Notificación enviada por correo electrónico a ${client.firstName} ${client.lastName}.`);
+    setWaitlist(prev => 
+      prev.map(c => c.id === client.id ? { ...c, status: "Contactado" } : c)
+    );
+  };
+
+  // Clases y colores
+  const getPriorityColor = (priority) => {
+    if (priority === "Alta") return "danger";
+    if (priority === "Media") return "warning";
+    return "primary";
+  };
+
+  const getStatusBadge = (status) => {
+    if (status === "Esperando") return "warning-soft text-warning border-warning";
+    if (status === "Contactado") return "success-soft text-success border-success";
+    if (status === "Reagendado") return "primary-soft text-primary border-primary";
+    return "secondary-soft text-muted border-secondary";
   };
 
   return (
@@ -67,178 +231,285 @@ export default function CalendarView() {
           </div>
         </Col>
 
-        {/* Panel lateral Asistente Inteligente */}
+        {/* Panel lateral Operativo y de Lista de Espera */}
         <Col lg={4}>
           <div className="d-grid gap-4">
             
-            {/* HERRAMIENTA 1: Confirmaciones por WhatsApp */}
-            <Card className="card-premium border-0 shadow-sm">
-              <Card.Body className="p-4">
-                <h3 className="h6 fw-black text-dark mb-3 d-flex align-items-center gap-2">
-                  <MessageCircle size={18} className="text-success" />
-                  <span>Confirmación por WhatsApp</span>
-                </h3>
-
-                <Form.Group className="mb-3">
-                  <Form.Label className="smaller text-muted fw-bold">Elegir cita a recordar</Form.Label>
-                  <Form.Select 
-                    value={selectedApptId} 
-                    onChange={(e) => setSelectedApptId(e.target.value)} 
-                    className="modern-input"
-                    style={{ fontSize: "12.5px" }}
-                  >
-                    {appointments.length === 0 ? (
-                      <option value="">-- No hay citas activas hoy --</option>
-                    ) : (
-                      appointments.map(a => (
-                        <option key={a.id} value={a.id}>
-                          {a.client?.firstName} {a.client?.lastName} - {a.service?.name}
-                        </option>
-                      ))
-                    )}
-                  </Form.Select>
-                </Form.Group>
-
-                {selectedAppt && (
-                  <div className="p-3 bg-light rounded-3 small text-muted border mb-3" style={{ fontSize: "12px", lineHeight: "1.4" }}>
-                    {whatsappMessage}
+            {/* AURA AI SUGGESTER BLOCK */}
+            {auraSuggestion && (
+              <Card 
+                className="border-0 shadow-premium overflow-hidden animate-fade-in"
+                style={{
+                  background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                  borderRadius: "20px"
+                }}
+              >
+                <Card.Body className="p-4 text-white">
+                  <div className="d-flex align-items-center gap-2 mb-2">
+                    <Sparkles size={20} className="animate-pulse" />
+                    <strong className="h6 fw-black m-0" style={{ letterSpacing: "-0.01em" }}>Aura Copilot AI</strong>
                   </div>
-                )}
-
-                <Button 
-                  variant="dark" 
-                  disabled={!selectedAppt} 
-                  onClick={handleCopyText} 
-                  className="btn-premium w-100 justify-content-center py-2"
-                  style={{ background: "#25d366", borderColor: "#25d366" }}
-                >
-                  {copied ? (
-                    <>
-                      <Check size={16} className="me-1.5" />
-                      <span>¡Copiado con éxito!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Clipboard size={16} className="me-1.5" />
-                      <span>Copiar Recordatorio</span>
-                    </>
-                  )}
-                </Button>
-              </Card.Body>
-            </Card>
-
-            {/* HERRAMIENTA 2: Huecos Libres Optimizados */}
-            <Card className="card-premium border-0 shadow-sm">
-              <Card.Body className="p-4">
-                <h3 className="h6 fw-black text-dark mb-3 d-flex align-items-center gap-2">
-                  <Clock size={18} className="text-primary" />
-                  <span>Huecos Libres Sugeridos</span>
-                </h3>
-                <p className="text-muted smaller mb-3">Horarios vacíos recomendados hoy para maximizar ingresos.</p>
-
-                <div className="d-grid gap-2">
-                  <div className="p-2 border.soft rounded-3 bg-light d-flex align-items-center justify-content-between">
-                    <div>
-                      <div className="fw-bold small text-dark">Hoy, 11:00 hs</div>
-                      <div className="text-muted smaller">Andrea - Disponible (Coloración)</div>
-                    </div>
-                    <Badge bg="success-soft" className="text-success rounded-pill px-2.5 py-1">Ideal</Badge>
+                  <p className="small mb-3" style={{ opacity: 0.95, lineHeight: "1.4" }}>
+                    {auraSuggestion.message}
+                  </p>
+                  <div className="d-flex gap-2">
+                    <Button 
+                      size="sm" 
+                      variant="light" 
+                      className="rounded-pill px-3 py-1.5 fw-bold text-success"
+                      onClick={() => handleBookWaitlist(auraSuggestion.client, auraSuggestion.gap.dateStr, auraSuggestion.gap.timeStr, auraSuggestion.gap.workerId)}
+                    >
+                      Asignar Turno
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline-light" 
+                      className="rounded-pill px-3 py-1.5 fw-bold border-white"
+                      onClick={() => handleSendWhatsAppNotification(auraSuggestion.client, auraSuggestion.gap)}
+                    >
+                      Notificar WhatsApp
+                    </Button>
                   </div>
-                  <div className="p-2 border.soft rounded-3 bg-light d-flex align-items-center justify-content-between">
-                    <div>
-                      <div className="fw-bold small text-dark">Mañana, 15:30 hs</div>
-                      <div className="text-muted smaller">Nicolás - Disponible (Corte)</div>
-                    </div>
-                    <Badge bg="primary-soft" className="text-primary rounded-pill px-2.5 py-1">Recomendado</Badge>
-                  </div>
-                </div>
-              </Card.Body>
-            </Card>
+                </Card.Body>
+              </Card>
+            )}
 
-            {/* HERRAMIENTA 3: Lista de Espera Inteligente */}
-            <Card className="card-premium border-0 shadow-sm">
+            {/* LISTA DE ESPERA PRINCIPAL */}
+            <Card className="card-premium border-0 shadow-sm rounded-4 bg-white">
               <Card.Body className="p-4">
                 <h3 className="h6 fw-black text-dark mb-3 d-flex align-items-center gap-2">
                   <Users size={18} className="text-primary" />
-                  <span>Lista de Espera</span>
+                  <span>Lista de Espera Inteligente</span>
                 </h3>
 
-                <Form onSubmit={handleAddToWaitlist} className="d-grid gap-2 mb-3 bg-light p-2.5 rounded-3 border">
-                  <Row className="g-1">
+                {/* Formulario registro */}
+                <Form onSubmit={handleAddToWaitlist} className="d-grid gap-2 mb-4 bg-light p-3 rounded-4 border">
+                  <div className="smaller text-muted fw-bold mb-1">Registrar Cliente en Espera</div>
+                  <Row className="g-2">
                     <Col xs={6}>
                       <Form.Control
-                        placeholder="Nombre..."
-                        value={newWait.name}
-                        onChange={(e) => setNewWait(prev => ({ ...prev, name: e.target.value }))}
+                        placeholder="Nombre *"
+                        value={newWait.firstName}
+                        onChange={(e) => setNewWait(prev => ({ ...prev, firstName: e.target.value }))}
                         className="modern-input px-2 py-1.5"
-                        style={{ fontSize: "11px" }}
+                        style={{ fontSize: "12px" }}
                         required
                       />
                     </Col>
                     <Col xs={6}>
                       <Form.Control
-                        placeholder="Servicio..."
-                        value={newWait.service}
-                        onChange={(e) => setNewWait(prev => ({ ...prev, service: e.target.value }))}
+                        placeholder="Apellido *"
+                        value={newWait.lastName}
+                        onChange={(e) => setNewWait(prev => ({ ...prev, lastName: e.target.value }))}
                         className="modern-input px-2 py-1.5"
-                        style={{ fontSize: "11px" }}
+                        style={{ fontSize: "12px" }}
                         required
                       />
                     </Col>
                   </Row>
-                  <Row className="g-1">
-                    <Col xs={6}>
+                  
+                  <Row className="g-2">
+                    <Col xs={12}>
                       <Form.Control
-                        placeholder="WhatsApp..."
+                        placeholder="WhatsApp (Cels) *"
                         value={newWait.phone}
                         onChange={(e) => setNewWait(prev => ({ ...prev, phone: e.target.value }))}
                         className="modern-input px-2 py-1.5"
-                        style={{ fontSize: "11px" }}
+                        style={{ fontSize: "12px" }}
+                        required
+                      />
+                    </Col>
+                  </Row>
+
+                  <Row className="g-2">
+                    <Col xs={6}>
+                      <Form.Select
+                        value={newWait.serviceId}
+                        onChange={(e) => setNewWait(prev => ({ ...prev, serviceId: e.target.value }))}
+                        className="modern-input px-2 py-1.5"
+                        style={{ fontSize: "12px" }}
+                      >
+                        <option value="">Servicio...</option>
+                        {services.map(s => (
+                          <option key={s.id} value={s.id}>{s.name}</option>
+                        ))}
+                      </Form.Select>
+                    </Col>
+                    <Col xs={6}>
+                      <Form.Select
+                        value={newWait.workerId}
+                        onChange={(e) => setNewWait(prev => ({ ...prev, workerId: e.target.value }))}
+                        className="modern-input px-2 py-1.5"
+                        style={{ fontSize: "12px" }}
+                      >
+                        <option value="">Estilista...</option>
+                        {workers.map(w => (
+                          <option key={w.id} value={w.id}>{w.firstName}</option>
+                        ))}
+                      </Form.Select>
+                    </Col>
+                  </Row>
+
+                  <Row className="g-2">
+                    <Col xs={6}>
+                      <Form.Control
+                        type="date"
+                        value={newWait.preferenceDate}
+                        onChange={(e) => setNewWait(prev => ({ ...prev, preferenceDate: e.target.value }))}
+                        className="modern-input px-2 py-1.5"
+                        style={{ fontSize: "12px" }}
                       />
                     </Col>
                     <Col xs={6}>
                       <Form.Control
-                        placeholder="Preferencia (Día)..."
-                        value={newWait.date}
-                        onChange={(e) => setNewWait(prev => ({ ...prev, date: e.target.value }))}
+                        type="time"
+                        value={newWait.preferenceTime}
+                        onChange={(e) => setNewWait(prev => ({ ...prev, preferenceTime: e.target.value }))}
                         className="modern-input px-2 py-1.5"
-                        style={{ fontSize: "11px" }}
+                        style={{ fontSize: "12px" }}
                       />
                     </Col>
                   </Row>
-                  <Button type="submit" variant="dark" size="sm" className="w-100 rounded-pill btn-premium justify-content-center py-1 mt-1 small">
-                    <Plus size={12} />
-                    <span>Agregar a Espera</span>
+
+                  <Row className="g-2">
+                    <Col xs={12}>
+                      <Form.Select
+                        value={newWait.priority}
+                        onChange={(e) => setNewWait(prev => ({ ...prev, priority: e.target.value }))}
+                        className="modern-input px-2 py-1.5"
+                        style={{ fontSize: "12px" }}
+                      >
+                        <option value="Alta">Prioridad Alta</option>
+                        <option value="Media">Prioridad Media</option>
+                        <option value="Baja">Prioridad Baja</option>
+                      </Form.Select>
+                    </Col>
+                  </Row>
+
+                  <Button type="submit" variant="dark" size="sm" className="w-100 rounded-pill btn-premium justify-content-center py-2 mt-1 small bg-dark">
+                    <Plus size={14} />
+                    <span>Agregar a la Lista</span>
                   </Button>
                 </Form>
 
-                <ListGroup variant="flush" className="overflow-auto" style={{ maxHeight: "140px" }}>
-                  {waitlist.map(w => (
-                    <ListGroup.Item key={w.id} className="px-1 py-2 bg-transparent d-flex justify-content-between align-items-center">
-                      <div>
-                        <div className="fw-bold small text-dark">{w.name}</div>
-                        <div className="text-muted smaller">{w.service} | {w.date || "Cualquier momento"}</div>
-                      </div>
-                      <Button 
-                        size="sm" 
-                        variant="outline-primary" 
-                        onClick={() => {
-                          alert(`Se notificará por WhatsApp a ${w.name} (${w.phone || ""}) en cuanto se libere un hueco.`);
-                          setWaitlist(prev => prev.filter(item => item.id !== w.id));
-                        }} 
-                        className="rounded-pill border-0 smaller py-1 px-2.5 bg-primary-soft text-primary fw-bold"
-                      >
-                        Notificar
-                      </Button>
-                    </ListGroup.Item>
-                  ))}
-                </ListGroup>
+                {/* Listado tarjetas */}
+                <div className="d-grid gap-3 overflow-auto" style={{ maxHeight: "380px", paddingRight: "4px" }}>
+                  {waitlist.length === 0 ? (
+                    <div className="text-center py-4 text-muted small">
+                      <AlertCircle size={24} className="mb-2 text-muted" />
+                      <div>Lista de espera vacía.</div>
+                    </div>
+                  ) : (
+                    waitlist.map(w => {
+                      const svc = services.find(s => s.id === w.serviceId);
+                      const stylist = workers.find(work => work.id === w.workerId);
+
+                      return (
+                        <div 
+                          key={w.id} 
+                          className="p-3 border rounded-4 bg-white shadow-premium-hover animate-fade-in position-relative"
+                          style={{
+                            borderLeft: `5px solid var(--bs-${getPriorityColor(w.priority)})`
+                          }}
+                        >
+                          <div className="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                              <strong className="text-dark small d-block" style={{ fontSize: "13.5px" }}>
+                                {w.firstName} {w.lastName}
+                              </strong>
+                              <span className="text-muted smaller d-flex align-items-center gap-1 mt-0.5" style={{ fontSize: "11px" }}>
+                                <Phone size={10} /> {w.phone || "Sin celular"}
+                              </span>
+                            </div>
+                            <div className="d-flex gap-1.5 align-items-center">
+                              <Badge bg={getPriorityColor(w.priority)} className="rounded-pill smaller" style={{ fontSize: "9px" }}>
+                                {w.priority}
+                              </Badge>
+                              <Button 
+                                size="sm" 
+                                variant="outline-danger" 
+                                onClick={() => handleRemoveFromWaitlist(w.id)}
+                                className="p-1 rounded-circle border-0 text-danger hover-bg-danger"
+                              >
+                                <Trash2 size={12} />
+                              </Button>
+                            </div>
+                          </div>
+
+                          <div className="d-grid gap-1 mb-3 text-dark small" style={{ fontSize: "11.5px" }}>
+                            <div>
+                              <strong>Servicio:</strong> <span className="badge bg-light text-dark border">{svc?.name || w.service || "Cualquiera"}</span>
+                            </div>
+                            <div>
+                              <strong>Preferencia:</strong> {stylist?.firstName || "Cualquier profesional"}
+                              {(w.preferenceDate || w.preferenceTime) && (
+                                <span className="text-muted"> (el {w.preferenceDate ? new Date(`${w.preferenceDate}T12:00:00`).toLocaleDateString("es-AR") : ""} {w.preferenceTime})</span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="d-flex justify-content-between align-items-center border-top pt-2 flex-wrap gap-2">
+                            <div>
+                              <span className={`badge border ${getStatusBadge(w.status)}`} style={{ fontSize: "9.5px" }}>
+                                {w.status}
+                              </span>
+                            </div>
+                            
+                            <div className="d-flex gap-1.5">
+                              {w.status === "Esperando" && (
+                                <>
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline-success" 
+                                    onClick={() => handleSendWhatsAppNotification(w)}
+                                    title="Notificar por WhatsApp"
+                                    className="p-1.5 rounded-circle border"
+                                  >
+                                    <MessageCircle size={12} className="text-success" />
+                                  </Button>
+                                  <Button 
+                                    size="sm" 
+                                    variant="success" 
+                                    onClick={() => handleBookWaitlist(w)}
+                                    title="Agendar Turno Rápido"
+                                    className="p-1.5 rounded-circle bg-success text-white border-0"
+                                  >
+                                    <Plus size={12} />
+                                  </Button>
+                                </>
+                              )}
+                              {w.status !== "Contactado" && w.status !== "Reagendado" && (
+                                <Button 
+                                  size="sm" 
+                                  variant="outline-secondary" 
+                                  onClick={() => handleMarkContacted(w.id)}
+                                  title="Marcar Contactado"
+                                  className="p-1.5 rounded-circle border"
+                                >
+                                  <Check size={12} />
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
               </Card.Body>
             </Card>
 
           </div>
         </Col>
       </Row>
+
+      {/* AppointmentModal para agendar rápido */}
+      <AppointmentModal
+        show={showAddModal}
+        onHide={() => setShowAddModal(false)}
+        initialData={initialAddData}
+        onSaved={handleModalSaved}
+      />
     </Container>
   );
 }

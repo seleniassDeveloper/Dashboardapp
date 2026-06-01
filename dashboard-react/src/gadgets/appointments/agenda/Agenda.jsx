@@ -605,6 +605,40 @@ export default function Agenda({
     }
   };
 
+  const handleMarkSenaPaid = async (appt) => {
+    try {
+      const price = Number(appt.service?.price || 0);
+      const senaAmount = Math.round(price * 0.3); // 30% de seña
+      
+      const payload = {
+        clientId: appt.clientId || appt.client?.id,
+        serviceId: appt.serviceId || appt.service?.id,
+        workerId: appt.workerId,
+        startsAt: appt.startsAt,
+        notes: appt.notes,
+        status: appt.status || "PENDING",
+        senaStatus: "PAGADA",
+        señaAmount: senaAmount
+      };
+
+      const res = await api.put(`/appointments/${appt.id}`, payload);
+      
+      upsertAppointment({
+        ...appt,
+        ...res.data,
+        senaStatus: "PAGADA",
+        señaAmount: senaAmount
+      });
+
+      setAlertMessage("¡Seña registrada con éxito! Cobro del 30% completado.");
+      onSaved?.();
+      setSummaryDetail(null);
+    } catch (e) {
+      console.error(e);
+      setAlertMessage("Error al registrar seña: " + (e?.response?.data?.error || e.message));
+    }
+  };
+
   return (
     <Container fluid className="px-0 py-2">
       {/* Alerta de avisos y colisiones flotante */}
@@ -627,31 +661,6 @@ export default function Agenda({
         onCreateAppointmentAt={handleCreateAppointmentAt}
       />
 
-      <div className="mt-5 pt-4 border-top">
-        <div className="d-flex align-items-center gap-2 mb-4">
-          <div className="rounded-circle bg-dark text-white p-2 d-flex align-items-center justify-content-center" style={{ width: 32, height: 32 }}>
-            📊
-          </div>
-          <h5 className="fw-black text-dark m-0" style={{ letterSpacing: "-0.02em" }}>Estadísticas y Filtros de la Agenda</h5>
-        </div>
-
-        {/* 2. Barra de Filtros Operativos (AgendaFilters) */}
-        <AgendaFilters
-          workers={workers}
-          services={services}
-          filters={filters}
-          onChangeFilter={handleChangeFilter}
-        />
-
-        {/* 3. Resumen Superior del Día (AgendaSummary) */}
-        <AgendaSummary
-          appointments={appointments}
-          workers={workers}
-          appointmentsByWorker={appointmentsByWorker}
-          onSelectSummary={setSummaryDetail}
-        />
-      </div>
-
       {/* 4. Modal Avanzado de Creación y Edición */}
       <AppointmentModal
         show={showModal}
@@ -660,6 +669,7 @@ export default function Agenda({
         appointment={selectedAppt}
         workers={workers}
         services={services}
+        appointments={appointments}
         initialWorkerId={modalWorkerId}
         initialHour={modalHour}
         initialMinute={modalMinute}
@@ -683,6 +693,7 @@ export default function Agenda({
         onEdit={handleEditAppointment}
         onSendWhatsApp={handleSendWhatsApp}
         onSendEmail={handleSendEmail}
+        onMarkSenaPaid={handleMarkSenaPaid}
       />
 
       {/* 7. Modal de Finalización de Servicio (CRM) */}

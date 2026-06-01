@@ -19,6 +19,7 @@ export default function AppointmentModal({
   appointment = null, // null significa CREAR, sino EDITAR
   workers = [],
   services = [],
+  appointments = [], // Citas registradas para validación de choques en tiempo real
   initialWorkerId = "",
   initialHour = null,
   initialMinute = null,
@@ -92,14 +93,47 @@ export default function AppointmentModal({
       setClientLastName("");
       setClientPhone("");
       setClientEmail("");
-      setWorkerId(initialWorkerId || (workers[0]?.id || ""));
+      
+      const targetWorkerId = initialWorkerId || (workers[0]?.id || "");
+      setWorkerId(targetWorkerId);
       
       const todayStr = new Date().toISOString().slice(0, 10);
       setAppointmentDate(todayStr);
       
-      const hourStr = initialHour !== null ? String(initialHour).padStart(2, "0") : "09";
-      const minStr = initialMinute !== null ? String(initialMinute).padStart(2, "0") : "00";
-      setAppointmentTime(`${hourStr}:${minStr}`);
+      let finalTime = "";
+      if (initialHour !== null && initialMinute !== null) {
+        const hourStr = String(initialHour).padStart(2, "0");
+        const minStr = String(initialMinute).padStart(2, "0");
+        const checkTimeStr = `${hourStr}:${minStr}`;
+        
+        const workerObj = workers.find(w => w.id === targetWorkerId);
+        if (workerObj) {
+          const whs = workerObj.workingHours || {
+            monday: { start: "09:00", end: "18:00" },
+            tuesday: { start: "09:00", end: "18:00" },
+            wednesday: { start: "09:00", end: "18:00" },
+            thursday: { start: "09:00", end: "18:00" },
+            friday: { start: "09:00", end: "18:00" },
+            saturday: { start: "09:00", end: "18:00" },
+            sunday: null
+          };
+          const dateObj = new Date(`${todayStr}T12:00:00`);
+          const daysOfWeek = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+          const dayName = daysOfWeek[dateObj.getDay()];
+          const wh = whs[dayName];
+          if (wh) {
+            const [startH, startM] = wh.start.split(":").map(Number);
+            const [endH, endM] = wh.end.split(":").map(Number);
+            const checkMin = initialHour * 60 + initialMinute;
+            const startMin = startH * 60 + startM;
+            const endMin = endH * 60 + endM;
+            if (checkMin >= startMin && checkMin <= endMin) {
+              finalTime = checkTimeStr;
+            }
+          }
+        }
+      }
+      setAppointmentTime(finalTime);
       
       setNotes("");
       setSeñaAmount(0);
@@ -144,6 +178,85 @@ export default function AppointmentModal({
     };
   }, [selectedServiceIds, services, appointmentTime, señaAmount]);
 
+  // Validaciones reactivas de horario laboral y choques de citas
+  const laborHoursCheck = useMemo(() => {
+    if (!workerId || !appointmentDate || !appointmentTime) return { valid: true };
+    const worker = workers.find(w => w.id === workerId);
+    if (!worker) return { valid: true };
+
+    const whs = worker.workingHours || {
+      monday: { start: "09:00", end: "18:00" },
+      tuesday: { start: "09:00", end: "18:00" },
+      wednesday: { start: "09:00", end: "18:00" },
+      thursday: { start: "09:00", end: "18:00" },
+      friday: { start: "09:00", end: "18:00" },
+      saturday: { start: "09:00", end: "18:00" },
+      sunday: null
+    };
+
+    const date = new Date(`${appointmentDate}T12:00:00`);
+    const daysOfWeek = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+    const dayName = daysOfWeek[date.getDay()];
+    
+    const wh = whs[dayName];
+    if (!wh) {
+      return { valid: false, reason: "La hora seleccionada está fuera del horario laboral." };
+    }
+
+    const [startH, startM] = wh.start.split(":").map(Number);
+    const [endH, endM] = wh.end.split(":").map(Number);
+    
+    const [checkH, checkM] = appointmentTime.split(":").map(Number);
+    const checkMin = checkH * 60 + checkM;
+    const startMin = startH * 60 + startM;
+    const endMin = endH * 60 + endM;
+
+    if (checkMin < startMin || checkMin > endMin) {
+      return { valid: false, reason: "La hora seleccionada está fuera del horario laboral." };
+    }
+
+    return { valid: true };
+  }, [workers, workerId, appointmentDate, appointmentTime]);
+
+  const overlapCheck = useMemo(() => {
+    if (!workerId || !appointmentDate || !appointmentTime || selectedServiceIds.length === 0) return { valid: true };
+    
+    const duration = totals.duration || 60;
+    const checkStart = new Date(`${appointmentDate}T${appointmentTime}`);
+    const checkEnd = new Date(checkStart.getTime() + duration * 60 * 1000);
+
+    const excludeId = appointment?.id;
+
+    for (const appt of appointments) {
+      if (excludeId && appt.id === excludeId) continue;
+      if (appt.status === "CANCELLED") continue;
+      if (appt.workerId !== workerId) continue;
+
+      const apptStart = new Date(appt.startsAt);
+      const apptEnd = new Date(apptStart.getTime() + (appt.service?.duration || 60) * 60 * 1000);
+
+      // Solapamiento
+      if (checkStart < apptEnd && checkEnd > apptStart) {
+        return { 
+          valid: false, 
+          reason: "Este profesional ya tiene una cita en ese horario." 
+        };
+      }
+    }
+
+    return { valid: true };
+  }, [appointments, workerId, appointmentDate, appointmentTime, selectedServiceIds, totals.duration, appointment?.id]);
+
+  const saveDisabled =
+    !clientFirstName ||
+    !clientLastName ||
+    !workerId ||
+    !appointmentDate ||
+    !appointmentTime ||
+    selectedServiceIds.length === 0 ||
+    !laborHoursCheck.valid ||
+    !overlapCheck.valid;
+
   // Manejo de clicks en checkbox de servicio
   const handleToggleService = (id) => {
     setSelectedServiceIds(prev => {
@@ -159,7 +272,7 @@ export default function AppointmentModal({
   // Enviar a guardar
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!clientFirstName || !clientLastName || !workerId || !appointmentDate || !appointmentTime) return;
+    if (saveDisabled) return;
 
     // Crear la estructura de Cita en hora local
     const startsAt = new Date(`${appointmentDate}T${appointmentTime}`).toISOString();
@@ -380,6 +493,15 @@ export default function AppointmentModal({
             </div>
           </div>
 
+          {(!laborHoursCheck.valid || !overlapCheck.valid) && (
+            <Alert variant="danger" className="rounded-4 border-0 shadow-sm mb-4 animate-fade-in">
+              <div className="fw-semibold small">
+                {!laborHoursCheck.valid && <div>⚠️ {laborHoursCheck.reason}</div>}
+                {!overlapCheck.valid && <div>⚠️ {overlapCheck.reason}</div>}
+              </div>
+            </Alert>
+          )}
+
           <Row className="g-4">
             
             {/* COLUMNA 1: CLIENTE & HORARIOS */}
@@ -596,7 +718,7 @@ export default function AppointmentModal({
             <Button variant="outline-secondary" onClick={onHide} className="rounded-pill px-4">
               Cancelar
             </Button>
-            <Button type="submit" variant="dark" className="rounded-pill btn-premium px-4 bg-success">
+            <Button type="submit" variant="dark" className="rounded-pill btn-premium px-4 bg-success" disabled={saveDisabled}>
               <Check size={16} />
               <span>{isEdit ? "Guardar Cambios" : "Agendar Turno"}</span>
             </Button>

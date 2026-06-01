@@ -18,6 +18,8 @@ import { useBrand } from "../../header/name/BrandProvider";
 import { useAppointmentsStore } from "./AppointmentsProvider.jsx";
 import AppointmentModal from "./AppointmentModal.jsx";
 import Agenda from "./agenda/Agenda";
+import AgendaSummary from "./agenda/AgendaSummary";
+import AgendaSummaryDetailModal from "./agenda/AgendaSummaryDetailModal";
 import axiosApi from "../../lib/api.js";
 
 import "./styles/fullcalendar-fix.css";
@@ -56,6 +58,44 @@ function withAlpha(hex, alpha = 1) {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
+const formatCustomSpanishTitle = (viewType, start, end) => {
+  if (!start) return "";
+  
+  const months = [
+    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+  ];
+  const weekdays = [
+    "Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"
+  ];
+
+  if (viewType === "timeGridDay") {
+    const dayName = weekdays[start.getDay()];
+    const dayNum = start.getDate();
+    const monthName = months[start.getMonth()];
+    const year = start.getFullYear();
+    return `${dayName}, ${dayNum} de ${monthName} de ${year}`;
+  } else if (viewType === "timeGridWeek") {
+    const endAdjusted = new Date(end.getTime() - 12 * 60 * 60 * 1000);
+    const startDay = start.getDate();
+    const endDay = endAdjusted.getDate();
+    const startMonth = months[start.getMonth()];
+    const endMonth = months[endAdjusted.getMonth()];
+    const startYear = start.getFullYear();
+    const endYear = endAdjusted.getFullYear();
+
+    if (startMonth === endMonth) {
+      return `Semana del ${startDay} al ${endDay} de ${startMonth} de ${startYear}`;
+    } else {
+      return `Semana del ${startDay} de ${startMonth} al ${endDay} de ${endMonth} de ${endYear}`;
+    }
+  } else {
+    const monthName = months[start.getMonth()];
+    const year = start.getFullYear();
+    return `${monthName} de ${year}`;
+  }
+};
+
 export default function AppointmentsCalendar() {
   const { brand } = useBrand();
   const accent = brand?.accentColor || brand?.textColor || "#d32f2f";
@@ -85,6 +125,101 @@ export default function AppointmentsCalendar() {
   // Modal para agregar cita
   const [showAddModal, setShowAddModal] = useState(false);
   const [initialAddData, setInitialAddData] = useState(null);
+
+  const [summaryDetail, setSummaryDetail] = useState(null);
+
+  const appointmentsByWorker = useMemo(() => {
+    const map = {};
+    workers.forEach(w => { map[w.id] = []; });
+    (appointments || []).forEach(appt => {
+      if (map[appt.workerId]) {
+        map[appt.workerId].push(appt);
+      }
+    });
+    return map;
+  }, [workers, appointments]);
+
+  const handleEditAppointment = (appt) => {
+    setSelected(appt);
+    setShowDetail(true);
+    setSummaryDetail(null);
+  };
+
+  const handleSendWhatsApp = (appt) => {
+    const worker = workers.find(w => w.id === appt.workerId);
+    const dateStr = new Date(appt.startsAt).toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
+    const timeStr = new Date(appt.startsAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+    const text = `¡Hola ${appt.client?.firstName || "Cliente"}! Te confirmamos tu turno en Aura Studio para el día ${dateStr} a las ${timeStr} hs para el servicio de ${appt.service?.name || "Estética"}. Te atenderá ${worker?.firstName || "Profesional"}. ¡Te esperamos!`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+  };
+
+  const handleSendEmail = async (appt) => {
+    if (!appt.client?.email) {
+      alert("El cliente no posee un correo electrónico configurado.");
+      return;
+    }
+
+    const googleAccessToken = localStorage.getItem("google_oauth_access_token");
+    if (!googleAccessToken) {
+      alert("Error: Tu sesión de Google no está activa. Iniciá sesión con Google para enviar correos.");
+      return;
+    }
+
+    try {
+      const payload = {
+        appointmentId: appt.id,
+        to: appt.client.email.trim(),
+        subject: `Confirmación de Turno - Aura Studio`,
+        message: `Hola ${appt.client.firstName || "Cliente"},\n\nTe confirmamos tu turno para el día ${new Date(appt.startsAt).toLocaleDateString("es-AR")} a las ${new Date(appt.startsAt).toLocaleTimeString("es-AR", {hour: '2-digit', minute: '2-digit'})} hs para realizarte: ${appt.service?.name || "Estética"}.\n¡Muchas gracias por elegirnos!\n\nDirección del Local: Av. Principal 1234, Aura Studio.`
+      };
+
+      await axiosApi.post(`/google/send-confirmation-email`, payload, {
+        headers: {
+          "X-Google-Access-Token": googleAccessToken
+        }
+      });
+      alert("Email de confirmación enviado exitosamente con Gmail.");
+    } catch (err) {
+      alert(`Error al enviar: ${err.response?.data?.message || err.message}`);
+    }
+  };
+
+  const handleMarkSenaPaid = async (appt) => {
+    try {
+      const price = Number(appt.service?.price || 0);
+      const senaAmount = Math.round(price * 0.3); // 30% de seña
+      
+      const payload = {
+        clientId: appt.clientId || appt.client?.id,
+        serviceId: appt.serviceId || appt.service?.id,
+        workerId: appt.workerId,
+        startsAt: appt.startsAt,
+        notes: appt.notes,
+        status: appt.status || "PENDING",
+        senaStatus: "PAGADA",
+        señaAmount: senaAmount
+      };
+
+      const res = await axiosApi.put(`/appointments/${appt.id}`, payload);
+      
+      // Actualizar en el almacén
+      upsertAppointment({
+        ...appt,
+        ...res.data,
+        senaStatus: "PAGADA",
+        señaAmount: senaAmount
+      });
+
+      alert("¡Seña registrada con éxito! Se cobró un anticipo del 30%.");
+      
+      // Recargar para sincronizar
+      fetchAppointments();
+      setSummaryDetail(null); // cerrar modal detalle
+    } catch (e) {
+      console.error(e);
+      alert("Error al registrar seña: " + (e?.response?.data?.error || e.message));
+    }
+  };
 
   const events = useMemo(() => {
     return (appointments || [])
@@ -208,6 +343,16 @@ export default function AppointmentsCalendar() {
             </div>
           </div>
 
+          {/* KPIs Header Permanente */}
+          <div className="mb-4">
+            <AgendaSummary
+              appointments={appointments}
+              workers={workers}
+              appointmentsByWorker={appointmentsByWorker}
+              onSelectSummary={setSummaryDetail}
+            />
+          </div>
+
           {loading ? (
             <div
               className="d-flex align-items-center gap-2 text-muted"
@@ -250,9 +395,10 @@ export default function AppointmentsCalendar() {
                   eventDisplay="block"
                   // ✅ IMPORTANTÍSIMO: quitamos el header interno para evitar duplicados
                   headerToolbar={false}
-                  // ✅ actualiza el título arriba cuando cambias de mes/semana/día
                   datesSet={(arg) => {
-                    setTitle(arg.view.title);
+                    const refDate = arg.view.type === "dayGridMonth" ? (arg.view.currentStart || arg.start) : arg.start;
+                    const customTitle = formatCustomSpanishTitle(arg.view.type, refDate, arg.end);
+                    setTitle(customTitle);
                     setSelectedDate(arg.view.currentStart || arg.start);
                   }}
                   titleFormat={{ year: "numeric", month: "long" }}
@@ -394,6 +540,16 @@ export default function AppointmentsCalendar() {
           setShowAddModal(false);
           fetchAppointments();
         }}
+      />
+
+      <AgendaSummaryDetailModal
+        show={Boolean(summaryDetail)}
+        data={summaryDetail}
+        onHide={() => setSummaryDetail(null)}
+        onEdit={handleEditAppointment}
+        onSendWhatsApp={handleSendWhatsApp}
+        onSendEmail={handleSendEmail}
+        onMarkSenaPaid={handleMarkSenaPaid}
       />
     </>
   );

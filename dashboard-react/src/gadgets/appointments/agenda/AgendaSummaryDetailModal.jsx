@@ -38,10 +38,30 @@ export default function AgendaSummaryDetailModal({
   onEdit,
   onSendWhatsApp,
   onSendEmail,
+  onMarkSenaPaid, // New callback
 }) {
   if (!data) return null;
 
   const { type, title, appointments = [] } = data;
+
+  const handleSendSenaReminder = (appt) => {
+    const clientName = appt.client?.firstName || "Cliente";
+    const serviceName = appt.service?.name || "Servicio";
+    const startsAt = appt.startsAt;
+    
+    const dateStr = startsAt 
+      ? new Date(startsAt).toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" })
+      : "el día agendado";
+    const timeStr = startsAt 
+      ? new Date(startsAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })
+      : "";
+
+    const price = Number(appt.service?.price || 0);
+    const senaPercentAmount = Math.round(price * 0.3);
+
+    const text = `¡Hola ${clientName}! Te recordamos reservar tu turno en Aura Studio para el día ${dateStr} a las ${timeStr} hs para el servicio de ${serviceName} abonando la seña del 30% (${currency(senaPercentAmount)}). Podés realizar tu transferencia al alias: aura.studio.mp. ¡Muchas gracias!`;
+    window.open(`https://wa.me/${appt.client?.phone || ""}?text=${encodeURIComponent(text)}`, "_blank");
+  };
 
   const isFinancial = type === "estimatedRev";
 
@@ -169,6 +189,28 @@ export default function AgendaSummaryDetailModal({
                           >
                             <Mail size={12} />
                           </Button>
+                          {senaStatus === "SIN_SENA" && (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline-success"
+                                onClick={() => handleSendSenaReminder(a)}
+                                title="Enviar Recordatorio de Seña (WhatsApp)"
+                                className="p-1.5 rounded-circle border"
+                              >
+                                <MessageSquare size={12} className="text-success" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="success"
+                                onClick={() => onMarkSenaPaid?.(a)}
+                                title="Marcar Seña Pagada"
+                                className="p-1.5 rounded-circle border bg-success text-white"
+                              >
+                                <DollarSign size={12} />
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -273,6 +315,29 @@ export default function AgendaSummaryDetailModal({
                       </span>
                     </div>
                   </div>
+
+                  {senaStatus === "SIN_SENA" && (
+                    <div className="d-flex gap-2 mt-2 border-top pt-2 flex-wrap">
+                      <Button
+                        size="sm"
+                        variant="outline-success"
+                        onClick={() => handleSendSenaReminder(a)}
+                        className="py-1 px-2.5 small fw-bold d-flex align-items-center gap-1.5 border"
+                      >
+                        <MessageSquare size={11} className="text-success" />
+                        <span>Enviar recordatorio de seña</span>
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="success"
+                        onClick={() => onMarkSenaPaid?.(a)}
+                        className="py-1 px-2.5 small fw-bold d-flex align-items-center gap-1.5 border-0 bg-success text-white"
+                      >
+                        <DollarSign size={11} />
+                        <span>Marcar seña pagada</span>
+                      </Button>
+                    </div>
+                  )}
                 </div>
               );
             })}

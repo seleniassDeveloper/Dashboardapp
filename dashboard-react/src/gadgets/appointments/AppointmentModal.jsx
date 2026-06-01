@@ -76,6 +76,17 @@ function normalizeWorker(raw, servicesById = {}) {
 
   const finalServices = nestedServices.length > 0 ? nestedServices : derivedFromIds;
 
+  // Inyectar horarios por defecto si no existen
+  const workingHours = w.workingHours || {
+    monday: { start: "09:00", end: "18:00" },
+    tuesday: { start: "09:00", end: "18:00" },
+    wednesday: { start: "09:00", end: "18:00" },
+    thursday: { start: "09:00", end: "18:00" },
+    friday: { start: "09:00", end: "18:00" },
+    saturday: { start: "09:00", end: "18:00" },
+    sunday: null
+  };
+
   return {
     id: String(w.id || ""),
     firstName: w.firstName || "",
@@ -84,7 +95,30 @@ function normalizeWorker(raw, servicesById = {}) {
     serviceIds: idsFromWorker,
     services: finalServices,
     schedules: safeArray(w.schedules),
+    workingHours
   };
+}
+
+function checkLaborHoursLocal(worker, dateStr, timeStr) {
+  if (!worker || !dateStr || !timeStr) return { valid: true };
+  
+  // Usamos mediodía para evitar cualquier desfase de huso horario
+  const date = new Date(`${dateStr}T12:00:00`);
+  const daysOfWeek = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+  const dayName = daysOfWeek[date.getDay()];
+  
+  const wh = worker.workingHours?.[dayName];
+  if (!wh) return { valid: false };
+
+  const [startH, startM] = wh.start.split(":").map(Number);
+  const [endH, endM] = wh.end.split(":").map(Number);
+  
+  const [checkH, checkM] = timeStr.split(":").map(Number);
+  const checkMin = checkH * 60 + checkM;
+  const startMin = startH * 60 + startM;
+  const endMin = endH * 60 + endM;
+
+  return { valid: checkMin >= startMin && checkMin <= endMin };
 }
 
 function formatDateTimeLocalLabel(dtLocal) {
@@ -280,12 +314,46 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
     return slotOk;
   }, [enabledFields, form, availability.available]);
 
+  const laborHoursCheck = useMemo(() => {
+    if (!form.workerId || !form.appointmentDate || !form.appointmentTime) return { valid: true };
+    const worker = workers.find(w => w.id === form.workerId);
+    if (!worker) return { valid: true };
+
+    const date = new Date(`${form.appointmentDate}T12:00:00`);
+    const daysOfWeek = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+    const dayName = daysOfWeek[date.getDay()];
+    
+    const wh = worker.workingHours?.[dayName];
+    if (!wh) {
+      return { valid: false, reason: "La hora seleccionada está fuera del horario laboral." };
+    }
+
+    const [startH, startM] = wh.start.split(":").map(Number);
+    const [endH, endM] = wh.end.split(":").map(Number);
+    
+    const [checkH, checkM] = form.appointmentTime.split(":").map(Number);
+    const checkMin = checkH * 60 + checkM;
+    const startMin = startH * 60 + startM;
+    const endMin = endH * 60 + endM;
+
+    if (checkMin < startMin || checkMin > endMin) {
+      return { valid: false, reason: "La hora seleccionada está fuera del horario laboral." };
+    }
+
+    return { valid: true };
+  }, [workers, form.workerId, form.appointmentDate, form.appointmentTime]);
+
   const saveDisabled =
-    !valid || saving || (isEdit && !dirty) || availability.loading || (slotComplete && availability.available === false);
+    !valid || 
+    saving || 
+    (isEdit && !dirty) || 
+    availability.loading || 
+    !laborHoursCheck.valid ||
+    (slotComplete && availability.available === false);
 
   // verificar disponibilidad del profesional al cambiar hora/servicio/trabajador
   useEffect(() => {
-    if (!show || !slotComplete) {
+    if (!show || !slotComplete || !laborHoursCheck.valid) {
       setAvailability({ loading: false, available: null, reason: "", availableWorkers: [] });
       return;
     }
@@ -321,7 +389,7 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
       cancelled = true;
       clearTimeout(t);
     };
-  }, [show, form.workerId, form.serviceId, startsAtLocal, slotComplete, isEdit, initialData?.id]);
+  }, [show, form.workerId, form.serviceId, startsAtLocal, slotComplete, isEdit, initialData?.id, laborHoursCheck.valid]);
 
   // hydrate edit
   useEffect(() => {
@@ -338,13 +406,36 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
           toDatetimeLocal(initialData.startsAt)
         );
         const cleanTime = appointmentTime === "00:00" ? "" : appointmentTime;
+        
+        let finalTime = cleanTime;
+        const targetWorkerId = initialData.workerId || (workers[0]?.id || "");
+        const worker = workers.find(w => w.id === targetWorkerId);
+        if (finalTime && worker) {
+          const check = checkLaborHoursLocal(worker, appointmentDate, finalTime);
+          if (!check.valid) {
+            finalTime = "";
+          }
+        }
+
         setForm({
           ...emptyForm,
+          clientFirstName: initialData?.clientFirstName || "",
+          clientLastName: initialData?.clientLastName || "",
+          phone: initialData?.phone || "",
+          serviceId: initialData?.serviceId || "",
+          workerId: targetWorkerId,
           appointmentDate: appointmentDate || "",
-          appointmentTime: cleanTime || "",
+          appointmentTime: finalTime,
         });
       } else {
-        setForm(emptyForm);
+        setForm({
+          ...emptyForm,
+          clientFirstName: initialData?.clientFirstName || "",
+          clientLastName: initialData?.clientLastName || "",
+          phone: initialData?.phone || "",
+          serviceId: initialData?.serviceId || "",
+          workerId: initialData?.workerId || "",
+        });
       }
       return;
     }
@@ -384,7 +475,7 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
       notes,
       price,
     });
-  }, [show, isEdit, initialData]);
+  }, [show, isEdit, initialData, workers]);
 
   // si cambia worker, resetea servicio si no pertenece
   useEffect(() => {
@@ -659,11 +750,11 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
                       className="mb-3 p-3 rounded-3"
                       style={{
                         background:
-                          availability.available === false
+                          !laborHoursCheck.valid || availability.available === false
                             ? "rgba(220,53,69,0.08)"
                             : "rgba(25,135,84,0.08)",
                         border: `1px solid ${
-                          availability.available === false
+                          !laborHoursCheck.valid || availability.available === false
                             ? "rgba(220,53,69,0.25)"
                             : "rgba(25,135,84,0.25)"
                         }`,
@@ -682,18 +773,23 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
                           <Spinner size="sm" /> Verificando disponibilidad…
                         </div>
                       )}
-                      {!availability.loading && availability.available === false && (
+                      {!availability.loading && !laborHoursCheck.valid && (
                         <div className="small text-danger mt-2 fw-medium">
-                          {availability.reason || "No disponible en ese horario."}
-                          {availability.availableWorkers.length > 0 && (
+                          {laborHoursCheck.reason}
+                        </div>
+                      )}
+                      {!availability.loading && laborHoursCheck.valid && availability.available === false && (
+                        <div className="small text-danger mt-2 fw-medium">
+                          Este profesional ya tiene una cita en ese horario.
+                          {availability.availableWorkers?.length > 0 && (
                             <div className="mt-1 fw-normal">
-                              Disponibles:{" "}
+                              Profesionales alternativos disponibles:{" "}
                               {availability.availableWorkers.map((w) => w.name).join(", ")}
                             </div>
                           )}
                         </div>
                       )}
-                      {!availability.loading && availability.available === true && (
+                      {!availability.loading && laborHoursCheck.valid && availability.available === true && (
                         <div className="small text-success mt-2">
                           Horario disponible para este profesional.
                         </div>
