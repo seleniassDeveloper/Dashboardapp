@@ -26,19 +26,30 @@ model Client {
 }
 
 model Service {
-  id              String                   @id @default(cuid())
-  name            String
-  price           Int
-  duration        Int
-  isActive        Boolean                  @default(true)
-  availableOnline Boolean                  @default(true)
-  createdAt       DateTime                 @default(now())
-  updatedAt       DateTime                 @updatedAt
-  appointments    Appointment[]
-  workers         WorkerService[]
-  consumptionRules ServiceConsumptionRule[]
-  businessId      String?
-  business        Business?                @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  id                 String                   @id @default(cuid())
+  name               String
+  description        String?
+  category           String?
+  price              Int
+  duration           Int
+  preparationMinutes Int                      @default(0)
+  cleanupMinutes     Int                      @default(0)
+  depositRequired    Boolean                  @default(false)
+  depositAmount      Int                      @default(0)
+  color              String                   @default("#10b981")
+  status             String                   @default("active") // "active" | "inactive" | "hidden_online"
+  isActive           Boolean                  @default(true)
+  availableOnline    Boolean                  @default(true)
+  requiresApproval   Boolean                  @default(false)
+  commissionType     String                   @default("porcentaje") // "porcentaje" | "fijo" | "ninguno"
+  commissionValue    Int                      @default(0)
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+  appointments       Appointment[]
+  workers            WorkerService[]
+  consumptionRules   ServiceConsumptionRule[]
+  businessId         String?
+  business           Business?                @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
   @@unique([name, businessId])
 }
