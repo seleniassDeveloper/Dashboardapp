@@ -13,7 +13,8 @@ export function BusinessProvider({ children }) {
     logo: business?.logo || null,
     slug: business?.slug || "",
     name: business?.name || "",
-    industry: business?.industry || ""
+    industry: business?.industry || "",
+    model: business?.model || ""
   }), [business, userBusinesses, switchBusiness]);
 
   return (

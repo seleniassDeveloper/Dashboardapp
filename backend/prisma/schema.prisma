@@ -20,6 +20,7 @@ model Client {
   appointments      Appointment[]
   appointmentPhotos AppointmentPhoto[]
   clinicalNotes     ClinicalNote[]
+  clinicalHistories ClinicalHistory[]
   businessId        String?
   business          Business?          @relation(fields: [businessId], references: [id], onDelete: Cascade)
 }
@@ -58,6 +59,7 @@ model Appointment {
   worker         Worker             @relation(fields: [workerId], references: [id])
   photos         AppointmentPhoto[]
   clinicalNotes  ClinicalNote[]
+  clinicalHistories ClinicalHistory[]
   branchId                 String?
   branch                   Branch?            @relation(fields: [branchId], references: [id])
   businessId               String?
@@ -219,6 +221,7 @@ model Business {
   slug                       String   @unique
   logo                       String?
   industry                   String?  // Rubro del negocio
+  model                      String?  // Modelo de negocio (dentistry, medical_clinic, etc.)
   description                String?
   bookingEnabled             Boolean  @default(true)
   bookingPrimaryColor        String   @default("#10b981")
@@ -237,6 +240,7 @@ model Business {
   branches                   Branch[]
   members                    BusinessMember[]
   invitations                Invitation[]
+  clinicalHistories          ClinicalHistory[]
 }
 
 model ScheduleBlock {
@@ -574,6 +578,26 @@ model RolePermission {
   permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
   @@id([roleId, permissionId])
+}
+
+model ClinicalHistory {
+  id            String       @id @default(cuid())
+  businessId    String
+  clientId      String
+  appointmentId String?
+  type          String       // "clinical" | "hair_formula" | "dentistry" | "aesthetic" | "general"
+  title         String
+  notes         String?
+  formulaData   Json?        // Opcional para fórmulas
+  clinicalData  Json?        // Opcional para historia clínica
+  createdBy     String
+  updatedBy     String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  business      Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  client        Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
 }
 
 

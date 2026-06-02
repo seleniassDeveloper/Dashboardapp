@@ -24,6 +24,7 @@ function isValidPhone(phone) {
 export async function createClient(req, res) {
   try {
     const { firstName, lastName, phone, email, notes } = req.body;
+    const businessId = req.businessId;
 
     if (!firstName?.trim() || !lastName?.trim()) {
       return res
@@ -50,6 +51,7 @@ export async function createClient(req, res) {
         phone: phoneVal,
         email: emailVal,
         notes: notesVal,
+        businessId: businessId || null,
       },
     });
 
@@ -110,17 +112,21 @@ export async function updateClient(req, res) {
 export async function listClients(req, res) {
   try {
     const search = String(req.query.search || "").trim();
+    const businessId = req.businessId;
 
-    const where = search
-      ? {
-          OR: [
-            { firstName: { contains: search, mode: "insensitive" } },
-            { lastName: { contains: search, mode: "insensitive" } },
-            { email: { contains: search, mode: "insensitive" } },
-            { phone: { contains: search } },
-          ],
-        }
-      : {};
+    const where = {
+      ...(businessId ? { OR: [{ businessId }, { businessId: null }] } : {}),
+      ...(search
+        ? {
+            OR: [
+              { firstName: { contains: search, mode: "insensitive" } },
+              { lastName: { contains: search, mode: "insensitive" } },
+              { email: { contains: search, mode: "insensitive" } },
+              { phone: { contains: search } },
+            ],
+          }
+        : {})
+    };
 
     const clients = await prisma.client.findMany({
       where,
@@ -182,5 +188,238 @@ export async function getClientAppointments(req, res) {
     return res
       .status(500)
       .json({ error: "Error cargando historial de citas." });
+  }
+}
+
+/* =========================
+   CLINICAL HISTORY CRUD
+========================= */
+
+// GET /api/clients/:id/clinical-history
+export async function getClientClinicalHistory(req, res) {
+  try {
+    const { id } = req.params;
+    const businessId = req.businessId;
+
+    if (!businessId) {
+      return res.status(400).json({ error: "Contexto de negocio no especificado." });
+    }
+
+    // Validar relación de cliente con el negocio (auto-curar si no tiene asignado)
+    const client = await prisma.client.findFirst({
+      where: {
+        id,
+        OR: [
+          { businessId },
+          { businessId: null }
+        ]
+      }
+    });
+
+    if (!client) {
+      return res.status(404).json({ error: "Cliente no encontrado o no pertenece a este negocio." });
+    }
+
+    if (!client.businessId) {
+      await prisma.client.update({
+        where: { id },
+        data: { businessId }
+      });
+    }
+
+    const history = await prisma.clinicalHistory.findMany({
+      where: {
+        clientId: id,
+        businessId
+      },
+      orderBy: {
+        createdAt: "desc"
+      },
+      include: {
+        appointment: {
+          include: {
+            service: true,
+            worker: true
+          }
+        }
+      }
+    });
+
+    return res.json(history);
+  } catch (e) {
+    console.error("GET CLINICAL HISTORY ERROR:", e);
+    return res.status(500).json({ error: "Error obteniendo el historial clínico del cliente." });
+  }
+}
+
+// POST /api/clients/:id/clinical-history
+export async function createClientClinicalHistory(req, res) {
+  try {
+    const { id } = req.params;
+    const businessId = req.businessId;
+    const { appointmentId, type, title, notes, formulaData, clinicalData } = req.body;
+
+    if (!businessId) {
+      return res.status(400).json({ error: "Contexto de negocio no especificado." });
+    }
+
+    if (!title || !type) {
+      return res.status(400).json({ error: "El título y el tipo de entrada son obligatorios." });
+    }
+
+    // Validar relación de cliente con el negocio (auto-curar si no tiene asignado)
+    const client = await prisma.client.findFirst({
+      where: {
+        id,
+        OR: [
+          { businessId },
+          { businessId: null }
+        ]
+      }
+    });
+
+    if (!client) {
+      return res.status(404).json({ error: "Cliente no encontrado o no pertenece a este negocio." });
+    }
+
+    if (!client.businessId) {
+      await prisma.client.update({
+        where: { id },
+        data: { businessId }
+      });
+    }
+
+    // Quien lo crea
+    const createdBy = req.user?.name || req.user?.email || req.user?.uid || "Profesional";
+
+    const created = await prisma.clinicalHistory.create({
+      data: {
+        businessId,
+        clientId: id,
+        appointmentId: appointmentId || null,
+        type,
+        title,
+        notes: notes || "",
+        formulaData: formulaData || null,
+        clinicalData: clinicalData || null,
+        createdBy
+      },
+      include: {
+        appointment: {
+          include: {
+            service: true,
+            worker: true
+          }
+        }
+      }
+    });
+
+    return res.status(201).json(created);
+  } catch (e) {
+    console.error("CREATE CLINICAL HISTORY ERROR:", e);
+    return res.status(500).json({ error: "Error creando la entrada en el historial clínico." });
+  }
+}
+
+// PUT /api/clients/:id/clinical-history/:entryId
+export async function updateClientClinicalHistory(req, res) {
+  try {
+    const { id, entryId } = req.params;
+    const businessId = req.businessId;
+    const { appointmentId, type, title, notes, formulaData, clinicalData } = req.body;
+
+    if (!businessId) {
+      return res.status(400).json({ error: "Contexto de negocio no especificado." });
+    }
+
+    // Validar relación de cliente con el negocio
+    const client = await prisma.client.findFirst({
+      where: {
+        id,
+        OR: [
+          { businessId },
+          { businessId: null }
+        ]
+      }
+    });
+
+    if (!client) {
+      return res.status(404).json({ error: "Cliente no encontrado o no pertenece a este negocio." });
+    }
+
+    // Validar que la entrada clínica exista y pertenezca al cliente y negocio
+    const entry = await prisma.clinicalHistory.findFirst({
+      where: {
+        id: entryId,
+        clientId: id,
+        businessId
+      }
+    });
+
+    if (!entry) {
+      return res.status(404).json({ error: "Entrada del historial clínico no encontrada." });
+    }
+
+    const updatedBy = req.user?.name || req.user?.email || req.user?.uid || "Profesional";
+
+    const updated = await prisma.clinicalHistory.update({
+      where: { id: entryId },
+      data: {
+        appointmentId: appointmentId !== undefined ? appointmentId : entry.appointmentId,
+        type: type !== undefined ? type : entry.type,
+        title: title !== undefined ? title : entry.title,
+        notes: notes !== undefined ? notes : entry.notes,
+        formulaData: formulaData !== undefined ? formulaData : entry.formulaData,
+        clinicalData: clinicalData !== undefined ? clinicalData : entry.clinicalData,
+        updatedBy
+      },
+      include: {
+        appointment: {
+          include: {
+            service: true,
+            worker: true
+          }
+        }
+      }
+    });
+
+    return res.json(updated);
+  } catch (e) {
+    console.error("UPDATE CLINICAL HISTORY ERROR:", e);
+    return res.status(500).json({ error: "Error actualizando la entrada en el historial clínico." });
+  }
+}
+
+// DELETE /api/clients/:id/clinical-history/:entryId
+export async function deleteClientClinicalHistory(req, res) {
+  try {
+    const { id, entryId } = req.params;
+    const businessId = req.businessId;
+
+    if (!businessId) {
+      return res.status(400).json({ error: "Contexto de negocio no especificado." });
+    }
+
+    // Validar que la entrada clínica exista y pertenezca al cliente y negocio
+    const entry = await prisma.clinicalHistory.findFirst({
+      where: {
+        id: entryId,
+        clientId: id,
+        businessId
+      }
+    });
+
+    if (!entry) {
+      return res.status(404).json({ error: "Entrada del historial clínico no encontrada." });
+    }
+
+    await prisma.clinicalHistory.delete({
+      where: { id: entryId }
+    });
+
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error("DELETE CLINICAL HISTORY ERROR:", e);
+    return res.status(500).json({ error: "Error eliminando la entrada del historial clínico." });
   }
 }

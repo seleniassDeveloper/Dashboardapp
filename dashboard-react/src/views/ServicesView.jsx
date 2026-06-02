@@ -58,7 +58,6 @@ export default function ServicesView() {
               <th className="py-3 border-0">{t("services.table.duration")}</th>
               <th className="py-3 border-0">{t("services.table.price")}</th>
               <th className="py-3 border-0">{t("services.table.professionals")}</th>
-              <th className="py-3 border-0">{t("services.table.status")}</th>
               <th className="py-3 border-0 text-end px-4">{t("services.table.actions")}</th>
             </tr>
           </thead>
@@ -108,12 +107,7 @@ export default function ServicesView() {
                     )}
                   </div>
                 </td>
-                <td className="py-3">
-                  <Badge bg="success" className="px-2 py-1" style={{ borderRadius: '6px', fontWeight: '500' }}>
-                    {t("services.statusActive")}
-                  </Badge>
-                </td>
-                <td className="py-3 text-end px-4">
+                 <td className="py-3 text-end px-4">
                   <div className="d-flex justify-content-end gap-2">
                     <Button variant="light" size="sm" onClick={() => handleEdit(s)} className="p-2">
                       <Edit2 size={16} className="text-primary" />
@@ -127,7 +121,7 @@ export default function ServicesView() {
             ))}
             {services.length === 0 && (
               <tr>
-                <td colSpan="6" className="text-center py-5 text-muted">
+                <td colSpan="5" className="text-center py-5 text-muted">
                   {t("services.empty")}
                 </td>
               </tr>

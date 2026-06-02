@@ -377,6 +377,20 @@ export function AuthProvider({ children }) {
     return () => api.interceptors.request.eject(reqId);
   }, []);
 
+  useEffect(() => {
+    if (role) {
+      api.get("/appointments/business")
+        .then(res => {
+          if (res.data) {
+            setBusiness(res.data);
+          }
+        })
+        .catch(err => {
+          console.error("Error fetching business config from backend:", err);
+        });
+    }
+  }, [role]);
+
   // No-op compatibility helpers
   const loginWithEmailPassword = useCallback(async () => {}, []);
   const registerWithEmailPassword = useCallback(async () => {}, []);

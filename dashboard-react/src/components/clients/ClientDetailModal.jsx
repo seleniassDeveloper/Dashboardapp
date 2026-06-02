@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
 import { Modal, Row, Col, Card, Badge, Table, Button, Form, Alert, ProgressBar, Spinner } from "react-bootstrap";
 import { 
   Calendar, CreditCard, Clock, MessageCircle, Cake, Sparkles, 
@@ -8,6 +8,7 @@ import {
 import { API_BASE_URL } from "../../lib/api.js";
 import api from "../../lib/api.js";
 import { usePermissions } from "../../auth/PermissionProvider.jsx";
+import { useBusiness } from "../../auth/BusinessContext.jsx";
 
 function currency(n) {
   return new Intl.NumberFormat("es-AR", {
@@ -28,27 +29,352 @@ const getImageUrl = (url) => {
 
 export default function ClientDetailModal({ show, onHide, client, appointments = [] }) {
   const { hasPermission } = usePermissions();
+  const { business } = useBusiness();
   
   const canViewNotes = hasPermission("clients.privateNotes.view");
   const canEditNotes = hasPermission("clients.privateNotes.edit");
   const canViewFinance = hasPermission("clients.financialHistory.view");
+
+  // Permisos de Historial Clínico
+  const canViewClinical = hasPermission("clients.clinical.view");
+  const canCreateClinical = hasPermission("clients.clinical.create");
+  const canEditClinical = hasPermission("clients.clinical.edit");
+  const canDeleteClinical = hasPermission("clients.clinical.delete");
 
   const [crmData, setCrmData] = useState(null);
   const [loadingCrm, setLoadingCrm] = useState(false);
   const [errorCrm, setErrorCrm] = useState("");
   const [activeTab, setActiveTab] = useState("resumen");
 
-  // Edición de Notas Generales / Fórmulas
-  const [notesText, setNotesText] = useState("");
+  // Edición de Notas Generales / Fórmul  const [notesText, setNotesText] = useState("");
   const [savingNotes, setSavingNotes] = useState(false);
   const [notesSavedStatus, setNotesSavedStatus] = useState(""); // "success" | "error" | ""
 
+  // Campos estructurados de preferencias para estética
+  const [preferences, setPreferences] = useState("");
+  const [allergiesText, setAllergiesText] = useState("");
+  const [favoriteProducts, setFavoriteProducts] = useState("");
+  const [internalNotes, setInternalNotes] = useState("");
+
+  // Lógica Adaptativa por Rubro (isMedicalBusiness)
+  const isMedical = useMemo(() => {
+    const medicalModels = [
+      "dentistry",
+      "medical_clinic",
+      "dermatology",
+      "aesthetic_clinic",
+      "medical_spa",
+      "physiotherapy",
+      "nutrition",
+      "psychology"
+    ];
+
+    const model = String(business?.model || "").toLowerCase().trim();
+    if (model && medicalModels.includes(model)) return true;
+
+    const industry = String(business?.industry || "").toLowerCase().trim();
+    if (!industry) return false;
+
+    // Check aesthetic keywords for exclusions
+    const aestheticKeywords = [
+      "salon", "estetica", "estética", "barberia", "barbería", "spa", "nails", "uñas", "beauty", "peluqueria", "peluquería"
+    ];
+    if (aestheticKeywords.some(kw => industry.includes(kw))) {
+      return false;
+    }
+
+    const clinicalKeywords = [
+      "dentistry", "medical_clinic", "dermatology", "aesthetic_clinic", "medical_spa",
+      "physiotherapy", "nutrition", "psychology",
+      "odontologia", "odontología", "clínica", "clinica", "medicina", "veterinaria", "fisioterapia", "nutricion", "nutrición", "psicologia", "psicología"
+    ];
+    return clinicalKeywords.some(kw => industry.includes(kw));
+  }, [business]);
+
+  const requiresClinicalHistory = isMedical;
+
+  // Historial Clínico CRUD states
+  const [clinicalEntries, setClinicalEntries] = useState([]);
+  const [loadingClinical, setLoadingClinical] = useState(false);
+  const [errorClinical, setErrorClinical] = useState("");
+  const [showEntryModal, setShowEntryModal] = useState(false);
+  const [editingEntry, setEditingEntry] = useState(null);
+
+  // Campos de formulario clínico
+  const [entryType, setEntryType] = useState("clinical");
+  const [entryTitle, setEntryTitle] = useState("");
+  const [entryNotes, setEntryNotes] = useState("");
+  const [appointmentId, setAppointmentId] = useState("");
+  
+  // formulaData (hair)
+  const [colorFormula, setColorFormula] = useState("");
+  const [oxidant, setOxidant] = useState("");
+  const [exposureTime, setExposureTime] = useState("");
+  const [brandUsed, setBrandUsed] = useState("");
+  const [techniqueApplied, setTechniqueApplied] = useState("");
+  const [expectedResult, setExpectedResult] = useState("");
+  const [postServiceObs, setPostServiceObs] = useState("");
+
+  // dentistry
+  const [toothPiece, setToothPiece] = useState("");
+  const [dentistryDiagnosis, setDentistryDiagnosis] = useState("");
+  const [procedureApplied, setProcedureApplied] = useState("");
+  const [materialUsed, setMaterialUsed] = useState("");
+  const [evolutionStatus, setEvolutionStatus] = useState("");
+  const [nextAppointmentDate, setNextAppointmentDate] = useState("");
+
+  // aesthetic
+  const [treatmentType, setTreatmentType] = useState("");
+  const [productUsed, setProductUsed] = useState("");
+  const [treatedZone, setTreatedZone] = useState("");
+  const [intensityFrequency, setIntensityFrequency] = useState("");
+  const [clientReaction, setClientReaction] = useState("");
+  const [aestheticRecommendations, setAestheticRecommendations] = useState("");
+
+  // clinicalData (clinical)
+  const [antecedents, setAntecedents] = useState("");
+  const [allergies, setAllergies] = useState("");
+  const [medicationActual, setMedicationActual] = useState("");
+  const [contraindications, setContraindications] = useState("");
+  const [clinicalObs, setClinicalObs] = useState("");
+  const [diagnosticMotive, setDiagnosticMotive] = useState("");
+  const [treatmentsDone, setTreatmentsDone] = useState("");
+  const [nextFollowUp, setNextFollowUp] = useState("");
+
+  const fetchClinicalHistory = useCallback(async () => {
+    if (!client?.id || !canViewClinical) return;
+    try {
+      setLoadingClinical(true);
+      setErrorClinical("");
+      const res = await api.get(`/clients/${client.id}/clinical-history`);
+      setClinicalEntries(res.data || []);
+    } catch (err) {
+      console.error("Error al cargar historial clínico:", err);
+      setErrorClinical("No se pudo cargar el historial clínico y fórmulas del cliente.");
+    } finally {
+      setLoadingClinical(false);
+    }
+  }, [client?.id, canViewClinical]);
+
+  useEffect(() => {
+    if (show && client?.id && requiresClinicalHistory && canViewClinical) {
+      fetchClinicalHistory();
+    }
+  }, [show, client?.id, requiresClinicalHistory, canViewClinical, fetchClinicalHistory]);
+
+  const handleOpenNewEntry = () => {
+    setEditingEntry(null);
+    setEntryNotes("");
+    setAppointmentId("");
+    
+    const model = String(business?.model || business?.industry || "").toLowerCase();
+    if (model.includes("dent") || model.includes("odont")) {
+      setEntryType("dentistry");
+      setEntryTitle("Consulta Odontológica");
+    } else if (model.includes("hair") || model.includes("pelu") || model.includes("beauty") || model.includes("salon")) {
+      setEntryType("hair_formula");
+      setEntryTitle("Fórmula de Color");
+    } else if (model.includes("estet") || model.includes("aesthetic") || model.includes("spa") || model.includes("dermat")) {
+      setEntryType("aesthetic");
+      setEntryTitle("Tratamiento de Estética");
+    } else {
+      setEntryType("clinical");
+      setEntryTitle("Evolución Clínica General");
+    }
+
+    setColorFormula(""); setOxidant(""); setExposureTime(""); setBrandUsed(""); setTechniqueApplied(""); setExpectedResult(""); setPostServiceObs("");
+    setToothPiece(""); setDentistryDiagnosis(""); setProcedureApplied(""); setMaterialUsed(""); setEvolutionStatus(""); setNextAppointmentDate("");
+    setTreatmentType(""); setProductUsed(""); setTreatedZone(""); setIntensityFrequency(""); setClientReaction(""); setAestheticRecommendations("");
+    setAntecedents(""); setAllergies(""); setMedicationActual(""); setContraindications(""); setClinicalObs(""); setDiagnosticMotive(""); setTreatmentsDone(""); setNextFollowUp("");
+
+    setShowEntryModal(true);
+  };
+
+  const handleOpenEditEntry = (entry) => {
+    setEditingEntry(entry);
+    setEntryType(entry.type);
+    setEntryTitle(entry.title || "");
+    setEntryNotes(entry.notes || "");
+    setAppointmentId(entry.appointmentId || "");
+
+    const fd = entry.formulaData || {};
+    const cd = entry.clinicalData || {};
+
+    // hair
+    setColorFormula(fd.colorFormula || "");
+    setOxidant(fd.oxidant || "");
+    setExposureTime(fd.exposureTime || "");
+    setBrandUsed(fd.brandUsed || "");
+    setTechniqueApplied(fd.techniqueApplied || "");
+    setExpectedResult(fd.expectedResult || "");
+    setPostServiceObs(fd.postServiceObs || "");
+
+    // dentistry
+    setToothPiece(fd.toothPiece || "");
+    setDentistryDiagnosis(fd.dentistryDiagnosis || "");
+    setProcedureApplied(fd.procedureApplied || "");
+    setMaterialUsed(fd.materialUsed || "");
+    setEvolutionStatus(fd.evolutionStatus || "");
+    setNextAppointmentDate(fd.nextAppointmentDate || "");
+
+    // aesthetic
+    setTreatmentType(fd.treatmentType || "");
+    setProductUsed(fd.productUsed || "");
+    setTreatedZone(fd.treatedZone || "");
+    setIntensityFrequency(fd.intensityFrequency || "");
+    setClientReaction(fd.clientReaction || "");
+    setAestheticRecommendations(fd.aestheticRecommendations || "");
+
+    // clinical
+    setAntecedents(cd.antecedents || "");
+    setAllergies(cd.allergies || "");
+    setMedicationActual(cd.medicationActual || "");
+    setContraindications(cd.contraindications || "");
+    setClinicalObs(cd.clinicalObs || "");
+    setDiagnosticMotive(cd.diagnosticMotive || "");
+    setTreatmentsDone(cd.treatmentsDone || "");
+    setNextFollowUp(cd.nextFollowUp || "");
+
+    setShowEntryModal(true);
+  };
+
+  const handleSubmitEntry = async (e) => {
+    e.preventDefault();
+    if (!entryTitle || !entryType) return;
+
+    const formulaData = {};
+    const clinicalData = {};
+
+    if (entryType === "hair_formula") {
+      formulaData.colorFormula = colorFormula;
+      formulaData.oxidant = oxidant;
+      formulaData.exposureTime = exposureTime;
+      formulaData.brandUsed = brandUsed;
+      formulaData.techniqueApplied = techniqueApplied;
+      formulaData.expectedResult = expectedResult;
+      formulaData.postServiceObs = postServiceObs;
+    } else if (entryType === "dentistry") {
+      formulaData.toothPiece = toothPiece;
+      formulaData.dentistryDiagnosis = dentistryDiagnosis;
+      formulaData.procedureApplied = procedureApplied;
+      formulaData.materialUsed = materialUsed;
+      formulaData.evolutionStatus = evolutionStatus;
+      formulaData.nextAppointmentDate = nextAppointmentDate;
+    } else if (entryType === "aesthetic") {
+      formulaData.treatmentType = treatmentType;
+      formulaData.productUsed = productUsed;
+      formulaData.treatedZone = treatedZone;
+      formulaData.intensityFrequency = intensityFrequency;
+      formulaData.clientReaction = clientReaction;
+      formulaData.aestheticRecommendations = aestheticRecommendations;
+    }
+
+    if (entryType === "clinical" || entryType === "dentistry" || entryType === "aesthetic") {
+      clinicalData.antecedents = antecedents;
+      clinicalData.allergies = allergies;
+      clinicalData.medicationActual = medicationActual;
+      clinicalData.contraindications = contraindications;
+      clinicalData.clinicalObs = clinicalObs;
+      clinicalData.diagnosticMotive = diagnosticMotive;
+      clinicalData.treatmentsDone = treatmentsDone;
+      clinicalData.nextFollowUp = nextFollowUp;
+    }
+
+    try {
+      setSavingNotes(true);
+      const payload = {
+        appointmentId: appointmentId || null,
+        type: entryType,
+        title: entryTitle,
+        notes: entryNotes,
+        formulaData: Object.keys(formulaData).length > 0 ? formulaData : null,
+        clinicalData: Object.keys(clinicalData).length > 0 ? clinicalData : null
+      };
+
+      if (editingEntry) {
+        const res = await api.put(`/clients/${client.id}/clinical-history/${editingEntry.id}`, payload);
+        setClinicalEntries(prev => prev.map(item => item.id === editingEntry.id ? res.data : item));
+      } else {
+        const res = await api.post(`/clients/${client.id}/clinical-history`, payload);
+        setClinicalEntries(prev => [res.data, ...prev]);
+      }
+      setShowEntryModal(false);
+    } catch (err) {
+      console.error("Error saving clinical entry:", err);
+      alert("Error al guardar la entrada en el historial clínico.");
+    } finally {
+      setSavingNotes(false);
+    }
+  };
+
+  const handleDeleteEntry = async (entryId) => {
+    if (!window.confirm("¿Estás seguro de que deseas eliminar esta entrada del historial clínico? Esta acción no se puede deshacer.")) return;
+    try {
+      await api.delete(`/clients/${client.id}/clinical-history/${entryId}`);
+      setClinicalEntries(prev => prev.filter(item => item.id !== entryId));
+    } catch (err) {
+      console.error("Error deleting clinical entry:", err);
+      alert("Error al eliminar la entrada.");
+    }
+  };
+
+  const riskAlerts = useMemo(() => {
+    const alerts = [];
+    clinicalEntries.forEach(entry => {
+      const cd = entry.clinicalData || {};
+      if (cd.allergies?.trim()) {
+        alerts.push({ type: "danger", title: "Alergia", text: cd.allergies, date: entry.createdAt });
+      }
+      if (cd.contraindications?.trim()) {
+        alerts.push({ type: "warning", title: "Contraindicación", text: cd.contraindications, date: entry.createdAt });
+      }
+      if (cd.nextFollowUp?.trim()) {
+        alerts.push({ type: "info", title: "Seguimiento", text: cd.nextFollowUp, date: entry.createdAt });
+      }
+    });
+    return alerts;
+  }, [clinicalEntries]);
+
   // Redirigir a resumen si no tiene permiso para notas clínicas y está en ella
   useEffect(() => {
-    if (!canViewNotes && activeTab === "clinico") {
+    if (!canViewNotes && (activeTab === "clinico" || activeTab === "preferencias_formulas")) {
       setActiveTab("resumen");
     }
   }, [canViewNotes, activeTab]);
+
+  // Evitar desajustes de pestañas según tipo de negocio
+  useEffect(() => {
+    if (activeTab === "clinico" && !isMedical) {
+      setActiveTab("preferencias_formulas");
+    } else if (activeTab === "preferencias_formulas" && isMedical) {
+      setActiveTab("clinico");
+    }
+  }, [isMedical, activeTab]);
+
+  // Parsear notas estructuradas en carga para estética
+  useEffect(() => {
+    if (notesText && typeof notesText === "string") {
+      const prefMatch = notesText.match(/\[Preferencias\]:\s*(.*?)(?=\n\[|$)/s);
+      const algMatch = notesText.match(/\[Alergias\]:\s*(.*?)(?=\n\[|$)/s);
+      const prodMatch = notesText.match(/\[Productos\]:\s*(.*?)(?=\n\[|$)/s);
+      const noteMatch = notesText.match(/\[Notas\]:\s*(.*?)(?=\n\[|$)/s);
+
+      setPreferences(prefMatch ? prefMatch[1].trim() : "");
+      setAllergiesText(algMatch ? algMatch[1].trim() : "");
+      setFavoriteProducts(prodMatch ? prodMatch[1].trim() : "");
+      
+      if (prefMatch || algMatch || prodMatch || noteMatch) {
+        setInternalNotes(noteMatch ? noteMatch[1].trim() : "");
+      } else {
+        setInternalNotes(notesText);
+      }
+    } else {
+      setPreferences("");
+      setAllergiesText("");
+      setFavoriteProducts("");
+      setInternalNotes("");
+    }
+  }, [notesText]);
 
   useEffect(() => {
     if (show && client?.id) {
@@ -98,6 +424,30 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
       setTimeout(() => setNotesSavedStatus(""), 4000);
     } catch (e) {
       console.error("Error guardando notas generales:", e);
+      setNotesSavedStatus("error");
+      setTimeout(() => setNotesSavedStatus(""), 4000);
+    } finally {
+      setSavingNotes(false);
+    }
+  };
+
+  const handleSaveAestheticPreferences = async () => {
+    try {
+      setSavingNotes(true);
+      setNotesSavedStatus("");
+      const serializedNotes = `[Preferencias]: ${preferences}\n[Alergias]: ${allergiesText}\n[Productos]: ${favoriteProducts}\n[Notas]: ${internalNotes}`;
+      await api.put(`/clients/${client.id}`, {
+        firstName: client.firstName,
+        lastName: client.lastName,
+        phone: client.phone,
+        email: client.email,
+        notes: serializedNotes
+      });
+      setNotesText(serializedNotes);
+      setNotesSavedStatus("success");
+      setTimeout(() => setNotesSavedStatus(""), 4000);
+    } catch (e) {
+      console.error("Error guardando preferencias estéticas:", e);
       setNotesSavedStatus("error");
       setTimeout(() => setNotesSavedStatus(""), 4000);
     } finally {
@@ -157,7 +507,7 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
       <Modal.Header closeButton className="border-0 pb-0 bg-light py-3 px-4">
         <Modal.Title className="fw-black text-dark d-flex align-items-center gap-2">
           <Sparkles className="text-purple-600" size={24} />
-          <span>Ficha Avanzada CRM & Historial Clínico</span>
+          <span>{requiresClinicalHistory ? "Ficha Avanzada CRM & Historial Clínico" : "Ficha Avanzada CRM & Ficha Técnica"}</span>
         </Modal.Title>
       </Modal.Header>
 
@@ -180,7 +530,7 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
           <div className="d-flex align-items-center gap-2">
             <Badge bg="light" className="text-dark border rounded-pill px-3 py-2 small d-flex align-items-center gap-1.5 shadow-sm">
               <Cake size={13} className="text-pink-500" />
-              <span>Socio de Estética</span>
+              <span>{business?.industry || "Socio"}</span>
             </Badge>
             {crmData && renderLoyaltyBadge(crmData.metrics?.loyaltyStatus)}
           </div>
@@ -217,7 +567,7 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
             <span>Métricas CRM</span>
           </button>
           
-          {canViewNotes && (
+          {isMedical ? (
             <button
               onClick={() => setActiveTab("clinico")}
               className={`d-flex align-items-center gap-2 px-4 py-2.5 fw-bold rounded-xl border-0 transition-all ${
@@ -227,7 +577,19 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
               }`}
             >
               <BookOpen size={16} />
-              <span>Historial Clínico & Fórmulas</span>
+              <span>Historia Clínica</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => setActiveTab("preferencias_formulas")}
+              className={`d-flex align-items-center gap-2 px-4 py-2.5 fw-bold rounded-xl border-0 transition-all ${
+                activeTab === "preferencias_formulas"
+                  ? "bg-purple-600 text-white shadow-sm hover-bg-purple-700"
+                  : "bg-light text-muted hover-bg-gray-100"
+              }`}
+            >
+              <Sparkles size={16} className="text-pink-500 animate-pulse" />
+              <span>Preferencias y Fórmulas</span>
             </button>
           )}
 
@@ -240,7 +602,7 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
             }`}
           >
             <Clock size={16} />
-            <span>Evolución en Línea de Tiempo</span>
+            <span>{isMedical ? "Evolución Clínica" : "Evolución y Estilo"}</span>
           </button>
 
           <button
@@ -384,7 +746,7 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
                   <Card className="border-0 border bg-white p-4 rounded-2xl shadow-sm">
                     <h3 className="h6 fw-bold text-gray-900 mb-3 d-flex align-items-center gap-2">
                       <FileText size={18} className="text-purple-500" />
-                      <span>Último Diagnóstico Clínico Registrado</span>
+                      <span>{requiresClinicalHistory ? "Último Diagnóstico Clínico Registrado" : "Última Ficha de Servicio Registrada"}</span>
                     </h3>
                     
                     {crmData.clinicalHistory?.length > 0 ? (
@@ -409,7 +771,9 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
                       </div>
                     ) : (
                       <div className="text-center py-4 bg-gray-50 rounded-xl text-muted small">
-                        Todavía no se han registrado fichas de evolución clínica para este cliente.
+                        {requiresClinicalHistory 
+                          ? "Todavía no se han registrado fichas de evolución clínica para este cliente."
+                          : "Todavía no se han registrado fichas de evolución o notas técnicas para este cliente."}
                       </div>
                     )}
                   </Card>
@@ -417,137 +781,848 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
               </div>
             )}
 
-            {/* PESTAÑA 2: HISTORIAL CLÍNICO Y FÓRMULAS */}
-            {activeTab === "clinico" && canViewNotes && crmData && (
+            {/* PESTAÑA 2: HISTORIAL CLÍNICO Y FÓRMULAS (REQUIRES CLINICAL HISTORY) */}
+            {activeTab === "clinico" && requiresClinicalHistory && (
+              <div>
+                {!canViewClinical ? (
+                  <Card className="border-0 bg-light p-5 rounded-2xl text-center shadow-sm">
+                    <ShieldCheck size={48} className="text-red-500 mb-3 mx-auto animate-pulse" />
+                    <h4 className="fw-bold text-red-800">Información clínica restringida</h4>
+                    <p className="text-muted mb-0">No posees los permisos necesarios (`clients.clinical.view`) para visualizar el historial médico o fichas técnicas de este cliente.</p>
+                  </Card>
+                ) : (
+                  <Row className="g-4">
+                    {/* Banner superior de alertas de riesgo en tiempo real */}
+                    {riskAlerts.length > 0 && (
+                      <Col md={12}>
+                        <Card className="border-0 border bg-red-50 bg-opacity-40 p-3 rounded-2xl shadow-sm">
+                          <h4 className="h6 fw-bold text-red-800 d-flex align-items-center gap-2 mb-2.5">
+                            <AlertTriangle size={16} className="text-red-500 animate-bounce" />
+                            <span>Alertas de Riesgo y Seguimiento</span>
+                          </h4>
+                          <div className="d-flex flex-wrap gap-2">
+                            {riskAlerts.map((alert, idx) => (
+                              <Badge 
+                                key={idx} 
+                                bg={alert.type === "danger" ? "danger" : alert.type === "warning" ? "warning" : "info"}
+                                className={`rounded-pill px-3 py-2 fw-semibold d-flex align-items-center gap-1 shadow-sm border ${
+                                  alert.type === "danger" ? "border-danger text-white" : alert.type === "warning" ? "border-warning text-dark" : "border-info text-white"
+                                }`}
+                                style={{
+                                  backgroundColor: alert.type === "danger" ? "#ef4444" : alert.type === "warning" ? "#f59e0b" : "#3b82f6"
+                                }}
+                              >
+                                <strong>{alert.title}:</strong> {alert.text}
+                              </Badge>
+                            ))}
+                          </div>
+                        </Card>
+                      </Col>
+                    )}
+
+                    {/* Fichas Técnicas / Fórmulas Sesión por Sesión */}
+                    <Col md={12}>
+                      <Card className="border-0 border bg-white p-4 rounded-2xl shadow-sm">
+                        <div className="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom flex-wrap gap-2">
+                          <h3 className="h6 fw-bold m-0 d-flex align-items-center gap-2 text-gray-900">
+                            <BookOpen size={18} className="text-purple-500" />
+                            <span>Historial Clínico & Fórmulas Sesión por Sesión</span>
+                          </h3>
+                          {canCreateClinical && (
+                            <Button 
+                              variant="purple" 
+                              className="rounded-xl px-4 py-2 text-white bg-purple-600 border-0 hover-bg-purple-700 fw-bold shadow-sm d-flex align-items-center gap-1.5"
+                              onClick={handleOpenNewEntry}
+                            >
+                              <Sparkles size={14} />
+                              <span>Nueva Entrada Clínica/Técnica</span>
+                            </Button>
+                          )}
+                        </div>
+
+                        {loadingClinical ? (
+                          <div className="text-center py-5">
+                            <Spinner animation="border" variant="purple" className="text-purple-600" />
+                            <p className="text-muted mt-2 fw-semibold">Cargando historial clínico y fichas técnicas del cliente...</p>
+                          </div>
+                        ) : errorClinical ? (
+                          <Alert variant="danger" className="rounded-xl">{errorClinical}</Alert>
+                        ) : clinicalEntries.length === 0 ? (
+                          <div className="text-center py-5 text-muted small bg-light rounded-2xl border">
+                            Aún no hay fichas clínicas o técnicas registradas para este cliente. ¡Hacé clic en "Nueva Entrada" para empezar!
+                          </div>
+                        ) : (
+                          <div className="d-flex flex-column gap-4">
+                            {clinicalEntries.map((entry) => {
+                              const fd = entry.formulaData || {};
+                              const cd = entry.clinicalData || {};
+                              return (
+                                <div key={entry.id} className="p-3 border rounded-2xl bg-light shadow-sm-hover transition-all">
+                                  <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 border-bottom pb-2 mb-2">
+                                    <div className="d-flex align-items-center gap-2 flex-wrap">
+                                      <Badge 
+                                        className="rounded-pill px-2.5 py-1.5 fw-bold text-white"
+                                        style={{
+                                          backgroundColor: 
+                                            entry.type === "hair_formula" ? "#ec4899" :
+                                            entry.type === "dentistry" ? "#06b6d4" :
+                                            entry.type === "aesthetic" ? "#10b981" :
+                                            entry.type === "clinical" ? "#ef4444" : "#6b7280"
+                                        }}
+                                      >
+                                        {
+                                          entry.type === "hair_formula" ? "Fórmula Capilar" :
+                                          entry.type === "dentistry" ? "Odontología" :
+                                          entry.type === "aesthetic" ? "Tratamiento Estético" :
+                                          entry.type === "clinical" ? "Historia Clínica" : "Consulta General"
+                                        }
+                                      </Badge>
+                                      <span className="fw-bold text-gray-900">{entry.title}</span>
+                                    </div>
+                                    <div className="d-flex align-items-center gap-2">
+                                      <span className="text-muted small fw-semibold bg-white rounded-pill px-3 py-1 shadow-sm border">
+                                        👤 {entry.createdBy} • 📅 {new Date(entry.createdAt).toLocaleDateString("es-AR", { day: "numeric", month: "short", year: "numeric" })}
+                                      </span>
+                                      {canEditClinical && (
+                                        <Button size="sm" variant="outline-purple" className="py-1 px-2.5 rounded-xl text-xs fw-bold" onClick={() => handleOpenEditEntry(entry)}>
+                                          Editar
+                                        </Button>
+                                      )}
+                                      {canDeleteClinical && (
+                                        <Button size="sm" variant="outline-danger" className="py-1 px-2.5 rounded-xl text-xs fw-bold" onClick={() => handleDeleteEntry(entry.id)}>
+                                          Eliminar
+                                        </Button>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {entry.notes && (
+                                    <div className="text-gray-700 p-2.5 rounded-xl bg-white border-start border-purple-500 mb-3" style={{ fontSize: "14px", borderLeft: "4px solid #9333ea" }}>
+                                      <div className="fw-semibold text-xs text-muted mb-1 text-uppercase tracking-wider">Notas y Observaciones Generales</div>
+                                      {entry.notes}
+                                    </div>
+                                  )}
+
+                                  {/* Renderizado dinámico de campos según tipo de negocio */}
+                                  {entry.type === "hair_formula" && (
+                                    <Row className="g-2 text-xs text-gray-700 bg-pink-50 bg-opacity-40 p-3 rounded-xl border border-pink-100 mb-2">
+                                      {fd.colorFormula && <Col xs={6} md={4}><strong>Fórmula:</strong> {fd.colorFormula}</Col>}
+                                      {fd.oxidant && <Col xs={6} md={4}><strong>Oxidante:</strong> {fd.oxidant}</Col>}
+                                      {fd.exposureTime && <Col xs={6} md={4}><strong>Tiempo Exp:</strong> {fd.exposureTime}</Col>}
+                                      {fd.brandUsed && <Col xs={6} md={4}><strong>Marca:</strong> {fd.brandUsed}</Col>}
+                                      {fd.techniqueApplied && <Col xs={6} md={4}><strong>Técnica:</strong> {fd.techniqueApplied}</Col>}
+                                      {fd.expectedResult && <Col xs={6} md={4}><strong>Resultado esperado:</strong> {fd.expectedResult}</Col>}
+                                      {fd.postServiceObs && <Col xs={12} className="mt-2 pt-2 border-top border-pink-100"><strong>Observaciones post-servicio:</strong> {fd.postServiceObs}</Col>}
+                                    </Row>
+                                  )}
+
+                                  {entry.type === "dentistry" && (
+                                    <Row className="g-2 text-xs text-gray-700 bg-cyan-50 bg-opacity-40 p-3 rounded-xl border border-cyan-100 mb-2">
+                                      {fd.toothPiece && <Col xs={6} md={4}><strong>Pieza dental:</strong> {fd.toothPiece}</Col>}
+                                      {fd.dentistryDiagnosis && <Col xs={6} md={4}><strong>Diagnóstico:</strong> {fd.dentistryDiagnosis}</Col>}
+                                      {fd.procedureApplied && <Col xs={6} md={4}><strong>Procedimiento:</strong> {fd.procedureApplied}</Col>}
+                                      {fd.materialUsed && <Col xs={6} md={4}><strong>Material:</strong> {fd.materialUsed}</Col>}
+                                      {fd.evolutionStatus && <Col xs={6} md={4}><strong>Evolución:</strong> {fd.evolutionStatus}</Col>}
+                                      {fd.nextAppointmentDate && <Col xs={6} md={4}><strong>Próxima consulta:</strong> {fd.nextAppointmentDate}</Col>}
+                                    </Row>
+                                  )}
+
+                                  {entry.type === "aesthetic" && (
+                                    <Row className="g-2 text-xs text-gray-700 bg-emerald-50 bg-opacity-40 p-3 rounded-xl border border-emerald-100 mb-2">
+                                      {fd.treatmentType && <Col xs={6} md={4}><strong>Tratamiento:</strong> {fd.treatmentType}</Col>}
+                                      {fd.productUsed && <Col xs={6} md={4}><strong>Producto:</strong> {fd.productUsed}</Col>}
+                                      {fd.treatedZone && <Col xs={6} md={4}><strong>Zona tratada:</strong> {fd.treatedZone}</Col>}
+                                      {fd.intensityFrequency && <Col xs={6} md={4}><strong>Intensidad:</strong> {fd.intensityFrequency}</Col>}
+                                      {fd.clientReaction && <Col xs={6} md={4}><strong>Reacción:</strong> {fd.clientReaction}</Col>}
+                                      {fd.aestheticRecommendations && <Col xs={12} className="mt-2 pt-2 border-top border-emerald-100"><strong>Recomendaciones:</strong> {fd.aestheticRecommendations}</Col>}
+                                    </Row>
+                                  )}
+
+                                  {(entry.type === "clinical" || entry.type === "dentistry" || entry.type === "aesthetic") && (
+                                    <Row className="g-2 text-xs text-gray-700 bg-white p-3 rounded-xl border border-gray-100 mb-2 shadow-inner">
+                                      {cd.antecedents && <Col xs={12}><strong>Antecedentes médicos:</strong> {cd.antecedents}</Col>}
+                                      {cd.allergies && <Col xs={6} md={4} className="text-danger"><strong>⚠️ Alergias:</strong> {cd.allergies}</Col>}
+                                      {cd.medicationActual && <Col xs={6} md={4}><strong>Medicación actual:</strong> {cd.medicationActual}</Col>}
+                                      {cd.contraindications && <Col xs={6} md={4} className="text-warning"><strong>🚫 Contraindicaciones:</strong> {cd.contraindications}</Col>}
+                                      {cd.diagnosticMotive && <Col xs={6} md={4}><strong>Motivo de consulta:</strong> {cd.diagnosticMotive}</Col>}
+                                      {cd.treatmentsDone && <Col xs={6} md={4}><strong>Tratamientos realizados:</strong> {cd.treatmentsDone}</Col>}
+                                      {cd.nextFollowUp && <Col xs={6} md={4} className="text-primary"><strong>🗓️ Seguimiento:</strong> {cd.nextFollowUp}</Col>}
+                                      {cd.clinicalObs && <Col xs={12} className="mt-2 pt-2 border-top border-gray-100"><strong>Observaciones clínicas:</strong> {cd.clinicalObs}</Col>}
+                                    </Row>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </Card>
+                    </Col>
+                  </Row>
+                )}
+              </div>
+            )}
+
+            {/* Modal para agregar/editar entrada clínica/técnica */}
+                <Modal show={showEntryModal} onHide={() => setShowEntryModal(false)} size="lg" centered className="hegemonic-modal">
+                  <Modal.Header closeButton className="border-0 pb-0 bg-light py-3 px-4">
+                    <Modal.Title className="fw-bold text-dark">
+                      {editingEntry ? "Editar Ficha Técnica / Clínica" : "Nueva Ficha Técnica / Clínica"}
+                    </Modal.Title>
+                  </Modal.Header>
+                  <Modal.Body className="p-4">
+                    <Form onSubmit={handleSubmitEntry}>
+                      <Row className="g-3">
+                        <Col md={6}>
+                          <Form.Group className="mb-3">
+                            <Form.Label className="fw-semibold">Título de la entrada</Form.Label>
+                            <Form.Control
+                              type="text"
+                              required
+                              value={entryTitle}
+                              onChange={(e) => setEntryTitle(e.target.value)}
+                              placeholder="Ej: Ficha de sesión color / Limpieza dental"
+                              className="rounded-xl border-gray-200 focus-ring-purple"
+                            />
+                          </Form.Group>
+                        </Col>
+                        <Col md={6}>
+                          <Form.Group className="mb-3">
+                            <Form.Label className="fw-semibold">Tipo de Ficha</Form.Label>
+                            <Form.Select
+                              value={entryType}
+                              onChange={(e) => setEntryType(e.target.value)}
+                              className="rounded-xl border-gray-200 focus-ring-purple"
+                            >
+                              {isMedical ? (
+                                <>
+                                  <option value="clinical">Clínica Médica / Evolución</option>
+                                  <option value="dentistry">Odontología</option>
+                                  <option value="general">Consulta General / Notas</option>
+                                </>
+                              ) : (
+                                <>
+                                  <option value="hair_formula">Peluquería / Colorimetría</option>
+                                  <option value="aesthetic">Estética / Spa / Manicuría</option>
+                                  <option value="general">Consulta / Nota Técnica</option>
+                                </>
+                              )}
+                            </Form.Select>
+                          </Form.Group>
+                        </Col>
+
+                        <Col md={12}>
+                          <Form.Group className="mb-3">
+                            <Form.Label className="fw-semibold">Cita Asociada (Opcional)</Form.Label>
+                            <Form.Select
+                              value={appointmentId}
+                              onChange={(e) => setAppointmentId(e.target.value)}
+                              className="rounded-xl border-gray-200 focus-ring-purple"
+                            >
+                              <option value="">Ninguna cita en particular</option>
+                              {clientAppts.map(appt => (
+                                <option key={appt.id} value={appt.id}>
+                                  {new Date(appt.startsAt).toLocaleDateString("es-AR")} - {appt.service?.name} ({appt.worker ? `${appt.worker.firstName} ${appt.worker.lastName}` : "General"})
+                                </option>
+                              ))}
+                            </Form.Select>
+                          </Form.Group>
+                        </Col>
+
+                        {/* Campos dinámicos según el tipo de entrada */}
+                        {entryType === "hair_formula" && (
+                          <>
+                            <Col md={6}>
+                              <Form.Group className="mb-3">
+                                <Form.Label className="fw-semibold">Fórmula de color</Form.Label>
+                                <Form.Control
+                                  type="text"
+                                  value={colorFormula}
+                                  onChange={(e) => setColorFormula(e.target.value)}
+                                  placeholder="Ej: 7.1 + 8.3 + 20vol"
+                                  className="rounded-xl border-gray-200"
+                                />
+                              </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                              <Form.Group className="mb-3">
+                                <Form.Label className="fw-semibold">Oxidante utilizado</Form.Label>
+                                <Form.Control
+                                  type="text"
+                                  value={oxidant}
+                                  onChange={(e) => setOxidant(e.target.value)}
+                                  placeholder="Ej: 20 volúmenes (6%)"
+                                  className="rounded-xl border-gray-200"
+                                />
+                              </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                              <Form.Group className="mb-3">
+                                <Form.Label className="fw-semibold">Tiempo de exposición</Form.Label>
+                                <Form.Control
+                                  type="text"
+                                  value={exposureTime}
+                                  onChange={(e) => setExposureTime(e.target.value)}
+                                  placeholder="Ej: 35 minutos"
+                                  className="rounded-xl border-gray-200"
+                                />
+                              </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                              <Form.Group className="mb-3">
+                                <Form.Label className="fw-semibold">Marca utilizada</Form.Label>
+                                <Form.Control
+                                  type="text"
+                                  value={brandUsed}
+                                  onChange={(e) => setBrandUsed(e.target.value)}
+                                  placeholder="Ej: L'Oréal Professionnel / Wella"
+                                  className="rounded-xl border-gray-200"
+                                />
+                              </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                              <Form.Group className="mb-3">
+                                <Form.Label className="fw-semibold">Técnica aplicada</Form.Label>
+                                <Form.Control
+                                  type="text"
+                                  value={techniqueApplied}
+                                  onChange={(e) => setTechniqueApplied(e.target.value)}
+                                  placeholder="Ej: Balayage a mano alzada / Babylights"
+                                  className="rounded-xl border-gray-200"
+                                />
+                              </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                              <Form.Group className="mb-3">
+                                <Form.Label className="fw-semibold">Resultado esperado</Form.Label>
+                                <Form.Control
+                                  type="text"
+                                  value={expectedResult}
+                                  onChange={(e) => setExpectedResult(e.target.value)}
+                                  placeholder="Ej: Rubio ceniza altura 9 sin visos cálidos"
+                                  className="rounded-xl border-gray-200"
+                                />
+                              </Form.Group>
+                            </Col>
+                            <Col md={12}>
+                              <Form.Group className="mb-3">
+                                <Form.Label className="fw-semibold">Observaciones post-servicio</Form.Label>
+                                <Form.Control
+                                  as="textarea"
+                                  rows={2}
+                                  value={postServiceObs}
+                                  onChange={(e) => setPostServiceObs(e.target.value)}
+                                  placeholder="Recomendaciones post-cuidado capilar o comportamiento del cabello..."
+                                  className="rounded-xl border-gray-200"
+                                />
+                              </Form.Group>
+                            </Col>
+                          </>
+                        )}
+
+                        {entryType === "dentistry" && (
+                          <>
+                            <Col md={6}>
+                              <Form.Group className="mb-3">
+                                <Form.Label className="fw-semibold">Pieza dental</Form.Label>
+                                <Form.Control
+                                  type="text"
+                                  value={toothPiece}
+                                  onChange={(e) => setToothPiece(e.target.value)}
+                                  placeholder="Ej: Pieza 46 / Primer molar inferior derecho"
+                                  className="rounded-xl border-gray-200"
+                                />
+                              </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                              <Form.Group className="mb-3">
+                                <Form.Label className="fw-semibold">Diagnóstico Odontológico</Form.Label>
+                                <Form.Control
+                                  type="text"
+                                  value={dentistryDiagnosis}
+                                  onChange={(e) => setDentistryDiagnosis(e.target.value)}
+                                  placeholder="Ej: Caries oclusal profunda"
+                                  className="rounded-xl border-gray-200"
+                                />
+                              </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                              <Form.Group className="mb-3">
+                                <Form.Label className="fw-semibold">Procedimiento realizado</Form.Label>
+                                <Form.Control
+                                  type="text"
+                                  value={procedureApplied}
+                                  onChange={(e) => setProcedureApplied(e.target.value)}
+                                  placeholder="Ej: Restauración con resina compuesta"
+                                  className="rounded-xl border-gray-200"
+                                />
+                              </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                              <Form.Group className="mb-3">
+                                <Form.Label className="fw-semibold">Material utilizado</Form.Label>
+                                <Form.Control
+                                  type="text"
+                                  value={materialUsed}
+                                  onChange={(e) => setMaterialUsed(e.target.value)}
+                                  placeholder="Ej: Composite Z350 3M / Adhesivo Single Bond"
+                                  className="rounded-xl border-gray-200"
+                                />
+                              </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                              <Form.Group className="mb-3">
+                                <Form.Label className="fw-semibold">Estado de Evolución</Form.Label>
+                                <Form.Control
+                                  type="text"
+                                  value={evolutionStatus}
+                                  onChange={(e) => setEvolutionStatus(e.target.value)}
+                                  placeholder="Ej: Favorable, sin sensibilidad"
+                                  className="rounded-xl border-gray-200"
+                                />
+                              </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                              <Form.Group className="mb-3">
+                                <Form.Label className="fw-semibold">Próxima Consulta Odontológica</Form.Label>
+                                <Form.Control
+                                  type="text"
+                                  value={nextAppointmentDate}
+                                  onChange={(e) => setNextAppointmentDate(e.target.value)}
+                                  placeholder="Ej: Control en 6 meses / Endodoncia el 15/06"
+                                  className="rounded-xl border-gray-200"
+                                />
+                              </Form.Group>
+                            </Col>
+                          </>
+                        )}
+
+                        {entryType === "aesthetic" && (
+                          <>
+                            <Col md={6}>
+                              <Form.Group className="mb-3">
+                                <Form.Label className="fw-semibold">Tipo de tratamiento</Form.Label>
+                                <Form.Control
+                                  type="text"
+                                  value={treatmentType}
+                                  onChange={(e) => setTreatmentType(e.target.value)}
+                                  placeholder="Ej: Peeling Químico / Lipoláser"
+                                  className="rounded-xl border-gray-200"
+                                />
+                              </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                              <Form.Group className="mb-3">
+                                <Form.Label className="fw-semibold">Producto utilizado</Form.Label>
+                                <Form.Control
+                                  type="text"
+                                  value={productUsed}
+                                  onChange={(e) => setProductUsed(e.target.value)}
+                                  placeholder="Ej: Ácido glicólico al 30% / Hialurónico"
+                                  className="rounded-xl border-gray-200"
+                                />
+                              </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                              <Form.Group className="mb-3">
+                                <Form.Label className="fw-semibold">Zona tratada</Form.Label>
+                                <Form.Control
+                                  type="text"
+                                  value={treatedZone}
+                                  onChange={(e) => setTreatedZone(e.target.value)}
+                                  placeholder="Ej: Rostro completo / Abdomen"
+                                  className="rounded-xl border-gray-200"
+                                />
+                              </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                              <Form.Group className="mb-3">
+                                <Form.Label className="fw-semibold">Intensidad / Frecuencia</Form.Label>
+                                <Form.Control
+                                  type="text"
+                                  value={intensityFrequency}
+                                  onChange={(e) => setIntensityFrequency(e.target.value)}
+                                  placeholder="Ej: Nivel medio (4J/cm2) / 3ra sesión"
+                                  className="rounded-xl border-gray-200"
+                                />
+                              </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                              <Form.Group className="mb-3">
+                                <Form.Label className="fw-semibold">Reacción del cliente</Form.Label>
+                                <Form.Control
+                                  type="text"
+                                  value={clientReaction}
+                                  onChange={(e) => setClientReaction(e.target.value)}
+                                  placeholder="Ej: Eritema leve, remite a los 20 min"
+                                  className="rounded-xl border-gray-200"
+                                />
+                              </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                              <Form.Group className="mb-3">
+                                <Form.Label className="fw-semibold">Recomendaciones estéticas</Form.Label>
+                                <Form.Control
+                                  type="text"
+                                  value={aestheticRecommendations}
+                                  onChange={(e) => setAestheticRecommendations(e.target.value)}
+                                  placeholder="Ej: Pantalla solar cada 3h / Crema regeneradora"
+                                  className="rounded-xl border-gray-200"
+                                />
+                              </Form.Group>
+                            </Col>
+                          </>
+                        )}
+
+                        {/* Campos clínicos generales */}
+                        {(entryType === "clinical" || entryType === "dentistry" || entryType === "aesthetic") && (
+                          <>
+                            <Col md={6}>
+                              <Form.Group className="mb-3">
+                                <Form.Label className="fw-semibold">Antecedentes médicos relevantes</Form.Label>
+                                <Form.Control
+                                  type="text"
+                                  value={antecedents}
+                                  onChange={(e) => setAntecedents(e.target.value)}
+                                  placeholder="Ej: Hipertensión controlada / Diabetes Tipo II"
+                                  className="rounded-xl border-gray-200"
+                                />
+                              </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                              <Form.Group className="mb-3">
+                                <Form.Label className="fw-semibold text-danger">⚠️ Alergias conocidas</Form.Label>
+                                <Form.Control
+                                  type="text"
+                                  value={allergies}
+                                  onChange={(e) => setAllergies(e.target.value)}
+                                  placeholder="Ej: Penicilina / Látex / Ácido salicílico"
+                                  className="rounded-xl border-gray-200 border-danger bg-red-50 text-red-900"
+                                />
+                              </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                              <Form.Group className="mb-3">
+                                <Form.Label className="fw-semibold">Medicación actual</Form.Label>
+                                <Form.Control
+                                  type="text"
+                                  value={medicationActual}
+                                  onChange={(e) => setMedicationActual(e.target.value)}
+                                  placeholder="Ej: Enalapril 10mg / Aspirina"
+                                  className="rounded-xl border-gray-200"
+                                />
+                              </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                              <Form.Group className="mb-3">
+                                <Form.Label className="fw-semibold text-warning">🚫 Contraindicaciones</Form.Label>
+                                <Form.Control
+                                  type="text"
+                                  value={contraindications}
+                                  onChange={(e) => setContraindications(e.target.value)}
+                                  placeholder="Ej: Marcapasos / Embarazo / Tratamiento anticoagulante"
+                                  className="rounded-xl border-gray-200 border-warning bg-amber-50"
+                                />
+                              </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                              <Form.Group className="mb-3">
+                                <Form.Label className="fw-semibold">Diagnóstico / Motivo de consulta</Form.Label>
+                                <Form.Control
+                                  type="text"
+                                  value={diagnosticMotive}
+                                  onChange={(e) => setDiagnosticMotive(e.target.value)}
+                                  placeholder="Ej: Dolor persistente / Evaluación de manchas faciales"
+                                  className="rounded-xl border-gray-200"
+                                />
+                              </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                              <Form.Group className="mb-3">
+                                <Form.Label className="fw-semibold">Tratamientos realizados en sesión</Form.Label>
+                                <Form.Control
+                                  type="text"
+                                  value={treatmentsDone}
+                                  onChange={(e) => setTreatmentsDone(e.target.value)}
+                                  placeholder="Ej: Curetaje de cuadrante superior / Microdermoabrasión"
+                                  className="rounded-xl border-gray-200"
+                                />
+                              </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                              <Form.Group className="mb-3">
+                                <Form.Label className="fw-semibold text-primary">🗓️ Próximo seguimiento</Form.Label>
+                                <Form.Control
+                                  type="text"
+                                  value={nextFollowUp}
+                                  onChange={(e) => setNextFollowUp(e.target.value)}
+                                  placeholder="Ej: Control telefónico en 48hs / Sesión 2 en 15 días"
+                                  className="rounded-xl border-gray-200 border-primary bg-blue-50"
+                                />
+                              </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                              <Form.Group className="mb-3">
+                                <Form.Label className="fw-semibold">Observaciones Clínicas / Profesionales</Form.Label>
+                                <Form.Control
+                                  type="text"
+                                  value={clinicalObs}
+                                  onChange={(e) => setClinicalObs(e.target.value)}
+                                  placeholder="Ej: Paciente responde bien al tratamiento, sin efectos adversos"
+                                  className="rounded-xl border-gray-200"
+                                />
+                              </Form.Group>
+                            </Col>
+                          </>
+                        )}
+
+                        <Col md={12}>
+                          <Form.Group className="mb-3">
+                            <Form.Label className="fw-semibold">Notas Generales / Evolución</Form.Label>
+                            <Form.Control
+                              as="textarea"
+                              rows={3}
+                              value={entryNotes}
+                              onChange={(e) => setEntryNotes(e.target.value)}
+                              placeholder="Escribe comentarios, observaciones generales o recomendaciones de autocuidado..."
+                              className="rounded-xl border-gray-200 focus-ring-purple"
+                            />
+                          </Form.Group>
+                        </Col>
+                      </Row>
+
+                      <div className="d-flex justify-content-end gap-2 mt-4">
+                        <Button variant="light" className="rounded-xl px-4 py-2" onClick={() => setShowEntryModal(false)}>
+                          Cancelar
+                        </Button>
+                        <Button
+                          variant="purple"
+                          type="submit"
+                          disabled={savingNotes}
+                          className="rounded-xl px-4 py-2 text-white bg-purple-600 border-0 hover-bg-purple-700 shadow"
+                        >
+                          {savingNotes ? "Guardando..." : "Guardar Entrada"}
+                        </Button>
+                      </div>
+                    </Form>
+                  </Modal.Body>
+                </Modal>
+            {/* PESTAÑA 2: PREFERENCIAS Y FÓRMULAS (NEGOCIOS ESTÉTICOS) */}
+            {activeTab === "preferencias_formulas" && !isMedical && (
               <div>
                 <Row className="g-4">
-                  {/* Fórmulas Químicas y Preferencias Estables */}
-                  <Col md={12}>
-                    <Card className="border-0 border bg-white p-4 rounded-2xl shadow-sm mb-4">
-                      <div className="d-flex justify-content-between align-items-center mb-3">
-                        <h3 className="h6 fw-bold m-0 d-flex align-items-center gap-2 text-gray-900">
-                          <BookOpen size={18} className="text-purple-500" />
-                          <span>Fórmula Química de Coloración y Preferencias Generales</span>
-                        </h3>
-                        {notesSavedStatus === "success" && (
-                          <span className="text-emerald-600 fw-bold small animate-pulse">✓ ¡Notas guardadas correctamente!</span>
-                        )}
-                        {notesSavedStatus === "error" && (
-                          <span className="text-red-600 fw-bold small">⚠️ Error al guardar notas.</span>
-                        )}
-                      </div>
-                      
-                      <Form.Group className="mb-3">
-                        <Form.Control
-                          as="textarea"
-                          rows={4}
-                          value={notesText}
-                          readOnly={!canEditNotes}
-                          onChange={(e) => setNotesText(e.target.value)}
-                          placeholder={canEditNotes ? "Fórmulas de coloración frecuentes, tiempos de pose, productos favoritos del cliente, alergias..." : "No tienes permisos para editar estas notas clínicas."}
-                          className="border-gray-200 rounded-xl p-3 focus-ring-purple shadow-sm-hover"
-                          style={{ fontSize: "14px" }}
-                        />
-                      </Form.Group>
-
-                      {canEditNotes && (
-                        <div className="d-flex justify-content-end">
-                          <Button
-                            variant="purple"
-                            disabled={savingNotes}
-                            onClick={handleSaveNotes}
-                            className="rounded-xl px-4 py-2 fw-bold text-white bg-purple-600 hover-bg-purple-700 d-flex align-items-center gap-1.5 shadow"
-                          >
-                            {savingNotes ? (
-                              <>
-                                <Spinner size="sm" animation="border" />
-                                <span>Guardando...</span>
-                              </>
-                            ) : (
-                              <>
-                                <Save size={16} />
-                                <span>Guardar Cambios</span>
-                              </>
-                            )}
-                          </Button>
+                  {/* Tarjeta de Ficha de Estilo y Preferencias del Cliente */}
+                  {canViewNotes && (
+                    <Col md={12}>
+                      <Card className="border-0 border bg-white p-4 rounded-2xl shadow-sm">
+                        <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2 pb-2 border-bottom">
+                          <h3 className="h6 fw-bold m-0 d-flex align-items-center gap-2 text-gray-900">
+                            <Sparkles size={18} className="text-pink-500 animate-pulse" />
+                            <span>Ficha de Estilo & Preferencias del Cliente</span>
+                          </h3>
+                          {notesSavedStatus === "success" && (
+                            <span className="text-emerald-600 fw-bold small animate-pulse">✓ ¡Ficha guardada con éxito!</span>
+                          )}
+                          {notesSavedStatus === "error" && (
+                            <span className="text-red-600 fw-bold small">⚠️ Error al guardar preferencias.</span>
+                          )}
                         </div>
-                      )}
-                    </Card>
-                  </Col>
 
-                  {/* Evolución clínica registrada sesión por sesión */}
+                        <Row className="g-3">
+                          <Col md={6}>
+                            <Form.Group>
+                              <Form.Label className="fw-semibold text-xs text-muted text-uppercase tracking-wider">Alergias o Sensibilidades Técnicas</Form.Label>
+                              <Form.Control
+                                as="textarea"
+                                rows={3}
+                                value={allergiesText}
+                                readOnly={!canEditNotes}
+                                onChange={(e) => setAllergiesText(e.target.value)}
+                                placeholder="Ej: Sensibilidad a colorantes comunes. Usar tinturas sin amoníaco o tratamientos hipoalergénicos."
+                                className="border-gray-200 rounded-xl p-2.5 focus-ring-purple bg-red-50 bg-opacity-40 border-danger border-opacity-30 text-red-900"
+                                style={{ fontSize: "13.5px" }}
+                              />
+                            </Form.Group>
+                          </Col>
+
+                          <Col md={6}>
+                            <Form.Group>
+                              <Form.Label className="fw-semibold text-xs text-muted text-uppercase tracking-wider">Productos y Marcas Favoritas</Form.Label>
+                              <Form.Control
+                                as="textarea"
+                                rows={3}
+                                value={favoriteProducts}
+                                readOnly={!canEditNotes}
+                                onChange={(e) => setFavoriteProducts(e.target.value)}
+                                placeholder="Ej: Prefiere L'Oréal Professionnel, Kérastase, o esmaltes semipermanentes OPI."
+                                className="border-gray-200 rounded-xl p-2.5 focus-ring-purple bg-pink-50 bg-opacity-30 text-gray-800"
+                                style={{ fontSize: "13.5px" }}
+                              />
+                            </Form.Group>
+                          </Col>
+
+                          <Col md={12}>
+                            <Form.Group>
+                              <Form.Label className="fw-semibold text-xs text-muted text-uppercase tracking-wider">Preferencias de Servicio y Estilo</Form.Label>
+                              <Form.Control
+                                as="textarea"
+                                rows={3}
+                                value={preferences}
+                                readOnly={!canEditNotes}
+                                onChange={(e) => setPreferences(e.target.value)}
+                                placeholder="Ej: Toma café cortado tibio con endulzante. Prefiere tonos ceniza y balayage natural. Cabello abundante y grueso."
+                                className="border-gray-200 rounded-xl p-2.5 focus-ring-purple text-gray-800"
+                                style={{ fontSize: "13.5px" }}
+                              />
+                            </Form.Group>
+                          </Col>
+
+                          <Col md={12}>
+                            <Form.Group>
+                              <Form.Label className="fw-semibold text-xs text-muted text-uppercase tracking-wider">Notas Internas / Observaciones Profesionales</Form.Label>
+                              <Form.Control
+                                as="textarea"
+                                rows={3}
+                                value={internalNotes}
+                                readOnly={!canEditNotes}
+                                onChange={(e) => setInternalNotes(e.target.value)}
+                                placeholder="Observaciones adicionales, gustos de conversación, o notas comerciales..."
+                                className="border-gray-200 rounded-xl p-2.5 focus-ring-purple text-gray-800"
+                                style={{ fontSize: "13.5px" }}
+                              />
+                            </Form.Group>
+                          </Col>
+                        </Row>
+
+                        {canEditNotes && (
+                          <div className="d-flex justify-content-end mt-3 border-top pt-3">
+                            <Button
+                              variant="purple"
+                              disabled={savingNotes}
+                              onClick={handleSaveAestheticPreferences}
+                              className="rounded-xl px-4 py-2 fw-bold text-white bg-purple-600 hover-bg-purple-700 d-flex align-items-center gap-1.5 shadow"
+                            >
+                              {savingNotes ? (
+                                <>
+                                  <Spinner size="sm" animation="border" />
+                                  <span>Guardando...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Save size={16} />
+                                  <span>Guardar Ficha de Preferencias</span>
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        )}
+                      </Card>
+                    </Col>
+                  )}
+
+                  {/* Fichas Técnicas / Fórmulas Sesión por Sesión */}
                   <Col md={12}>
                     <Card className="border-0 border bg-white p-4 rounded-2xl shadow-sm">
-                      <h3 className="h6 fw-bold mb-4 d-flex align-items-center gap-2 text-gray-900 border-bottom pb-3">
-                        <Activity size={18} className="text-purple-500" />
-                        <span>Historial Clínico Sesión por Sesión</span>
-                      </h3>
+                      <div className="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom flex-wrap gap-2">
+                        <h3 className="h6 fw-bold m-0 d-flex align-items-center gap-2 text-gray-900">
+                          <BookOpen size={18} className="text-pink-500" />
+                          <span>Fórmulas & Sesiones Técnicas (Historial)</span>
+                        </h3>
+                        {canCreateClinical && (
+                          <Button 
+                            variant="pink" 
+                            className="rounded-xl px-4 py-2 text-white bg-pink-600 border-0 hover-bg-pink-700 fw-bold shadow-sm d-flex align-items-center gap-1.5"
+                            onClick={handleOpenNewEntry}
+                            style={{ backgroundColor: "#db2777" }}
+                          >
+                            <Sparkles size={14} />
+                            <span>Nueva Fórmula capilar/estética</span>
+                          </Button>
+                        )}
+                      </div>
 
-                      {crmData.clinicalHistory?.length === 0 ? (
-                        <div className="text-center py-5 text-muted small">
-                          Aún no hay registros de evolución específicos para este cliente. Se agregarán automáticamente al finalizar servicios en la agenda.
+                      {!canViewClinical ? (
+                        <div className="text-center py-4 bg-light rounded-xl text-muted small">
+                          🔒 No posees permisos para ver el historial de fórmulas técnicas de sesiones de este cliente.
+                        </div>
+                      ) : loadingClinical ? (
+                        <div className="text-center py-5">
+                          <Spinner animation="border" variant="purple" className="text-purple-600" />
+                          <p className="text-muted mt-2 fw-semibold">Cargando fórmulas y fichas técnicas...</p>
+                        </div>
+                      ) : errorClinical ? (
+                        <Alert variant="danger" className="rounded-xl">{errorClinical}</Alert>
+                      ) : clinicalEntries.length === 0 ? (
+                        <div className="text-center py-5 text-muted small bg-light rounded-2xl border">
+                          Aún no hay fichas de sesión o fórmulas de coloración registradas para este cliente. ¡Hacé clic en "Nueva Fórmula" para empezar!
                         </div>
                       ) : (
                         <div className="d-flex flex-column gap-4">
-                          {crmData.clinicalHistory.map((noteRecord) => {
-                            // Find matching photos for this appointment
-                            const sessionPhotos = crmData.gallery?.filter(p => p.appointmentId === noteRecord.appointmentId) || [];
-                            
+                          {clinicalEntries.map((entry) => {
+                            const fd = entry.formulaData || {};
                             return (
-                              <div key={noteRecord.id} className="p-3 border rounded-2xl bg-light shadow-sm-hover transition-all">
+                              <div key={entry.id} className="p-3 border rounded-2xl bg-light shadow-sm-hover transition-all">
                                 <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 border-bottom pb-2 mb-2">
-                                  <div>
-                                    <span className="badge bg-purple-100 text-purple-700 fw-bold px-2.5 py-1.5 rounded-lg me-2">
-                                      {noteRecord.appointment?.service?.name || "Servicio"}
-                                    </span>
-                                    <span className="text-muted small fw-semibold">
-                                      Estilista: {noteRecord.worker ? `${noteRecord.worker.firstName} ${noteRecord.worker.lastName}` : "Profesional"}
-                                    </span>
+                                  <div className="d-flex align-items-center gap-2 flex-wrap">
+                                    <Badge 
+                                      className="rounded-pill px-2.5 py-1.5 fw-bold text-white"
+                                      style={{
+                                        backgroundColor: 
+                                          entry.type === "hair_formula" ? "#ec4899" :
+                                          entry.type === "aesthetic" ? "#10b981" : "#6b7280"
+                                      }}
+                                    >
+                                      {
+                                        entry.type === "hair_formula" ? "Fórmula Capilar" :
+                                        entry.type === "aesthetic" ? "Tratamiento de Estética" : "Ficha General"
+                                      }
+                                    </Badge>
+                                    <span className="fw-bold text-gray-900">{entry.title}</span>
                                   </div>
-                                  <small className="text-purple-700 fw-bold bg-purple-50 rounded-pill px-3 py-1">
-                                    📅 {new Date(noteRecord.createdAt).toLocaleDateString("es-AR", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })} hs
-                                  </small>
+                                  <div className="d-flex align-items-center gap-2">
+                                    <span className="text-muted small fw-semibold bg-white rounded-pill px-3 py-1 shadow-sm border">
+                                      👤 {entry.createdBy} • 📅 {new Date(entry.createdAt).toLocaleDateString("es-AR", { day: "numeric", month: "short", year: "numeric" })}
+                                    </span>
+                                    {canEditClinical && (
+                                      <Button size="sm" variant="outline-purple" className="py-1 px-2.5 rounded-xl text-xs fw-bold" onClick={() => handleOpenEditEntry(entry)}>
+                                        Editar
+                                      </Button>
+                                    )}
+                                    {canDeleteClinical && (
+                                      <Button size="sm" variant="outline-danger" className="py-1 px-2.5 rounded-xl text-xs fw-bold" onClick={() => handleDeleteEntry(entry.id)}>
+                                        Eliminar
+                                      </Button>
+                                    )}
+                                  </div>
                                 </div>
 
-                                <div className="text-gray-700 p-2 rounded bg-white border-left border-purple-500 mb-3" style={{ fontSize: "14px", borderLeft: "4px solid #9333ea" }}>
-                                  <div className="fw-semibold text-xs text-muted mb-1 text-uppercase tracking-wider">Notas de Sesión</div>
-                                  {noteRecord.note}
-                                </div>
-
-                                {noteRecord.recommendations && (
-                                  <div className="mb-3 d-flex align-items-start gap-2 bg-emerald-50 text-emerald-800 p-2.5 rounded-xl border border-emerald-100" style={{ fontSize: "13px" }}>
-                                    <span className="fw-bold">🌱 Cuidados recomendados en casa:</span>
-                                    <span>{noteRecord.recommendations}</span>
+                                {entry.notes && (
+                                  <div className="text-gray-700 p-2.5 rounded-xl bg-white border-start border-purple-500 mb-3" style={{ fontSize: "14px", borderLeft: "4px solid #9333ea" }}>
+                                    <div className="fw-semibold text-xs text-muted mb-1 text-uppercase tracking-wider">Notas de Sesión</div>
+                                    {entry.notes}
                                   </div>
                                 )}
 
-                                {/* Photos of this specific session */}
-                                {sessionPhotos.length > 0 && (
-                                  <div className="mt-3">
-                                    <div className="fw-semibold text-xs text-muted mb-2 text-uppercase tracking-wider">Galería Antes y Después de la Sesión</div>
-                                    <Row className="g-3">
-                                      {sessionPhotos.map((photo) => (
-                                        <Col xs={6} md={3} key={photo.id}>
-                                          <div className="position-relative rounded-xl overflow-hidden border aspect-video shadow-sm" style={{ height: "130px" }}>
-                                            <img
-                                              src={getImageUrl(photo.imageUrl)}
-                                              alt={photo.type}
-                                              className="w-100 h-100 object-fit-cover"
-                                              style={{ objectFit: "cover", width: "100%", height: "100%" }}
-                                            />
-                                            <span 
-                                              className={`position-absolute bottom-2 left-2 badge rounded-pill px-2.5 py-1 text-white fw-bold ${
-                                                photo.type === "before" ? "bg-amber-500" : "bg-emerald-500"
-                                              }`}
-                                              style={{ fontSize: "10px", left: "8px", bottom: "8px" }}
-                                            >
-                                              {photo.type === "before" ? "Antes" : "Después"}
-                                            </span>
-                                          </div>
-                                        </Col>
-                                      ))}
-                                    </Row>
-                                  </div>
+                                {entry.type === "hair_formula" && (
+                                  <Row className="g-2 text-xs text-gray-700 bg-pink-50 bg-opacity-40 p-3 rounded-xl border border-pink-100 mb-2">
+                                    {fd.colorFormula && <Col xs={6} md={4}><strong>Fórmula:</strong> {fd.colorFormula}</Col>}
+                                    {fd.oxidant && <Col xs={6} md={4}><strong>Oxidante:</strong> {fd.oxidant}</Col>}
+                                    {fd.exposureTime && <Col xs={6} md={4}><strong>Tiempo Exp:</strong> {fd.exposureTime}</Col>}
+                                    {fd.brandUsed && <Col xs={6} md={4}><strong>Marca:</strong> {fd.brandUsed}</Col>}
+                                    {fd.techniqueApplied && <Col xs={6} md={4}><strong>Técnica:</strong> {fd.techniqueApplied}</Col>}
+                                    {fd.expectedResult && <Col xs={6} md={4}><strong>Resultado esperado:</strong> {fd.expectedResult}</Col>}
+                                    {fd.postServiceObs && <Col xs={12} className="mt-2 pt-2 border-top border-pink-100"><strong>Observaciones post-servicio:</strong> {fd.postServiceObs}</Col>}
+                                  </Row>
+                                )}
+
+                                {entry.type === "aesthetic" && (
+                                  <Row className="g-2 text-xs text-gray-700 bg-emerald-50 bg-opacity-40 p-3 rounded-xl border border-emerald-100 mb-2">
+                                    {fd.treatmentType && <Col xs={6} md={4}><strong>Tratamiento:</strong> {fd.treatmentType}</Col>}
+                                    {fd.productUsed && <Col xs={6} md={4}><strong>Producto:</strong> {fd.productUsed}</Col>}
+                                    {fd.treatedZone && <Col xs={6} md={4}><strong>Zona tratada:</strong> {fd.treatedZone}</Col>}
+                                    {fd.intensityFrequency && <Col xs={6} md={4}><strong>Intensidad:</strong> {fd.intensityFrequency}</Col>}
+                                    {fd.clientReaction && <Col xs={6} md={4}><strong>Reacción:</strong> {fd.clientReaction}</Col>}
+                                    {fd.aestheticRecommendations && <Col xs={12} className="mt-2 pt-2 border-top border-emerald-100"><strong>Recomendaciones:</strong> {fd.aestheticRecommendations}</Col>}
+                                  </Row>
                                 )}
                               </div>
                             );
@@ -566,7 +1641,7 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
                 <Card className="border-0 border bg-white p-4 rounded-2xl shadow-sm">
                   <h3 className="h6 fw-bold mb-4 d-flex align-items-center gap-2 text-gray-900 border-bottom pb-3">
                     <Clock size={18} className="text-purple-500" />
-                    <span>Línea de Tiempo de Evolución (Visual CRM)</span>
+                    <span>{isMedical ? "Línea de Tiempo de Evolución Clínica" : "Línea de Tiempo de Evolución y Estilo"}</span>
                   </h3>
 
                   {(() => {
@@ -635,7 +1710,7 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
 
                                 {event.type === "clinical_note" && (
                                   <div className="mt-2 pt-2 border-top border-gray-200">
-                                    <div className="text-muted smaller fw-bold uppercase">Recomendaciones:</div>
+                                    <div className="text-muted smaller fw-bold uppercase">{isMedical ? "Recomendaciones Clínicas:" : "Recomendaciones de Estilo/Autocuidado:"}</div>
                                     <div className="text-emerald-800 bg-emerald-50 rounded p-2 mt-1">
                                       {event.metadata.recommendations || "Sin especificaciones especiales."}
                                     </div>
