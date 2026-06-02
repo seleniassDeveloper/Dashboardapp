@@ -45,8 +45,8 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
   const [loadingCrm, setLoadingCrm] = useState(false);
   const [errorCrm, setErrorCrm] = useState("");
   const [activeTab, setActiveTab] = useState("resumen");
-
-  // Edición de Notas Generales / Fórmul  const [notesText, setNotesText] = useState("");
+  // Edición de Notas Generales / Fórmulas
+  const [notesText, setNotesText] = useState("");
   const [savingNotes, setSavingNotes] = useState(false);
   const [notesSavedStatus, setNotesSavedStatus] = useState(""); // "success" | "error" | ""
 
