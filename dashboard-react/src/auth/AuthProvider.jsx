@@ -327,6 +327,18 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
+    // Check if there is an active demo session first
+    const isDemo = localStorage.getItem("auradash_demo_session") === "true";
+    if (isDemo) {
+      setUser({ email: "demo@auradash.digital", displayName: "Usuario Demo", uid: "quick-booking-user" });
+      setRole("owner");
+      setPermissions(DEV_OWNER_PERMISSIONS);
+      setIsUnauthorized(false);
+      setBusiness({ id: "business-default", name: "Aura Studio (Demo)" });
+      setAuthLoading(false);
+      return;
+    }
+
     if (!firebaseConfigOk() || !firebaseAuth) {
       setAuthLoading(false);
       return;
@@ -390,6 +402,13 @@ export function AuthProvider({ children }) {
         config.headers["x-finance-bypass-token"] = financeBypassToken;
       }
 
+      // Check if we are in demo mode
+      const isDemo = localStorage.getItem("auradash_demo_session") === "true";
+      if (isDemo) {
+        config.headers.Authorization = `Bearer aura-admin-token`;
+        return config;
+      }
+
       if (!firebaseAuth) return config;
 
       if (firebaseAuth.authStateReady) {
@@ -425,6 +444,16 @@ export function AuthProvider({ children }) {
   const registerWithEmailPassword = useCallback(async () => {}, []);
   const sendPasswordReset = useCallback(async () => {}, []);
 
+  const loginDemo = useCallback(() => {
+    localStorage.setItem("auradash_demo_session", "true");
+    setUser({ email: "demo@auradash.digital", displayName: "Usuario Demo", uid: "quick-booking-user" });
+    setRole("owner");
+    setPermissions(DEV_OWNER_PERMISSIONS);
+    setIsUnauthorized(false);
+    setBusiness({ id: "business-default", name: "Aura Studio (Demo)" });
+    setAuthLoading(false);
+  }, []);
+
   const loginWithGoogle = useCallback(async () => {
     if (!firebaseAuth) throw new Error(i18n.t("auth:errors.firebaseNotConfigured", { defaultValue: "Firebase is not configured." }));
     setAuthError("");
@@ -447,6 +476,7 @@ export function AuthProvider({ children }) {
   }, [fetchSession]);
 
   const logout = useCallback(async () => {
+    localStorage.removeItem("auradash_demo_session");
     localStorage.removeItem("authToken");
     localStorage.removeItem("active_business_id");
     sessionStorage.removeItem("finance_bypass_token");
@@ -482,8 +512,8 @@ export function AuthProvider({ children }) {
       financeUnlocked,
       unlockFinance,
       lockFinance,
-      userBusinesses,
       switchBusiness,
+      loginDemo,
     }),
     [
       user,
@@ -502,6 +532,7 @@ export function AuthProvider({ children }) {
       lockFinance,
       userBusinesses,
       switchBusiness,
+      loginDemo,
     ]
   );
 

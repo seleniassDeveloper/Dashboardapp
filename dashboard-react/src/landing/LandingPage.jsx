@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Container, Row, Col, Badge, Nav, Navbar } from "react-bootstrap";
+import { useAuth } from "../auth/AuthProvider.jsx";
 import {
   Users,
   Calendar,
@@ -119,7 +120,7 @@ function HowItWorksModal({ show, onHide }) {
   );
 }
 
-function MainNavbar({ onHowItWorks }) {
+function MainNavbar({ onHowItWorks, onFreeTrial }) {
   const { t } = useTranslation("landing");
   return (
     <Navbar bg="transparent" expand="lg" className="py-4">
@@ -137,7 +138,10 @@ function MainNavbar({ onHowItWorks }) {
             <Nav.Link href="#funcionalidades" className="fw-semibold">{t("nav.features")}</Nav.Link>
             <Nav.Link href="#precios" className="fw-semibold">{t("nav.pricing")}</Nav.Link>
             <LanguageSwitcher variant="landing" />
-            <Link to="/app" className="btn-premium px-4 py-2 text-decoration-none">
+            <button onClick={onFreeTrial} className="btn-premium px-4 py-2 text-decoration-none border-0 text-white bg-purple-600 hover-bg-purple-700" style={{ fontWeight: 600 }}>
+              Prueba Gratis
+            </button>
+            <Link to="/app" className="btn-outline-premium px-4 py-2 text-decoration-none" style={{ fontWeight: 600 }}>
               {t("nav.enterApp")}
             </Link>
           </Nav>
@@ -151,6 +155,13 @@ export default function LandingPage() {
   useScrollReveal();
   const { t } = useTranslation("landing");
   const [showManual, setShowManual] = useState(false);
+  const navigate = useNavigate();
+  const { loginDemo } = useAuth();
+
+  const handleFreeTrial = () => {
+    loginDemo();
+    navigate("/app");
+  };
 
   // Estados del simulador interactivo de Aura AI Copilot
   const [aiPrompt, setAiPrompt] = useState(null);
@@ -186,7 +197,7 @@ export default function LandingPage() {
 
   return (
     <div className="landing-premium">
-      <MainNavbar onHowItWorks={() => setShowManual(true)} />
+      <MainNavbar onHowItWorks={() => setShowManual(true)} onFreeTrial={handleFreeTrial} />
 
       <main>
         {/* HERO SECTION */}
@@ -203,9 +214,9 @@ export default function LandingPage() {
                   {t("hero.subtitle")}
                 </p>
                 <div className="d-flex gap-3">
-                  <Link to="/app" className="btn-premium px-5 py-3 text-decoration-none shadow-lg">
-                    {t("hero.ctaPrimary")}
-                  </Link>
+                  <button onClick={handleFreeTrial} className="btn-premium px-5 py-3 text-decoration-none shadow-lg border-0 text-white bg-purple-600 hover-bg-purple-700" style={{ fontWeight: 600 }}>
+                    Prueba Gratis (Demo)
+                  </button>
                   <button onClick={() => setShowManual(true)} className="btn-outline-premium px-5 py-3 d-flex align-items-center gap-2">
                     <Play size={16} />
                     {t("hero.ctaSecondary")}

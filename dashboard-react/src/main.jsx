@@ -27,18 +27,18 @@ import AcceptInviteView from "./views/AcceptInviteView.jsx";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <BrowserRouter>
-    <Routes>
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/guide" element={<HowItWorks />} />
-      <Route path="/booking/:businessSlug" element={<PublicBookingPage />} />
-      <Route path="/booking/:businessSlug/success" element={<BookingSuccess />} />
-      <Route path="/booking/:businessSlug/add" element={<QuickAddBookingPage />} />
-      <Route path="/invite/:token" element={<AcceptInviteView />} />
-      <Route
-        path="/app/*"
-        element={
-          <DashboardAppRoute>
-            <AuthProvider>
+    <AuthProvider>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/guide" element={<HowItWorks />} />
+        <Route path="/booking/:businessSlug" element={<PublicBookingPage />} />
+        <Route path="/booking/:businessSlug/success" element={<BookingSuccess />} />
+        <Route path="/booking/:businessSlug/add" element={<QuickAddBookingPage />} />
+        <Route path="/invite/:token" element={<AcceptInviteView />} />
+        <Route
+          path="/app/*"
+          element={
+            <DashboardAppRoute>
               <BusinessProvider>
                 <ErrorBoundary>
                   <LoginGate>
@@ -50,11 +50,11 @@ ReactDOM.createRoot(document.getElementById("root")).render(
                   </LoginGate>
                 </ErrorBoundary>
               </BusinessProvider>
-            </AuthProvider>
-          </DashboardAppRoute>
-        }
-      />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+            </DashboardAppRoute>
+          }
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </AuthProvider>
   </BrowserRouter>
 );

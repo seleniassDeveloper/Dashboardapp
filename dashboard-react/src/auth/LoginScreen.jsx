@@ -12,6 +12,7 @@ export default function LoginScreen() {
     firebaseErrorMessage,
     authError,
     clearAuthError,
+    loginDemo,
   } = useAuth();
 
   const [submitting, setSubmitting] = useState(false);
@@ -115,6 +116,25 @@ export default function LoginScreen() {
             />
           </svg>
           {submitting ? "Redireccionando a Google..." : "Iniciar sesión con Google"}
+        </button>
+
+        <div className="d-flex align-items-center my-4">
+          <div className="flex-grow-1 border-bottom" style={{ borderColor: "rgba(0, 0, 0, 0.08)" }}></div>
+          <span className="mx-3 text-secondary" style={{ fontSize: "11px", textTransform: "uppercase", fontWeight: 600 }}>o bien</span>
+          <div className="flex-grow-1 border-bottom" style={{ borderColor: "rgba(0, 0, 0, 0.08)" }}></div>
+        </div>
+
+        <button
+          type="button"
+          className="btn-demo-bypass w-100 py-3 rounded-pill d-flex align-items-center justify-content-center gap-2 border-0 shadow-sm fw-bold transition-all text-white hover-scale-subtle"
+          onClick={loginDemo}
+          style={{
+            fontSize: "14px",
+            background: "linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)",
+            transition: "all 0.2s ease"
+          }}
+        >
+          Iniciar sesión con Prueba Gratis (Demo)
         </button>
 
         {errorCode === "auth/unauthorized-domain" && (

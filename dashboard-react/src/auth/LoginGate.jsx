@@ -16,7 +16,8 @@ export default function LoginGate({ children }) {
     logout,
     isUnauthorized,
     role,
-    firestoreError
+    firestoreError,
+    loginDemo
   } = useAuth();
 
   const googleRedirectPending =
@@ -132,6 +133,14 @@ service cloud.firestore {
               >
                 <LogOut size={15} />
                 <span>Cerrar sesión activa</span>
+              </Button>
+              <Button
+                variant="purple"
+                onClick={loginDemo}
+                className="rounded-pill px-4.5 py-2.5 smaller fw-bold d-flex align-items-center justify-content-center gap-2 text-white bg-purple-600 hover-bg-purple-700 border-0 shadow-sm"
+                style={{ fontSize: "12.5px", transition: "all 0.2s" }}
+              >
+                <span>Acceder con Prueba Gratis (Demo)</span>
               </Button>
             </div>
           </div>
