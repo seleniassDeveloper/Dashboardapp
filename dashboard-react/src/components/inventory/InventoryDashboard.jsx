@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Row, Col, Card, Badge, Offcanvas, ListGroup, Form } from "react-bootstrap";
+import { Row, Col, Card, Badge, Offcanvas, ListGroup, Form, Alert } from "react-bootstrap";
 import { Package, AlertTriangle, DollarSign, TrendingUp, Sparkles, X, ArrowUpRight } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell } from "recharts";
 
