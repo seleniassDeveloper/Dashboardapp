@@ -146,6 +146,10 @@ export default function CommandPalette({ show, onClose, onAction }) {
   const [workers, setWorkers] = useState([]);
   const [services, setServices] = useState([]);
   const [clients, setClients] = useState([]);
+  const [appointments, setAppointments] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
+  const [workflows, setWorkflows] = useState([]);
   const [loadingClients, setLoadingClients] = useState(false);
   
   const [recents, setRecents] = useState([]);
@@ -188,7 +192,7 @@ export default function CommandPalette({ show, onClose, onAction }) {
     }
   }, [show]);
 
-  // Load catalog items (services & workers) once on open
+  // Load catalog items, appointments, products, and workflows once on open
   useEffect(() => {
     if (!show) return;
     
@@ -199,6 +203,22 @@ export default function CommandPalette({ show, onClose, onAction }) {
     api.get("/services")
       .then(res => setServices(Array.isArray(res.data) ? res.data : []))
       .catch(err => console.error("Error loading services in CommandPalette:", err));
+
+    api.get("/appointments")
+      .then(res => setAppointments(Array.isArray(res.data) ? res.data : []))
+      .catch(err => console.error("Error loading appointments in CommandPalette:", err));
+
+    api.get("/inventory/products")
+      .then(res => setProducts(Array.isArray(res.data) ? res.data : []))
+      .catch(err => console.error("Error loading products in CommandPalette:", err));
+
+    api.get("/inventory/suppliers")
+      .then(res => setSuppliers(Array.isArray(res.data) ? res.data : []))
+      .catch(err => console.error("Error loading suppliers in CommandPalette:", err));
+
+    api.get("/workflows")
+      .then(res => setWorkflows(Array.isArray(res.data) ? res.data : []))
+      .catch(err => console.error("Error loading workflows in CommandPalette:", err));
   }, [show]);
 
   // Real-time clients search (debounced)
@@ -279,6 +299,42 @@ export default function CommandPalette({ show, onClose, onAction }) {
     }));
   }, [clients]);
 
+  const matchedAppointments = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return [];
+    return appointments
+      .filter(appt => {
+        const clientName = `${appt.client?.firstName || ""} ${appt.client?.lastName || ""}`.toLowerCase();
+        const workerName = `${appt.worker?.firstName || ""} ${appt.worker?.lastName || ""}`.toLowerCase();
+        const serviceName = (appt.service?.name || "").toLowerCase();
+        const notes = (appt.notes || "").toLowerCase();
+        return clientName.includes(q) || workerName.includes(q) || serviceName.includes(q) || notes.includes(q);
+      })
+      .map(appt => {
+        const cName = `${appt.client?.firstName || ""} ${appt.client?.lastName || ""}`.trim() || (isEs ? "Cliente" : "Client");
+        const wName = `${appt.worker?.firstName || ""} ${appt.worker?.lastName || ""}`.trim() || (isEs ? "Profesional" : "Staff");
+        const sName = appt.service?.name || (isEs ? "Servicio" : "Service");
+        const dateStr = appt.startsAt 
+          ? new Date(appt.startsAt).toLocaleString(isEs ? "es-AR" : "en-US", {
+              day: "numeric",
+              month: "short",
+              hour: "2-digit",
+              minute: "2-digit"
+            })
+          : "";
+        return {
+          id: `appt_${appt.id}`,
+          type: "appointment",
+          nameEs: `Cita: ${cName} (${sName})`,
+          nameEn: `Appt: ${cName} (${sName})`,
+          icon: "📅",
+          subtitle: `${isEs ? "Atiende" : "Staff"}: ${wName} · ${dateStr} hs · ${appt.status || "CONFIRMED"}`,
+          data: appt,
+          actionType: "view_appointment"
+        };
+      });
+  }, [appointments, query, isEs]);
+
   const matchedServices = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return [];
@@ -321,6 +377,68 @@ export default function CommandPalette({ show, onClose, onAction }) {
       }));
   }, [workers, query]);
 
+  const matchedProducts = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return [];
+    return products
+      .filter(p => {
+        const name = (p.name || "").toLowerCase();
+        const cat = (p.category || "").toLowerCase();
+        const sku = (p.sku || "").toLowerCase();
+        return name.includes(q) || cat.includes(q) || sku.includes(q);
+      })
+      .map(p => ({
+        id: `product_${p.id}`,
+        type: "product",
+        nameEs: `Insumo: ${p.name}`,
+        nameEn: `Product: ${p.name}`,
+        icon: "📦",
+        subtitle: `${isEs ? "Stock" : "Stock"}: ${p.stock || 0} ${p.unit || "uds"} · SKU: ${p.sku || "—"} · Cat: ${p.category || "—"}`,
+        path: "/app/inventory"
+      }));
+  }, [products, query, isEs]);
+
+  const matchedSuppliers = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return [];
+    return suppliers
+      .filter(s => {
+        const name = (s.name || "").toLowerCase();
+        const contact = (s.contactName || "").toLowerCase();
+        const email = (s.email || "").toLowerCase();
+        return name.includes(q) || contact.includes(q) || email.includes(q);
+      })
+      .map(s => ({
+        id: `supplier_${s.id}`,
+        type: "supplier",
+        nameEs: `Proveedor: ${s.name}`,
+        nameEn: `Supplier: ${s.name}`,
+        icon: "🏢",
+        subtitle: `${isEs ? "Contacto" : "Contact"}: ${s.contactName || "—"} · ${s.email || "Sin email"}`,
+        path: "/app/inventory"
+      }));
+  }, [suppliers, query, isEs]);
+
+  const matchedWorkflows = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return [];
+    return workflows
+      .filter(w => {
+        const name = (w.name || "").toLowerCase();
+        const trigger = (w.triggerType || "").toLowerCase();
+        return name.includes(q) || trigger.includes(q);
+      })
+      .map(w => ({
+        id: `workflow_${w.id}`,
+        type: "workflow",
+        nameEs: `Flujo: ${w.name}`,
+        nameEn: `Workflow: ${w.name}`,
+        icon: "🔌",
+        subtitle: `${isEs ? "Disparador" : "Trigger"}: ${w.triggerType} · ${w.isActive ? (isEs ? "Activo" : "Active") : (isEs ? "Inactivo" : "Inactive")}`,
+        path: "/app/workflows"
+      }));
+  }, [workflows, query, isEs]);
+
   // Combined searchable flatResults list
   const flatResults = useMemo(() => {
     const q = query.trim();
@@ -348,15 +466,27 @@ export default function CommandPalette({ show, onClose, onAction }) {
       if (matchedClients.length > 0) {
         results.push(...matchedClients.map(item => ({ ...item, categoryGroup: "clients" })));
       }
+      if (matchedAppointments.length > 0) {
+        results.push(...matchedAppointments.map(item => ({ ...item, categoryGroup: "appointments" })));
+      }
       if (matchedServices.length > 0) {
         results.push(...matchedServices.map(item => ({ ...item, categoryGroup: "services" })));
       }
       if (matchedWorkers.length > 0) {
         results.push(...matchedWorkers.map(item => ({ ...item, categoryGroup: "workers" })));
       }
+      if (matchedProducts.length > 0) {
+        results.push(...matchedProducts.map(item => ({ ...item, categoryGroup: "products" })));
+      }
+      if (matchedSuppliers.length > 0) {
+        results.push(...matchedSuppliers.map(item => ({ ...item, categoryGroup: "suppliers" })));
+      }
+      if (matchedWorkflows.length > 0) {
+        results.push(...matchedWorkflows.map(item => ({ ...item, categoryGroup: "workflows" })));
+      }
       return results;
     }
-  }, [query, recents, favorites, matchedModules, matchedActions, matchedClients, matchedServices, matchedWorkers, isEs, isModuleActive]);
+  }, [query, recents, favorites, matchedModules, matchedActions, matchedClients, matchedAppointments, matchedServices, matchedWorkers, matchedProducts, matchedSuppliers, matchedWorkflows, isEs, isModuleActive]);
 
   // Reset focus index when results list updates
   useEffect(() => {
@@ -404,13 +534,11 @@ export default function CommandPalette({ show, onClose, onAction }) {
     e.stopPropagation();
     e.preventDefault();
     
-    // We only favorite modules/actions (since specific records like client_123 change, we want to allow starring navigation modules)
     const isFav = favorites.some(f => f.id === item.id);
     let newFavs;
     if (isFav) {
       newFavs = favorites.filter(f => f.id !== item.id);
     } else {
-      // Create a clean item without categoryGroup
       const cleanItem = { ...item };
       delete cleanItem.categoryGroup;
       delete cleanItem.globalIndex;
@@ -423,7 +551,6 @@ export default function CommandPalette({ show, onClose, onAction }) {
 
   // Log to recents history and route
   const handleSelectItem = (item) => {
-    // Add to recents
     const cleanItem = { ...item };
     delete cleanItem.categoryGroup;
     delete cleanItem.globalIndex;
@@ -433,7 +560,6 @@ export default function CommandPalette({ show, onClose, onAction }) {
     setRecents(newRecents);
     localStorage.setItem("auradash_cmd_recents", JSON.stringify(newRecents));
     
-    // Execute action or navigate
     if (item.path) {
       navigate(item.path);
     } else {
@@ -462,8 +588,12 @@ export default function CommandPalette({ show, onClose, onAction }) {
       case "modules": return isEs ? "Módulos" : "Modules";
       case "actions": return isEs ? "Acciones" : "Actions";
       case "clients": return isEs ? "Clientes" : "Clients";
+      case "appointments": return isEs ? "Citas / Turnos" : "Appointments";
       case "services": return isEs ? "Servicios" : "Services";
       case "workers": return isEs ? "Profesionales" : "Staff";
+      case "products": return isEs ? "Productos / Insumos" : "Products / Stock";
+      case "suppliers": return isEs ? "Proveedores" : "Suppliers";
+      case "workflows": return isEs ? "Flujos de Trabajo" : "Workflows";
       default: return "";
     }
   };
@@ -512,7 +642,6 @@ export default function CommandPalette({ show, onClose, onAction }) {
               {sections[grp].map(item => {
                 const isSelected = item.globalIndex === selectedIndex;
                 const isFav = favorites.some(f => f.id === item.id);
-                // Allow starring only for modules or action items (permanent navigation routes)
                 const showStar = item.type === "module" || item.type === "action";
                 
                 return (

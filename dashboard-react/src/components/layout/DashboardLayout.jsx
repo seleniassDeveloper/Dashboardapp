@@ -65,6 +65,7 @@ export default function DashboardLayout({ children }) {
 
   // Appointment creation states
   const [showAppointmentModal, setShowAppointmentModal] = useState(false);
+  const [editingAppointmentData, setEditingAppointmentData] = useState(null);
 
   // Listen to command palette global hotkey (⌘K / Ctrl+K)
   useEffect(() => {
@@ -86,6 +87,7 @@ export default function DashboardLayout({ children }) {
         setShowClientFormModal(true);
         break;
       case "create_appointment":
+        setEditingAppointmentData(null);
         setShowAppointmentModal(true);
         break;
       case "create_service":
@@ -109,6 +111,10 @@ export default function DashboardLayout({ children }) {
         setWorkerModalMode("edit");
         setEditingWorkerData(action.data);
         setShowWorkerModal(true);
+        break;
+      case "view_appointment":
+        setEditingAppointmentData(action.data);
+        setShowAppointmentModal(true);
         break;
       default:
         break;
@@ -218,7 +224,14 @@ export default function DashboardLayout({ children }) {
       {showAppointmentModal && (
         <AppointmentModal
           show={showAppointmentModal}
-          onHide={() => setShowAppointmentModal(false)}
+          onHide={() => {
+            setShowAppointmentModal(false);
+            setEditingAppointmentData(null);
+          }}
+          initialData={editingAppointmentData}
+          onSaved={() => {
+            // Callback when appointment is saved/edited
+          }}
         />
       )}
 
