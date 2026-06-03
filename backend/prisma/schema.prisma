@@ -405,6 +405,9 @@ model Product {
   orderItems        PurchaseOrderItem[]
   businessId        String?
   business          Business?                @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  color             String?
+  icon              String?
+  label             String?
 
   @@unique([name, businessId])
 }

@@ -55,7 +55,10 @@ async function seedInventoryIfNeeded() {
           unit: "unidad",
           location: "Estante Color A1",
           providerId: supplier1.id,
-          barcode: "7790123456789"
+          barcode: "7790123456789",
+          color: "violet",
+          icon: "brush",
+          label: "Tinte"
         }
       });
 
@@ -71,7 +74,10 @@ async function seedInventoryIfNeeded() {
           unit: "litro",
           location: "Depósito Lavado",
           providerId: supplier2.id,
-          barcode: "7790987654321"
+          barcode: "7790987654321",
+          color: "blue",
+          icon: "droplet",
+          label: "Shampoo"
         }
       });
 
@@ -87,7 +93,10 @@ async function seedInventoryIfNeeded() {
           unit: "litro",
           location: "Estante Tratamientos B2",
           providerId: supplier1.id,
-          barcode: "7791112223334"
+          barcode: "7791112223334",
+          color: "emerald",
+          icon: "sparkles",
+          label: "Keratina"
         }
       });
 
@@ -103,7 +112,10 @@ async function seedInventoryIfNeeded() {
           unit: "unidad",
           location: "Caja Manicuría Estante C",
           providerId: supplier3.id,
-          barcode: "7794445556667"
+          barcode: "7794445556667",
+          color: "pink",
+          icon: "flower",
+          label: "Esmalte"
         }
       });
 
@@ -119,7 +131,10 @@ async function seedInventoryIfNeeded() {
           unit: "litro",
           location: "Estante Color A2",
           providerId: supplier1.id,
-          barcode: "7797778889990"
+          barcode: "7797778889990",
+          color: "cyan",
+          icon: "flask",
+          label: "Oxidante"
         }
       });
 
@@ -208,11 +223,7 @@ export async function getInventoryDashboardData(req, res) {
     await seedInventoryIfNeeded();
 
     const products = await prisma.product.findMany({
-      include: { provider: true, batches: true }
-    });
-
-    const pendingOrdersCount = await prisma.purchaseOrder.count({
-      where: { status: { in: ["DRAFT", "SENT"] } }
+      include: { provider: true }
     });
 
     // 1. Calculations
@@ -222,27 +233,13 @@ export async function getInventoryDashboardData(req, res) {
     const totalValue = products.reduce((sum, p) => sum + (p.stock * p.costPrice), 0);
     const totalUnique = products.length;
 
-    // Expiring soon (next 45 days)
-    const now = new Date();
-    const threshold = new Date(Date.now() + 45 * 24 * 60 * 60 * 1000);
-    const expiringSoonBatches = await prisma.productBatch.findMany({
-      where: {
-        expirationDate: {
-          gte: now,
-          lte: threshold
-        },
-        actualQty: { gt: 0 }
-      },
-      include: { product: true }
-    });
-
     // Estimate consumption (monthly estimate based on total treatments done)
     const appointmentsCount = await prisma.appointment.count({
       where: { status: "DONE" }
     });
     const estimatedMonthlySpend = 15000 + (appointmentsCount * 1200);
 
-    // Most consumed product (mock logic or actual analysis)
+    // Most consumed product
     const mostConsumed = products.sort((a, b) => b.stock - a.stock)[0]?.name || "Tintas Loreal";
 
     return res.status(200).json({
@@ -250,19 +247,10 @@ export async function getInventoryDashboardData(req, res) {
         lowStockCount,
         totalValue,
         totalUnique,
-        expiringSoonCount: expiringSoonBatches.length,
         estimatedMonthlySpend,
-        pendingOrdersCount,
         mostConsumed,
         costliestService: "Balayage Premium"
-      },
-      expiringSoon: expiringSoonBatches.map(b => ({
-        id: b.id,
-        productName: b.product.name,
-        batchNumber: b.batchNumber,
-        expirationDate: b.expirationDate,
-        qty: b.actualQty
-      }))
+      }
     });
   } catch (error) {
     console.error("Error in getInventoryDashboardData:", error);
@@ -287,7 +275,7 @@ export async function listProducts(req, res) {
 
 export async function createProduct(req, res) {
   try {
-    const { name, category, costPrice, salePrice, stock, minStock, maxStock, unit, barcode, location, providerId } = req.body;
+    const { name, category, costPrice, salePrice, stock, minStock, maxStock, unit, barcode, location, providerId, color, icon, label } = req.body;
     if (!name || costPrice === undefined || minStock === undefined) {
       return res.status(400).json({ error: "Campos requeridos: name, costPrice, minStock." });
     }
@@ -304,7 +292,10 @@ export async function createProduct(req, res) {
         unit: unit || "unidad",
         barcode: barcode || null,
         location: location || null,
-        providerId: providerId || null
+        providerId: providerId || null,
+        color: color || null,
+        icon: icon || null,
+        label: label || null
       },
       include: { provider: true }
     });
@@ -362,7 +353,7 @@ export async function createProduct(req, res) {
 export async function updateProduct(req, res) {
   try {
     const { id } = req.params;
-    const { name, category, costPrice, salePrice, stock, minStock, maxStock, unit, barcode, location, providerId } = req.body;
+    const { name, category, costPrice, salePrice, stock, minStock, maxStock, unit, barcode, location, providerId, color, icon, label } = req.body;
 
     const current = await prisma.product.findUnique({ where: { id } });
     if (!current) return res.status(404).json({ error: "Producto no encontrado." });
@@ -383,7 +374,10 @@ export async function updateProduct(req, res) {
         unit,
         barcode,
         location,
-        providerId: providerId || null
+        providerId: providerId || null,
+        color: color !== undefined ? color : undefined,
+        icon: icon !== undefined ? icon : undefined,
+        label: label !== undefined ? label : undefined
       },
       include: { provider: true }
     });

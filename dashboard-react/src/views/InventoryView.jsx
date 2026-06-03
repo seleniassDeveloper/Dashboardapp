@@ -33,18 +33,20 @@ export default function InventoryView() {
   const [suppliers, setSuppliers] = useState([]);
   const [rules, setRules] = useState([]);
   const [movements, setMovements] = useState([]);
+  const [branchesCount, setBranchesCount] = useState(1);
 
   const fetchAllData = async () => {
     try {
       setLoading(true);
       setError("");
 
-      const [dashRes, prodRes, supRes, ruleRes, movRes] = await Promise.all([
+      const [dashRes, prodRes, supRes, ruleRes, movRes, branchRes] = await Promise.all([
         api.get("/inventory/dashboard"),
         api.get("/inventory/products"),
         api.get("/inventory/suppliers"),
         api.get("/inventory/rules"),
-        api.get("/inventory/movements")
+        api.get("/inventory/movements"),
+        api.get("/finances/branches").catch(() => ({ data: [] }))
       ]);
 
       setDashboardData(dashRes.data);
@@ -52,6 +54,7 @@ export default function InventoryView() {
       setSuppliers(Array.isArray(supRes.data) ? supRes.data : []);
       setRules(Array.isArray(ruleRes.data) ? ruleRes.data : []);
       setMovements(Array.isArray(movRes.data) ? movRes.data : []);
+      setBranchesCount(Array.isArray(branchRes.data) ? branchRes.data.length : 1);
     } catch (err) {
       console.error(err);
       setError("No se pudieron cargar los datos del inventario ERP.");
@@ -88,175 +91,84 @@ export default function InventoryView() {
 
       {error && <Alert variant="danger" className="rounded-2xl shadow-sm">{error}</Alert>}
 
-      {/* TOP CATEGORIZED GRID NAVIGATION */}
+      {/* TOP PREMIUM HORIZONTAL NAVIGATION */}
       {dashboardData && (
-        <Card className="card-premium border-0 shadow-sm bg-white p-4 rounded-2xl mb-4">
-          <Row className="g-3">
-            {/* CATEGORÍA 1 */}
-            <Col lg={3} sm={6}>
-              <div className="fw-black text-gray-900 small mb-2 px-1 text-uppercase tracking-wider" style={{ fontSize: "10px", borderBottom: "1px solid #f3f4f6", paddingBottom: "4px" }}>
-                📦 Catálogo y Almacén
-              </div>
-              <div className="d-flex flex-column gap-1">
-                <button
-                  onClick={() => setActiveTab("resumen")}
-                  className={`d-flex align-items-center gap-2 px-2.5 py-1.5 fw-semibold rounded-lg border-0 transition-all text-start ${
-                    activeTab === "resumen" ? "bg-purple-600 text-white shadow-sm" : "bg-transparent text-muted hover-bg-gray-50"
-                  }`}
-                  style={{ fontSize: "12.5px" }}
-                >
-                  <Package size={14} className={activeTab === "resumen" ? "text-white" : "text-purple-600"} />
-                  <span>Resumen General</span>
-                </button>
-
-                <button
-                  onClick={() => setActiveTab("productos")}
-                  className={`d-flex align-items-center gap-2 px-2.5 py-1.5 fw-semibold rounded-lg border-0 transition-all text-start ${
-                    activeTab === "productos" ? "bg-purple-600 text-white shadow-sm" : "bg-transparent text-muted hover-bg-gray-50"
-                  }`}
-                  style={{ fontSize: "12.5px" }}
-                >
-                  <Package size={14} className={activeTab === "productos" ? "text-white" : "text-purple-600"} />
-                  <span>Catálogo de Stock</span>
-                </button>
-
-                <button
-                  onClick={() => setActiveTab("sucursales")}
-                  className={`d-flex align-items-center gap-2 px-2.5 py-1.5 fw-semibold rounded-lg border-0 transition-all text-start ${
-                    activeTab === "sucursales" ? "bg-purple-600 text-white shadow-sm" : "bg-transparent text-muted hover-bg-gray-50"
-                  }`}
-                  style={{ fontSize: "12.5px" }}
-                >
-                  <Building size={14} className={activeTab === "sucursales" ? "text-white" : "text-purple-600"} />
-                  <span>Existencias Sucursal</span>
-                </button>
-
-                <button
-                  onClick={() => setActiveTab("escaner")}
-                  className={`d-flex align-items-center gap-2 px-2.5 py-1.5 fw-semibold rounded-lg border-0 transition-all text-start ${
-                    activeTab === "escaner" ? "bg-purple-600 text-white shadow-sm" : "bg-transparent text-muted hover-bg-gray-50"
-                  }`}
-                  style={{ fontSize: "12.5px" }}
-                >
-                  <Scan size={14} className={activeTab === "escaner" ? "text-white" : "text-purple-600"} />
-                  <span>Escáner Barra / QR</span>
-                </button>
-              </div>
-            </Col>
-
-            {/* CATEGORÍA 2 */}
-            <Col lg={3} sm={6}>
-              <div className="fw-black text-gray-900 small mb-2 px-1 text-uppercase tracking-wider" style={{ fontSize: "10px", borderBottom: "1px solid #f3f4f6", paddingBottom: "4px" }}>
-                🔄 Trazabilidad y Operación
-              </div>
-              <div className="d-flex flex-column gap-1">
-                <button
-                  onClick={() => setActiveTab("lotes")}
-                  className={`d-flex align-items-center gap-2 px-2.5 py-1.5 fw-semibold rounded-lg border-0 transition-all text-start ${
-                    activeTab === "lotes" ? "bg-purple-600 text-white shadow-sm" : "bg-transparent text-muted hover-bg-gray-50"
-                  }`}
-                  style={{ fontSize: "12.5px" }}
-                >
-                  <Layers size={14} className={activeTab === "lotes" ? "text-white" : "text-purple-600"} />
-                  <span>Lotes & FIFO</span>
-                </button>
-
-                <button
-                  onClick={() => setActiveTab("movimientos")}
-                  className={`d-flex align-items-center gap-2 px-2.5 py-1.5 fw-semibold rounded-lg border-0 transition-all text-start ${
-                    activeTab === "movimientos" ? "bg-purple-600 text-white shadow-sm" : "bg-transparent text-muted hover-bg-gray-50"
-                  }`}
-                  style={{ fontSize: "12.5px" }}
-                >
-                  <Activity size={14} className={activeTab === "movimientos" ? "text-white" : "text-purple-600"} />
-                  <span>Auditoría Movimientos</span>
-                </button>
-
-                <button
-                  onClick={() => setActiveTab("reglas")}
-                  className={`d-flex align-items-center gap-2 px-2.5 py-1.5 fw-semibold rounded-lg border-0 transition-all text-start ${
-                    activeTab === "reglas" ? "bg-purple-600 text-white shadow-sm" : "bg-transparent text-muted hover-bg-gray-50"
-                  }`}
-                  style={{ fontSize: "12.5px" }}
-                >
-                  <Scissors size={14} className={activeTab === "reglas" ? "text-white" : "text-purple-600"} />
-                  <span>Reglas de Consumo</span>
-                </button>
-              </div>
-            </Col>
-
-            {/* CATEGORÍA 3 */}
-            <Col lg={3} sm={6}>
-              <div className="fw-black text-gray-900 small mb-2 px-1 text-uppercase tracking-wider" style={{ fontSize: "10px", borderBottom: "1px solid #f3f4f6", paddingBottom: "4px" }}>
-                🛒 Abastecimiento y Compras
-              </div>
-              <div className="d-flex flex-column gap-1">
-                <button
-                  onClick={() => setActiveTab("proveedores")}
-                  className={`d-flex align-items-center gap-2 px-2.5 py-1.5 fw-semibold rounded-lg border-0 transition-all text-start ${
-                    activeTab === "proveedores" ? "bg-purple-600 text-white shadow-sm" : "bg-transparent text-muted hover-bg-gray-50"
-                  }`}
-                  style={{ fontSize: "12.5px" }}
-                >
-                  <User size={14} className={activeTab === "proveedores" ? "text-white" : "text-purple-600"} />
-                  <span>Directorio Proveedores</span>
-                </button>
-
-                <button
-                  onClick={() => setActiveTab("ordenes")}
-                  className={`d-flex align-items-center gap-2 px-2.5 py-1.5 fw-semibold rounded-lg border-0 transition-all text-start ${
-                    activeTab === "ordenes" ? "bg-purple-600 text-white shadow-sm" : "bg-transparent text-muted hover-bg-gray-50"
-                  }`}
-                  style={{ fontSize: "12.5px" }}
-                >
-                  <ShoppingCart size={14} className={activeTab === "ordenes" ? "text-white" : "text-purple-600"} />
-                  <span>Reposición de Stock</span>
-                </button>
-              </div>
-            </Col>
-
-            {/* CATEGORÍA 4 */}
-            <Col lg={3} sm={6}>
-              <div className="fw-black text-gray-900 small mb-2 px-1 text-uppercase tracking-wider" style={{ fontSize: "10px", borderBottom: "1px solid #f3f4f6", paddingBottom: "4px" }}>
-                📊 Inteligencia Financiera
-              </div>
-              <div className="d-flex flex-column gap-1">
-                <button
-                  onClick={() => setActiveTab("rentabilidad")}
-                  className={`d-flex align-items-center gap-2 px-2.5 py-1.5 fw-semibold rounded-lg border-0 transition-all text-start ${
-                    activeTab === "rentabilidad" ? "bg-purple-600 text-white shadow-sm" : "bg-transparent text-muted hover-bg-gray-50"
-                  }`}
-                  style={{ fontSize: "12.5px" }}
-                >
-                  <DollarSign size={14} className={activeTab === "rentabilidad" ? "text-white" : "text-purple-600"} />
-                  <span>Rentabilidad Insumos</span>
-                </button>
-
-                <button
-                  onClick={() => setActiveTab("simulador")}
-                  className={`d-flex align-items-center gap-2 px-2.5 py-1.5 fw-semibold rounded-lg border-0 transition-all text-start ${
-                    activeTab === "simulador" ? "bg-purple-600 text-white shadow-sm" : "bg-transparent text-muted hover-bg-gray-50"
-                  }`}
-                  style={{ fontSize: "12.5px" }}
-                >
-                  <Sliders size={14} className={activeTab === "simulador" ? "text-white" : "text-purple-600"} />
-                  <span>Simulador Contable</span>
-                </button>
-
-                <button
-                  onClick={() => setActiveTab("ia")}
-                  className={`d-flex align-items-center gap-2 px-2.5 py-1.5 fw-semibold rounded-lg border-0 transition-all text-start ${
-                    activeTab === "ia" ? "bg-purple-600 text-white shadow-sm" : "bg-transparent text-muted hover-bg-gray-50"
-                  }`}
-                  style={{ fontSize: "12.5px" }}
-                >
-                  <Bot size={14} className={activeTab === "ia" ? "text-white" : "text-purple-600"} />
-                  <span>Copilot Aura IA</span>
-                </button>
-              </div>
-            </Col>
-          </Row>
-        </Card>
+        <div className="d-flex overflow-auto border-bottom mb-4 pb-1 scrollbar-none gap-2">
+          <button
+            onClick={() => setActiveTab("resumen")}
+            className={`nav-tab-premium px-4 py-2 fw-bold text-nowrap border-0 transition-all bg-transparent ${
+              activeTab === "resumen" ? "active text-purple-700 border-bottom-purple" : "text-muted hover-text-gray-900"
+            }`}
+            style={{
+              fontSize: "14px",
+              borderBottom: activeTab === "resumen" ? "2px solid #7c3aed" : "2px solid transparent"
+            }}
+          >
+            Resumen General
+          </button>
+          <button
+            onClick={() => setActiveTab("productos")}
+            className={`nav-tab-premium px-4 py-2 fw-bold text-nowrap border-0 transition-all bg-transparent ${
+              activeTab === "productos" ? "active text-purple-700 border-bottom-purple" : "text-muted hover-text-gray-900"
+            }`}
+            style={{
+              fontSize: "14px",
+              borderBottom: activeTab === "productos" ? "2px solid #7c3aed" : "2px solid transparent"
+            }}
+          >
+            Catálogo de Stock
+          </button>
+          {branchesCount > 1 && (
+            <button
+              onClick={() => setActiveTab("sucursales")}
+              className={`nav-tab-premium px-4 py-2 fw-bold text-nowrap border-0 transition-all bg-transparent ${
+                activeTab === "sucursales" ? "active text-purple-700 border-bottom-purple" : "text-muted hover-text-gray-900"
+              }`}
+              style={{
+                fontSize: "14px",
+                borderBottom: activeTab === "sucursales" ? "2px solid #7c3aed" : "2px solid transparent"
+              }}
+            >
+              Existencias Sucursal
+            </button>
+          )}
+          <button
+            onClick={() => setActiveTab("reglas")}
+            className={`nav-tab-premium px-4 py-2 fw-bold text-nowrap border-0 transition-all bg-transparent ${
+              activeTab === "reglas" ? "active text-purple-700 border-bottom-purple" : "text-muted hover-text-gray-900"
+            }`}
+            style={{
+              fontSize: "14px",
+              borderBottom: activeTab === "reglas" ? "2px solid #7c3aed" : "2px solid transparent"
+            }}
+          >
+            Reglas de Consumo
+          </button>
+          <button
+            onClick={() => setActiveTab("rentabilidad")}
+            className={`nav-tab-premium px-4 py-2 fw-bold text-nowrap border-0 transition-all bg-transparent ${
+              activeTab === "rentabilidad" ? "active text-purple-700 border-bottom-purple" : "text-muted hover-text-gray-900"
+            }`}
+            style={{
+              fontSize: "14px",
+              borderBottom: activeTab === "rentabilidad" ? "2px solid #7c3aed" : "2px solid transparent"
+            }}
+          >
+            Rentabilidad Insumos
+          </button>
+          <button
+            onClick={() => setActiveTab("ia")}
+            className={`nav-tab-premium px-4 py-2 fw-bold text-nowrap border-0 transition-all bg-transparent ${
+              activeTab === "ia" ? "active text-purple-700 border-bottom-purple" : "text-muted hover-text-gray-900"
+            }`}
+            style={{
+              fontSize: "14px",
+              borderBottom: activeTab === "ia" ? "2px solid #7c3aed" : "2px solid transparent"
+            }}
+          >
+            Copilot Aura IA
+          </button>
+        </div>
       )}
 
       {/* RENDERIZADO ACTIVO DE CADA PESTAÑA */}
@@ -265,8 +177,8 @@ export default function InventoryView() {
           {activeTab === "resumen" && (
             <InventoryDashboard 
               summary={dashboardData.summary}
-              expiringSoon={dashboardData.expiringSoon}
               products={products}
+              movements={movements}
               onTabChange={(tab) => setActiveTab(tab)}
             />
           )}
@@ -279,39 +191,6 @@ export default function InventoryView() {
             />
           )}
 
-          {activeTab === "movimientos" && (
-            <StockMovementHistory />
-          )}
-
-          {activeTab === "proveedores" && (
-            <SupplierCRUD 
-              suppliers={suppliers}
-              onRefresh={fetchAllData}
-            />
-          )}
-
-          {activeTab === "ordenes" && (
-            <PurchaseOrders 
-              products={products}
-              suppliers={suppliers}
-            />
-          )}
-
-          {activeTab === "lotes" && (
-            <BatchControl 
-              products={products}
-              suppliers={suppliers}
-              onRefresh={fetchAllData}
-            />
-          )}
-
-          {activeTab === "escaner" && (
-            <BarcodeScanner 
-              products={products}
-              onRefresh={fetchAllData}
-            />
-          )}
-
           {activeTab === "rentabilidad" && (
             <ProductProfitability 
               products={products}
@@ -320,17 +199,10 @@ export default function InventoryView() {
             />
           )}
 
-          {activeTab === "sucursales" && (
+          {activeTab === "sucursales" && branchesCount > 1 && (
             <BranchInventory 
               products={products}
               onRefresh={fetchAllData}
-            />
-          )}
-
-          {activeTab === "simulador" && (
-            <InventorySimulator 
-              products={products}
-              rules={rules}
             />
           )}
 
@@ -339,6 +211,7 @@ export default function InventoryView() {
               products={products}
               suppliers={suppliers}
               movements={movements}
+              onTabChange={(tab) => setActiveTab(tab)}
             />
           )}
 

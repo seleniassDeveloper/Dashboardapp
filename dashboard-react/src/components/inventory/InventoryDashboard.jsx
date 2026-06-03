@@ -1,9 +1,9 @@
-import React from "react";
-import { Row, Col, Card, Badge, Alert, ListGroup, ProgressBar } from "react-bootstrap";
-import { Package, AlertTriangle, DollarSign, Activity, Calendar, ShoppingCart, TrendingUp, Sparkles } from "lucide-react";
+import React, { useState, useMemo } from "react";
+import { Row, Col, Card, Badge, Offcanvas, ListGroup, Table, Form } from "react-bootstrap";
+import { Package, AlertTriangle, DollarSign, Calendar, TrendingUp, Sparkles, Filter, X, ArrowUpRight, ArrowDownRight, Layers } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell } from "recharts";
 
-const COLORS = ["#8b5cf6", "#10b981", "#3b82f6", "#ec4899", "#f59e0b", "#06b6d4"];
+const COLORS = ["#7c3aed", "#10b981", "#3b82f6", "#ec4899", "#f59e0b", "#06b6d4"];
 
 function currency(n) {
   return new Intl.NumberFormat("es-AR", {
@@ -13,208 +13,191 @@ function currency(n) {
   }).format(n || 0);
 }
 
-export default function InventoryDashboard({ summary = {}, expiringSoon = [], products = [], onTabChange }) {
-  // Prep categories chart data
-  const categoryMap = products.reduce((acc, p) => {
-    acc[p.category] = (acc[p.category] || 0) + 1;
-    return acc;
-  }, {});
-  const categoryData = Object.keys(categoryMap).map(name => ({
-    name,
-    value: categoryMap[name]
-  }));
+export default function InventoryDashboard({ summary = {}, products = [], movements = [], onTabChange }) {
+  const [selectedKPI, setSelectedKPI] = useState(null); // 'lowStock' | 'value' | 'catalog' | 'spend' | 'mostUsed'
+  const [drawerFilter, setDrawerFilter] = useState("");
 
-  // Prep stock levels chart data (Top 7 items)
-  const stockData = products
-    .slice(0, 7)
-    .map(p => ({
-      name: p.name.length > 15 ? p.name.slice(0, 15) + "..." : p.name,
-      stock: p.stock,
-      minStock: p.minStock
-    }));
+  const handleCloseDrawer = () => {
+    setSelectedKPI(null);
+    setDrawerFilter("");
+  };
+
+  // Pre-calculations for drawer content
+  const lowStockProducts = useMemo(() => products.filter(p => p.stock < p.minStock), [products]);
+  
+  const productsWithValue = useMemo(() => {
+    return products
+      .map(p => ({ ...p, totalVal: p.stock * p.costPrice }))
+      .sort((a, b) => b.totalVal - a.totalVal);
+  }, [products]);
+
+  const categoryBreakdown = useMemo(() => {
+    const map = products.reduce((acc, p) => {
+      acc[p.category] = (acc[p.category] || 0) + 1;
+      return acc;
+    }, {});
+    return Object.keys(map).map(name => ({ name, value: map[name] }));
+  }, [products]);
+
+  const recentAutomaticMovements = useMemo(() => {
+    return movements
+      .filter(m => m.type === "automatic" || m.type === "output")
+      .slice(0, 15);
+  }, [movements]);
+
+  // Chart data
+  const stockChartData = useMemo(() => {
+    return products
+      .slice(0, 8)
+      .map(p => ({
+        name: p.name.length > 15 ? p.name.slice(0, 15) + "..." : p.name,
+        stock: p.stock,
+        minStock: p.minStock
+      }));
+  }, [products]);
+
+  // Filtered lists for the drawer
+  const filteredDrawerItems = useMemo(() => {
+    const q = drawerFilter.toLowerCase().trim();
+    if (selectedKPI === "lowStock") {
+      return lowStockProducts.filter(p => p.name.toLowerCase().includes(q));
+    }
+    if (selectedKPI === "value") {
+      return productsWithValue.filter(p => p.name.toLowerCase().includes(q));
+    }
+    if (selectedKPI === "catalog") {
+      return products.filter(p => p.name.toLowerCase().includes(q));
+    }
+    return [];
+  }, [selectedKPI, drawerFilter, lowStockProducts, productsWithValue, products]);
 
   return (
     <div className="animate-fade-in">
-      {/* METRIC CARDS GRID */}
-      <Row className="g-4 mb-4">
-        <Col md={3} sm={6}>
-          <Card className="card-premium border-0 shadow-sm bg-white p-3.5 rounded-2xl h-100">
-            <Card.Body className="p-0 d-flex align-items-center gap-3">
-              <div className="p-3 bg-danger bg-opacity-10 text-danger rounded-xl d-flex align-items-center justify-content-center">
-                <AlertTriangle size={24} className="animate-pulse" />
-              </div>
-              <div>
-                <span className="smaller text-muted d-block fw-bold mb-0.5">Bajo Stock Crítico</span>
-                <h4 className="fw-black text-gray-900 mb-0 d-flex align-items-center gap-2">
-                  <span className={summary.lowStockCount > 0 ? "text-danger" : "text-gray-800"}>
-                    {summary.lowStockCount}
-                  </span>
-                  {summary.lowStockCount > 0 && (
-                    <Badge bg="danger" className="rounded-pill px-2.5 py-0.5" style={{ fontSize: "10px" }}>Urgente</Badge>
-                  )}
-                </h4>
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
-
-        <Col md={3} sm={6}>
-          <Card className="card-premium border-0 shadow-sm bg-white p-3.5 rounded-2xl h-100">
-            <Card.Body className="p-0 d-flex align-items-center gap-3">
-              <div className="p-3 bg-success bg-opacity-10 text-success rounded-xl d-flex align-items-center justify-content-center">
-                <DollarSign size={24} />
-              </div>
-              <div>
-                <span className="smaller text-muted d-block fw-bold mb-0.5">Valuación del Inventario</span>
-                <h4 className="fw-black text-success mb-0">{currency(summary.totalValue)}</h4>
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
-
-        <Col md={3} sm={6}>
-          <Card className="card-premium border-0 shadow-sm bg-white p-3.5 rounded-2xl h-100">
-            <Card.Body className="p-0 d-flex align-items-center gap-3">
-              <div className="p-3 bg-purple bg-opacity-10 text-purple-600 rounded-xl d-flex align-items-center justify-content-center">
-                <Package size={24} />
-              </div>
-              <div>
-                <span className="smaller text-muted d-block fw-bold mb-0.5">Catálogo de Productos</span>
-                <h4 className="fw-black text-gray-900 mb-0">{summary.totalUnique} Insumos</h4>
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
-
-        <Col md={3} sm={6}>
-          <Card className="card-premium border-0 shadow-sm bg-white p-3.5 rounded-2xl h-100">
-            <Card.Body className="p-0 d-flex align-items-center gap-3">
-              <div className="p-3 bg-warning bg-opacity-10 text-warning rounded-xl d-flex align-items-center justify-content-center">
-                <Calendar size={24} />
-              </div>
-              <div>
-                <span className="smaller text-muted d-block fw-bold mb-0.5">Lotes por Vencer (45 días)</span>
-                <h4 className="fw-black text-gray-900 mb-0 d-flex align-items-center gap-2">
-                  <span className={summary.expiringSoonCount > 0 ? "text-warning" : "text-gray-800"}>
-                    {summary.expiringSoonCount}
-                  </span>
-                  {summary.expiringSoonCount > 0 && (
-                    <Badge bg="warning" className="text-dark rounded-pill px-2" style={{ fontSize: "10px" }}>Alerta</Badge>
-                  )}
-                </h4>
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
-
-      {/* RETAILER ASSISTANCE & EXPIRATION ALERTS */}
-      <Row className="g-4 mb-4">
-        <Col lg={4}>
-          <Card className="card-premium border-0 shadow-sm bg-white h-100">
-            <Card.Body className="p-4 d-flex flex-column justify-content-between">
-              <div>
-                <div className="d-flex align-items-center gap-2 mb-3">
-                  <Sparkles className="text-purple-600 animate-pulse" size={20} />
-                  <h3 className="h6 fw-black text-gray-900 mb-0">Asistencia Inteligente de Reposición</h3>
-                </div>
-                
-                {summary.lowStockCount > 0 ? (
-                  <Alert variant="danger" className="rounded-xl p-3 mb-4 smaller border-0" style={{ backgroundColor: "rgba(239, 68, 68, 0.06)", color: "#ef4444" }}>
-                    <div className="fw-bold mb-1">¡Abastecimiento Crítico Detectado!</div>
-                    Hay {summary.lowStockCount} insumos esenciales por debajo de su nivel de stock mínimo configurable. El salón corre riesgo de desabastecimiento en tratamientos frecuentes.
-                  </Alert>
-                ) : (
-                  <Alert variant="success" className="rounded-xl p-3 mb-4 smaller border-0" style={{ backgroundColor: "rgba(16, 185, 129, 0.06)", color: "#10b981" }}>
-                    <div className="fw-bold mb-1">Stock Saludable</div>
-                    Todos tus productos se encuentran en niveles de stock estables y en control. ¡Buen trabajo en la planificación contable!
-                  </Alert>
+      {/* 5 STANDALONE COMPACT INTERACTIVE KPIS */}
+      <Row className="g-3 mb-4">
+        {/* KPI 1: Stock Crítico */}
+        <Col className="flex-grow-1" style={{ minWidth: "200px" }}>
+          <div 
+            onClick={() => setSelectedKPI("lowStock")}
+            className="p-3 bg-white border rounded-2xl shadow-sm-hover cursor-pointer transition-all d-flex align-items-center gap-3 h-100 position-relative overflow-hidden hover-scale"
+            style={{ borderColor: "rgba(239, 68, 68, 0.15)" }}
+          >
+            <div className="p-2.5 rounded-xl bg-red-50 text-red-500 d-flex align-items-center justify-content-center">
+              <AlertTriangle size={20} className={summary.lowStockCount > 0 ? "animate-pulse" : ""} />
+            </div>
+            <div>
+              <span className="smaller text-muted d-block fw-bold mb-0.5">Stock Crítico</span>
+              <h4 className="fw-black m-0 d-flex align-items-center gap-1.5" style={{ fontSize: "20px" }}>
+                <span className={summary.lowStockCount > 0 ? "text-danger" : "text-gray-900"}>{summary.lowStockCount}</span>
+                {summary.lowStockCount > 0 && (
+                  <Badge bg="danger-soft" className="text-danger rounded-pill px-2 py-0.5" style={{ fontSize: "9px" }}>¡Reponer!</Badge>
                 )}
-
-                <div className="d-flex justify-content-between mb-2 small text-muted">
-                  <span>Insumo de Mayor Uso:</span>
-                  <strong className="text-gray-900">{summary.mostConsumed}</strong>
-                </div>
-                <div className="d-flex justify-content-between mb-2 small text-muted">
-                  <span>Tratamiento de Mayor Costo:</span>
-                  <strong className="text-gray-900">{summary.costliestService}</strong>
-                </div>
-                <div className="d-flex justify-content-between mb-3 small text-muted">
-                  <span>Gasto Mensual Estimado:</span>
-                  <strong className="text-purple-600 fw-bold">{currency(summary.estimatedMonthlySpend)}</strong>
-                </div>
-              </div>
-
-              <div className="d-grid gap-2">
-                <button 
-                  onClick={() => onTabChange("orders")} 
-                  className="btn btn-purple rounded-xl py-2 fw-bold text-white bg-purple-600 hover-bg-purple-700 shadow-sm border-0 d-flex align-items-center justify-content-center gap-2"
-                >
-                  <ShoppingCart size={15} />
-                  <span>Redactar Pedido de Reposición</span>
-                </button>
-              </div>
-            </Card.Body>
-          </Card>
+              </h4>
+            </div>
+            <div className="position-absolute" style={{ right: "12px", bottom: "12px" }}>
+              <ArrowUpRight size={14} className="text-secondary opacity-30" />
+            </div>
+          </div>
         </Col>
 
-        {/* Lotes por Vencer */}
-        <Col lg={8}>
-          <Card className="card-premium border-0 shadow-sm bg-white h-100">
-            <Card.Body className="p-4">
-              <div className="d-flex justify-content-between align-items-center mb-3.5">
-                <h3 className="h6 fw-black text-gray-900 mb-0 d-flex align-items-center gap-2">
-                  <Calendar className="text-purple-600" size={18} />
-                  <span>Control de Caducidad de Lotes</span>
-                </h3>
-                <span className="smaller text-muted fw-semibold">Próximos 45 días</span>
-              </div>
+        {/* KPI 2: Valuación Total */}
+        <Col className="flex-grow-1" style={{ minWidth: "200px" }}>
+          <div 
+            onClick={() => setSelectedKPI("value")}
+            className="p-3 bg-white border rounded-2xl shadow-sm-hover cursor-pointer transition-all d-flex align-items-center gap-3 h-100 position-relative overflow-hidden hover-scale"
+          >
+            <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-600 d-flex align-items-center justify-content-center">
+              <DollarSign size={20} />
+            </div>
+            <div>
+              <span className="smaller text-muted d-block fw-bold mb-0.5">Valor del Inventario</span>
+              <h4 className="fw-black text-emerald-600 m-0" style={{ fontSize: "20px" }}>{currency(summary.totalValue)}</h4>
+            </div>
+            <div className="position-absolute" style={{ right: "12px", bottom: "12px" }}>
+              <ArrowUpRight size={14} className="text-secondary opacity-30" />
+            </div>
+          </div>
+        </Col>
 
-              {expiringSoon.length === 0 ? (
-                <div className="text-center py-5 text-muted small bg-gray-50 rounded-2xl border flex-grow-1 d-flex flex-column align-items-center justify-content-center" style={{ minHeight: "150px" }}>
-                  <Package className="text-gray-300 mb-2" size={32} />
-                  No hay lotes con fecha de vencimiento crítica próxima en este almacén.
-                </div>
-              ) : (
-                <ListGroup variant="flush" className="overflow-auto scrollbar-none" style={{ maxHeight: "170px" }}>
-                  {expiringSoon.map((b) => (
-                    <ListGroup.Item key={b.id} className="px-0 py-2.5 bg-transparent border-bottom d-flex align-items-center justify-content-between">
-                      <div>
-                        <strong className="text-gray-900 small d-block">{b.productName}</strong>
-                        <span className="smaller text-muted">Lote: {b.batchNumber} • Quedan: <strong>{b.qty}</strong> unidades</span>
-                      </div>
-                      <Badge bg="warning-soft" className="text-warning rounded-pill px-3 py-1.5 fw-bold">
-                        Vence: {new Date(b.expirationDate).toLocaleDateString("es-AR")}
-                      </Badge>
-                    </ListGroup.Item>
-                  ))}
-                </ListGroup>
-              )}
-            </Card.Body>
-          </Card>
+        {/* KPI 3: Cantidad Insumos */}
+        <Col className="flex-grow-1" style={{ minWidth: "200px" }}>
+          <div 
+            onClick={() => setSelectedKPI("catalog")}
+            className="p-3 bg-white border rounded-2xl shadow-sm-hover cursor-pointer transition-all d-flex align-items-center gap-3 h-100 position-relative overflow-hidden hover-scale"
+          >
+            <div className="p-2.5 rounded-xl bg-purple-50 text-purple-600 d-flex align-items-center justify-content-center">
+              <Package size={20} />
+            </div>
+            <div>
+              <span className="smaller text-muted d-block fw-bold mb-0.5">Cantidad de Productos</span>
+              <h4 className="fw-black text-gray-900 m-0" style={{ fontSize: "20px" }}>{summary.totalUnique} ítems</h4>
+            </div>
+            <div className="position-absolute" style={{ right: "12px", bottom: "12px" }}>
+              <ArrowUpRight size={14} className="text-secondary opacity-30" />
+            </div>
+          </div>
+        </Col>
+
+        {/* KPI 4: Consumo Estimado */}
+        <Col className="flex-grow-1" style={{ minWidth: "200px" }}>
+          <div 
+            onClick={() => setSelectedKPI("spend")}
+            className="p-3 bg-white border rounded-2xl shadow-sm-hover cursor-pointer transition-all d-flex align-items-center gap-3 h-100 position-relative overflow-hidden hover-scale"
+          >
+            <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600 d-flex align-items-center justify-content-center">
+              <TrendingUp size={20} />
+            </div>
+            <div>
+              <span className="smaller text-muted d-block fw-bold mb-0.5">Consumo Mensual</span>
+              <h4 className="fw-black text-purple-700 m-0" style={{ fontSize: "20px" }}>{currency(summary.estimatedMonthlySpend)}</h4>
+            </div>
+            <div className="position-absolute" style={{ right: "12px", bottom: "12px" }}>
+              <ArrowUpRight size={14} className="text-secondary opacity-30" />
+            </div>
+          </div>
+        </Col>
+
+        {/* KPI 5: Más Utilizado */}
+        <Col className="flex-grow-1" style={{ minWidth: "200px" }}>
+          <div 
+            onClick={() => setSelectedKPI("mostUsed")}
+            className="p-3 bg-white border rounded-2xl shadow-sm-hover cursor-pointer transition-all d-flex align-items-center gap-3 h-100 position-relative overflow-hidden hover-scale"
+          >
+            <div className="p-2.5 rounded-xl bg-amber-50 text-amber-600 d-flex align-items-center justify-content-center">
+              <Sparkles size={20} />
+            </div>
+            <div>
+              <span className="smaller text-muted d-block fw-bold mb-0.5">Más Utilizado</span>
+              <h4 className="fw-black text-gray-800 m-0 text-truncate" style={{ fontSize: "15px", maxWidth: "160px", marginTop: "4px" }}>
+                {summary.mostConsumed}
+              </h4>
+            </div>
+            <div className="position-absolute" style={{ right: "12px", bottom: "12px" }}>
+              <ArrowUpRight size={14} className="text-secondary opacity-30" />
+            </div>
+          </div>
         </Col>
       </Row>
 
-      {/* CHARTS GRAPHICS SECTION */}
+      {/* CHARTS SECTION */}
       <Row className="g-4">
         {/* Nivel de Stock vs Stock Mínimo */}
         <Col lg={8}>
-          <Card className="card-premium border-0 shadow-sm bg-white">
+          <Card className="card-premium border shadow-sm bg-white rounded-2xl">
             <Card.Body className="p-4">
-              <h3 className="h6 fw-black text-gray-900 mb-4">Niveles de Stock vs Alerta de Stock Mínimo</h3>
-              
-              {stockData.length === 0 ? (
+              <h3 className="h6 fw-black text-gray-900 mb-4">Niveles de Existencias vs Stock Mínimo de Alerta</h3>
+              {stockChartData.length === 0 ? (
                 <div className="text-center py-5 text-muted small">Cargando catálogo...</div>
               ) : (
-                <div style={{ width: "100%", height: "260px" }}>
+                <div style={{ width: "100%", height: "280px" }}>
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={stockData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                    <BarChart data={stockChartData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
                       <XAxis dataKey="name" stroke="#9ca3af" fontSize={10} tickLine={false} axisLine={false} />
                       <YAxis stroke="#9ca3af" fontSize={10} tickLine={false} axisLine={false} />
                       <Tooltip />
-                      <Bar dataKey="stock" name="Stock Actual" fill="#8b5cf6" radius={[4, 4, 0, 0]} barSize={25} />
-                      <Bar dataKey="minStock" name="Stock Mínimo" fill="#f87171" radius={[4, 4, 0, 0]} barSize={12} />
+                      <Bar dataKey="stock" name="Stock Actual" fill="#7c3aed" radius={[4, 4, 0, 0]} barSize={22} />
+                      <Bar dataKey="minStock" name="Stock Mínimo" fill="#f87171" radius={[4, 4, 0, 0]} barSize={10} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -225,21 +208,21 @@ export default function InventoryDashboard({ summary = {}, expiringSoon = [], pr
 
         {/* Distribución por Categoría */}
         <Col lg={4}>
-          <Card className="card-premium border-0 shadow-sm bg-white h-100">
+          <Card className="card-premium border shadow-sm bg-white rounded-2xl h-100">
             <Card.Body className="p-4 d-flex flex-column justify-content-between">
               <div>
                 <h3 className="h6 fw-black text-gray-900 mb-1">Distribución de Insumos</h3>
-                <p className="text-muted smaller mb-3">Participación de productos cargados en catálogo por rubro.</p>
+                <p className="text-muted smaller mb-3">Participación de productos en catálogo por rubro.</p>
               </div>
 
-              {categoryData.length === 0 ? (
-                <div className="text-center py-5 text-muted small">Sin datos.</div>
+              {categoryBreakdown.length === 0 ? (
+                <div className="text-center py-5 text-muted small">Sin datos de inventario.</div>
               ) : (
                 <div style={{ width: "100%", height: "150px" }} className="my-2">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
-                        data={categoryData}
+                        data={categoryBreakdown}
                         cx="50%"
                         cy="50%"
                         innerRadius={45}
@@ -247,7 +230,7 @@ export default function InventoryDashboard({ summary = {}, expiringSoon = [], pr
                         paddingAngle={3}
                         dataKey="value"
                       >
-                        {categoryData.map((entry, index) => (
+                        {categoryBreakdown.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>
@@ -258,7 +241,7 @@ export default function InventoryDashboard({ summary = {}, expiringSoon = [], pr
               )}
 
               <div className="small d-grid gap-1 mt-2">
-                {categoryData.map((item, idx) => (
+                {categoryBreakdown.map((item, idx) => (
                   <div key={item.name} className="d-flex align-items-center justify-content-between">
                     <div className="d-flex align-items-center gap-1.5">
                       <span className="rounded-circle" style={{ width: 8, height: 8, background: COLORS[idx % COLORS.length] }} />
@@ -272,6 +255,186 @@ export default function InventoryDashboard({ summary = {}, expiringSoon = [], pr
           </Card>
         </Col>
       </Row>
+
+      {/* DETAILED INTERACTIVE DRAWER (OFFCANVAS) */}
+      <Offcanvas 
+        show={!!selectedKPI} 
+        onHide={handleCloseDrawer} 
+        placement="end" 
+        style={{ width: "420px" }} 
+        className="border-0 shadow-lg bg-white"
+      >
+        <Offcanvas.Header className="p-4 border-bottom bg-light bg-opacity-40 d-flex justify-content-between align-items-center">
+          <div>
+            <Offcanvas.Title className="fw-black h6 text-gray-900 m-0">
+              {selectedKPI === "lowStock" && "Alerta: Stock Mínimo Crítico"}
+              {selectedKPI === "value" && "Valuación Contable de Almacén"}
+              {selectedKPI === "catalog" && "Resumen de Catálogo"}
+              {selectedKPI === "spend" && "Detalles de Consumo Estimado"}
+              {selectedKPI === "mostUsed" && "Historial de Insumo Más Utilizado"}
+            </Offcanvas.Title>
+            <span className="smaller text-muted">Centro de Control Financiero / ERP</span>
+          </div>
+          <button onClick={handleCloseDrawer} className="p-1 bg-light border-0 rounded-circle text-secondary hover-text-gray-950 transition-all">
+            <X size={18} />
+          </button>
+        </Offcanvas.Header>
+
+        <Offcanvas.Body className="p-4 d-flex flex-column justify-content-between">
+          <div className="flex-grow-1 overflow-auto scrollbar-none">
+            {/* Search Input for List KPIs */}
+            {(selectedKPI === "lowStock" || selectedKPI === "value" || selectedKPI === "catalog") && (
+              <div className="mb-3">
+                <Form.Control
+                  type="text"
+                  placeholder="Buscar insumo..."
+                  value={drawerFilter}
+                  onChange={(e) => setDrawerFilter(e.target.value)}
+                  className="border-gray-200 rounded-xl small"
+                />
+              </div>
+            )}
+
+            {/* Content for: Stock Crítico */}
+            {selectedKPI === "lowStock" && (
+              <div>
+                <Alert variant="danger" className="rounded-xl border-0 py-2.5 smaller mb-3">
+                  <div className="fw-bold">Abastecimiento Comprometido</div>
+                  Estos artículos se encuentran por debajo del stock de seguridad preestablecido.
+                </Alert>
+                <ListGroup variant="flush" className="gap-2">
+                  {filteredDrawerItems.map(p => (
+                    <ListGroup.Item key={p.id} className="p-3 border rounded-xl bg-light bg-opacity-50 d-flex justify-content-between align-items-center">
+                      <div>
+                        <strong className="text-gray-900 small d-block">{p.name}</strong>
+                        <span className="smaller text-muted">Stock actual: <strong className="text-danger">{p.stock}</strong> / Límite: {p.minStock} {p.unit}</span>
+                      </div>
+                      <Badge bg="danger-soft" className="text-danger rounded-pill px-2.5 py-1 fw-bold smaller">CRÍTICO</Badge>
+                    </ListGroup.Item>
+                  ))}
+                  {filteredDrawerItems.length === 0 && (
+                    <div className="text-center py-5 text-muted smaller">No se encontraron insumos críticos.</div>
+                  )}
+                </ListGroup>
+              </div>
+            )}
+
+            {/* Content for: Valor del Inventario */}
+            {selectedKPI === "value" && (
+              <div>
+                <div className="p-3 bg-emerald-50 text-emerald-950 rounded-2xl mb-4 border border-emerald-100 d-flex align-items-center justify-content-between">
+                  <span className="fw-bold small">Capital Inmovilizado Total:</span>
+                  <span className="fw-black h5 m-0 text-emerald-700">{currency(summary.totalValue)}</span>
+                </div>
+                <h5 className="smaller fw-bold text-muted uppercase tracking-wider mb-2">Contribución de Productos</h5>
+                <ListGroup variant="flush" className="gap-2">
+                  {filteredDrawerItems.map(p => (
+                    <ListGroup.Item key={p.id} className="p-3 border rounded-xl bg-light bg-opacity-50 d-flex justify-content-between align-items-center">
+                      <div>
+                        <strong className="text-gray-900 small d-block">{p.name}</strong>
+                        <span className="smaller text-muted">{p.stock} {p.unit} x {currency(p.costPrice)} c/u</span>
+                      </div>
+                      <span className="fw-black text-gray-900 small">{currency(p.totalVal)}</span>
+                    </ListGroup.Item>
+                  ))}
+                </ListGroup>
+              </div>
+            )}
+
+            {/* Content for: Cantidad de Productos */}
+            {selectedKPI === "catalog" && (
+              <div>
+                <div className="d-grid grid-cols-2 gap-2 mb-4">
+                  {categoryBreakdown.map(cat => (
+                    <div key={cat.name} className="p-2.5 bg-light border rounded-xl text-center">
+                      <span className="text-muted smaller d-block mb-0.5">{cat.name}</span>
+                      <strong className="text-gray-900 small">{cat.value} productos</strong>
+                    </div>
+                  ))}
+                </div>
+                <h5 className="smaller fw-bold text-muted uppercase tracking-wider mb-2">Artículos en Catálogo</h5>
+                <ListGroup variant="flush" className="gap-2">
+                  {filteredDrawerItems.map(p => (
+                    <ListGroup.Item key={p.id} className="p-3 border rounded-xl bg-light bg-opacity-50 d-flex justify-content-between align-items-center">
+                      <div>
+                        <strong className="text-gray-900 small d-block">{p.name}</strong>
+                        <span className="smaller text-muted">Ubicación: {p.location || "Sin especificar"}</span>
+                      </div>
+                      <Badge bg="light" className="text-secondary border rounded-pill px-2.5">{p.category}</Badge>
+                    </ListGroup.Item>
+                  ))}
+                </ListGroup>
+              </div>
+            )}
+
+            {/* Content for: Consumo Mensual */}
+            {selectedKPI === "spend" && (
+              <div>
+                <Alert variant="info" className="rounded-xl border-0 py-2.5 smaller mb-4">
+                  Costo de insumos estimado basado en el total de citas finalizadas registradas en Neon Cloud DB.
+                </Alert>
+                <div className="p-3 bg-purple-50 text-purple-950 rounded-2xl mb-4 border border-purple-100 d-flex align-items-center justify-content-between">
+                  <span className="fw-bold small">Costo Mensual Estimado:</span>
+                  <span className="fw-black h5 m-0 text-purple-700">{currency(summary.estimatedMonthlySpend)}</span>
+                </div>
+                <h5 className="smaller fw-bold text-muted uppercase tracking-wider mb-2">Descuentos de Existencias Recientes</h5>
+                <ListGroup variant="flush">
+                  {recentAutomaticMovements.map(m => (
+                    <ListGroup.Item key={m.id} className="px-0 py-2.5 bg-transparent border-bottom d-flex align-items-center justify-content-between">
+                      <div>
+                        <strong className="text-gray-900 small d-block">{m.product?.name || "Insumo"}</strong>
+                        <span className="smaller text-muted">{new Date(m.createdAt).toLocaleDateString("es-AR")} • {m.reason}</span>
+                      </div>
+                      <span className="fw-bold text-danger small">-{Math.abs(m.diff)} {m.product?.unit}</span>
+                    </ListGroup.Item>
+                  ))}
+                  {recentAutomaticMovements.length === 0 && (
+                    <div className="text-center py-5 text-muted smaller">No se registran consumos recientes.</div>
+                  )}
+                </ListGroup>
+              </div>
+            )}
+
+            {/* Content for: Más Utilizado */}
+            {selectedKPI === "mostUsed" && (
+              <div>
+                <div className="p-4 bg-amber-50 rounded-2xl mb-4 border border-amber-100 text-center">
+                  <span className="text-amber-800 smaller block mb-1 uppercase font-semibold">Insumo de Mayor Consumo</span>
+                  <h4 className="fw-black text-gray-900 mb-1">{summary.mostConsumed}</h4>
+                  <p className="text-muted smaller mb-0">Este insumo presenta el mayor número de deducciones contables automáticas por citas este mes.</p>
+                </div>
+                <h5 className="smaller fw-bold text-muted uppercase tracking-wider mb-2">Detalles Técnicos</h5>
+                <div className="p-3 bg-light rounded-xl border small">
+                  <div className="d-flex justify-content-between mb-2">
+                    <span className="text-muted">Servicio asociado principal:</span>
+                    <strong className="text-gray-900">{summary.costliestService}</strong>
+                  </div>
+                  <div className="d-flex justify-content-between">
+                    <span className="text-muted">Fórmula estándar:</span>
+                    <strong className="text-gray-900">Descuento automático por cita</strong>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Direct Actions at footer of the drawer */}
+          <div className="border-top pt-3.5 mt-3 d-grid gap-2">
+            <button 
+              onClick={() => { handleCloseDrawer(); onTabChange("productos"); }}
+              className="btn btn-purple w-100 rounded-xl py-2.5 text-white bg-purple-600 hover-bg-purple-700 border-0 fw-bold d-flex align-items-center justify-content-center gap-2 shadow-sm"
+            >
+              <span>Ver Catálogo de Stock</span>
+            </button>
+            <button 
+              onClick={handleCloseDrawer} 
+              className="btn btn-light w-100 rounded-xl py-2.5 text-gray-800 bg-white border fw-bold"
+            >
+              Cerrar Detalle
+            </button>
+          </div>
+        </Offcanvas.Body>
+      </Offcanvas>
     </div>
   );
 }
