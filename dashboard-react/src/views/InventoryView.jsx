@@ -211,6 +211,7 @@ export default function InventoryView() {
               products={products}
               suppliers={suppliers}
               movements={movements}
+              rules={rules}
               onTabChange={(tab) => setActiveTab(tab)}
             />
           )}

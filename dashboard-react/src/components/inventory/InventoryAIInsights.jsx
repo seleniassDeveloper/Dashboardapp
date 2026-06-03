@@ -6,14 +6,15 @@ import {
 } from "lucide-react";
 
 function currency(n) {
+  const num = Number(n);
   return new Intl.NumberFormat("es-AR", {
     style: "currency",
     currency: "ARS",
     maximumFractionDigits: 0,
-  }).format(n || 0);
+  }).format(isNaN(num) ? 0 : num);
 }
 
-export default function InventoryAIInsights({ products = [], suppliers = [], movements = [], onTabChange }) {
+export default function InventoryAIInsights({ products = [], suppliers = [], movements = [], rules = [], onTabChange }) {
   const [messages, setMessages] = useState([
     {
       id: "1",
@@ -31,14 +32,18 @@ export default function InventoryAIInsights({ products = [], suppliers = [], mov
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
+  // Sanitized arrays to avoid crashes on null or malformed data
+  const safeProducts = useMemo(() => (products || []).filter(p => p && p.id), [products]);
+  const safeSuppliers = useMemo(() => (suppliers || []).filter(s => s && s.id), [suppliers]);
+  const safeMovements = useMemo(() => (movements || []).filter(m => m && m.id), [movements]);
+  const safeRules = useMemo(() => (rules || []).filter(r => r && r.id), [rules]);
+
   // Dynamic Heuristic Advice Cards
   const adviceCards = useMemo(() => {
-    const lowStock = products.filter(p => p.stock < p.minStock);
-    const totalVal = products.reduce((sum, p) => sum + (p.stock * p.costPrice), 0);
-    const mappedProductIds = new Set(rules => rules?.map(r => r.productId) || []);
-    
-    // Check which products are not mapped to any consumption rules
-    let unmappedCount = products.filter(p => !mappedProductIds.has(p.id)).length;
+    const lowStock = safeProducts.filter(p => typeof p.stock === "number" && typeof p.minStock === "number" && p.stock < p.minStock);
+    const totalVal = safeProducts.reduce((sum, p) => sum + ((p.stock || 0) * (p.costPrice || 0)), 0);
+    const mappedProductIds = new Set(safeRules.map(r => r.productId).filter(Boolean));
+    const unmappedProducts = safeProducts.filter(p => !mappedProductIds.has(p.id));
 
     const cards = [];
 
@@ -47,7 +52,7 @@ export default function InventoryAIInsights({ products = [], suppliers = [], mov
       cards.push({
         id: "low-stock",
         title: "Peligro de Rotura de Stock",
-        desc: `Detecté ${lowStock.length} insumos con stock por debajo del mínimo de seguridad. El producto más crítico es "${lowStock[0].name}" con sólo ${lowStock[0].stock} ${lowStock[0].unit}s en almacén.`,
+        desc: `Detecté ${lowStock.length} insumos con stock por debajo del mínimo de seguridad. El producto más crítico es "${lowStock[0]?.name || "Insumo"}" con sólo ${lowStock[0]?.stock ?? 0} ${lowStock[0]?.unit || "unidad"}s en almacén.`,
         severity: "danger",
         actionText: "Reponer Existencias",
         tab: "productos",
@@ -66,15 +71,27 @@ export default function InventoryAIInsights({ products = [], suppliers = [], mov
     }
 
     // 2. Automations & Service Mapping Advice
-    cards.push({
-      id: "unmapped-rules",
-      title: "Configuración de Fórmulas Técnicas",
-      desc: "Al vincular tus insumos a tratamientos en las Reglas de Consumo, aseguras que el stock físico se descuente automáticamente en cada cita completada.",
-      severity: "warning",
-      actionText: "Mapear Consumos",
-      tab: "reglas",
-      icon: Compass
-    });
+    if (unmappedProducts.length > 0) {
+      cards.push({
+        id: "unmapped-rules",
+        title: "Configuración de Fórmulas Técnicas",
+        desc: `Tienes ${unmappedProducts.length} insumos que no están vinculados a ninguna regla de consumo. Citas completadas no descontarán stock de éstos automáticamente.`,
+        severity: "warning",
+        actionText: "Mapear Consumos",
+        tab: "reglas",
+        icon: Compass
+      });
+    } else {
+      cards.push({
+        id: "unmapped-rules-ok",
+        title: "Fórmulas Técnicas Listas",
+        desc: "¡Excelente! Tienes todos tus insumos operativos vinculados a tus tratamientos en las Reglas de Consumo.",
+        severity: "success",
+        actionText: "Ver Reglas",
+        tab: "reglas",
+        icon: Compass
+      });
+    }
 
     // 3. Capital Optimization Advice
     cards.push({
@@ -88,7 +105,7 @@ export default function InventoryAIInsights({ products = [], suppliers = [], mov
     });
 
     return cards;
-  }, [products]);
+  }, [safeProducts, safeSuppliers, safeMovements, safeRules]);
 
   // Handle Quick Chips
   const handleQuickQuestion = (question) => {
@@ -116,12 +133,12 @@ export default function InventoryAIInsights({ products = [], suppliers = [], mov
     setTimeout(() => {
       let responseText = "";
       const q = query.toLowerCase();
-      const lowStock = products.filter(p => p.stock < p.minStock);
-      const totalVal = products.reduce((sum, p) => sum + (p.stock * p.costPrice), 0);
+      const lowStock = safeProducts.filter(p => typeof p.stock === "number" && typeof p.minStock === "number" && p.stock < p.minStock);
+      const totalVal = safeProducts.reduce((sum, p) => sum + ((p.stock || 0) * (p.costPrice || 0)), 0);
 
       if (q.includes("stock") || q.includes("bajo") || q.includes("mínimo") || q.includes("reponer") || q.includes("crítico")) {
         if (lowStock.length > 0) {
-          const listStr = lowStock.map(p => `• ${p.name} (${p.stock}/${p.minStock} ${p.unit}s)`).join("\n");
+          const listStr = lowStock.map(p => `• ${p.name || "Insumo"} (${p.stock}/${p.minStock} ${p.unit || "unidad"}s)`).join("\n");
           responseText = `Aura ha analizado tu inventario y detectó ${lowStock.length} insumos con stock crítico:\n\n${listStr}\n\nTe recomiendo pulsar el botón de 'Reponer Existencias' en las tarjetas de la izquierda para realizar una carga rápida de inventario.`;
         } else {
           responseText = "¡Todo excelente por aquí! No he detectado ningún producto por debajo del nivel mínimo. Tu inventario está cubierto.";
@@ -131,9 +148,9 @@ export default function InventoryAIInsights({ products = [], suppliers = [], mov
       } else if (q.includes("reglas") || q.includes("mapear") || q.includes("fórmula") || q.includes("automat")) {
         responseText = "Las fórmulas técnicas en 'Reglas de Consumo' te permiten descontar stock físico al instante cuando un profesional termina una cita. Esto te da precisión contable sin necesidad de conteos físicos diarios.";
       } else if (q.includes("proveedor") || q.includes("comprar")) {
-        responseText = `Actualmente tienes ${suppliers.length} proveedores registrados. Recomiendo canalizar las reposiciones con tus proveedores principales de forma unificada para ahorrar en costes de envío.`;
+        responseText = `Actualmente tienes ${safeSuppliers.length} proveedores registrados. Recomiendo canalizar las reposiciones con tus proveedores principales de forma unificada para ahorrar en costes de envío.`;
       } else {
-        responseText = `Entendido. He analizado tus ${products.length} productos y ${movements.length} movimientos de stock registrados. ¿Quieres que analicemos el plan de compras de insumos críticos, la rentabilidad por servicio o las reglas de descuento automático?`;
+        responseText = `Entendido. He analizado tus ${safeProducts.length} productos y ${safeMovements.length} movimientos de stock registrados. ¿Quieres que analicemos el plan de compras de insumos críticos, la rentabilidad por servicio o las reglas de descuento automático?`;
       }
 
       const aiMsg = {

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Card, Table, Row, Col, Badge, Form, InputGroup } from "react-bootstrap";
+import { Card, Table, Row, Col, Badge, Form } from "react-bootstrap";
 import { 
   TrendingUp, DollarSign, Award, Sparkles, Activity, 
   Package, ArrowUpRight, Search, Percent 
@@ -7,49 +7,55 @@ import {
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 
 function currency(n) {
+  const num = Number(n);
   return new Intl.NumberFormat("es-AR", {
     style: "currency",
     currency: "ARS",
     maximumFractionDigits: 0,
-  }).format(n || 0);
+  }).format(isNaN(num) ? 0 : num);
 }
 
 export default function ProductProfitability({ products = [], rules = [], movements = [] }) {
   const [searchTerm, setSearchTerm] = useState("");
 
+  // Sanitized props arrays to prevent crashes on null/undefined values or missing ids
+  const safeProducts = useMemo(() => (products || []).filter(p => p && p.id), [products]);
+  const safeRules = useMemo(() => (rules || []).filter(r => r && r.id), [rules]);
+  const safeMovements = useMemo(() => (movements || []).filter(m => m && m.id), [movements]);
+
   // 1. Calculate profitability metrics per product (strictly without waste/merma fields)
   const profitabilityList = useMemo(() => {
-    return products.map(p => {
+    return safeProducts.map(p => {
       // Find rules where this product is consumed
-      const associatedRules = rules.filter(r => r.productId === p.id);
+      const associatedRules = safeRules.filter(r => r.productId === p.id);
       
       // Calculate how many times it was consumed automatically
-      const automaticMovements = movements.filter(m => m.productId === p.id && m.type === "automatic");
+      const automaticMovements = safeMovements.filter(m => m.productId === p.id && m.type === "automatic");
       const consumptionCount = automaticMovements.length;
 
       // Product cost per usage
       const usageRules = associatedRules.map(r => {
         return {
-          serviceName: r.service.name,
-          servicePrice: r.service.price,
-          qtyConsumed: r.quantity,
-          costOfUse: Math.round(p.costPrice * (p.unit === "litro" ? r.quantity / 1000 : r.quantity))
+          serviceName: r.service?.name || "Servicio",
+          servicePrice: r.service?.price || 0,
+          qtyConsumed: r.quantity || 0,
+          costOfUse: Math.round((p.costPrice || 0) * (p.unit === "litro" ? (r.quantity || 0) / 1000 : (r.quantity || 0)))
         };
       });
 
       const avgCostOfUse = usageRules.length > 0 
         ? Math.round(usageRules.reduce((sum, u) => sum + u.costOfUse, 0) / usageRules.length)
-        : p.costPrice;
+        : (p.costPrice || 0);
 
       const totalServiceRevenues = usageRules.reduce((sum, u) => sum + (u.servicePrice * consumptionCount), 0);
       const estimatedProfit = Math.max(0, totalServiceRevenues - (avgCostOfUse * consumptionCount));
 
       return {
         id: p.id,
-        name: p.name,
-        costPrice: p.costPrice,
-        stock: p.stock,
-        unit: p.unit,
+        name: p.name || "Insumo sin nombre",
+        costPrice: p.costPrice || 0,
+        stock: p.stock || 0,
+        unit: p.unit || "unidad",
         servicesCount: associatedRules.length,
         consumptionCount,
         avgCostOfUse,
@@ -57,28 +63,28 @@ export default function ProductProfitability({ products = [], rules = [], moveme
         estimatedProfit,
       };
     }).sort((a, b) => b.estimatedProfit - a.estimatedProfit);
-  }, [products, rules, movements]);
+  }, [safeProducts, safeRules, safeMovements]);
 
   // 2. Costo Mensual de Insumos
   const monthlySuppliesCost = useMemo(() => {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     
-    const monthlyMovements = movements.filter(m => {
+    const monthlyMovements = safeMovements.filter(m => {
       const mDate = new Date(m.createdAt || m.date);
       return (m.type === "automatic" || m.type === "output") && mDate >= thirtyDaysAgo;
     });
     
     if (monthlyMovements.length > 0) {
       return monthlyMovements.reduce((sum, m) => {
-        const p = products.find(prod => prod.id === m.productId);
+        const p = safeProducts.find(prod => prod.id === m.productId);
         if (!p) return sum;
-        return sum + (Math.abs(m.diff) * p.costPrice);
+        return sum + (Math.abs(m.diff || 0) * (p.costPrice || 0));
       }, 0);
     }
     
     return profitabilityList.reduce((sum, p) => sum + (p.avgCostOfUse * p.consumptionCount), 0) || 124500;
-  }, [movements, products, profitabilityList]);
+  }, [safeMovements, safeProducts, profitabilityList]);
 
   // 3. Insumo más Utilizado
   const mostUsedProduct = useMemo(() => {
@@ -89,28 +95,28 @@ export default function ProductProfitability({ products = [], rules = [], moveme
 
   // 4. Insumo más Costoso
   const mostExpensiveProduct = useMemo(() => {
-    if (products.length === 0) return null;
-    const sorted = [...products].sort((a, b) => b.costPrice - a.costPrice);
+    if (safeProducts.length === 0) return null;
+    const sorted = [...safeProducts].sort((a, b) => (b.costPrice || 0) - (a.costPrice || 0));
     return sorted[0];
-  }, [products]);
+  }, [safeProducts]);
 
   // 5. Margin per service calculations
   const serviceMargins = useMemo(() => {
     const serviceMap = {};
-    rules.forEach(r => {
-      if (!r.service) return;
+    safeRules.forEach(r => {
+      if (!r.service || !r.service.id) return;
       if (!serviceMap[r.service.id]) {
         serviceMap[r.service.id] = {
           id: r.service.id,
-          name: r.service.name,
-          price: r.service.price,
+          name: r.service.name || "Servicio sin nombre",
+          price: r.service.price || 0,
           suppliesCost: 0,
           itemsCount: 0
         };
       }
-      const p = products.find(prod => prod.id === r.productId);
+      const p = safeProducts.find(prod => prod.id === r.productId);
       if (p) {
-        serviceMap[r.service.id].suppliesCost += Math.round(p.costPrice * (p.unit === "litro" ? r.quantity / 1000 : r.quantity));
+        serviceMap[r.service.id].suppliesCost += Math.round((p.costPrice || 0) * (p.unit === "litro" ? (r.quantity || 0) / 1000 : (r.quantity || 0)));
         serviceMap[r.service.id].itemsCount += 1;
       }
     });
@@ -123,7 +129,7 @@ export default function ProductProfitability({ products = [], rules = [], moveme
         profit: Math.max(0, s.price - s.suppliesCost)
       };
     }).sort((a, b) => a.margin - b.margin); // order by lower margin first for strategic focus
-  }, [rules, products]);
+  }, [safeRules, safeProducts]);
 
   // 6. Average Service Profit Margin
   const averageServiceMargin = useMemo(() => {
@@ -135,10 +141,10 @@ export default function ProductProfitability({ products = [], rules = [], moveme
   // 7. Chart data construction
   const chartData = useMemo(() => {
     const raw = serviceMargins.map(sm => ({
-      name: sm.name.length > 18 ? sm.name.substring(0, 18) + "..." : sm.name,
-      "Costo Insumo": sm.suppliesCost,
-      "Margen Ganancia": sm.price - sm.suppliesCost,
-      precio: sm.price
+      name: (sm.name || "").length > 18 ? (sm.name || "").substring(0, 18) + "..." : (sm.name || ""),
+      "Costo Insumo": sm.suppliesCost || 0,
+      "Margen Ganancia": (sm.price || 0) - (sm.suppliesCost || 0),
+      precio: sm.price || 0
     }));
     if (raw.length > 0) return raw;
     
@@ -154,7 +160,7 @@ export default function ProductProfitability({ products = [], rules = [], moveme
   // Filtered service margins
   const filteredServiceMargins = useMemo(() => {
     return serviceMargins.filter(sm => 
-      sm.name.toLowerCase().includes(searchTerm.toLowerCase())
+      sm && (sm.name || "").toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [serviceMargins, searchTerm]);
 
@@ -185,7 +191,7 @@ export default function ProductProfitability({ products = [], rules = [], moveme
               </div>
               <div className="w-100 overflow-hidden">
                 <span className="smaller text-muted d-block fw-bold mb-0.5">Insumo más Utilizado</span>
-                <h4 className="fw-bold text-gray-900 mb-0 text-truncate" title={mostUsedProduct?.name || "Cargando..."}>
+                <h4 className="fw-bold text-gray-900 mb-0 text-truncate" title={mostUsedProduct?.name || "Sin datos"}>
                   {mostUsedProduct?.name || "Sin datos"}
                 </h4>
                 <span className="smaller text-muted">{mostUsedProduct?.consumptionCount || 0} consumos registrados</span>
@@ -202,7 +208,7 @@ export default function ProductProfitability({ products = [], rules = [], moveme
               </div>
               <div className="w-100 overflow-hidden">
                 <span className="smaller text-muted d-block fw-bold mb-0.5">Insumo más Costoso</span>
-                <h4 className="fw-bold text-gray-900 mb-0 text-truncate" title={mostExpensiveProduct?.name || "Cargando..."}>
+                <h4 className="fw-bold text-gray-900 mb-0 text-truncate" title={mostExpensiveProduct?.name || "Sin datos"}>
                   {mostExpensiveProduct?.name || "Sin datos"}
                 </h4>
                 <span className="smaller text-danger fw-semibold">{mostExpensiveProduct ? currency(mostExpensiveProduct.costPrice) : "$0"} / unidad</span>
@@ -241,7 +247,7 @@ export default function ProductProfitability({ products = [], rules = [], moveme
             <div style={{ width: "100%", height: "280px" }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
-                  data={displayChartData}
+                  data={chartData}
                   margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
