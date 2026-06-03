@@ -131,6 +131,31 @@ export default function AutomationsView() {
     setActiveModal(null);
   };
 
+  const handleToggleIntegration = (key, checked) => {
+    if (checked) {
+      const savedConfig = localStorage.getItem(`crm_config_${key}`);
+      if (savedConfig) {
+        setIntegrations(prev => ({
+          ...prev,
+          [key]: {
+            ...prev[key],
+            status: "CONNECTED"
+          }
+        }));
+      } else {
+        openConfigModal(key);
+      }
+    } else {
+      setIntegrations(prev => ({
+        ...prev,
+        [key]: {
+          ...prev[key],
+          status: "DISCONNECTED"
+        }
+      }));
+    }
+  };
+
   const getStatusBadge = (status) => {
     switch (status) {
       case "CONNECTED":
@@ -199,7 +224,18 @@ export default function AutomationsView() {
                     >
                       {getIntegrationIcon(item.key)}
                     </div>
-                    {getStatusBadge(item.status)}
+                    <div className="d-flex align-items-center gap-2">
+                      {getStatusBadge(item.status)}
+                      {!isComingSoon && (
+                        <Form.Check 
+                          type="switch"
+                          id={`toggle-${item.key}`}
+                          checked={isConnected}
+                          onChange={(e) => handleToggleIntegration(item.key, e.target.checked)}
+                          className="ms-1 animate-fade-in"
+                        />
+                      )}
+                    </div>
                   </div>
 
                   <h3 className="h6 fw-black text-gray-900 mb-2">{name}</h3>
@@ -212,7 +248,7 @@ export default function AutomationsView() {
                   <Button
                     variant={isConnected ? "outline-dark" : "purple"}
                     size="sm"
-                    className={isConnected ? "w-100 rounded-xl py-2 fw-bold border-gray-200" : "w-100 rounded-xl py-2 fw-bold text-white bg-purple-600 hover-bg-purple-700 border-0"}
+                    className={isConnected ? "w-100 rounded-xl py-2 fw-bold border-gray-200" : "w-100 rounded-xl py-2 fw-bold text-white bg-purple-600 hover-bg-purple-700 border-0 btn-purple"}
                     onClick={() => openConfigModal(item.key)}
                   >
                     {isConnected 
@@ -248,9 +284,21 @@ export default function AutomationsView() {
                 </span>
               </Modal.Title>
             </Modal.Header>
-            
             <Modal.Body className="px-4 pb-4">
-              {alertMsg && <Alert variant={alertMsg.type} className="rounded-xl border-0 shadow-sm small py-2 mb-3">{alertMsg.text}</Alert>}
+              {alertMsg && (
+                <Alert 
+                  variant={alertMsg.type} 
+                  className="rounded-xl border-0 shadow-sm small py-2.5 mb-3 d-flex align-items-center gap-2 animate-fade-in"
+                  style={{
+                    backgroundColor: alertMsg.type === "success" ? "rgba(16, 185, 129, 0.1)" : "rgba(239, 68, 68, 0.1)",
+                    color: alertMsg.type === "success" ? "#065f46" : "#991b1b",
+                    fontSize: "12.5px"
+                  }}
+                >
+                  {alertMsg.type === "success" ? <CheckCircle2 size={16} className="text-success animate-bounce" /> : <ShieldAlert size={16} className="text-danger" />}
+                  <span>{alertMsg.text}</span>
+                </Alert>
+              )}
               
               {/* WhatsApp Config Fields */}
               {activeModal === "whatsapp" && (
