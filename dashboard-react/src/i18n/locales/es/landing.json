@@ -69,27 +69,39 @@
     }
   },
   "howItWorks": {
-    "title": "¿Cómo funciona Dashboard OS?",
+    "title": "¿Cómo funciona AuraDash?",
     "subtitle": "Explora la potencia de tu nueva herramienta de gestión comercial.",
     "step1": {
       "title": "Panel Principal 360°",
       "desc": "Centro de comando unificado que muestra la velocidad operativa en vivo, el total de clientes activos y el log de automatizaciones."
     },
     "step2": {
-      "title": "Agenda Multi-rol Inteligente",
-      "desc": "Bloques de citas con códigos de colores directamente integrados con estados de clientes y campos de arrastre personalizados."
+      "title": "Agenda Multi-colaborador",
+      "desc": "Calendario inteligente con códigos de color, arrastrar y soltar, y lista de espera de alta conversión."
     },
     "step3": {
-      "title": "Flujos Desacoplados",
-      "desc": "Elimina rutinas manuales. Define reglas como: 'Al recibir nueva reserva -> Alerta por WhatsApp al staff y sincroniza Google Sheets'."
+      "title": "CRM e Historial Clínico",
+      "desc": "Centraliza los datos de tus clientes, sus deudas y fichas personalizadas con campos dinámicos editables."
     },
     "step4": {
-      "title": "Checkout Pro Simulado",
-      "desc": "Simula y pon a prueba los flujos de pago de tus clientes mediante tarjetas de crédito, Rapipago, bancos locales o dinero en cuenta."
+      "title": "Colaboradores y Comisiones",
+      "desc": "Administra los turnos de tu equipo, calcula automáticamente sus comisiones mensuales y define sus roles de seguridad."
     },
     "step5": {
-      "title": "Auditorías de Finanzas",
-      "desc": "Cierres de caja herméticos, historial de auditorías que rastrea los detalles del actor en la base de datos y exportación ágil a ERP."
+      "title": "Control Financiero y Caja",
+      "desc": "Registra ingresos y egresos, abre y cierra turnos de caja diaria con conciliación exacta para evitar pérdidas."
+    },
+    "step6": {
+      "title": "Centro de Automatizaciones",
+      "desc": "Crea flujos automáticos como: 'Al cobrar seña -> Enviar WhatsApp con confirmación de turno y registrar en Google Sheets'."
+    },
+    "step7": {
+      "title": "Conexiones de Pago e Integraciones",
+      "desc": "Integra pasarelas como Mercado Pago, sincroniza Google Calendar y exporta tus datos mediante APIs o webhooks."
+    },
+    "step8": {
+      "title": "Campos Personalizados a Medida",
+      "desc": "Crea y configura campos a medida (historiales médicos, preferencias, archivos adjuntos) para adaptar AuraDash a tu rubro."
     },
     "cta": "Empezar ahora mismo"
   },
@@ -133,43 +145,64 @@
       "action": "Acción Rápida: Hacer clic aquí para enviar alertas de turnos libres a clientes en lista de espera."
     }
   },
-  "pillars": {
-    "title": "Explora los 5 Pilares de Dashboard OS",
-    "subtitle": "Descubre cómo se estructura la plataforma a nivel técnico, brindando robustez empresarial para negocios de cualquier tamaño.",
-    "agendaCrm": {
-      "tab": "Agenda Inteligente & CRM",
-      "title": "Agenda Fluida & CRM Multi-campo",
-      "bullet1": "Calendario dinámico con indicadores de estado de alta legibilidad.",
-      "bullet2": "Fichas de clientes robustas con historial transaccional, saldos pendientes y etiquetas.",
-      "bullet3": "Enlace público de reserva directa para captación fluida de clientes 24/7."
+  "explorer": {
+    "title": "Explora los 8 Módulos de AuraDash",
+    "subtitle": "Una suite completa e integrada diseñada para darte el control total de tu negocio desde un solo lugar.",
+    "dashboard": {
+      "tab": "Panel de Control",
+      "title": "Panel Principal & Métricas de Negocio",
+      "bullet1": "Vista consolidada de ingresos, citas activas y rendimiento mensual.",
+      "bullet2": "Gráficos interactivos de ventas líquidas y velocidad operativa.",
+      "bullet3": "Acceso rápido a las tareas diarias y alertas críticas del sistema."
     },
-    "automations": {
-      "tab": "Flujos & Integraciones",
-      "title": "Lienzo de Automatizaciones Desacopladas",
-      "bullet1": "Triggers visuales que capturan reservas, cobros e ingresos a inventario.",
-      "bullet2": "Recordatorios automáticos por WhatsApp con plantillas dinámicas y variables.",
-      "bullet3": "Integración nativa con Google Sheets, webhooks y correos electrónicos sin programar."
+    "agenda": {
+      "tab": "Agenda Inteligente",
+      "title": "Agenda Inteligente & Aura AI Copilot",
+      "bullet1": "Calendario multi-vista por colaborador con arrastrar y soltar.",
+      "bullet2": "Lista de espera inteligente integrada que llena cancelaciones al instante.",
+      "bullet3": "Bloqueo de horarios, turnos recurrentes y estados por colores."
     },
-    "checkout": {
-      "tab": "Simulador Mercado Pago",
-      "title": "Simulador de Pasarela de Pagos Oficial",
-      "bullet1": "Réplica exacta del Checkout Pro compatible con dinero digital, debito y efectivo.",
-      "bullet2": "Tarjeta de crédito interactiva en 3D con auto-detección de marca y flip de seguridad.",
-      "bullet3": "Generación automática de mensajes de cobro con Alias bancarios, CBU y enlaces personalizados."
+    "clients": {
+      "tab": "Base de Clientes",
+      "title": "CRM de Clientes & Fichas Clínicas/Historial",
+      "bullet1": "Base de datos unificada con datos de contacto, saldos y notas.",
+      "bullet2": "Historial completo de visitas, servicios contratados y facturación.",
+      "bullet3": "Campos personalizados adaptados a las necesidades específicas de tu sector."
     },
-    "audit": {
-      "tab": "Finanzas & Ledger Logs",
-      "title": "Control Financiero & Auditoría Relacional",
-      "bullet1": "Cierres de caja herméticos que auditan saldo inicial, retiros y desvíos de dinero.",
-      "bullet2": "Historial de auditorías relacional PostgreSQL que detalla el actor, marcas temporales y metadatos.",
-      "bullet3": "Exportación rápida y limpia compatible con planillas de cálculo y sistemas ERP."
+    "team": {
+      "tab": "Gestión de Equipo",
+      "title": "Colaboradores, Horarios & Comisiones",
+      "bullet1": "Configuración individual de horarios de trabajo, descansos y vacaciones.",
+      "bullet2": "Cálculo automatizado de comisiones por servicios y ventas.",
+      "bullet3": "Permisos y roles (RBAC) para limitar accesos según el puesto."
     },
-    "rbac": {
-      "tab": "Seguridad Multi-tenant RBAC",
-      "title": "Políticas Finas de Acceso & Matriz de Permisos",
-      "bullet1": "Portal ágil de invitación de personal (Dueño, Administrador, Recepcionista).",
-      "bullet2": "Bypass de seguridad hermético que garantiza el acceso ininterrumpido del propietario.",
-      "bullet3": "Aislamiento total multi-tenant para administrar múltiples sucursales con seguridad."
+    "finance": {
+      "tab": "Finanzas & Caja",
+      "title": "Caja Diaria, Flujos de Efectivo & Cierres",
+      "bullet1": "Apertura y cierre de cajas diarias blindadas con auditoría.",
+      "bullet2": "Registro detallado de ingresos (tarjeta, efectivo, transferencia) y egresos.",
+      "bullet3": "Módulo de conciliación rápida para evitar desvíos o pérdidas."
+    },
+    "flows": {
+      "tab": "Centro de Flujos",
+      "title": "Automatización de Tareas & Workflows",
+      "bullet1": "Lienzo visual para conectar acciones automáticas basadas en eventos.",
+      "bullet2": "Recordatorios automáticos por WhatsApp y correos electrónicos.",
+      "bullet3": "Plantillas dinámicas parametrizadas con variables de clientes y citas."
+    },
+    "integrations": {
+      "tab": "Integraciones API",
+      "title": "Conectividad sin límites & Webhooks",
+      "bullet1": "Conexión nativa con pasarelas de pago como Mercado Pago y Stripe.",
+      "bullet2": "Sincronización bidireccional con Google Calendar y Google Sheets.",
+      "bullet3": "Webhooks salientes e integración API para conectar cualquier ERP externo."
+    },
+    "settings": {
+      "tab": "Configuración General",
+      "title": "Catálogo de Campos & Configuración Global",
+      "bullet1": "Creador visual de campos personalizados (textos, números, fechas).",
+      "bullet2": "Personalización del perfil comercial, monedas y zonas horarias.",
+      "bullet3": "Configuración de políticas de cancelación y reservas online."
     }
   },
   "footer": {

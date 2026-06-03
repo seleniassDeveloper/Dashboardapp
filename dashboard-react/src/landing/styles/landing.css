@@ -609,3 +609,122 @@
     font-size: 3rem;
   }
 }
+
+/* ==========================================
+   Phase 5 UX/UI Redesign Styles
+   ========================================== */
+
+/* Browser Mockup Wrapper */
+.hero-carousel-browser-frame {
+  border-radius: 24px;
+  overflow: hidden;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 45px 100px -20px rgba(15, 23, 42, 0.2), 0 30px 60px -30px rgba(15, 23, 42, 0.15) !important;
+  background: #ffffff;
+  position: relative;
+}
+
+.browser-header {
+  height: 42px;
+  background: #f1f5f9;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  position: relative;
+}
+
+.browser-dots {
+  display: flex;
+  gap: 8px;
+}
+
+.browser-dots .dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.browser-dots .red { background-color: #ef4444; }
+.browser-dots .yellow { background-color: #f59e0b; }
+.browser-dots .green { background-color: #10b981; }
+
+.browser-address-bar {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 8px;
+  padding: 4px 40px;
+  font-size: 11px;
+  color: #64748b;
+  font-family: monospace;
+  pointer-events: none;
+  text-align: center;
+}
+
+/* Visor del Explorador Interactivo */
+.explorer-screenshot-frame {
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #0f172a;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.35);
+}
+
+.explorer-screenshot-frame .browser-header {
+  background: rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  height: 38px;
+  padding: 0 16px;
+}
+
+.explorer-screenshot-frame .browser-address-bar {
+  color: #94a3b8 !important;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 2px 30px;
+}
+
+.explorer-screenshot-body {
+  overflow: hidden;
+  max-height: 400px;
+  background: #0f172a;
+  display: flex;
+  align-items: flex-start;
+}
+
+.explorer-screenshot-body img {
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Pricing Card Enhancements */
+.pricing-card {
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid var(--lp-border) !important;
+  background: #ffffff;
+}
+
+.pricing-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 30px 60px -15px rgba(15, 23, 42, 0.08) !important;
+  border-color: rgba(15, 23, 42, 0.15) !important;
+}
+
+.pricing-card.featured {
+  border: 2px solid var(--lp-accent) !important;
+  box-shadow: 0 25px 50px -12px rgba(231, 146, 53, 0.15) !important;
+}
+
+.pricing-card.featured:hover {
+  box-shadow: 0 30px 60px -15px rgba(231, 146, 53, 0.25) !important;
+}
+
+.pillar-tab-icon {
+  font-size: 16px;
+}

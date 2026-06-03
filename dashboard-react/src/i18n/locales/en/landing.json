@@ -28,10 +28,10 @@
     },
     "mercadopago": {
       "title": "Mercado Pago Simulator",
-      "desc": "Test real downpayments, dynamic QR codes, rapid wire alias/CBU setup, and WhatsApp automated billing links with zero risk."
+      "desc": "Test real downpayments, dynamic QR codes, wire alias/CBU setup, and WhatsApp automated billing links with zero risk."
     },
     "metrics": {
-      "title": "Financial closing & LEDGER",
+      "title": "Financial Closing & Ledger",
       "desc": "Real-time liquidity graphics, monthly target progress trackers, secured cash closing registries, and relational ERP exports."
     },
     "multiDevice": {
@@ -69,27 +69,39 @@
     }
   },
   "howItWorks": {
-    "title": "How does Dashboard OS work?",
+    "title": "How does AuraDash work?",
     "subtitle": "Explore the power of your new management tool.",
     "step1": {
       "title": "360° Main Panel",
-      "desc": "An unified command center displaying live operational speed, active client tallies, and prompt automation logs."
+      "desc": "Unified command center displaying live operational speed, active client tallies, and prompt automation logs."
     },
     "step2": {
-      "title": "Multi-role Smart Agenda",
+      "title": "Multi-staff Smart Agenda",
       "desc": "Color-coded booking slots with direct integration to client status trackers and custom drag-and-drop fields."
     },
     "step3": {
-      "title": "Connected Workflows",
-      "desc": "Decouple manual routines. Set up rules like 'On New Appointment -> Alert Staff via WhatsApp and sync Sheets'."
+      "title": "CRM & Custom Fields",
+      "desc": "Centralize customer contact details, histories, debts, and custom fields tailored specifically to your trade."
     },
     "step4": {
-      "title": "Interactive Sandbox Checkout",
-      "desc": "Simulate and test customer online checkout journeys with credit cards, rapipago, bank entities, and digital wallet credits."
+      "title": "Staff Shifts & Commissions",
+      "desc": "Manage employee schedules, calculate monthly commission balances automatically, and define custom access roles."
     },
     "step5": {
       "title": "Financial Audit Logs",
       "desc": "Fully compliant cash drawer closes, audit trails tracking user actor details, and CSV/Excel ERP database exporting."
+    },
+    "step6": {
+      "title": "Decoupled Automation Canvas",
+      "desc": "Build automated triggers: 'On checkout payment approved -> alert staff via WhatsApp and append Google Sheets row'."
+    },
+    "step7": {
+      "title": "Payment Checkouts & APIs",
+      "desc": "Link your sandbox or production Mercado Pago keys, sync Google Calendars, and trace webhooks in real time."
+    },
+    "step8": {
+      "title": "Enterprise Configurations",
+      "desc": "Define global variables, custom metadata parameters, booking form options, and notification behaviors."
     },
     "cta": "Get started now"
   },
@@ -133,43 +145,64 @@
       "action": "Quick Action: Click here to broadcast notifications to clients on waitlist."
     }
   },
-  "pillars": {
-    "title": "Explore the 5 Pillars of Dashboard OS",
-    "subtitle": "Discover how the platform structures its deep features, providing enterprise-grade power for businesses of all scales.",
-    "agendaCrm": {
-      "tab": "Smart Agenda & CRM",
-      "title": "Sleek Booking & Multi-field CRM",
-      "bullet1": "High-contrast dynamic calendar cells with customized color indicators.",
-      "bullet2": "Rich customer records storing transaction histories, pending balances, and tags.",
-      "bullet3": "Direct public calendar url for frictionless client reservations."
+  "explorer": {
+    "title": "Explore the 8 Core Modules of AuraDash",
+    "subtitle": "A complete, integrated suite designed to give you total control of your business from a single platform.",
+    "dashboard": {
+      "tab": "Dashboard",
+      "title": "Main Command Panel & Business Analytics",
+      "bullet1": "Consolidated view of revenue, active appointments, and monthly targets.",
+      "bullet2": "Interactive charts tracking liquid sales and operational velocity.",
+      "bullet3": "Quick access to daily tasks and system-wide critical alerts."
     },
-    "automations": {
-      "tab": "Workflows & Integrations",
-      "title": "Decoupled Automation Canvas",
-      "bullet1": "Visual triggers capturing bookings, payments, and inventory status updates.",
-      "bullet2": "Instant WhatsApp business reminders with dynamic custom text values.",
-      "bullet3": "Zero-code third party links (Google Sheets, email services, webhook feeds)."
+    "agenda": {
+      "tab": "Smart Agenda",
+      "title": "Smart Calendar & Aura AI Copilot Integration",
+      "bullet1": "Multi-view schedule by teammate with full drag-and-drop features.",
+      "bullet2": "Integrated smart waiting list that automatically fills cancellation spots.",
+      "bullet3": "Time-block rules, recurring sessions, and color-coded status states."
     },
-    "checkout": {
-      "tab": "Mercado Pago Simulator",
-      "title": "Full-fidelity Payment Gateway Simulator",
-      "bullet1": "Official lookalike Checkout Pro simulator supporting digital money credits.",
-      "bullet2": "3D Credit Card preview with automatic provider logo and security flip.",
-      "bullet3": "Automated billing messages triggered with bank Alias, CBU, and personal links."
+    "clients": {
+      "tab": "Client CRM",
+      "title": "Robust Client Database & Detailed Profiles",
+      "bullet1": "Unified CRM with contact details, outstanding balances, and custom notes.",
+      "bullet2": "Complete visit histories, contracted services, and billing logs.",
+      "bullet3": "Configurable custom fields tailored to your industry's specific needs."
     },
-    "audit": {
-      "tab": "Finances & Ledger Logs",
-      "title": "Relational Financial Reports & Audit Ledgers",
-      "bullet1": "Safe cash close records tracking starting cash drawer flow, net earnings, and deviations.",
-      "bullet2": "PostgreSQL database audit trail showing actor email, timestamps, and metadata.",
-      "bullet3": "Fast data exports compatible with ERP systems and spreadsheet managers."
+    "team": {
+      "tab": "Team Management",
+      "title": "Teammates, Shift Rosters & Commission Rules",
+      "bullet1": "Individual configuration of working hours, breaks, and holiday schedules.",
+      "bullet2": "Automated commission calculations for services performed and products sold.",
+      "bullet3": "Role-based access controls (RBAC) to restrict system actions by job role."
     },
-    "rbac": {
-      "tab": "Multi-tenant RBAC Security",
-      "title": "Granular User Roles & Permissions Matrix",
-      "bullet1": "Simple member invitation portal supporting owner, manager, and receptionist roles.",
-      "bullet2": "Fool-proof access protection bypass rules protecting primary workspace operations.",
-      "bullet3": "Complete tenant isolation for clean multi-location business management."
+    "finance": {
+      "tab": "Finance & Cash",
+      "title": "Daily Till, Money Flows & Secured Closing Ledgers",
+      "bullet1": "Audited daily cash register openings and hermetic closings.",
+      "bullet2": "Detailed registration of inflows (cards, cash, transfers) and outflows.",
+      "bullet3": "Rapid reconciliation panels designed to prevent discrepancies or losses."
+    },
+    "flows": {
+      "tab": "Workflow Canvas",
+      "title": "Task Automation & Decoupled Workflows",
+      "bullet1": "Visual canvas to link automatic actions based on system events.",
+      "bullet2": "Automated WhatsApp business templates and email notification feeds.",
+      "bullet3": "Dynamic parameterized templates using client and booking variables."
+    },
+    "integrations": {
+      "tab": "API Integrations",
+      "title": "Seamless Connections & Outgoing Webhooks",
+      "bullet1": "Native connection to payment providers like Mercado Pago and Stripe.",
+      "bullet2": "Two-way synchronization with Google Calendar and Google Sheets.",
+      "bullet3": "Developer-ready webhook logs and API tools to connect external ERPs."
+    },
+    "settings": {
+      "tab": "Global Settings",
+      "title": "Custom Field Directory & Global Configuration",
+      "bullet1": "Visual custom field creator (supporting text, numbers, dropdowns).",
+      "bullet2": "Business profiles customization, currencies, and time zone details.",
+      "bullet3": "Fine-tuning of cancellation rules, booking forms, and online portal details."
     }
   },
   "footer": {

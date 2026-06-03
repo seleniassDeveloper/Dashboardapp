@@ -27,6 +27,9 @@ import dashCalendar from "../assets/c2.png";
 import dashClients from "../assets/c3.png";
 import dashTeam from "../assets/c4.png";
 import dashFinance from "../assets/c5.png";
+import dashFlows from "../assets/c6.png";
+import dashIntegrations from "../assets/c7.png";
+import dashSettings from "../assets/c8.png";
 
 // Reutilizamos el sistema de revelación al hacer scroll
 function useScrollReveal() {
@@ -46,7 +49,16 @@ function useScrollReveal() {
 }
 
 function HeroImageStack() {
-  const images = [dashHome, dashCalendar, dashClients, dashTeam, dashFinance];
+  const images = [
+    dashHome,
+    dashCalendar,
+    dashClients,
+    dashTeam,
+    dashFinance,
+    dashFlows,
+    dashIntegrations,
+    dashSettings
+  ];
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
@@ -57,7 +69,7 @@ function HeroImageStack() {
   }, [images.length]);
 
   return (
-    <div className="hero-carousel card-premium p-1 shadow-extreme">
+    <div className="hero-carousel" style={{ height: "420px", border: "none", borderRadius: "0 0 24px 24px" }}>
       {images.map((img, idx) => (
         <img
           key={idx}
@@ -79,9 +91,12 @@ function HowItWorksModal({ show, onHide }) {
   const steps = [
     { title: t("howItWorks.step1.title"), img: dashHome, desc: t("howItWorks.step1.desc") },
     { title: t("howItWorks.step2.title"), img: dashCalendar, desc: t("howItWorks.step2.desc") },
-    { title: t("howItWorks.step3.title"), img: dashTeam, desc: t("howItWorks.step3.desc") },
-    { title: t("howItWorks.step4.title"), img: dashClients, desc: t("howItWorks.step4.desc") },
-    { title: t("howItWorks.step5.title"), img: dashFinance, desc: t("howItWorks.step5.desc") }
+    { title: t("howItWorks.step3.title"), img: dashClients, desc: t("howItWorks.step3.desc") },
+    { title: t("howItWorks.step4.title"), img: dashTeam, desc: t("howItWorks.step4.desc") },
+    { title: t("howItWorks.step5.title"), img: dashFinance, desc: t("howItWorks.step5.desc") },
+    { title: t("howItWorks.step6.title"), img: dashFlows, desc: t("howItWorks.step6.desc") },
+    { title: t("howItWorks.step7.title"), img: dashIntegrations, desc: t("howItWorks.step7.desc") },
+    { title: t("howItWorks.step8.title"), img: dashSettings, desc: t("howItWorks.step8.desc") }
   ];
 
   return (
@@ -167,8 +182,51 @@ export default function LandingPage() {
   const [aiPrompt, setAiPrompt] = useState(null);
   const [aiTyping, setAiTyping] = useState(false);
 
-  // Estados de los 5 Pilares
-  const [activePillar, setActivePillar] = useState("agendaCrm");
+  // Estados del Explorador de Módulos (8 Módulos)
+  const [activeExplorer, setActiveExplorer] = useState("dashboard");
+
+  const explorerConfig = {
+    dashboard: {
+      img: dashHome,
+      icon: <BarChart3 size={18} />,
+      url: "https://auradash.digital/app/dashboard"
+    },
+    agenda: {
+      img: dashCalendar,
+      icon: <Calendar size={18} />,
+      url: "https://auradash.digital/app/agenda"
+    },
+    clients: {
+      img: dashClients,
+      icon: <Users size={18} />,
+      url: "https://auradash.digital/app/clientes"
+    },
+    team: {
+      img: dashTeam,
+      icon: <ShieldCheck size={18} />,
+      url: "https://auradash.digital/app/equipo"
+    },
+    finance: {
+      img: dashFinance,
+      icon: <Database size={18} />,
+      url: "https://auradash.digital/app/finanzas"
+    },
+    flows: {
+      img: dashFlows,
+      icon: <Zap size={18} />,
+      url: "https://auradash.digital/app/workflows"
+    },
+    integrations: {
+      img: dashIntegrations,
+      icon: <Globe size={18} />,
+      url: "https://auradash.digital/app/integraciones"
+    },
+    settings: {
+      img: dashSettings,
+      icon: <Lock size={18} />,
+      url: "https://auradash.digital/app/configuracion"
+    }
+  };
 
   const featureCards = [
     { key: "appointments", icon: <Calendar size={24}/>, color: "text-success" },
@@ -225,17 +283,29 @@ export default function LandingPage() {
               </Col>
               <Col lg={6}>
                 <div className="hero-product-shot">
-                  <HeroImageStack />
+                  <div className="hero-carousel-browser-frame">
+                    <div className="browser-header">
+                      <div className="browser-dots">
+                        <span className="dot red"></span>
+                        <span className="dot yellow"></span>
+                        <span className="dot green"></span>
+                      </div>
+                      <div className="browser-address-bar">
+                        https://auradash.digital/app
+                      </div>
+                    </div>
+                    <HeroImageStack />
+                  </div>
 
                   {/* Floating Callouts para dar profundidad */}
-                  <div className="floating-card metrics-card card-premium shadow-lg">
+                  <div className="floating-card metrics-card card-premium shadow-lg" style={{ zIndex: 12 }}>
                     <div className="d-flex align-items-center gap-2 mb-2">
                       <BarChart3 size={16} className="text-accent" />
                       <span className="fw-bold small text-success">99.8%</span>
                     </div>
                     <div className="text-muted smaller">{t("hero.metricsEfficiency")}</div>
                   </div>
-                  <div className="floating-card users-card card-premium shadow-lg">
+                  <div className="floating-card users-card card-premium shadow-lg" style={{ zIndex: 12 }}>
                     <div className="d-flex align-items-center gap-2 mb-2">
                       <Users size={16} className="text-primary" />
                       <span className="fw-bold small">1,200+</span>
@@ -248,202 +318,78 @@ export default function LandingPage() {
           </Container>
         </section>
 
-        {/* 5 PILLARS SYSTEM SCOPE (FUNCTIONALITIES & SCOPE) */}
-        <section className="pillars-section py-120 reveal">
+        {/* 8 MODULES INTERACTIVE EXPLORER (UX/UI REDESIGN) */}
+        <section id="funcionalidades" className="pillars-section py-120 reveal">
           <Container>
             <div className="text-center mb-5 pb-4">
               <h2 className="fw-black display-5 text-dark mb-3" style={{ letterSpacing: '-0.02em' }}>
-                {t("pillars.title")}
+                {t("explorer.title")}
               </h2>
               <p className="text-muted mx-auto" style={{ maxWidth: '650px' }}>
-                {t("pillars.subtitle")}
+                {t("explorer.subtitle")}
               </p>
             </div>
 
             <Row className="g-5 align-items-stretch">
-              <Col lg={4} className="d-flex flex-column gap-3 justify-content-center">
-                <button
-                  className={`pillar-tab-btn ${activePillar === 'agendaCrm' ? 'active' : ''}`}
-                  onClick={() => setActivePillar('agendaCrm')}
-                >
-                  <Calendar size={20} />
-                  <span>{t("pillars.agendaCrm.tab")}</span>
-                </button>
-
-                <button
-                  className={`pillar-tab-btn ${activePillar === 'automations' ? 'active' : ''}`}
-                  onClick={() => setActivePillar('automations')}
-                >
-                  <Zap size={20} />
-                  <span>{t("pillars.automations.tab")}</span>
-                </button>
-
-                <button
-                  className={`pillar-tab-btn ${activePillar === 'checkout' ? 'active' : ''}`}
-                  onClick={() => setActivePillar('checkout')}
-                >
-                  <Globe size={20} />
-                  <span>{t("pillars.checkout.tab")}</span>
-                </button>
-
-                <button
-                  className={`pillar-tab-btn ${activePillar === 'audit' ? 'active' : ''}`}
-                  onClick={() => setActivePillar('audit')}
-                >
-                  <Database size={20} />
-                  <span>{t("pillars.audit.tab")}</span>
-                </button>
-
-                <button
-                  className={`pillar-tab-btn ${activePillar === 'rbac' ? 'active' : ''}`}
-                  onClick={() => setActivePillar('rbac')}
-                >
-                  <Lock size={20} />
-                  <span>{t("pillars.rbac.tab")}</span>
-                </button>
+              <Col lg={4} className="d-flex flex-column gap-2 justify-content-center">
+                {Object.keys(explorerConfig).map((key) => {
+                  const conf = explorerConfig[key];
+                  return (
+                    <button
+                      key={key}
+                      className={`pillar-tab-btn ${activeExplorer === key ? 'active' : ''}`}
+                      onClick={() => setActiveExplorer(key)}
+                    >
+                      {conf.icon}
+                      <span>{t(`explorer.${key}.tab`)}</span>
+                    </button>
+                  );
+                })}
               </Col>
 
               <Col lg={8}>
-                <div className="pillar-mockup-wrapper d-flex flex-column justify-content-between h-100 shadow-extreme">
+                <div className="pillar-mockup-wrapper d-flex flex-column justify-content-between h-100 shadow-extreme" style={{ background: '#0b0f19', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
                   <div className="mb-4">
                     <Badge bg="warning" className="text-dark px-3 py-2 rounded mb-3 smaller fw-bold uppercase">
-                      SYSTEM CAPABILITY
+                      {t(`explorer.${activeExplorer}.tab`)}
                     </Badge>
-                    <h3 className="h3 text-white fw-bold mb-3">{t(`pillars.${activePillar}.title`)}</h3>
-                    <ul className="list-unstyled text-muted small pe-lg-5">
-                      <li className="mb-3 d-flex align-items-start gap-2">
+                    <h3 className="h3 text-white fw-bold mb-3">{t(`explorer.${activeExplorer}.title`)}</h3>
+                    <ul className="list-unstyled text-muted small pe-lg-5 mb-0">
+                      <li className="mb-2 d-flex align-items-start gap-2">
                         <CheckCircle size={16} className="text-accent mt-1 flex-shrink-0" />
-                        <span>{t(`pillars.${activePillar}.bullet1`)}</span>
+                        <span>{t(`explorer.${activeExplorer}.bullet1`)}</span>
                       </li>
-                      <li className="mb-3 d-flex align-items-start gap-2">
+                      <li className="mb-2 d-flex align-items-start gap-2">
                         <CheckCircle size={16} className="text-accent mt-1 flex-shrink-0" />
-                        <span>{t(`pillars.${activePillar}.bullet2`)}</span>
+                        <span>{t(`explorer.${activeExplorer}.bullet2`)}</span>
                       </li>
-                      <li className="mb-3 d-flex align-items-start gap-2">
+                      <li className="mb-2 d-flex align-items-start gap-2">
                         <CheckCircle size={16} className="text-accent mt-1 flex-shrink-0" />
-                        <span>{t(`pillars.${activePillar}.bullet3`)}</span>
+                        <span>{t(`explorer.${activeExplorer}.bullet3`)}</span>
                       </li>
                     </ul>
                   </div>
 
-                  {/* Dynamic CSS Visual representation of the active pillar */}
-                  <div className="mt-auto pt-4 border-top border-secondary">
-                    {activePillar === 'agendaCrm' && (
-                      <div className="mock-calendar-grid">
-                        <div className="mock-calendar-cell has-booking">
-                          <div className="fw-bold">10:00 AM</div>
-                          <div className="text-white smaller">Pediatrics Appt</div>
-                          <span className="text-success smaller fw-semibold">● Active</span>
-                        </div>
-                        <div className="mock-calendar-cell has-booking-pending">
-                          <div className="fw-bold">11:30 AM</div>
-                          <div className="text-white smaller">Dental Cleaning</div>
-                          <span className="text-warning smaller fw-semibold">● Pending</span>
-                        </div>
-                        <div className="mock-calendar-cell">
-                          <div className="fw-bold text-muted">14:30 PM</div>
-                          <div className="text-muted smaller">Free slot</div>
-                        </div>
-                        <div className="mock-calendar-cell has-booking">
-                          <div className="fw-bold">16:00 PM</div>
-                          <div className="text-white smaller">Terapia Session</div>
-                          <span className="text-success smaller fw-semibold">● Active</span>
-                        </div>
+                  {/* Browser Mockup containing the active screenshot */}
+                  <div className="explorer-screenshot-frame mt-3">
+                    <div className="browser-header">
+                      <div className="browser-dots">
+                        <span className="dot red"></span>
+                        <span className="dot yellow"></span>
+                        <span className="dot green"></span>
                       </div>
-                    )}
-
-                    {activePillar === 'automations' && (
-                      <div className="d-flex flex-column align-items-center">
-                        <div className="mock-workflow-node text-center w-75">
-                          <span className="text-success small fw-bold">📥 TRIGGER</span>
-                          <p className="text-white smaller mb-0">On Customer Appointment Paid (Mercado Pago)</p>
-                        </div>
-                        <div className="mock-workflow-node text-center w-75">
-                          <span className="text-primary small fw-bold">💬 ACTION</span>
-                          <p className="text-white smaller mb-0">Dispatch Personal WhatsApp Billing Message</p>
-                        </div>
-                        <div className="mock-workflow-node text-center w-75">
-                          <span className="text-warning small fw-bold">📊 ACTION</span>
-                          <p className="text-white smaller mb-0">Log entry in relational PostgreSQL Ledger</p>
-                        </div>
+                      <div className="browser-address-bar">
+                        {explorerConfig[activeExplorer].url}
                       </div>
-                    )}
-
-                    {activePillar === 'checkout' && (
-                      <Row className="align-items-center g-4">
-                        <Col md={6}>
-                          <div className="mock-credit-card">
-                            <div className="d-flex justify-content-between align-items-start">
-                              <span className="smaller fw-bold">MERCADO PAGO SIMULATOR</span>
-                              <Globe size={20} />
-                            </div>
-                            <div className="my-3 font-monospace h5">•••• •••• •••• 5839</div>
-                            <div className="d-flex justify-content-between smaller">
-                              <span>SELENIA SANCHEZ</span>
-                              <span>12 / 29</span>
-                            </div>
-                          </div>
-                        </Col>
-                        <Col md={6} className="smaller text-muted">
-                          <div className="p-3 rounded bg-dark border border-secondary">
-                            <div className="text-white fw-bold mb-1">🏦 Bank Facturation info:</div>
-                            <div>Alias: <code>selenia.dev.mp</code></div>
-                            <div>CBU: <code>0000003100094839281923</code></div>
-                            <div className="mt-2 text-white fw-bold mb-1">💬 Auto SMS Template:</div>
-                            <p className="mb-0 text-accent">"Hi Selenia! Booking downpayment approved. Balance updated."</p>
-                          </div>
-                        </Col>
-                      </Row>
-                    )}
-
-                    {activePillar === 'audit' && (
-                      <div className="smaller font-monospace text-muted">
-                        <div className="p-3 bg-dark border border-secondary rounded mb-3">
-                          <span className="text-success fw-bold">✓ CASH DRAWER CLOSING LEDGER</span>
-                          <div className="d-flex gap-4 mt-2">
-                            <span>Open Cash: $5,000</span>
-                            <span>Sales Net: $12,450</span>
-                            <span className="text-success">Diff: $0.00 (Balanced)</span>
-                          </div>
-                        </div>
-                        <div className="p-3 bg-dark rounded" style={{ maxHeight: '100px', overflowY: 'auto' }}>
-                          <div className="mb-1 text-white">● [19:35:33] <span className="text-warning">seleniadeveloper@gmail.com</span> - Cash Drawer Closed - Balanced</div>
-                          <div className="mb-1 text-white">● [19:30:11] <span className="text-success">SYSTEM</span> - WhatsApp notification trigger dispatched - SUCCESS</div>
-                          <div className="text-white">● [19:15:20] <span className="text-warning">seleniadeveloper@gmail.com</span> - Booking Settings Updated - Real MP Enabled</div>
-                        </div>
-                      </div>
-                    )}
-
-                    {activePillar === 'rbac' && (
-                      <Row className="g-4 align-items-center">
-                        <Col md={6}>
-                          <div className="p-3 bg-dark rounded border border-secondary smaller">
-                            <div className="text-white fw-bold mb-2">Member Control Permissions Matrix</div>
-                            <div className="d-flex justify-content-between mb-1">
-                              <span>Owner (full access)</span>
-                              <span className="text-success fw-bold">✓ Bypassed</span>
-                            </div>
-                            <div className="d-flex justify-content-between mb-1">
-                              <span>Manager Role</span>
-                              <span className="text-success">✓ Authorized</span>
-                            </div>
-                            <div className="d-flex justify-content-between">
-                              <span>Reception Staff</span>
-                              <span className="text-muted">✗ Restricted</span>
-                            </div>
-                          </div>
-                        </Col>
-                        <Col md={6}>
-                          <div className="p-3 bg-dark rounded border border-secondary smaller">
-                            <div className="text-white fw-bold mb-2">Invite team member:</div>
-                            <div className="d-flex gap-2">
-                              <input type="email" placeholder="staff@business.com" disabled className="form-control form-control-sm bg-secondary text-white border-0 smaller" />
-                              <button className="btn btn-sm btn-warning smaller"><Plus size={14} /></button>
-                            </div>
-                          </div>
-                        </Col>
-                      </Row>
-                    )}
+                    </div>
+                    <div className="explorer-screenshot-body">
+                      <img 
+                        src={explorerConfig[activeExplorer].img} 
+                        alt={t(`explorer.${activeExplorer}.title`)} 
+                        className="img-fluid w-100"
+                        style={{ objectFit: 'cover', objectPosition: 'top' }}
+                      />
+                    </div>
                   </div>
                 </div>
               </Col>
