@@ -26,6 +26,7 @@ export default function InventoryView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("resumen");
+  const [repoSubTab, setRepoSubTab] = useState("pedidos");
 
   // State populated from Neon Cloud DB
   const [dashboardData, setDashboardData] = useState(null);
@@ -130,6 +131,18 @@ export default function InventoryView() {
           >
             Catálogo de Stock
           </button>
+          <button
+            onClick={() => setActiveTab("reposicion")}
+            className={`nav-tab-premium px-4 py-2 fw-bold text-nowrap border-0 transition-all bg-transparent ${
+              activeTab === "reposicion" ? "active text-purple-700 border-bottom-purple" : "text-muted hover-text-gray-900"
+            }`}
+            style={{
+              fontSize: "14px",
+              borderBottom: activeTab === "reposicion" ? "2px solid #7c3aed" : "2px solid transparent"
+            }}
+          >
+            Reposición de Stock
+          </button>
           {branchesCount > 1 && (
             <button
               onClick={() => setActiveTab("sucursales")}
@@ -203,6 +216,58 @@ export default function InventoryView() {
               suppliers={suppliers}
               onRefresh={fetchAllData}
             />
+          )}
+
+          {activeTab === "reposicion" && (
+            <div className="animate-fade-in">
+              <div 
+                className="d-inline-flex p-1 rounded-3 border mb-4 gap-1" 
+                style={{ 
+                  backgroundColor: "#f3f4f6",
+                  borderColor: "#e5e7eb"
+                }}
+              >
+                <button
+                  onClick={() => setRepoSubTab("pedidos")}
+                  className="px-4 py-2 rounded-3 fw-bold border-0 transition-all"
+                  style={{
+                    fontSize: "13px",
+                    cursor: "pointer",
+                    backgroundColor: repoSubTab === "pedidos" ? "#ffffff" : "transparent",
+                    color: repoSubTab === "pedidos" ? "#7c3aed" : "#6b7280",
+                    boxShadow: repoSubTab === "pedidos" ? "0 1px 3px rgba(0,0,0,0.1)" : "none"
+                  }}
+                >
+                  Pedidos de Reposición
+                </button>
+                <button
+                  onClick={() => setRepoSubTab("proveedores")}
+                  className="px-4 py-2 rounded-3 fw-bold border-0 transition-all"
+                  style={{
+                    fontSize: "13px",
+                    cursor: "pointer",
+                    backgroundColor: repoSubTab === "proveedores" ? "#ffffff" : "transparent",
+                    color: repoSubTab === "proveedores" ? "#7c3aed" : "#6b7280",
+                    boxShadow: repoSubTab === "proveedores" ? "0 1px 3px rgba(0,0,0,0.1)" : "none"
+                  }}
+                >
+                  Directorio de Proveedores
+                </button>
+              </div>
+
+              {repoSubTab === "pedidos" ? (
+                <PurchaseOrders 
+                  products={products} 
+                  suppliers={suppliers} 
+                  onRefresh={fetchAllData} 
+                />
+              ) : (
+                <SupplierCRUD 
+                  suppliers={suppliers} 
+                  onRefresh={fetchAllData} 
+                />
+              )}
+            </div>
           )}
 
           {activeTab === "rentabilidad" && (

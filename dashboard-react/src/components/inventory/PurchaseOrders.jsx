@@ -11,7 +11,7 @@ function currency(n) {
   }).format(n || 0);
 }
 
-export default function PurchaseOrders({ products = [], suppliers = [] }) {
+export default function PurchaseOrders({ products = [], suppliers = [], onRefresh }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -116,6 +116,9 @@ export default function PurchaseOrders({ products = [], suppliers = [] }) {
       setNotes("");
       setOrderItems([]);
       await fetchOrders();
+      if (typeof onRefresh === "function") {
+        onRefresh();
+      }
     } catch (err) {
       console.error(err);
       setError("Error al crear la orden de compra.");
@@ -133,6 +136,9 @@ export default function PurchaseOrders({ products = [], suppliers = [] }) {
       await api.put(`/inventory/orders/${id}`, { status: "RECEIVED" });
       setOkMsg("¡Pedido recibido con éxito! Stock incrementado en Neon DB.");
       await fetchOrders();
+      if (typeof onRefresh === "function") {
+        onRefresh();
+      }
     } catch (err) {
       console.error(err);
       setError("Error al registrar recepción de mercadería.");
@@ -160,7 +166,14 @@ export default function PurchaseOrders({ products = [], suppliers = [] }) {
     const text = `Hola ${order.supplier.contactName || order.supplier.name}, te escribo del Salón Aura Studio para realizar un pedido de insumos:\n\n${itemsText}\n\nQuedamos a la espera del presupuesto. ¡Muchas gracias!`;
     
     // Switch status to SENT
-    api.put(`/inventory/orders/${order.id}`, { status: "SENT" }).then(() => fetchOrders()).catch(e => console.error(e));
+    api.put(`/inventory/orders/${order.id}`, { status: "SENT" })
+      .then(() => {
+        fetchOrders();
+        if (typeof onRefresh === "function") {
+          onRefresh();
+        }
+      })
+      .catch(e => console.error(e));
 
     window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`, "_blank");
   };
