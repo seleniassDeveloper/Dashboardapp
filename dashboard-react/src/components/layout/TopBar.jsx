@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { Search, Bell, PenSquare, LogOut, Menu } from "lucide-react";
 import LanguageSwitcher from "../language/LanguageSwitcher.jsx";
 
-export default function TopBar({ onMenuClick, onEditBrand }) {
+export default function TopBar({ onMenuClick, onEditBrand, onSearchClick }) {
   const { t } = useTranslation("nav");
   const { brand } = useBrand();
   const { logout } = useAuth();
@@ -17,6 +17,11 @@ export default function TopBar({ onMenuClick, onEditBrand }) {
     await logout();
     navigate("/", { replace: true });
   };
+
+  const isMac = typeof window !== "undefined" && (
+    navigator.platform?.toUpperCase().indexOf("MAC") >= 0 ||
+    navigator.userAgent?.toUpperCase().indexOf("MAC") >= 0
+  );
 
   return (
     <header
@@ -33,7 +38,7 @@ export default function TopBar({ onMenuClick, onEditBrand }) {
         </div>
       </div>
 
-      <div className="topbar__search">
+      <div className="topbar__search" onClick={onSearchClick} style={{ cursor: "pointer" }}>
         <div className="topbar__search-icon">
           <Search size={16} />
         </div>
@@ -41,7 +46,10 @@ export default function TopBar({ onMenuClick, onEditBrand }) {
           type="text"
           placeholder={t("topbar.searchPlaceholder")}
           className="topbar__search-input"
+          readOnly
+          style={{ cursor: "pointer" }}
         />
+        <kbd className="topbar__search-kbd">{isMac ? "⌘K" : "Ctrl+K"}</kbd>
       </div>
 
       <div className="topbar__actions">

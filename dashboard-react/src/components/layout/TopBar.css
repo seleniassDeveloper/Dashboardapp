@@ -61,6 +61,27 @@
   align-items: center;
   gap: 8px;
   color: white;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.topbar__search:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.topbar__search-kbd {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  padding: 1px 4px;
+  letter-spacing: 0.05em;
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 .topbar__search input {
