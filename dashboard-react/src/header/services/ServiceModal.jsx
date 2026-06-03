@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { Modal, Row, Col, Form, Button, Alert, Spinner, Badge, Table, InputGroup, Card } from "react-bootstrap";
-import { User, Mail, Phone, Calendar, Briefcase, Shield, Sparkles, Clock, DollarSign, Settings, CheckCircle, HelpCircle, Save, Plus, Trash2, Package } from "lucide-react";
+import { User, Mail, Phone, Calendar, Briefcase, Shield, Sparkles, Clock, DollarSign, Settings, CheckCircle, HelpCircle, Save, Plus, Trash2, Package, Info } from "lucide-react";
 import { useAppointmentsStore } from "../../gadgets/appointments/AppointmentsProvider.jsx";
 import api from "../../lib/api.js";
 
