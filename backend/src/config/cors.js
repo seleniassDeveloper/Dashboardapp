@@ -3,6 +3,8 @@ import { getFrontendOrigins } from "./env.js";
 export function getCorsOptions() {
   const allowed = [
     ...getFrontendOrigins(),
+    "https://auradash.digital",
+    "https://www.auradash.digital",
     "https://dashboardapp-psi.vercel.app",
     "https://dashboard-react-rust-eight.vercel.app",
     "http://localhost:5173",
