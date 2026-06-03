@@ -1,72 +1,219 @@
 {
   "nav": {
     "howItWorks": "¿Cómo funciona?",
-    "features": "Funcionalidades y Alcance",
+    "features": "Funciones",
     "pricing": "Precios",
-    "enterApp": "Entrar al Sistema"
+    "resources": "Recursos",
+    "demo": "Demo",
+    "login": "Iniciar sesión",
+    "freeTrial": "Probar Gratis"
   },
   "hero": {
-    "badge": "VERSIÓN 2.5 - ENTERPRISE READY",
+    "badge": "NUEVO - Versión 2.5 - Más rápida, más inteligente, más completa",
     "titleLine1": "Todo tu negocio,",
     "titleLine2": "bajo control absoluto.",
-    "subtitle": "El sistema operativo SaaS definitivo para negocios modernos. Centraliza tu agenda, automatiza flujos complejos, gestiona cobros integrados de Mercado Pago, audita con PostgreSQL y consulta a Aura AI en tiempo real.",
-    "ctaPrimary": "Entrar al Sistema",
-    "ctaSecondary": "Tour Interactivo",
+    "subtitle": "Agenda, clientes, equipo, pagos, inventario y automatizaciones en una sola plataforma. Diseñado para negocios que trabajan por citas.",
+    "ctaPrimary": "Probar Demo Gratis",
+    "ctaSecondary": "Ver Tour Interactivo",
+    "trust": "Más de 1.200 negocios ya confían en AuraDash",
     "metricsEfficiency": "Velocidad Operativa",
     "metricsClients": "Negocios Conectados"
   },
-  "features": {
-    "title": "Capacidades sin precedentes",
-    "subtitle": "Hemos eliminado toda la complejidad para ofrecerte módulos de alto rendimiento que te otorgan el control total.",
-    "appointments": {
-      "title": "Agenda Inteligente & CRM",
-      "desc": "Calendario dinámico ultra rápido con estados de color personalizados, fichas de clientes y campos personalizados configurables."
+  "benefits": {
+    "b1Title": "Menos tareas manuales",
+    "b1Desc": "Más tiempo para tu negocio",
+    "b2Title": "Más reservas confirmadas",
+    "b2Desc": "Menos ausencias",
+    "b3Title": "Información en tiempo real",
+    "b3Desc": "Decisiones inteligentes",
+    "b4Title": "Negocio más rentable",
+    "b4Desc": "Crecimiento sostenible"
+  },
+  "target": {
+    "title": "¿Para quién es AuraDash?",
+    "subtitle": "Se adapta a cualquier negocio que trabaja por citas.",
+    "c1Title": "Belleza & Estética",
+    "c1Desc": "Salones, barberías, spas, manicura, estética.",
+    "c2Title": "Salud & Bienestar",
+    "c2Desc": "Clínicas, dentistas, psicólogos, nutricionistas, kinesiología.",
+    "c3Title": "Servicios Profesionales",
+    "c3Desc": "Consultores, contadores, abogados, coaches, terapeutas.",
+    "c4Title": "Servicios a Domicilio",
+    "c4Desc": "Limpieza, mantenimiento, reparaciones, fitness, entrenadores."
+  },
+  "explorer": {
+    "title": "Todo lo que necesitas, en un solo lugar",
+    "subtitle": "8 módulos integrados para gestionar y hacer crecer tu negocio.",
+    "dashboard": {
+      "tab": "Panel de Control",
+      "title": "Panel Principal & Métricas de Negocio",
+      "bullet1": "Vista consolidada de ingresos, citas activas y rendimiento mensual.",
+      "bullet2": "Gráficos interactivos de ventas líquidas y velocidad operativa.",
+      "bullet3": "Acceso rápido a las tareas diarias y alertas críticas del sistema."
     },
-    "automation": {
-      "title": "Motor de Flujos & APIs",
-      "desc": "Conecta disparadores (como cobros aprobados) con alertas automáticas por WhatsApp, registros en PostgreSQL y Google Sheets al instante."
+    "agenda": {
+      "tab": "Agenda Inteligente",
+      "title": "Agenda Inteligente & Aura AI Copilot",
+      "bullet1": "Calendario multi-vista por colaborador con arrastrar y soltar.",
+      "bullet2": "Lista de espera inteligente integrada que llena cancelaciones al instante.",
+      "bullet3": "Bloqueo de horarios, turnos recurrentes y estados por colores."
     },
-    "mercadopago": {
-      "title": "Simulador de Mercado Pago",
-      "desc": "Prueba reservas reales, cobro de señas, configuración de Alias/CBU y links de facturación automática por WhatsApp sin riesgos."
+    "clients": {
+      "tab": "Base de Clientes (CRM)",
+      "title": "CRM de Clientes & Fichas Clínicas/Historial",
+      "bullet1": "Base de datos unificada con datos de contacto, saldos y notas.",
+      "bullet2": "Historial completo de visitas, servicios contratados y facturación.",
+      "bullet3": "Campos personalizados adaptados a las necesidades específicas de tu sector."
     },
-    "metrics": {
-      "title": "Cierre de Caja & Ledger",
-      "desc": "Gráficos de liquidez en tiempo real, cumplimiento de metas de venta, cierres de caja blindados y exportación ERP relacional."
+    "team": {
+      "tab": "Gestión de Equipo",
+      "title": "Colaboradores, Horarios & Comisiones",
+      "bullet1": "Configuración individual de horarios de trabajo, descansos y vacaciones.",
+      "bullet2": "Cálculo automatizado de comisiones por servicios y ventas.",
+      "bullet3": "Permisos y roles (RBAC) para limitar accesos según el puesto."
     },
-    "multiDevice": {
-      "title": "Copiloto Aura AI",
-      "desc": "Realiza consultas de inteligencia de negocio en lenguaje natural, genera reportes instantáneos y widgets dinámicos para tu dashboard."
+    "finance": {
+      "tab": "Finanzas & Caja",
+      "title": "Caja Diaria, Flujos de Efectivo & Cierres",
+      "bullet1": "Apertura y cierre de cajas diarias blindadas con auditoría.",
+      "bullet2": "Registro detallado de ingresos (tarjeta, efectivo, transferencia) y egresos.",
+      "bullet3": "Módulo de conciliación rápida para evitar desvíos o pérdidas."
     },
-    "aiSupport": {
-      "title": "Seguridad RBAC Multi-tenant",
-      "desc": "Invita a tu equipo de trabajo, asigna roles (Dueño, Administrador, Staff) y define políticas finas de acceso sin fisuras."
+    "inventory": {
+      "tab": "Inventario",
+      "title": "Inventario & Control de Stock",
+      "bullet1": "Control de lotes (FIFO) y fechas de vencimiento de insumos.",
+      "bullet2": "Reglas de consumo automático por servicios realizados.",
+      "bullet3": "Pedidos de reposición automáticos y alertas de stock mínimo."
+    },
+    "flows": {
+      "tab": "Automatizaciones",
+      "title": "Automatización de Tareas & Workflows",
+      "bullet1": "Lienzo visual para conectar acciones automáticas basadas en eventos.",
+      "bullet2": "Recordatorios automáticos por WhatsApp y correos electrónicos.",
+      "bullet3": "Plantillas dinámicas parametrizadas con variables de clientes y citas."
+    },
+    "integrations": {
+      "tab": "Integraciones",
+      "title": "Conectividad sin límites & Webhooks",
+      "bullet1": "Conexión nativa con pasarelas de pago como Mercado Pago y Stripe.",
+      "bullet2": "Sincronización bidireccional con Google Calendar y Google Sheets.",
+      "bullet3": "Webhooks salientes e integración API para conectar cualquier ERP externo."
+    },
+    "settings": {
+      "tab": "Configuración",
+      "title": "Catálogo de Campos & Configuración Global",
+      "bullet1": "Creador visual de campos personalizados (textos, números, fechas).",
+      "bullet2": "Personalización del perfil comercial, monedas y zonas horarias.",
+      "bullet3": "Configuración de políticas de cancelación y reservas online."
     }
   },
+  "aiCopilot": {
+    "title": "Aura AI Copilot",
+    "subtitle": "Tu asesor de negocio 24/7",
+    "desc": "Aura AI analiza tu información y te entrega alertas, recomendaciones e insights accionables para que tomes mejores decisiones.",
+    "bullets": {
+      "b1Title": "Detecta oportunidades de ventas",
+      "b1Desc": "Ej: Clientes que hace más de 45 días no vuelven.",
+      "b2Title": "Alertas inteligentes",
+      "b2Desc": "Ej: Stock bajo, baja facturación, ausencias frecuentes.",
+      "b3Title": "Recomendaciones personalizadas",
+      "b3Desc": "Ej: Qué promociones, qué mejorar, qué automatizar."
+    },
+    "sandbox": {
+      "title": "¿En qué puedo ayudarte hoy?",
+      "p1": "¿Cómo van mis ventas esta semana?",
+      "p2": "Clientes que hace mucho no vuelven",
+      "p3": "Recomendar promoción hoy",
+      "p4": "Análisis de rentabilidad",
+      "input": "Escribe tu pregunta..."
+    },
+    "stats": {
+      "sales": "Ventas del mes",
+      "inactive": "Clientes inactivos",
+      "stock": "Stock bajo",
+      "occupancy": "Ocupación promedio",
+      "viewList": "Ver lista",
+      "viewDetails": "Ver detalles"
+    }
+  },
+  "steps": {
+    "title": "Comienza en minutos, crece sin límites",
+    "s1Title": "1. Configura tu negocio",
+    "s1Desc": "Crea tu cuenta y configura tu negocio en pocos pasos.",
+    "s2Title": "2. Importa tu información",
+    "s2Desc": "Trae tus clientes, servicios o inventario desde Excel.",
+    "s3Title": "3. Agenda y organiza",
+    "s3Desc": "Comienza a agendar citas y gestionar tu día a día.",
+    "s4Title": "4. Automatiza y conecta",
+    "s4Desc": "Activa recordatorios, cobros, integraciones y más.",
+    "s5Title": "5. Toma el control",
+    "s5Desc": "Obtén métricas en tiempo real y haz crecer tu negocio."
+  },
   "pricing": {
-    "title": "Planes Transparentes y Escalables",
-    "subtitle": "Sin costos ocultos. Elige el modelo que mejor se adapte al tamaño actual de tu negocio.",
+    "title": "Planes simples, precios claros",
+    "subtitle": "Elige el plan que mejor se adapte al tamaño de tu negocio.",
     "popular": "MÁS POPULAR",
     "perMonth": "/mes",
-    "cta": "Iniciar Workspace",
-    "individual": {
+    "cta": "Comenzar Gratis",
+    "footnote": "Prueba gratis por 14 días • Sin tarjeta de crédito • Cancela cuando quieras",
+    "starter": {
       "name": "Starter",
-      "f1": "1 Usuario Activo y Agenda",
-      "f2": "Base de Datos CRM Estándar",
-      "f3": "Control de Caja Simulado"
+      "desc": "Ideal para profesionales independientes.",
+      "f1": "Agenda y reservas online",
+      "f2": "Base de clientes",
+      "f3": "Recordatorios WhatsApp",
+      "f4": "Reportes básicos"
     },
-    "professional": {
-      "name": "Professional",
-      "f1": "Hasta 5 Colaboradores",
-      "f2": "Mercado Pago Real & Sandbox",
-      "f3": "Aura AI Copilot (100 consultas/mes)"
+    "growth": {
+      "name": "Growth",
+      "desc": "Para negocios en crecimiento.",
+      "f1": "Todo lo del plan Starter",
+      "f2": "Gestión de equipo y comisiones",
+      "f3": "Finanzas y caja",
+      "f4": "Inventario y stock",
+      "f5": "Reportes avanzados"
     },
-    "business": {
-      "name": "Enterprise",
-      "f1": "Miembros y Multi-tenant Ilimitados",
-      "f2": "Auditoría Relacional PostgreSQL Completa",
-      "f3": "Flujos Personalizados e IA Ilimitada"
+    "aipro": {
+      "name": "AI Pro",
+      "desc": "Para negocios que quieren escalar.",
+      "f1": "Todo lo del plan Growth",
+      "f2": "Aura AI Copilot",
+      "f3": "Automatizaciones avanzadas",
+      "f4": "Integraciones premium",
+      "f5": "Soporte prioritario"
     }
+  },
+  "comparison": {
+    "title": "Menos herramientas. Más resultados.",
+    "desc": "AuraDash reemplaza múltiples herramientas costosas y te da todo lo que necesitas para gestionar y hacer crecer tu negocio desde un solo lugar.",
+    "b1": "Ahorra tiempo y dinero",
+    "b2": "Reduce errores y tareas manuales",
+    "b3": "Mejora la experiencia de tus clientes",
+    "b4": "Toma decisiones basadas en datos reales",
+    "table": {
+      "header1": "Funcionalidad",
+      "header2": "Excel / Hojas",
+      "header3": "Agenda tradicional",
+      "header4": "AuraDash",
+      "r1": "Agenda inteligente",
+      "r2": "CRM de clientes",
+      "r3": "Finanzas & Caja",
+      "r4": "Inventario",
+      "r5": "Automatizaciones",
+      "r6": "Aura AI Copilot",
+      "r7": "Todo en un solo lugar",
+      "yes": "✓",
+      "no": "✗",
+      "partial": "Parcial",
+      "limited": "Limitado"
+    }
+  },
+  "ctaFooter": {
+    "title": "Tu negocio puede crecer más. Nosotros te damos el control.",
+    "subtitle": "Únete a más de 1.200 negocios que ya usan AuraDash para gestionar, mejorar y vender más.",
+    "btnFree": "Probar Gratis Ahora",
+    "btnDemo": "Solicitar Demo"
   },
   "howItWorks": {
     "title": "¿Cómo funciona AuraDash?",
@@ -105,108 +252,8 @@
     },
     "cta": "Empezar ahora mismo"
   },
-  "aiSimulator": {
-    "title": "Aura AI Copilot - Simulador de Pruebas en Vivo",
-    "subtitle": "Experimenta la inteligencia de Aura AI. Selecciona uno de los prompts de negocio de prueba a continuación para ver cómo responde y genera estructuras dinámicas en tiempo real.",
-    "features": {
-      "f1Title": "Inteligencia de Datos Conversacional",
-      "f1Desc": "Aura traduce lenguaje natural a consultas directas en PostgreSQL para darte métricas financieras, reportes de personal y rendimiento al instante.",
-      "f2Title": "Motor de Automatización Autónomo",
-      "f2Desc": "Pídele a Aura estructurar lógicas como 'Si aprueban un pago de Mercado Pago, enviar WhatsApp', y ella creará los nodos de conexión automáticamente.",
-      "f3Title": "Generador Dinámico de Widgets",
-      "f3Desc": "Aura puede programar, insertar y personalizar tarjetas visuales en tiempo real directamente en tu panel de control basándose en tu solicitud."
-    },
-    "btnFinance": "📊 Analizar Finanzas & Metas",
-    "btnWorkflow": "⚡ Diseñar Automatización de Reservas",
-    "btnAgenda": "📅 Consultar Disponibilidad de Hoy",
-    "typing": "Aura AI está consultando tu base de datos relacional...",
-    "financeResponse": {
-      "header": "AURA COPILOT // INTELIGENCIA DE NEGOCIO",
-      "message": "Aquí tienes el diagnóstico financiero de tu workspace para este mes:",
-      "target": "Cumplimiento de Meta de Ventas: 84.3%",
-      "liquidity": "Total Activos Líquidos: $148,250 ARS",
-      "status": "Estado de Cierre de Caja: SEGURO & BALANCEADO",
-      "tip": "Consejo: Has completado 9 automatizaciones de flujos esta semana, bajando la tasa de deserción de clientes en un 18.4%."
-    },
-    "workflowResponse": {
-      "header": "AURA COPILOT // AUTOMATIZACIÓN DESPLEGADA",
-      "message": "La lógica de automatización ha sido inicializada y está activa:",
-      "trigger": "DISPARADOR: Al Aprobar Pago de Reserva (Mercado Pago / Banco)",
-      "action1": "ACCIÓN 1: Enviar plantilla de WhatsApp con instrucciones de ingreso",
-      "action2": "ACCIÓN 2: Registrar auditoría con metadatos en Ledger PostgreSQL",
-      "status": "Estado Operativo: CONECTADO & FUNCIONANDO"
-    },
-    "agendaResponse": {
-      "header": "AURA COPILOT // DIAGNÓSTICO DE AGENDA",
-      "message": "Resumen de disponibilidad para hoy en tu agenda comercial:",
-      "busy": "Bloques ocupados: 8 citas agendadas",
-      "free": "Espacios libres: 3 turnos (14:30, 16:00, 18:30)",
-      "staff": "Personal Activo en Turno: 4 colaboradores en salón",
-      "action": "Acción Rápida: Hacer clic aquí para enviar alertas de turnos libres a clientes en lista de espera."
-    }
-  },
-  "explorer": {
-    "title": "Explora los 8 Módulos de AuraDash",
-    "subtitle": "Una suite completa e integrada diseñada para darte el control total de tu negocio desde un solo lugar.",
-    "dashboard": {
-      "tab": "Panel de Control",
-      "title": "Panel Principal & Métricas de Negocio",
-      "bullet1": "Vista consolidada de ingresos, citas activas y rendimiento mensual.",
-      "bullet2": "Gráficos interactivos de ventas líquidas y velocidad operativa.",
-      "bullet3": "Acceso rápido a las tareas diarias y alertas críticas del sistema."
-    },
-    "agenda": {
-      "tab": "Agenda Inteligente",
-      "title": "Agenda Inteligente & Aura AI Copilot",
-      "bullet1": "Calendario multi-vista por colaborador con arrastrar y soltar.",
-      "bullet2": "Lista de espera inteligente integrada que llena cancelaciones al instante.",
-      "bullet3": "Bloqueo de horarios, turnos recurrentes y estados por colores."
-    },
-    "clients": {
-      "tab": "Base de Clientes",
-      "title": "CRM de Clientes & Fichas Clínicas/Historial",
-      "bullet1": "Base de datos unificada con datos de contacto, saldos y notas.",
-      "bullet2": "Historial completo de visitas, servicios contratados y facturación.",
-      "bullet3": "Campos personalizados adaptados a las necesidades específicas de tu sector."
-    },
-    "team": {
-      "tab": "Gestión de Equipo",
-      "title": "Colaboradores, Horarios & Comisiones",
-      "bullet1": "Configuración individual de horarios de trabajo, descansos y vacaciones.",
-      "bullet2": "Cálculo automatizado de comisiones por servicios y ventas.",
-      "bullet3": "Permisos y roles (RBAC) para limitar accesos según el puesto."
-    },
-    "finance": {
-      "tab": "Finanzas & Caja",
-      "title": "Caja Diaria, Flujos de Efectivo & Cierres",
-      "bullet1": "Apertura y cierre de cajas diarias blindadas con auditoría.",
-      "bullet2": "Registro detallado de ingresos (tarjeta, efectivo, transferencia) y egresos.",
-      "bullet3": "Módulo de conciliación rápida para evitar desvíos o pérdidas."
-    },
-    "flows": {
-      "tab": "Centro de Flujos",
-      "title": "Automatización de Tareas & Workflows",
-      "bullet1": "Lienzo visual para conectar acciones automáticas basadas en eventos.",
-      "bullet2": "Recordatorios automáticos por WhatsApp y correos electrónicos.",
-      "bullet3": "Plantillas dinámicas parametrizadas con variables de clientes y citas."
-    },
-    "integrations": {
-      "tab": "Integraciones API",
-      "title": "Conectividad sin límites & Webhooks",
-      "bullet1": "Conexión nativa con pasarelas de pago como Mercado Pago y Stripe.",
-      "bullet2": "Sincronización bidireccional con Google Calendar y Google Sheets.",
-      "bullet3": "Webhooks salientes e integración API para conectar cualquier ERP externo."
-    },
-    "settings": {
-      "tab": "Configuración General",
-      "title": "Catálogo de Campos & Configuración Global",
-      "bullet1": "Creador visual de campos personalizados (textos, números, fechas).",
-      "bullet2": "Personalización del perfil comercial, monedas y zonas horarias.",
-      "bullet3": "Configuración de políticas de cancelación y reservas online."
-    }
-  },
   "footer": {
-    "copyright": "Dashboard OS © 2026",
+    "copyright": "AuraDash © 2026",
     "privacy": "Política de Privacidad",
     "terms": "Términos del Servicio",
     "contact": "Contactar Ventas"

@@ -1,72 +1,219 @@
 {
   "nav": {
     "howItWorks": "How it works?",
-    "features": "Features & Scope",
+    "features": "Features",
     "pricing": "Pricing",
-    "enterApp": "Enter System"
+    "resources": "Resources",
+    "demo": "Demo",
+    "login": "Log in",
+    "freeTrial": "Try Free"
   },
   "hero": {
-    "badge": "VERSION 2.5 - ENTERPRISE READY",
+    "badge": "NEW - Version 2.5 - Faster, smarter, more complete",
     "titleLine1": "Your entire business,",
     "titleLine2": "under total control.",
-    "subtitle": "The ultimate SaaS OS for modern businesses. Streamline calendar bookings, automate workflows, configure live Mercado Pago sandboxes, trace ledger audits, and consult Aura AI in real time.",
-    "ctaPrimary": "Enter System",
-    "ctaSecondary": "Interactive Tour",
+    "subtitle": "Appointments, clients, team, checkouts, stock, and automation in a single platform. Tailored for appointment-based businesses.",
+    "ctaPrimary": "Try Free Demo",
+    "ctaSecondary": "Watch Interactive Tour",
+    "trust": "Over 1,200 businesses already trust AuraDash",
     "metricsEfficiency": "Operational Speed",
     "metricsClients": "Connected Businesses"
   },
-  "features": {
-    "title": "Unrivaled Platform Capability",
-    "subtitle": "We've removed all complexity to deliver high-performance modules that put you in control.",
-    "appointments": {
-      "title": "Smart Calendar & CRM",
-      "desc": "An ultra-fast dynamic agenda with customized statuses, patient/client profiles, and direct customer onboarding database fields."
+  "benefits": {
+    "b1Title": "Less manual tasks",
+    "b1Desc": "More time for your business",
+    "b2Title": "More confirmed bookings",
+    "b2Desc": "Fewer no-shows",
+    "b3Title": "Real-time insights",
+    "b3Desc": "Smarter decisions",
+    "b4Title": "More profitable business",
+    "b4Desc": "Sustainable growth"
+  },
+  "target": {
+    "title": "Who is AuraDash for?",
+    "subtitle": "Tailored for any appointment-based business.",
+    "c1Title": "Beauty & Aesthetics",
+    "c1Desc": "Salons, barbershops, spas, nail salons, aesthetics.",
+    "c2Title": "Health & Wellness",
+    "c2Desc": "Clinics, dentists, psychologists, nutritionists, physiotherapy.",
+    "c3Title": "Professional Services",
+    "c3Desc": "Consultants, accountants, lawyers, coaches, therapists.",
+    "c4Title": "Home Services",
+    "c4Desc": "Cleaning, maintenance, repairs, fitness trainers."
+  },
+  "explorer": {
+    "title": "Everything you need, all in one place",
+    "subtitle": "8 integrated modules to manage and grow your business.",
+    "dashboard": {
+      "tab": "Dashboard",
+      "title": "Main Command Panel & Business Analytics",
+      "bullet1": "Consolidated view of revenue, active appointments, and monthly targets.",
+      "bullet2": "Interactive charts tracking liquid sales and operational velocity.",
+      "bullet3": "Quick access to daily tasks and system-wide critical alerts."
     },
-    "automation": {
-      "title": "Workflow Engine & APIs",
-      "desc": "Connect triggers (like successful checkouts) to instant WhatsApp alerts, PostgreSQL entries, and Google Sheets logs automatically."
+    "agenda": {
+      "tab": "Smart Agenda",
+      "title": "Smart Calendar & Aura AI Copilot Integration",
+      "bullet1": "Multi-view schedule by teammate with full drag-and-drop features.",
+      "bullet2": "Integrated smart waiting list that automatically fills cancellation spots.",
+      "bullet3": "Time-block rules, recurring sessions, and color-coded status states."
     },
-    "mercadopago": {
-      "title": "Mercado Pago Simulator",
-      "desc": "Test real downpayments, dynamic QR codes, wire alias/CBU setup, and WhatsApp automated billing links with zero risk."
+    "clients": {
+      "tab": "Client CRM",
+      "title": "Robust Client Database & Detailed Profiles",
+      "bullet1": "Unified CRM with contact details, outstanding balances, and custom notes.",
+      "bullet2": "Complete visit histories, contracted services, and billing logs.",
+      "bullet3": "Configurable custom fields tailored to your industry's specific needs."
     },
-    "metrics": {
-      "title": "Financial Closing & Ledger",
-      "desc": "Real-time liquidity graphics, monthly target progress trackers, secured cash closing registries, and relational ERP exports."
+    "team": {
+      "tab": "Team Management",
+      "title": "Teammates, Shift Rosters & Commission Rules",
+      "bullet1": "Individual configuration of working hours, breaks, and holiday schedules.",
+      "bullet2": "Automated commission calculations for services performed and products sold.",
+      "bullet3": "Role-based access controls (RBAC) to restrict system actions by job role."
     },
-    "multiDevice": {
-      "title": "Aura AI Copilot Engine",
-      "desc": "Ask business intelligence questions in natural language, retrieve reports immediately, and generate dynamic dashboard gadgets."
+    "finance": {
+      "tab": "Finance & Cash",
+      "title": "Daily Till, Money Flows & Secured Closing Ledgers",
+      "bullet1": "Audited daily cash register openings and hermetic closings.",
+      "bullet2": "Detailed registration of inflows (cards, cash, transfers) and outflows.",
+      "bullet3": "Rapid reconciliation panels designed to prevent discrepancies or losses."
     },
-    "aiSupport": {
-      "title": "Multi-tenant RBAC",
-      "desc": "Securely onboard employee staff, assign roles (Owner, Manager, Staff), and fine-tune dynamic system access controls."
+    "inventory": {
+      "tab": "Inventory",
+      "title": "Inventory & Stock Control",
+      "bullet1": "Batch control (FIFO) and ingredient expiration date logging.",
+      "bullet2": "Automatic consumption rules mapping supplies to performed services.",
+      "bullet3": "Auto-replenishment orders and minimum stock alerts."
+    },
+    "flows": {
+      "tab": "Automation",
+      "title": "Task Automation & Decoupled Workflows",
+      "bullet1": "Visual canvas to link automatic actions based on system events.",
+      "bullet2": "Automated WhatsApp business templates and email notification feeds.",
+      "bullet3": "Dynamic parameterized templates using client and booking variables."
+    },
+    "integrations": {
+      "tab": "Integrations",
+      "title": "Seamless Connections & Outgoing Webhooks",
+      "bullet1": "Native connection to payment providers like Mercado Pago and Stripe.",
+      "bullet2": "Two-way synchronization with Google Calendar and Google Sheets.",
+      "bullet3": "Developer-ready webhook logs and API tools to connect external ERPs."
+    },
+    "settings": {
+      "tab": "Configuration",
+      "title": "Custom Field Directory & Global Configuration",
+      "bullet1": "Visual custom field creator (supporting text, numbers, dropdowns).",
+      "bullet2": "Business profiles customization, currencies, and time zone details.",
+      "bullet3": "Fine-tuning of cancellation rules, booking forms, and online portal details."
     }
   },
+  "aiCopilot": {
+    "title": "Aura AI Copilot",
+    "subtitle": "Your 24/7 Business Advisor",
+    "desc": "Aura AI analyzes your data and delivers alerts, recommendations, and actionable insights for you to make better choices.",
+    "bullets": {
+      "b1Title": "Detect sales opportunities",
+      "b1Desc": "E.g., clients who haven't returned in 45+ days.",
+      "b2Title": "Smart alerts",
+      "b2Desc": "E.g., low stock indicators, drop in revenue, staff absences.",
+      "b3Title": "Personalized suggestions",
+      "b3Desc": "E.g., which promotions, what to optimize, what to automate."
+    },
+    "sandbox": {
+      "title": "How can I help you today?",
+      "p1": "How are sales performing this week?",
+      "p2": "Inactive clients lists",
+      "p3": "Recommend promotion for today",
+      "p4": "Profitability analysis report",
+      "input": "Type your question..."
+    },
+    "stats": {
+      "sales": "Monthly Sales",
+      "inactive": "Inactive Clients",
+      "stock": "Low Stock Items",
+      "occupancy": "Average Occupancy",
+      "viewList": "View list",
+      "viewDetails": "View details"
+    }
+  },
+  "steps": {
+    "title": "Start in minutes, grow without limits",
+    "s1Title": "1. Configure your business",
+    "s1Desc": "Register your account and set up your details in simple steps.",
+    "s2Title": "2. Import your files",
+    "s2Desc": "Upload your CRM, lists, or inventories directly from Excel.",
+    "s3Title": "3. Organize and Book",
+    "s3Desc": "Begin scheduling appointments and organizing staff slots.",
+    "s4Title": "4. Automate & Sync",
+    "s4Desc": "Enable instant WhatsApp notifications, webhooks, and checkouts.",
+    "s5Title": "5. Take Total Control",
+    "s5Desc": "Analyze real-time metrics and watch your business expand."
+  },
   "pricing": {
-    "title": "Transparent, Scale-Ready Plans",
-    "subtitle": "No hidden fees. Choose the model that matches your current business scope.",
+    "title": "Simple plans, transparent prices",
+    "subtitle": "Choose the model that matches your current business scope.",
     "popular": "MOST POPULAR",
     "perMonth": "/month",
-    "cta": "Launch Workspace",
-    "individual": {
+    "cta": "Get Started Free",
+    "footnote": "Free 14-day trial • No credit card required • Cancel anytime",
+    "starter": {
       "name": "Starter",
-      "f1": "1 Active User & Calendar",
-      "f2": "Standard CRM Database",
-      "f3": "Simulated Cash Audits"
+      "desc": "Perfect for independent professionals.",
+      "f1": "Online booking & agenda",
+      "f2": "Client database (CRM)",
+      "f3": "WhatsApp notifications",
+      "f4": "Basic analytics"
     },
-    "professional": {
-      "name": "Professional",
-      "f1": "Up to 5 Onboarded Members",
-      "f2": "Mercado Pago Real & Sandbox",
-      "f3": "Aura AI Copilot (100 queries/mo)"
+    "growth": {
+      "name": "Growth",
+      "desc": "For expanding companies.",
+      "f1": "Everything in Starter",
+      "f2": "Staff roster & commission rules",
+      "f3": "Tills & cash closing audits",
+      "f4": "Inventory & supply stock",
+      "f5": "Advanced financial reporting"
     },
-    "business": {
-      "name": "Enterprise",
-      "f1": "Unlimited Staff & Tenancy",
-      "f2": "Full PostgreSQL Relational Audits",
-      "f3": "Custom Workflows & Unlimited AI"
+    "aipro": {
+      "name": "AI Pro",
+      "desc": "For scaling businesses.",
+      "f1": "Everything in Growth",
+      "f2": "Aura AI Copilot",
+      "f3": "Advanced automations",
+      "f4": "Premium integrations",
+      "f5": "Priority customer service"
     }
+  },
+  "comparison": {
+    "title": "Less tools. More results.",
+    "desc": "AuraDash replaces multiple expensive tools and gives you everything you need to run and expand your business from a single platform.",
+    "b1": "Save time and money",
+    "b2": "Reduce errors and manual chores",
+    "b3": "Improve client satisfaction",
+    "b4": "Make data-backed decisions",
+    "table": {
+      "header1": "Feature",
+      "header2": "Excel / Sheets",
+      "header3": "Traditional Agenda",
+      "header4": "AuraDash",
+      "r1": "Smart booking",
+      "r2": "Client CRM",
+      "r3": "Finances & Cash Registers",
+      "r4": "Inventory stock",
+      "r5": "Automations",
+      "r6": "Aura AI Copilot",
+      "r7": "All-in-one command center",
+      "yes": "✓",
+      "no": "✗",
+      "partial": "Partial",
+      "limited": "Limited"
+    }
+  },
+  "ctaFooter": {
+    "title": "Your business can achieve more. We put you in control.",
+    "subtitle": "Join over 1,200 businesses that use AuraDash to streamline, audit, and sell more.",
+    "btnFree": "Try Free Now",
+    "btnDemo": "Request Demo"
   },
   "howItWorks": {
     "title": "How does AuraDash work?",
@@ -105,108 +252,8 @@
     },
     "cta": "Get started now"
   },
-  "aiSimulator": {
-    "title": "Aura AI Copilot - Live Sandbox Simulator",
-    "subtitle": "Experience the intelligence of Aura AI. Select one of the preset business prompts below to see how she answers and generates dynamic layouts in real time.",
-    "features": {
-      "f1Title": "Conversational Data Intelligence",
-      "f1Desc": "Aura translates natural language into direct PostgreSQL queries to fetch financial records, productivity reports, and client metrics instantly.",
-      "f2Title": "Autonomous Workflow Engine",
-      "f2Desc": "Instruct Aura to design logics like 'When Mercado Pago payment succeeds, notify on WhatsApp' and she automatically builds the connection nodes.",
-      "f3Title": "Dynamic Widget Generator",
-      "f3Desc": "Aura designs, connects, and positions custom visual gadgets directly into your active dashboard command center."
-    },
-    "btnFinance": "📊 Analyze Finance & Objectives",
-    "btnWorkflow": "⚡ Build Booking Automation",
-    "btnAgenda": "📅 Check Daily Agenda Availability",
-    "typing": "Aura AI is querying your database...",
-    "financeResponse": {
-      "header": "AURA COPILOT // BUSINESS INTELLIGENCE",
-      "message": "Here is the real-time financial diagnosis of your workspace for this month:",
-      "target": "Sales Target Completion: 84.3%",
-      "liquidity": "Total Liquid Assets: $148,250 ARS",
-      "status": "Cash Closed Status: SECURE & BALANCED",
-      "tip": "Tip: You've completed 9 workflows this week, reducing client booking dropout rates by 18.4%."
-    },
-    "workflowResponse": {
-      "header": "AURA COPILOT // AUTOMATION DEPLOYED",
-      "message": "Automation logic successfully initialized and active:",
-      "trigger": "TRIGGER: On Customer Booking Approved (Mercado Pago / Bank)",
-      "action1": "ACTION 1: Send personalized WhatsApp template with check-in instructions",
-      "action2": "ACTION 2: Write log to relational PostgreSQL Audit Ledger",
-      "status": "Operational State: CONNECTED & RUNNING"
-    },
-    "agendaResponse": {
-      "header": "AURA COPILOT // DIARY DIAGNOSTIC",
-      "message": "Daily Schedule availability summary for today:",
-      "busy": "Booked slots: 8 appointments",
-      "free": "Available gaps: 3 spots (14:30, 16:00, 18:30)",
-      "staff": "Active On-duty Staff: 4 members on site",
-      "action": "Quick Action: Click here to broadcast notifications to clients on waitlist."
-    }
-  },
-  "explorer": {
-    "title": "Explore the 8 Core Modules of AuraDash",
-    "subtitle": "A complete, integrated suite designed to give you total control of your business from a single platform.",
-    "dashboard": {
-      "tab": "Dashboard",
-      "title": "Main Command Panel & Business Analytics",
-      "bullet1": "Consolidated view of revenue, active appointments, and monthly targets.",
-      "bullet2": "Interactive charts tracking liquid sales and operational velocity.",
-      "bullet3": "Quick access to daily tasks and system-wide critical alerts."
-    },
-    "agenda": {
-      "tab": "Smart Agenda",
-      "title": "Smart Calendar & Aura AI Copilot Integration",
-      "bullet1": "Multi-view schedule by teammate with full drag-and-drop features.",
-      "bullet2": "Integrated smart waiting list that automatically fills cancellation spots.",
-      "bullet3": "Time-block rules, recurring sessions, and color-coded status states."
-    },
-    "clients": {
-      "tab": "Client CRM",
-      "title": "Robust Client Database & Detailed Profiles",
-      "bullet1": "Unified CRM with contact details, outstanding balances, and custom notes.",
-      "bullet2": "Complete visit histories, contracted services, and billing logs.",
-      "bullet3": "Configurable custom fields tailored to your industry's specific needs."
-    },
-    "team": {
-      "tab": "Team Management",
-      "title": "Teammates, Shift Rosters & Commission Rules",
-      "bullet1": "Individual configuration of working hours, breaks, and holiday schedules.",
-      "bullet2": "Automated commission calculations for services performed and products sold.",
-      "bullet3": "Role-based access controls (RBAC) to restrict system actions by job role."
-    },
-    "finance": {
-      "tab": "Finance & Cash",
-      "title": "Daily Till, Money Flows & Secured Closing Ledgers",
-      "bullet1": "Audited daily cash register openings and hermetic closings.",
-      "bullet2": "Detailed registration of inflows (cards, cash, transfers) and outflows.",
-      "bullet3": "Rapid reconciliation panels designed to prevent discrepancies or losses."
-    },
-    "flows": {
-      "tab": "Workflow Canvas",
-      "title": "Task Automation & Decoupled Workflows",
-      "bullet1": "Visual canvas to link automatic actions based on system events.",
-      "bullet2": "Automated WhatsApp business templates and email notification feeds.",
-      "bullet3": "Dynamic parameterized templates using client and booking variables."
-    },
-    "integrations": {
-      "tab": "API Integrations",
-      "title": "Seamless Connections & Outgoing Webhooks",
-      "bullet1": "Native connection to payment providers like Mercado Pago and Stripe.",
-      "bullet2": "Two-way synchronization with Google Calendar and Google Sheets.",
-      "bullet3": "Developer-ready webhook logs and API tools to connect external ERPs."
-    },
-    "settings": {
-      "tab": "Global Settings",
-      "title": "Custom Field Directory & Global Configuration",
-      "bullet1": "Visual custom field creator (supporting text, numbers, dropdowns).",
-      "bullet2": "Business profiles customization, currencies, and time zone details.",
-      "bullet3": "Fine-tuning of cancellation rules, booking forms, and online portal details."
-    }
-  },
   "footer": {
-    "copyright": "Dashboard OS © 2026",
+    "copyright": "AuraDash © 2026",
     "privacy": "Privacy Policy",
     "terms": "Terms of Service",
     "contact": "Contact Sales"

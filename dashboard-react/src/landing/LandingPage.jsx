@@ -17,7 +17,15 @@ import {
   Play,
   ShieldCheck,
   Plus,
-  ArrowDownRight
+  ArrowDownRight,
+  Clock,
+  Settings,
+  Heart,
+  Scissors,
+  Briefcase,
+  Home,
+  ArrowUpRight,
+  Check
 } from "lucide-react";
 import LanguageSwitcher from "../components/language/LanguageSwitcher.jsx";
 import "./styles/landing.css";
@@ -30,6 +38,7 @@ import dashFinance from "../assets/c5.png";
 import dashFlows from "../assets/c6.png";
 import dashIntegrations from "../assets/c7.png";
 import dashSettings from "../assets/c8.png";
+import dashInventory from "../assets/seccion3.png";
 
 // Reutilizamos el sistema de revelación al hacer scroll
 function useScrollReveal() {
@@ -142,7 +151,7 @@ function MainNavbar({ onHowItWorks, onFreeTrial }) {
       <Container>
         <Navbar.Brand href="/" className="fw-black d-flex align-items-center gap-2">
           <div className="logo-dot"></div>
-          <span style={{ letterSpacing: '-0.02em' }}>Dashboard OS</span>
+          <span style={{ letterSpacing: '-0.02em', fontSize: '1.5rem', fontWeight: 900 }}>AuraDash</span>
         </Navbar.Brand>
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
         <Navbar.Collapse id="basic-navbar-nav">
@@ -152,13 +161,15 @@ function MainNavbar({ onHowItWorks, onFreeTrial }) {
             </Nav.Link>
             <Nav.Link href="#funcionalidades" className="fw-semibold">{t("nav.features")}</Nav.Link>
             <Nav.Link href="#precios" className="fw-semibold">{t("nav.pricing")}</Nav.Link>
+            <Nav.Link href="#recursos" className="fw-semibold">{t("nav.resources")}</Nav.Link>
+            <Nav.Link onClick={onFreeTrial} className="fw-semibold" style={{ cursor: 'pointer' }}>{t("nav.demo")}</Nav.Link>
             <LanguageSwitcher variant="landing" />
-            <button onClick={onFreeTrial} className="btn-premium px-4 py-2 text-decoration-none border-0 text-white bg-purple-600 hover-bg-purple-700" style={{ fontWeight: 600 }}>
-              Prueba Gratis
-            </button>
-            <Link to="/app" className="btn-outline-premium px-4 py-2 text-decoration-none" style={{ fontWeight: 600 }}>
-              {t("nav.enterApp")}
+            <Link to="/app" className="fw-semibold text-dark text-decoration-none" style={{ fontSize: '0.95rem' }}>
+              {t("nav.login")}
             </Link>
+            <button onClick={onFreeTrial} className="btn-premium px-4 py-2 text-decoration-none border-0 text-white bg-purple-600 hover-bg-purple-700" style={{ fontWeight: 600 }}>
+              {t("nav.freeTrial")}
+            </button>
           </Nav>
         </Navbar.Collapse>
       </Container>
@@ -182,7 +193,7 @@ export default function LandingPage() {
   const [aiPrompt, setAiPrompt] = useState(null);
   const [aiTyping, setAiTyping] = useState(false);
 
-  // Estados del Explorador de Módulos (8 Módulos)
+  // Estados del Explorador de Módulos (9 Módulos)
   const [activeExplorer, setActiveExplorer] = useState("dashboard");
 
   const explorerConfig = {
@@ -211,6 +222,11 @@ export default function LandingPage() {
       icon: <Database size={18} />,
       url: "https://auradash.digital/app/finanzas"
     },
+    inventory: {
+      img: dashInventory,
+      icon: <Database size={18} />,
+      url: "https://auradash.digital/app/inventario"
+    },
     flows: {
       img: dashFlows,
       icon: <Zap size={18} />,
@@ -227,21 +243,6 @@ export default function LandingPage() {
       url: "https://auradash.digital/app/configuracion"
     }
   };
-
-  const featureCards = [
-    { key: "appointments", icon: <Calendar size={24}/>, color: "text-success" },
-    { key: "automation", icon: <Zap size={24}/>, color: "text-warning" },
-    { key: "mercadopago", icon: <Globe size={24}/>, color: "text-primary" },
-    { key: "metrics", icon: <BarChart3 size={24}/>, color: "text-danger" },
-    { key: "multiDevice", icon: <Sparkles size={24}/>, color: "text-info" },
-    { key: "aiSupport", icon: <Lock size={24}/>, color: "text-accent" },
-  ];
-
-  const plans = [
-    { key: "individual", price: "$5", featured: false },
-    { key: "professional", price: "$7", featured: true },
-    { key: "business", price: "$10", featured: false }
-  ];
 
   // Ejecuta la consulta ficticia del Aura AI simulator
   const handleTriggerAiSimulator = (promptKey) => {
@@ -263,24 +264,42 @@ export default function LandingPage() {
           <Container>
             <Row className="align-items-center g-5">
               <Col lg={6}>
-                <Badge bg="dark" className="mb-4 px-3 py-2 rounded-pill fw-bold text-accent">{t("hero.badge")}</Badge>
-                <h1 className="display-3 fw-black mb-4" style={{ letterSpacing: '-0.03em', lineHeight: 1.1 }}>
+                <div className="d-flex align-items-center gap-2 mb-4">
+                  <Badge bg="purple" className="px-2 py-1 rounded text-white" style={{ background: '#7c3aed', fontSize: '0.75rem', fontWeight: 800 }}>NUEVO</Badge>
+                  <span className="text-muted small fw-semibold" style={{ fontSize: '0.85rem' }}>{t("hero.badge")}</span>
+                </div>
+                <h1 className="display-4 fw-black mb-4" style={{ letterSpacing: '-0.03em', lineHeight: 1.1, fontSize: '3.5rem' }}>
                   {t("hero.titleLine1")} <br/>
-                  <span className="text-accent">{t("hero.titleLine2")}</span>
+                  <span style={{ color: '#ea580c' }}>{t("hero.titleLine2")}</span>
                 </h1>
-                <p className="lead text-muted mb-5 pe-lg-4" style={{ fontSize: '1.15rem' }}>
+                <p className="lead text-muted mb-5 pe-lg-4" style={{ fontSize: '1.1rem', lineHeight: '1.6' }}>
                   {t("hero.subtitle")}
                 </p>
-                <div className="d-flex gap-3">
-                  <button onClick={handleFreeTrial} className="btn-premium px-5 py-3 text-decoration-none shadow-lg border-0 text-white bg-purple-600 hover-bg-purple-700" style={{ fontWeight: 600 }}>
-                    Prueba Gratis (Demo)
+                <div className="d-flex align-items-center gap-3 mb-5">
+                  <button onClick={handleFreeTrial} className="btn-premium px-5 py-3 text-decoration-none shadow-lg border-0 text-white bg-purple-600 hover-bg-purple-700 d-flex align-items-center gap-2" style={{ fontWeight: 700, borderRadius: '12px' }}>
+                    {t("hero.ctaPrimary")} <ArrowRight size={18} />
                   </button>
-                  <button onClick={() => setShowManual(true)} className="btn-outline-premium px-5 py-3 d-flex align-items-center gap-2">
+                  <button onClick={() => setShowManual(true)} className="btn-outline-premium px-5 py-3 d-flex align-items-center gap-2" style={{ borderRadius: '12px', background: '#ffffff', color: '#1e293b' }}>
                     <Play size={16} />
                     {t("hero.ctaSecondary")}
                   </button>
                 </div>
+                
+                {/* Social Proof Avatars */}
+                <div className="d-flex align-items-center gap-3">
+                  <div className="avatar-group">
+                    <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&h=100&q=80" alt="User 1" />
+                    <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&h=100&q=80" alt="User 2" />
+                    <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&h=100&q=80" alt="User 3" />
+                    <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=100&h=100&q=80" alt="User 4" />
+                  </div>
+                  <div>
+                    <div className="text-warning small" style={{ letterSpacing: '2px' }}>★★★★★</div>
+                    <div className="text-muted small fw-semibold" style={{ fontSize: '0.8rem' }}>{t("hero.trust")}</div>
+                  </div>
+                </div>
               </Col>
+              
               <Col lg={6}>
                 <div className="hero-product-shot">
                   <div className="hero-carousel-browser-frame">
@@ -297,20 +316,20 @@ export default function LandingPage() {
                     <HeroImageStack />
                   </div>
 
-                  {/* Floating Callouts para dar profundidad */}
-                  <div className="floating-card metrics-card card-premium shadow-lg" style={{ zIndex: 12 }}>
+                  {/* Floating Callouts */}
+                  <div className="floating-card metrics-card card-premium shadow-lg" style={{ zIndex: 12, borderRadius: '16px' }}>
                     <div className="d-flex align-items-center gap-2 mb-2">
-                      <BarChart3 size={16} className="text-accent" />
+                      <BarChart3 size={16} style={{ color: '#10b981' }} />
                       <span className="fw-bold small text-success">99.8%</span>
                     </div>
-                    <div className="text-muted smaller">{t("hero.metricsEfficiency")}</div>
+                    <div className="text-muted smaller fw-bold">{t("hero.metricsEfficiency")}</div>
                   </div>
-                  <div className="floating-card users-card card-premium shadow-lg" style={{ zIndex: 12 }}>
+                  <div className="floating-card users-card card-premium shadow-lg" style={{ zIndex: 12, borderRadius: '16px' }}>
                     <div className="d-flex align-items-center gap-2 mb-2">
-                      <Users size={16} className="text-primary" />
-                      <span className="fw-bold small">1,200+</span>
+                      <Users size={16} style={{ color: '#3b82f6' }} />
+                      <span className="fw-bold small" style={{ color: '#1e293b' }}>1,200+</span>
                     </div>
-                    <div className="text-muted smaller">{t("hero.metricsClients")}</div>
+                    <div className="text-muted smaller fw-bold">{t("hero.metricsClients")}</div>
                   </div>
                 </div>
               </Col>
@@ -318,353 +337,648 @@ export default function LandingPage() {
           </Container>
         </section>
 
-        {/* 8 MODULES INTERACTIVE EXPLORER (UX/UI REDESIGN) */}
-        <section id="funcionalidades" className="pillars-section py-120 reveal">
+        {/* BENEFITS QUICK BAR */}
+        <section className="py-4 reveal">
           <Container>
-            <div className="text-center mb-5 pb-4">
-              <h2 className="fw-black display-5 text-dark mb-3" style={{ letterSpacing: '-0.02em' }}>
-                {t("explorer.title")}
-              </h2>
-              <p className="text-muted mx-auto" style={{ maxWidth: '650px' }}>
-                {t("explorer.subtitle")}
-              </p>
-            </div>
-
-            <Row className="g-5 align-items-stretch">
-              <Col lg={4} className="d-flex flex-column gap-2 justify-content-center">
-                {Object.keys(explorerConfig).map((key) => {
-                  const conf = explorerConfig[key];
-                  return (
-                    <button
-                      key={key}
-                      className={`pillar-tab-btn ${activeExplorer === key ? 'active' : ''}`}
-                      onClick={() => setActiveExplorer(key)}
-                    >
-                      {conf.icon}
-                      <span>{t(`explorer.${key}.tab`)}</span>
-                    </button>
-                  );
-                })}
-              </Col>
-
-              <Col lg={8}>
-                <div className="pillar-mockup-wrapper d-flex flex-column justify-content-between h-100 shadow-extreme" style={{ background: '#0b0f19', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                  <div className="mb-4">
-                    <Badge bg="warning" className="text-dark px-3 py-2 rounded mb-3 smaller fw-bold uppercase">
-                      {t(`explorer.${activeExplorer}.tab`)}
-                    </Badge>
-                    <h3 className="h3 text-white fw-bold mb-3">{t(`explorer.${activeExplorer}.title`)}</h3>
-                    <ul className="list-unstyled text-muted small pe-lg-5 mb-0">
-                      <li className="mb-2 d-flex align-items-start gap-2">
-                        <CheckCircle size={16} className="text-accent mt-1 flex-shrink-0" />
-                        <span>{t(`explorer.${activeExplorer}.bullet1`)}</span>
-                      </li>
-                      <li className="mb-2 d-flex align-items-start gap-2">
-                        <CheckCircle size={16} className="text-accent mt-1 flex-shrink-0" />
-                        <span>{t(`explorer.${activeExplorer}.bullet2`)}</span>
-                      </li>
-                      <li className="mb-2 d-flex align-items-start gap-2">
-                        <CheckCircle size={16} className="text-accent mt-1 flex-shrink-0" />
-                        <span>{t(`explorer.${activeExplorer}.bullet3`)}</span>
-                      </li>
-                    </ul>
-                  </div>
-
-                  {/* Browser Mockup containing the active screenshot */}
-                  <div className="explorer-screenshot-frame mt-3">
-                    <div className="browser-header">
-                      <div className="browser-dots">
-                        <span className="dot red"></span>
-                        <span className="dot yellow"></span>
-                        <span className="dot green"></span>
-                      </div>
-                      <div className="browser-address-bar">
-                        {explorerConfig[activeExplorer].url}
-                      </div>
-                    </div>
-                    <div className="explorer-screenshot-body">
-                      <img 
-                        src={explorerConfig[activeExplorer].img} 
-                        alt={t(`explorer.${activeExplorer}.title`)} 
-                        className="img-fluid w-100"
-                        style={{ objectFit: 'cover', objectPosition: 'top' }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </Col>
-            </Row>
-          </Container>
-        </section>
-
-        {/* INTERACTIVE AURA AI SIMULATOR (PLACED BELOW SCOPE WITH LIGHT THEME) */}
-        <section className="py-120 bg-white reveal grid-bg" style={{ position: 'relative', overflow: 'hidden', borderTop: '1px solid #f1f5f9', borderBottom: '1px solid #f1f5f9' }}>
-          <Container>
-            <Row className="g-5 align-items-center">
-              <Col lg={5}>
-                <div className="d-flex align-items-center gap-2 mb-3">
-                  <Sparkles size={20} className="text-accent" />
-                  <span className="text-accent fw-bold uppercase">LIVE SANDBOX DEMO</span>
-                </div>
-                <h2 className="display-5 fw-black text-dark mb-3" style={{ letterSpacing: '-0.02em' }}>
-                  {t("aiSimulator.title")}
-                </h2>
-                <p className="text-muted mb-4 small">
-                  {t("aiSimulator.subtitle")}
-                </p>
-
-                {/* Aura Features Explanation List */}
-                <div className="mb-5 d-flex flex-column gap-3">
-                  <div className="d-flex align-items-start gap-3">
-                    <div className="p-2 bg-light rounded text-primary">
-                      <Database size={18} />
+            <div className="benefits-bar">
+              <Row className="g-4 text-start">
+                <Col md={3} sm={6}>
+                  <div className="benefit-item">
+                    <div className="benefit-icon-wrapper">
+                      <Clock size={20} />
                     </div>
                     <div>
-                      <div className="fw-bold small text-dark">{t("aiSimulator.features.f1Title")}</div>
-                      <div className="text-muted smaller">{t("aiSimulator.features.f1Desc")}</div>
+                      <div className="fw-bold text-dark small">{t("benefits.b1Title")}</div>
+                      <div className="text-muted smaller">{t("benefits.b1Desc")}</div>
                     </div>
-                  </div>
-                  <div className="d-flex align-items-start gap-3">
-                    <div className="p-2 bg-light rounded text-warning">
-                      <Zap size={18} />
-                    </div>
-                    <div>
-                      <div className="fw-bold small text-dark">{t("aiSimulator.features.f2Title")}</div>
-                      <div className="text-muted smaller">{t("aiSimulator.features.f2Desc")}</div>
-                    </div>
-                  </div>
-                  <div className="d-flex align-items-start gap-3">
-                    <div className="p-2 bg-light rounded text-accent">
-                      <Sparkles size={18} />
-                    </div>
-                    <div>
-                      <div className="fw-bold small text-dark">{t("aiSimulator.features.f3Title")}</div>
-                      <div className="text-muted smaller">{t("aiSimulator.features.f3Desc")}</div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="d-flex flex-column gap-2 mt-4 pt-3 border-top border-light">
-                  <span className="smaller fw-bold text-muted uppercase mb-2">PROMPTS DISPONIBLES / CLICK PARA PROBAR:</span>
-                  <button
-                    className={`ai-query-button text-start d-flex align-items-center gap-3 ${aiPrompt === 'finance' ? 'active' : ''}`}
-                    onClick={() => handleTriggerAiSimulator('finance')}
-                  >
-                    <span>{t("aiSimulator.btnFinance")}</span>
-                  </button>
-                  <button
-                    className={`ai-query-button text-start d-flex align-items-center gap-3 ${aiPrompt === 'workflow' ? 'active' : ''}`}
-                    onClick={() => handleTriggerAiSimulator('workflow')}
-                  >
-                    <span>{t("aiSimulator.btnWorkflow")}</span>
-                  </button>
-                  <button
-                    className={`ai-query-button text-start d-flex align-items-center gap-3 ${aiPrompt === 'agenda' ? 'active' : ''}`}
-                    onClick={() => handleTriggerAiSimulator('agenda')}
-                  >
-                    <span>{t("aiSimulator.btnAgenda")}</span>
-                  </button>
-                </div>
-              </Col>
-
-              <Col lg={7}>
-                <div className="ai-simulator-wrapper shadow-extreme">
-                  <div className="ai-simulator-console">
-                    <div className="ai-console-header">
-                      <div className="ai-dot bg-danger"></div>
-                      <div className="ai-dot bg-warning"></div>
-                      <div className="ai-dot bg-success"></div>
-                      <span className="text-muted smaller ms-2">AURA CO-PILOT SYSTEM v2.5</span>
-                    </div>
-
-                    <div className="ai-console-body">
-                      {aiPrompt === null && (
-                        <div className="text-center py-5 text-muted">
-                          <Sparkles size={36} className="text-accent mb-3 animate-pulse" />
-                          <p className="smaller">{"[ Selecciona un prompt para iniciar la consulta interactiva ]"}</p>
-                        </div>
-                      )}
-
-                      {aiPrompt !== null && aiTyping && (
-                        <div className="py-4 text-accent text-center">
-                          <div className="d-flex align-items-center justify-content-center gap-2 mb-2 smaller">
-                            <span>{t("aiSimulator.typing")}</span>
-                          </div>
-                          <div className="typing-dots">
-                            <span></span>
-                            <span></span>
-                            <span></span>
-                          </div>
-                        </div>
-                      )}
-
-                      {aiPrompt === 'finance' && !aiTyping && (
-                        <div className="ai-response-box text-start">
-                          <div className="d-flex align-items-center gap-2 mb-3 text-accent smaller fw-bold">
-                            <BarChart3 size={16} />
-                            <span>{t("aiSimulator.financeResponse.header")}</span>
-                          </div>
-                          <p className="text-white smaller mb-3">{t("aiSimulator.financeResponse.message")}</p>
-                          
-                          {/* Rich generated UI widget */}
-                          <div className="p-3 bg-dark rounded border border-secondary mb-3">
-                            <div className="d-flex justify-content-between mb-2">
-                              <span className="text-muted smaller">Meta Mensual de Ventas</span>
-                              <span className="text-accent fw-bold smaller">84.3%</span>
-                            </div>
-                            <div className="progress bg-secondary mb-3" style={{ height: '6px', borderRadius: '3px' }}>
-                              <div className="progress-bar bg-warning" style={{ width: '84.3%', height: '100%', borderRadius: '3px' }}></div>
-                            </div>
-                            <div className="row g-2 text-center text-white">
-                              <div className="col-6">
-                                <div className="p-2 bg-secondary rounded">
-                                  <div className="smaller text-muted">Total Líquido</div>
-                                  <div className="small fw-bold text-success">$148,250</div>
-                                </div>
-                              </div>
-                              <div className="col-6">
-                                <div className="p-2 bg-secondary rounded">
-                                  <div className="smaller text-muted">Caja Activa</div>
-                                  <div className="small fw-bold text-warning">Balanceado</div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="p-3 bg-dark rounded border-start border-accent smaller text-muted">
-                            💡 {t("aiSimulator.financeResponse.tip")}
-                          </div>
-                        </div>
-                      )}
-
-                      {aiPrompt === 'workflow' && !aiTyping && (
-                        <div className="ai-response-box text-start">
-                          <div className="d-flex align-items-center gap-2 mb-3 text-accent smaller fw-bold">
-                            <Zap size={16} />
-                            <span>{t("aiSimulator.workflowResponse.header")}</span>
-                          </div>
-                          <p className="text-white smaller mb-3">{t("aiSimulator.workflowResponse.message")}</p>
-                          
-                          {/* Rich Node connection visualization */}
-                          <div className="p-3 bg-dark rounded border border-secondary mb-3">
-                            <div className="d-flex align-items-center justify-content-between p-2 rounded bg-secondary mb-2 text-success">
-                              <span className="smaller fw-bold">📥 TRIGGER (Mercado Pago)</span>
-                              <span className="smaller">Payment Approved</span>
-                            </div>
-                            <div className="text-center my-1 text-accent" style={{ lineHeight: 1 }}>↓</div>
-                            <div className="d-flex align-items-center justify-content-between p-2 rounded bg-secondary mb-2 text-primary">
-                              <span className="smaller fw-bold">💬 ACTION (WhatsApp API)</span>
-                              <span className="smaller">Dispatch Alert SMS</span>
-                            </div>
-                            <div className="text-center my-1 text-accent" style={{ lineHeight: 1 }}>↓</div>
-                            <div className="d-flex align-items-center justify-content-between p-2 rounded bg-secondary text-warning">
-                              <span className="smaller fw-bold">📊 ACTION (PostgreSQL)</span>
-                              <span className="smaller">Write Ledger Entry</span>
-                            </div>
-                          </div>
-
-                          <div className="mt-2 text-accent fw-bold smaller text-end">
-                            ● {t("aiSimulator.workflowResponse.status")}
-                          </div>
-                        </div>
-                      )}
-
-                      {aiPrompt === 'agenda' && !aiTyping && (
-                        <div className="ai-response-box text-start">
-                          <div className="d-flex align-items-center gap-2 mb-3 text-accent smaller fw-bold">
-                            <Calendar size={16} />
-                            <span>{t("aiSimulator.agendaResponse.header")}</span>
-                          </div>
-                          <p className="text-white smaller mb-3">{t("aiSimulator.agendaResponse.message")}</p>
-                          
-                          {/* Mini visual calendar slots */}
-                          <div className="p-3 bg-dark rounded border border-secondary mb-3">
-                            <div className="row g-2 text-center text-white">
-                              <div className="col-4">
-                                <div className="p-2 bg-secondary rounded border border-secondary text-muted">
-                                  <div className="smaller">14:00</div>
-                                  <div className="smaller">Ocupado</div>
-                                </div>
-                              </div>
-                              <div className="col-4">
-                                <div className="p-2 bg-secondary rounded border border-success text-success">
-                                  <div className="smaller">14:30</div>
-                                  <div className="smaller fw-bold">Libre</div>
-                                </div>
-                              </div>
-                              <div className="col-4">
-                                <div className="p-2 bg-secondary rounded border border-success text-success">
-                                  <div className="smaller">16:00</div>
-                                  <div className="smaller fw-bold">Libre</div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          <button className="btn btn-sm btn-outline-warning w-100 rounded-pill smaller py-2 mt-2">
-                            {t("aiSimulator.agendaResponse.action")}
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </Col>
-            </Row>
-          </Container>
-        </section>
-
-        {/* CORE PILLARS / PLATFORM FEATURES */}
-        <section id="funcionalidades" className="features-section py-120 bg-soft-grey reveal">
-          <Container>
-            <div className="text-center mb-5 pb-4">
-              <h2 className="fw-black h1 mb-3">{t("features.title")}</h2>
-              <p className="text-muted mx-auto" style={{ maxWidth: '600px' }}>
-                {t("features.subtitle")}
-              </p>
-            </div>
-            <Row className="g-4">
-              {featureCards.map((feat, idx) => (
-                <Col md={4} key={idx}>
-                  <div className="card-premium h-100 feature-card-hover p-4 border-0">
-                    <div className={`${feat.color} mb-3`}>{feat.icon}</div>
-                    <h3 className="h5 fw-bold mb-3">{t(`features.${feat.key}.title`)}</h3>
-                    <p className="text-muted small mb-0">{t(`features.${feat.key}.desc`)}</p>
                   </div>
                 </Col>
-              ))}
+                <Col md={3} sm={6}>
+                  <div className="benefit-item">
+                    <div className="benefit-icon-wrapper">
+                      <Calendar size={20} />
+                    </div>
+                    <div>
+                      <div className="fw-bold text-dark small">{t("benefits.b2Title")}</div>
+                      <div className="text-muted smaller">{t("benefits.b2Desc")}</div>
+                    </div>
+                  </div>
+                </Col>
+                <Col md={3} sm={6}>
+                  <div className="benefit-item">
+                    <div className="benefit-icon-wrapper">
+                      <Sparkles size={20} />
+                    </div>
+                    <div>
+                      <div className="fw-bold text-dark small">{t("benefits.b3Title")}</div>
+                      <div className="text-muted smaller">{t("benefits.b3Desc")}</div>
+                    </div>
+                  </div>
+                </Col>
+                <Col md={3} sm={6}>
+                  <div className="benefit-item">
+                    <div className="benefit-icon-wrapper">
+                      <BarChart3 size={20} />
+                    </div>
+                    <div>
+                      <div className="fw-bold text-dark small">{t("benefits.b4Title")}</div>
+                      <div className="text-muted smaller">{t("benefits.b4Desc")}</div>
+                    </div>
+                  </div>
+                </Col>
+              </Row>
+            </div>
+          </Container>
+        </section>
+
+        {/* WHO IS IT FOR? & EXPLORER GRID */}
+        <section id="funcionalidades" className="py-120 bg-soft-grey reveal">
+          <Container>
+            <Row className="g-5">
+              {/* Left Column: Target Cards */}
+              <Col lg={4}>
+                <span className="text-uppercase fw-bold text-purple-600 small" style={{ color: '#7c3aed', letterSpacing: '0.1em' }}>
+                  {t("target.title")}
+                </span>
+                <h2 className="fw-black h1 mt-2 mb-4" style={{ letterSpacing: '-0.02em' }}>
+                  {t("target.subtitle")}
+                </h2>
+                <div className="d-flex flex-column gap-3">
+                  <div className="target-card">
+                    <div className="target-icon-wrapper purple">
+                      <Scissors size={20} />
+                    </div>
+                    <h4 className="fw-bold h6 text-dark mb-1">{t("target.c1Title")}</h4>
+                    <p className="text-muted smaller mb-0">{t("target.c1Desc")}</p>
+                  </div>
+                  <div className="target-card">
+                    <div className="target-icon-wrapper green">
+                      <Heart size={20} />
+                    </div>
+                    <h4 className="fw-bold h6 text-dark mb-1">{t("target.c2Title")}</h4>
+                    <p className="text-muted smaller mb-0">{t("target.c2Desc")}</p>
+                  </div>
+                  <div className="target-card">
+                    <div className="target-icon-wrapper orange">
+                      <Briefcase size={20} />
+                    </div>
+                    <h4 className="fw-bold h6 text-dark mb-1">{t("target.c3Title")}</h4>
+                    <p className="text-muted smaller mb-0">{t("target.c3Desc")}</p>
+                  </div>
+                  <div className="target-card">
+                    <div className="target-icon-wrapper blue">
+                      <Home size={20} />
+                    </div>
+                    <h4 className="fw-bold h6 text-dark mb-1">{t("target.c4Title")}</h4>
+                    <p className="text-muted smaller mb-0">{t("target.c4Desc")}</p>
+                  </div>
+                </div>
+              </Col>
+
+              {/* Right Column: 9 Tabs Explorer */}
+              <Col lg={8}>
+                <div className="h-100 p-4 p-md-5" style={{ background: '#ffffff', borderRadius: '24px', border: '1px solid rgba(15, 23, 42, 0.05)', boxShadow: '0 20px 40px -15px rgba(15, 23, 42, 0.02)' }}>
+                  <span className="text-uppercase fw-bold text-muted small" style={{ letterSpacing: '0.1em' }}>
+                    {t("explorer.subtitle")}
+                  </span>
+                  <h2 className="fw-black h2 mt-2 mb-4" style={{ letterSpacing: '-0.02em' }}>
+                    {t("explorer.title")}
+                  </h2>
+                  
+                  <Row className="g-4 mt-2">
+                    <Col md={4} className="d-flex flex-column gap-2" style={{ borderRight: '1px solid rgba(15, 23, 42, 0.06)' }}>
+                      {Object.keys(explorerConfig).map((key) => {
+                        const conf = explorerConfig[key];
+                        return (
+                          <button
+                            key={key}
+                            className={`pillar-tab-btn ${activeExplorer === key ? 'active' : ''}`}
+                            onClick={() => setActiveExplorer(key)}
+                            style={{ border: 'none', background: 'transparent', padding: '10px 16px', borderRadius: '10px', fontSize: '0.9rem' }}
+                          >
+                            <span className="d-flex align-items-center gap-2">
+                              {conf.icon}
+                              {t(`explorer.${key}.tab`)}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </Col>
+                    
+                    <Col md={8}>
+                      <div className="mb-4">
+                        <Badge bg="warning" className="text-dark px-3 py-2 rounded mb-3 smaller fw-bold uppercase">
+                          {t(`explorer.${activeExplorer}.tab`)}
+                        </Badge>
+                        <h4 className="h5 fw-bold text-dark mb-3">{t(`explorer.${activeExplorer}.title`)}</h4>
+                        <ul className="list-unstyled text-muted small mb-0">
+                          <li className="mb-2 d-flex align-items-start gap-2">
+                            <CheckCircle size={16} className="text-success mt-1 flex-shrink-0" />
+                            <span>{t(`explorer.${activeExplorer}.bullet1`)}</span>
+                          </li>
+                          <li className="mb-2 d-flex align-items-start gap-2">
+                            <CheckCircle size={16} className="text-success mt-1 flex-shrink-0" />
+                            <span>{t(`explorer.${activeExplorer}.bullet2`)}</span>
+                          </li>
+                          <li className="mb-2 d-flex align-items-start gap-2">
+                            <CheckCircle size={16} className="text-success mt-1 flex-shrink-0" />
+                            <span>{t(`explorer.${activeExplorer}.bullet3`)}</span>
+                          </li>
+                        </ul>
+                      </div>
+
+                      {/* Mockup Browser Visor */}
+                      <div className="explorer-screenshot-frame mt-3">
+                        <div className="browser-header">
+                          <div className="browser-dots">
+                            <span className="dot red"></span>
+                            <span className="dot yellow"></span>
+                            <span className="dot green"></span>
+                          </div>
+                          <div className="browser-address-bar">
+                            {explorerConfig[activeExplorer].url}
+                          </div>
+                        </div>
+                        <div className="explorer-screenshot-body">
+                          <img 
+                            src={explorerConfig[activeExplorer].img} 
+                            alt={t(`explorer.${activeExplorer}.title`)} 
+                            className="img-fluid w-100 animate-fade-in"
+                            style={{ objectFit: 'cover', objectPosition: 'top' }}
+                          />
+                        </div>
+                      </div>
+                    </Col>
+                  </Row>
+                </div>
+              </Col>
             </Row>
+          </Container>
+        </section>
+
+        {/* INTERACTIVE AURA AI COPILOT SECTION */}
+        <section className="py-120 bg-white reveal">
+          <Container>
+            <Row className="g-5 align-items-center">
+              {/* Left Column: Dark Chat Console */}
+              <Col lg={5}>
+                <div className="ai-chat-console">
+                  <div className="d-flex align-items-center justify-content-between mb-4 border-bottom border-secondary pb-3">
+                    <div className="d-flex align-items-center gap-2">
+                      <Sparkles size={18} style={{ color: '#8b5cf6' }} />
+                      <span className="fw-bold small" style={{ letterSpacing: '0.05em' }}>Aura AI Copilot</span>
+                    </div>
+                    <Badge bg="secondary" className="smaller">v2.5</Badge>
+                  </div>
+                  
+                  <div className="chat-box-body scroll-custom mb-4" style={{ minHeight: '260px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <div>
+                      <h4 className="fw-bold h5 mb-3 text-white">{t("aiCopilot.sandbox.title")}</h4>
+                      <div className="d-flex flex-column gap-2">
+                        <button className="ai-chat-bubble-q" onClick={() => handleTriggerAiSimulator('finance')}>
+                          {t("aiCopilot.sandbox.p1")}
+                        </button>
+                        <button className="ai-chat-bubble-q" onClick={() => handleTriggerAiSimulator('workflow')}>
+                          {t("aiCopilot.sandbox.p2")}
+                        </button>
+                        <button className="ai-chat-bubble-q" onClick={() => handleTriggerAiSimulator('agenda')}>
+                          {t("aiCopilot.sandbox.p3")}
+                        </button>
+                      </div>
+                    </div>
+                    
+                    {aiTyping && (
+                      <div className="text-center py-3 text-purple-400">
+                        <div className="typing-dots">
+                          <span></span>
+                          <span></span>
+                          <span></span>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {aiPrompt === 'finance' && !aiTyping && (
+                      <div className="p-3 bg-secondary rounded mt-3 text-start small border border-secondary" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                        <span className="text-purple-400 fw-bold d-block mb-1">{t("aiSimulator.financeResponse.header")}</span>
+                        <p className="mb-0 text-slate-300">{t("aiSimulator.financeResponse.message")}</p>
+                        <div className="mt-2 p-2 bg-dark rounded font-monospace" style={{ fontSize: '11px' }}>
+                          Target: {t("aiSimulator.financeResponse.target")}<br/>
+                          Liquidity: {t("aiSimulator.financeResponse.liquidity")}<br/>
+                          Status: {t("aiSimulator.financeResponse.status")}
+                        </div>
+                      </div>
+                    )}
+
+                    {aiPrompt === 'workflow' && !aiTyping && (
+                      <div className="p-3 bg-secondary rounded mt-3 text-start small border border-secondary" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                        <span className="text-purple-400 fw-bold d-block mb-1">{t("aiSimulator.workflowResponse.header")}</span>
+                        <p className="mb-0 text-slate-300">{t("aiSimulator.workflowResponse.message")}</p>
+                        <div className="mt-2 p-2 bg-dark rounded font-monospace" style={{ fontSize: '11px' }}>
+                          Trigger: {t("aiSimulator.workflowResponse.trigger")}<br/>
+                          Action 1: {t("aiSimulator.workflowResponse.action1")}<br/>
+                          Action 2: {t("aiSimulator.workflowResponse.action2")}
+                        </div>
+                      </div>
+                    )}
+
+                    {aiPrompt === 'agenda' && !aiTyping && (
+                      <div className="p-3 bg-secondary rounded mt-3 text-start small border border-secondary" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                        <span className="text-purple-400 fw-bold d-block mb-1">{t("aiSimulator.agendaResponse.header")}</span>
+                        <p className="mb-0 text-slate-300">{t("aiSimulator.agendaResponse.message")}</p>
+                        <div className="mt-2 p-2 bg-dark rounded font-monospace" style={{ fontSize: '11px' }}>
+                          Busy: {t("aiSimulator.agendaResponse.busy")}<br/>
+                          Free: {t("aiSimulator.agendaResponse.free")}<br/>
+                          Staff: {t("aiSimulator.agendaResponse.staff")}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="ai-chat-input-bar">
+                    <span>{t("aiCopilot.sandbox.input")}</span>
+                    <ArrowRight size={16} />
+                  </div>
+                </div>
+              </Col>
+
+              {/* Right Column: AI Details & Stack Stats */}
+              <Col lg={7} className="ps-lg-5">
+                <span className="text-uppercase fw-bold text-purple-600 small" style={{ color: '#7c3aed', letterSpacing: '0.1em' }}>
+                  {t("aiCopilot.title")}
+                </span>
+                <h2 className="fw-black h1 mt-2 mb-4" style={{ letterSpacing: '-0.02em', fontSize: '2.5rem' }}>
+                  {t("aiCopilot.subtitle")}
+                </h2>
+                <p className="lead text-muted mb-5" style={{ fontSize: '1.05rem', lineHeight: '1.6' }}>
+                  {t("aiCopilot.desc")}
+                </p>
+                
+                <Row className="g-4">
+                  {/* Bullets details */}
+                  <Col md={6} className="d-flex flex-column gap-4">
+                    <div className="d-flex gap-3">
+                      <div className="benefit-icon-wrapper" style={{ width: '40px', height: '40px', background: 'rgba(231, 146, 53, 0.08)', color: '#e79235' }}>
+                        <Sparkles size={18} />
+                      </div>
+                      <div>
+                        <h5 className="fw-bold h6 mb-1 text-dark">{t("aiCopilot.bullets.b1Title")}</h5>
+                        <p className="text-muted smaller mb-0">{t("aiCopilot.bullets.b1Desc")}</p>
+                      </div>
+                    </div>
+                    <div className="d-flex gap-3">
+                      <div className="benefit-icon-wrapper" style={{ width: '40px', height: '40px', background: 'rgba(239, 68, 68, 0.08)', color: '#ef4444' }}>
+                        <Zap size={18} />
+                      </div>
+                      <div>
+                        <h5 className="fw-bold h6 mb-1 text-dark">{t("aiCopilot.bullets.b2Title")}</h5>
+                        <p className="text-muted smaller mb-0">{t("aiCopilot.bullets.b2Desc")}</p>
+                      </div>
+                    </div>
+                    <div className="d-flex gap-3">
+                      <div className="benefit-icon-wrapper" style={{ width: '40px', height: '40px', background: 'rgba(139, 92, 246, 0.08)', color: '#8b5cf6' }}>
+                        <CheckCircle size={18} />
+                      </div>
+                      <div>
+                        <h5 className="fw-bold h6 mb-1 text-dark">{t("aiCopilot.bullets.b3Title")}</h5>
+                        <p className="text-muted smaller mb-0">{t("aiCopilot.bullets.b3Desc")}</p>
+                      </div>
+                    </div>
+                  </Col>
+                  
+                  {/* Stats card Stack */}
+                  <Col md={6} className="d-flex flex-column gap-3">
+                    <div className="stat-stack-card">
+                      <div className="d-flex align-items-center gap-3">
+                        <div className="benefit-icon-wrapper" style={{ width: '36px', height: '36px', background: 'rgba(16, 185, 129, 0.08)', color: '#10b981' }}>
+                          <BarChart3 size={16} />
+                        </div>
+                        <div>
+                          <span className="text-muted smaller d-block">{t("aiCopilot.stats.sales")}</span>
+                          <span className="fw-bold text-dark small">$4.250.000</span>
+                        </div>
+                      </div>
+                      <Badge bg="success" className="smaller">+18.5%</Badge>
+                    </div>
+                    
+                    <div className="stat-stack-card">
+                      <div className="d-flex align-items-center gap-3">
+                        <div className="benefit-icon-wrapper" style={{ width: '36px', height: '36px', background: 'rgba(59, 130, 246, 0.08)', color: '#3b82f6' }}>
+                          <Users size={16} />
+                        </div>
+                        <div>
+                          <span className="text-muted smaller d-block">{t("aiCopilot.stats.inactive")}</span>
+                          <span className="fw-bold text-dark small">28 CRM</span>
+                        </div>
+                      </div>
+                      <span className="text-primary smaller fw-bold" style={{ cursor: 'pointer' }}>{t("aiCopilot.stats.viewList")}</span>
+                    </div>
+
+                    <div className="stat-stack-card">
+                      <div className="d-flex align-items-center gap-3">
+                        <div className="benefit-icon-wrapper" style={{ width: '36px', height: '36px', background: 'rgba(239, 68, 68, 0.08)', color: '#ef4444' }}>
+                          <Zap size={16} />
+                        </div>
+                        <div>
+                          <span className="text-muted smaller d-block">{t("aiCopilot.stats.stock")}</span>
+                          <span className="fw-bold text-dark small">5 insumos</span>
+                        </div>
+                      </div>
+                      <span className="text-danger smaller fw-bold" style={{ cursor: 'pointer' }}>{t("aiCopilot.stats.viewDetails")}</span>
+                    </div>
+
+                    <div className="stat-stack-card">
+                      <div className="d-flex align-items-center gap-3">
+                        <div className="benefit-icon-wrapper" style={{ width: '36px', height: '36px', background: 'rgba(16, 185, 129, 0.08)', color: '#10b981' }}>
+                          <CheckCircle size={16} />
+                        </div>
+                        <div>
+                          <span className="text-muted smaller d-block">{t("aiCopilot.stats.occupancy")}</span>
+                          <span className="fw-bold text-dark small">78%</span>
+                        </div>
+                      </div>
+                      <Badge bg="success" className="smaller">+8%</Badge>
+                    </div>
+                  </Col>
+                </Row>
+              </Col>
+            </Row>
+          </Container>
+        </section>
+
+        {/* WORKFLOW TIMELINE: "Comienza en minutos, crece sin límites" */}
+        <section className="py-120 bg-soft-grey reveal">
+          <Container>
+            <div className="text-center mb-5 pb-3">
+              <h2 className="fw-black h1 mb-3">{t("steps.title")}</h2>
+            </div>
+            
+            <div className="steps-timeline flex-column flex-md-row gap-4">
+              <div className="step-timeline-card">
+                <div className="step-timeline-icon-wrapper">
+                  <Settings size={24} />
+                </div>
+                <h4 className="fw-bold h6 text-dark mb-2">{t("steps.s1Title")}</h4>
+                <p className="text-muted smaller px-lg-3">{t("steps.s1Desc")}</p>
+              </div>
+              <div className="step-timeline-card">
+                <div className="step-timeline-icon-wrapper">
+                  <Database size={24} />
+                </div>
+                <h4 className="fw-bold h6 text-dark mb-2">{t("steps.s2Title")}</h4>
+                <p className="text-muted smaller px-lg-3">{t("steps.s2Desc")}</p>
+              </div>
+              <div className="step-timeline-card">
+                <div className="step-timeline-icon-wrapper">
+                  <Calendar size={24} />
+                </div>
+                <h4 className="fw-bold h6 text-dark mb-2">{t("steps.s3Title")}</h4>
+                <p className="text-muted smaller px-lg-3">{t("steps.s3Desc")}</p>
+              </div>
+              <div className="step-timeline-card">
+                <div className="step-timeline-icon-wrapper">
+                  <Zap size={24} />
+                </div>
+                <h4 className="fw-bold h6 text-dark mb-2">{t("steps.s4Title")}</h4>
+                <p className="text-muted smaller px-lg-3">{t("steps.s4Desc")}</p>
+              </div>
+              <div className="step-timeline-card">
+                <div className="step-timeline-icon-wrapper">
+                  <BarChart3 size={24} />
+                </div>
+                <h4 className="fw-bold h6 text-dark mb-2">{t("steps.s5Title")}</h4>
+                <p className="text-muted smaller px-lg-3">{t("steps.s5Desc")}</p>
+              </div>
+            </div>
           </Container>
         </section>
 
         {/* PRICING SECTION */}
-        <section id="precios" className="pricing-section py-120 reveal">
+        <section id="precios" className="pricing-section py-120 bg-white reveal">
           <Container>
             <div className="text-center mb-5 pb-4">
-              <h2 className="fw-black h1 mb-3">{t("pricing.title")}</h2>
+              <h2 className="fw-black display-5 text-dark mb-3" style={{ letterSpacing: '-0.02em' }}>{t("pricing.title")}</h2>
               <p className="text-muted">{t("pricing.subtitle")}</p>
             </div>
             <Row className="g-4 justify-content-center">
-              {plans.map((plan, idx) => (
-                <Col lg={4} md={6} key={idx}>
-                  <div className={`card-premium h-100 p-5 text-center ${plan.featured ? 'border-accent shadow-accent' : 'border-0'}`}>
-                    {plan.featured && <Badge bg="warning" className="text-dark mb-3">{t("pricing.popular")}</Badge>}
-                    <h3 className="h5 fw-bold text-muted uppercase mb-2">{t(`pricing.${plan.key}.name`)}</h3>
-                    <div className="display-4 fw-black mb-4">{plan.price}<span className="h6 text-muted">{t("pricing.perMonth")}</span></div>
-                    <ul className="list-unstyled mb-5 text-start d-inline-block mx-auto">
-                      {["f1", "f2", "f3"].map((fk) => (
-                        <li key={fk} className="mb-2 small fw-medium d-flex align-items-center gap-2">
-                          <CheckCircle size={16} className="text-accent" /> {t(`pricing.${plan.key}.${fk}`)}
-                        </li>
-                      ))}
-                    </ul>
-                    <Link to="/app" className={`btn w-100 rounded-pill py-3 fw-bold ${plan.featured ? 'btn-dark' : 'btn-outline-dark'}`}>
-                      {t("pricing.cta")}
-                    </Link>
+              {/* Plan 1 */}
+              <Col lg={4} md={6}>
+                <div className="pricing-card h-100 p-5 text-start border-0">
+                  <h3 className="h5 fw-bold text-dark mb-1">{t("pricing.starter.name")}</h3>
+                  <p className="text-muted smaller mb-4">{t("pricing.starter.desc")}</p>
+                  <div className="display-4 fw-black text-dark mb-4">$15<span className="h6 text-muted">{t("pricing.perMonth")}</span></div>
+                  
+                  <hr className="my-4 border-light" />
+                  
+                  <ul className="list-unstyled mb-5 d-flex flex-column gap-3">
+                    <li className="smaller fw-medium d-flex align-items-center gap-2 text-dark">
+                      <Check size={16} style={{ color: '#8b5cf6' }} /> {t("pricing.starter.f1")}
+                    </li>
+                    <li className="smaller fw-medium d-flex align-items-center gap-2 text-dark">
+                      <Check size={16} style={{ color: '#8b5cf6' }} /> {t("pricing.starter.f2")}
+                    </li>
+                    <li className="smaller fw-medium d-flex align-items-center gap-2 text-dark">
+                      <Check size={16} style={{ color: '#8b5cf6' }} /> {t("pricing.starter.f3")}
+                    </li>
+                    <li className="smaller fw-medium d-flex align-items-center gap-2 text-dark">
+                      <Check size={16} style={{ color: '#8b5cf6' }} /> {t("pricing.starter.f4")}
+                    </li>
+                  </ul>
+                  <button onClick={handleFreeTrial} className="btn-outline-premium w-100 py-3 fw-bold mt-auto" style={{ borderRadius: '12px', background: '#f8fafc', color: '#1e293b', border: '1px solid rgba(15, 23, 42, 0.08)' }}>
+                    {t("pricing.cta")}
+                  </button>
+                </div>
+              </Col>
+              
+              {/* Plan 2: Featured */}
+              <Col lg={4} md={6}>
+                <div className="pricing-card featured h-100 p-5 text-start border-0 position-relative">
+                  <div className="position-absolute top-0 end-0 mt-3 me-3">
+                    <Badge bg="purple" className="text-white px-3 py-2 rounded-pill small uppercase" style={{ background: '#7c3aed', fontSize: '9px', fontWeight: 800 }}>{t("pricing.popular")}</Badge>
                   </div>
-                </Col>
-              ))}
+                  <h3 className="h5 fw-bold text-dark mb-1">{t("pricing.growth.name")}</h3>
+                  <p className="text-muted smaller mb-4">{t("pricing.growth.desc")}</p>
+                  <div className="display-4 fw-black text-dark mb-4">$29<span className="h6 text-muted">{t("pricing.perMonth")}</span></div>
+                  
+                  <hr className="my-4 border-light" />
+                  
+                  <ul className="list-unstyled mb-5 d-flex flex-column gap-3">
+                    <li className="smaller fw-medium d-flex align-items-center gap-2 text-dark">
+                      <Check size={16} style={{ color: '#8b5cf6' }} /> {t("pricing.growth.f1")}
+                    </li>
+                    <li className="smaller fw-medium d-flex align-items-center gap-2 text-dark">
+                      <Check size={16} style={{ color: '#8b5cf6' }} /> {t("pricing.growth.f2")}
+                    </li>
+                    <li className="smaller fw-medium d-flex align-items-center gap-2 text-dark">
+                      <Check size={16} style={{ color: '#8b5cf6' }} /> {t("pricing.growth.f3")}
+                    </li>
+                    <li className="smaller fw-medium d-flex align-items-center gap-2 text-dark">
+                      <Check size={16} style={{ color: '#8b5cf6' }} /> {t("pricing.growth.f4")}
+                    </li>
+                    <li className="smaller fw-medium d-flex align-items-center gap-2 text-dark">
+                      <Check size={16} style={{ color: '#8b5cf6' }} /> {t("pricing.growth.f5")}
+                    </li>
+                  </ul>
+                  <button onClick={handleFreeTrial} className="btn-premium w-100 py-3 fw-bold mt-auto text-white bg-purple-600 border-0" style={{ borderRadius: '12px', background: '#7c3aed' }}>
+                    {t("pricing.cta")}
+                  </button>
+                </div>
+              </Col>
+              
+              {/* Plan 3 */}
+              <Col lg={4} md={6}>
+                <div className="pricing-card h-100 p-5 text-start border-0">
+                  <h3 className="h5 fw-bold text-dark mb-1">{t("pricing.aipro.name")}</h3>
+                  <p className="text-muted smaller mb-4">{t("pricing.aipro.desc")}</p>
+                  <div className="display-4 fw-black text-dark mb-4">$49<span className="h6 text-muted">{t("pricing.perMonth")}</span></div>
+                  
+                  <hr className="my-4 border-light" />
+                  
+                  <ul className="list-unstyled mb-5 d-flex flex-column gap-3">
+                    <li className="smaller fw-medium d-flex align-items-center gap-2 text-dark">
+                      <Check size={16} style={{ color: '#8b5cf6' }} /> {t("pricing.aipro.f1")}
+                    </li>
+                    <li className="smaller fw-medium d-flex align-items-center gap-2 text-dark">
+                      <Check size={16} style={{ color: '#8b5cf6' }} /> {t("pricing.aipro.f2")}
+                    </li>
+                    <li className="smaller fw-medium d-flex align-items-center gap-2 text-dark">
+                      <Check size={16} style={{ color: '#8b5cf6' }} /> {t("pricing.aipro.f3")}
+                    </li>
+                    <li className="smaller fw-medium d-flex align-items-center gap-2 text-dark">
+                      <Check size={16} style={{ color: '#8b5cf6' }} /> {t("pricing.aipro.f4")}
+                    </li>
+                    <li className="smaller fw-medium d-flex align-items-center gap-2 text-dark">
+                      <Check size={16} style={{ color: '#8b5cf6' }} /> {t("pricing.aipro.f5")}
+                    </li>
+                  </ul>
+                  <button onClick={handleFreeTrial} className="btn-outline-premium w-100 py-3 fw-bold mt-auto" style={{ borderRadius: '12px', background: '#f8fafc', color: '#1e293b', border: '1px solid rgba(15, 23, 42, 0.08)' }}>
+                    {t("pricing.cta")}
+                  </button>
+                </div>
+              </Col>
             </Row>
+            <div className="text-center mt-5">
+              <span className="text-muted small">{t("pricing.footnote")}</span>
+            </div>
+          </Container>
+        </section>
+
+        {/* FEATURE COMPARISON MATRIX */}
+        <section className="py-120 bg-soft-grey reveal">
+          <Container>
+            <Row className="g-5 align-items-center">
+              {/* Left Side: Table */}
+              <Col lg={7}>
+                <div className="comparison-table-wrapper">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>{t("comparison.table.header1")}</th>
+                        <th className="text-center">{t("comparison.table.header2")}</th>
+                        <th className="text-center">{t("comparison.table.header3")}</th>
+                        <th className="text-center" style={{ color: '#7c3aed', background: 'rgba(139, 92, 246, 0.02)' }}>{t("comparison.table.header4")}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td className="fw-bold text-dark">{t("comparison.table.r1")}</td>
+                        <td className="text-center text-no">{t("comparison.table.no")}</td>
+                        <td className="text-center text-yes">{t("comparison.table.yes")}</td>
+                        <td className="text-center text-yes" style={{ background: 'rgba(139, 92, 246, 0.02)' }}>{t("comparison.table.yes")}</td>
+                      </tr>
+                      <tr>
+                        <td className="fw-bold text-dark">{t("comparison.table.r2")}</td>
+                        <td className="text-center text-no">{t("comparison.table.no")}</td>
+                        <td className="text-center text-partial">{t("comparison.table.partial")}</td>
+                        <td className="text-center text-yes" style={{ background: 'rgba(139, 92, 246, 0.02)' }}>{t("comparison.table.yes")}</td>
+                      </tr>
+                      <tr>
+                        <td className="fw-bold text-dark">{t("comparison.table.r3")}</td>
+                        <td className="text-center text-no">{t("comparison.table.no")}</td>
+                        <td className="text-center text-partial">{t("comparison.table.partial")}</td>
+                        <td className="text-center text-yes" style={{ background: 'rgba(139, 92, 246, 0.02)' }}>{t("comparison.table.yes")}</td>
+                      </tr>
+                      <tr>
+                        <td className="fw-bold text-dark">{t("comparison.table.r4")}</td>
+                        <td className="text-center text-no">{t("comparison.table.no")}</td>
+                        <td className="text-center text-partial">{t("comparison.table.partial")}</td>
+                        <td className="text-center text-yes" style={{ background: 'rgba(139, 92, 246, 0.02)' }}>{t("comparison.table.yes")}</td>
+                      </tr>
+                      <tr>
+                        <td className="fw-bold text-dark">{t("comparison.table.r5")}</td>
+                        <td className="text-center text-no">{t("comparison.table.no")}</td>
+                        <td className="text-center text-partial" style={{ color: '#e79235' }}>{t("comparison.table.limited")}</td>
+                        <td className="text-center text-yes" style={{ background: 'rgba(139, 92, 246, 0.02)' }}>{t("comparison.table.yes")}</td>
+                      </tr>
+                      <tr>
+                        <td className="fw-bold text-dark">{t("comparison.table.r6")}</td>
+                        <td className="text-center text-no">{t("comparison.table.no")}</td>
+                        <td className="text-center text-no">{t("comparison.table.no")}</td>
+                        <td className="text-center text-yes" style={{ background: 'rgba(139, 92, 246, 0.02)' }}>{t("comparison.table.yes")}</td>
+                      </tr>
+                      <tr>
+                        <td className="fw-bold text-dark" style={{ color: '#7c3aed' }}>{t("comparison.table.r7")}</td>
+                        <td className="text-center text-no">{t("comparison.table.no")}</td>
+                        <td className="text-center text-no">{t("comparison.table.no")}</td>
+                        <td className="text-center text-yes" style={{ background: 'rgba(139, 92, 246, 0.02)' }}>{t("comparison.table.yes")}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </Col>
+              
+              {/* Right Side: Text details */}
+              <Col lg={5} className="ps-lg-5">
+                <span className="text-uppercase fw-bold text-purple-600 small" style={{ color: '#7c3aed', letterSpacing: '0.1em' }}>
+                  {t("comparison.title")}
+                </span>
+                <h2 className="fw-black h1 mt-2 mb-4" style={{ letterSpacing: '-0.02em', fontSize: '2.5rem' }}>
+                  Menos herramientas.<br/>Más resultados.
+                </h2>
+                <p className="text-muted small mb-4" style={{ lineHeight: '1.6' }}>
+                  {t("comparison.desc")}
+                </p>
+                <div className="d-flex flex-column gap-3">
+                  <div className="d-flex align-items-center gap-2">
+                    <CheckCircle size={16} className="text-success" />
+                    <span className="text-dark small fw-semibold">{t("comparison.b1")}</span>
+                  </div>
+                  <div className="d-flex align-items-center gap-2">
+                    <CheckCircle size={16} className="text-success" />
+                    <span className="text-dark small fw-semibold">{t("comparison.b2")}</span>
+                  </div>
+                  <div className="d-flex align-items-center gap-2">
+                    <CheckCircle size={16} className="text-success" />
+                    <span className="text-dark small fw-semibold">{t("comparison.b3")}</span>
+                  </div>
+                  <div className="d-flex align-items-center gap-2">
+                    <CheckCircle size={16} className="text-success" />
+                    <span className="text-dark small fw-semibold">{t("comparison.b4")}</span>
+                  </div>
+                </div>
+              </Col>
+            </Row>
+          </Container>
+        </section>
+
+        {/* BOTTOM CTA BANNER */}
+        <section className="py-5 bg-white reveal">
+          <Container>
+            <div className="footer-cta-banner text-center">
+              <h2 className="display-5 fw-black text-white mb-3" style={{ letterSpacing: '-0.03em' }}>
+                {t("ctaFooter.title")}
+              </h2>
+              <p className="lead text-white text-opacity-80 mb-5 mx-auto" style={{ maxWidth: '600px', fontSize: '1.1rem' }}>
+                {t("ctaFooter.subtitle")}
+              </p>
+              <div className="d-flex justify-content-center gap-3">
+                <button onClick={handleFreeTrial} className="btn btn-light px-5 py-3 fw-bold text-dark" style={{ borderRadius: '12px' }}>
+                  {t("ctaFooter.btnFree")}
+                </button>
+                <button onClick={handleFreeTrial} className="btn btn-outline-light px-5 py-3 fw-bold text-white" style={{ borderRadius: '12px', border: '1px solid rgba(255,255,255,0.3)' }}>
+                  {t("ctaFooter.btnDemo")}
+                </button>
+              </div>
+            </div>
           </Container>
         </section>
       </main>

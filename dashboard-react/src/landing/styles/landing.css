@@ -708,6 +708,7 @@
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   border: 1px solid var(--lp-border) !important;
   background: #ffffff;
+  border-radius: 24px;
 }
 
 .pricing-card:hover {
@@ -717,14 +718,268 @@
 }
 
 .pricing-card.featured {
-  border: 2px solid var(--lp-accent) !important;
-  box-shadow: 0 25px 50px -12px rgba(231, 146, 53, 0.15) !important;
+  border: 2.5px solid #8b5cf6 !important; /* purple border */
+  box-shadow: 0 25px 50px -12px rgba(139, 92, 246, 0.2) !important;
 }
 
 .pricing-card.featured:hover {
-  box-shadow: 0 30px 60px -15px rgba(231, 146, 53, 0.25) !important;
+  box-shadow: 0 30px 60px -15px rgba(139, 92, 246, 0.3) !important;
 }
 
 .pillar-tab-icon {
   font-size: 16px;
+}
+
+/* Avatar Group (Overlapping avatars in Hero) */
+.avatar-group {
+  display: flex;
+  align-items: center;
+}
+
+.avatar-group img {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  margin-left: -8px;
+  object-fit: cover;
+}
+
+.avatar-group img:first-child {
+  margin-left: 0;
+}
+
+/* Benefits Bar (Quick stats bar under Hero) */
+.benefits-bar {
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  border-radius: 20px;
+  padding: 24px 32px;
+  box-shadow: 0 20px 40px -15px rgba(15, 23, 42, 0.03);
+}
+
+.benefit-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.benefit-icon-wrapper {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(139, 92, 246, 0.06);
+  color: #8b5cf6;
+  flex-shrink: 0;
+}
+
+/* Target Section Cards (Who is it for?) */
+.target-card {
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.05);
+  border-radius: 20px;
+  padding: 24px;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  height: 100%;
+}
+
+.target-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px -10px rgba(15, 23, 42, 0.05);
+  border-color: rgba(15, 23, 42, 0.1);
+}
+
+.target-icon-wrapper {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  flex-shrink: 0;
+}
+
+.target-icon-wrapper.purple { background: rgba(139, 92, 246, 0.08); color: #8b5cf6; }
+.target-icon-wrapper.green { background: rgba(16, 185, 129, 0.08); color: #10b981; }
+.target-icon-wrapper.orange { background: rgba(231, 146, 53, 0.08); color: #e79235; }
+.target-icon-wrapper.blue { background: rgba(59, 130, 246, 0.08); color: #3b82f6; }
+
+/* Timeline workflow steps */
+.steps-timeline {
+  display: flex;
+  justify-content: space-between;
+  position: relative;
+  margin-top: 40px;
+}
+
+.step-timeline-card {
+  text-align: center;
+  flex: 1;
+  position: relative;
+  z-index: 2;
+  padding: 0 16px;
+}
+
+.step-timeline-icon-wrapper {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #8b5cf6;
+  margin-bottom: 20px;
+  box-shadow: 0 10px 20px -5px rgba(15, 23, 42, 0.04);
+  transition: all 0.3s ease;
+}
+
+.step-timeline-card:hover .step-timeline-icon-wrapper {
+  background: #8b5cf6;
+  color: #ffffff;
+  transform: scale(1.1);
+  box-shadow: 0 10px 25px -5px rgba(139, 92, 246, 0.3);
+}
+
+/* Comparison Table */
+.comparison-table-wrapper {
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: #ffffff;
+  box-shadow: 0 20px 40px -15px rgba(15, 23, 42, 0.03);
+}
+
+.comparison-table-wrapper table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 0;
+}
+
+.comparison-table-wrapper th {
+  background: #f8fafc;
+  padding: 18px 24px;
+  font-weight: 700;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.comparison-table-wrapper td {
+  padding: 16px 24px;
+  font-size: 14px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.04);
+}
+
+.comparison-table-wrapper tr:last-child td {
+  border-bottom: none;
+}
+
+.comparison-table-wrapper td.text-yes {
+  color: #10b981;
+  font-weight: bold;
+}
+
+.comparison-table-wrapper td.text-no {
+  color: #ef4444;
+  font-weight: bold;
+}
+
+.comparison-table-wrapper td.text-partial {
+  color: #e79235;
+  font-weight: medium;
+}
+
+/* Footer CTA Banner */
+.footer-cta-banner {
+  background: linear-gradient(135deg, #7c3aed 0%, #ea580c 100%);
+  border-radius: 32px;
+  padding: 80px 40px;
+  color: #ffffff;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 40px 80px -20px rgba(124, 58, 237, 0.35);
+}
+
+.footer-cta-banner::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.footer-cta-banner * {
+  position: relative;
+  z-index: 2;
+}
+
+/* AI Copilot Stat Cards */
+.stat-stack-card {
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  border-radius: 16px;
+  padding: 16px 20px;
+  box-shadow: 0 10px 20px -5px rgba(15, 23, 42, 0.02);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  transition: all 0.3s ease;
+}
+
+.stat-stack-card:hover {
+  transform: translateX(4px);
+  box-shadow: 0 15px 30px -5px rgba(15, 23, 42, 0.05);
+}
+
+/* AI Chat Console Mockup */
+.ai-chat-console {
+  background: #0b0f19;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.25);
+  font-family: sans-serif;
+  color: #f8fafc;
+}
+
+.ai-chat-bubble-q {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: #e2e8f0;
+  border-radius: 20px;
+  padding: 10px 18px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+  font-weight: 500;
+}
+
+.ai-chat-bubble-q:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: #8b5cf6;
+  transform: translateY(-1px);
+}
+
+.ai-chat-input-bar {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #94a3b8;
+  font-size: 13px;
 }
