@@ -241,3 +241,29 @@ a { text-decoration: none !important; color: inherit; }
 .gap-1\.5 {
   gap: 6px !important;
 }
+
+/* --- Custom Utility Classes (Tailwind Shims) --- */
+.text-purple-500 { color: #a855f7 !important; }
+.text-purple-600 { color: #9333ea !important; }
+.text-purple-700 { color: #7e22ce !important; }
+.text-purple-800 { color: #6b21a8 !important; }
+.text-purple-900 { color: #581c87 !important; }
+.text-purple-950 { color: #3b0764 !important; }
+
+.bg-purple-50 { background-color: #faf5ff !important; }
+.bg-purple-100 { background-color: #f3e8ff !important; }
+
+.border-purple-100 { border-color: #f3e8ff !important; }
+.border-purple-200 { border-color: #e9d5ff !important; }
+.border-purple-300 { border-color: #d8b4fe !important; }
+
+.hover-bg-purple-50:hover { background-color: #faf5ff !important; }
+
+/* Soft background styles for Bootstrap Badges */
+.bg-primary-soft { background-color: rgba(13, 110, 253, 0.08) !important; }
+.bg-success-soft { background-color: rgba(25, 135, 84, 0.08) !important; }
+.bg-danger-soft { background-color: rgba(220, 53, 69, 0.08) !important; }
+.bg-warning-soft { background-color: rgba(255, 193, 7, 0.08) !important; }
+.bg-secondary-soft { background-color: rgba(108, 117, 125, 0.08) !important; }
+.bg-info-soft { background-color: rgba(13, 202, 240, 0.08) !important; }
+
