@@ -267,3 +267,79 @@ a { text-decoration: none !important; color: inherit; }
 .bg-secondary-soft { background-color: rgba(108, 117, 125, 0.08) !important; }
 .bg-info-soft { background-color: rgba(13, 202, 240, 0.08) !important; }
 
+/* --- Additional Tailwind CSS Utility Shims --- */
+.bg-emerald-500 { background-color: #10b981 !important; }
+.bg-amber-500 { background-color: #f59e0b !important; }
+.bg-red-500 { background-color: #ef4444 !important; }
+.bg-emerald-50 { background-color: #ecfdf5 !important; }
+.bg-emerald-100 { background-color: #d1fae5 !important; }
+.border-emerald-100 { border-color: #d1fae5 !important; }
+.text-emerald-700 { color: #047857 !important; }
+.text-emerald-500 { color: #10b981 !important; }
+.text-pink-600 { color: #db2777 !important; }
+.text-red-600 { color: #dc2626 !important; }
+
+/* Grays and Borders */
+.text-gray-900 { color: #111827 !important; }
+.text-gray-800 { color: #1f2937 !important; }
+.text-gray-700 { color: #374151 !important; }
+.text-gray-600 { color: #4b5563 !important; }
+.text-gray-500 { color: #6b7280 !important; }
+.text-gray-400 { color: #9ca3af !important; }
+.bg-gray-50 { background-color: #f9fafb !important; }
+.bg-gray-100 { background-color: #f3f4f6 !important; }
+.bg-gray-200 { background-color: #e5e7eb !important; }
+.border-gray-200 { border-color: #e5e7eb !important; }
+.border-gray-100 { border-color: #f3f4f6 !important; }
+
+/* Font size and layout shims */
+.text-xs { font-size: 0.75rem !important; }
+.text-xxs { font-size: 0.65rem !important; }
+.italic { font-style: italic !important; }
+.block { display: block !important; }
+.transition-all { transition: all 0.2s ease-in-out !important; }
+.hover-scale:hover { transform: scale(1.05) !important; }
+.scrollbar-none::-webkit-scrollbar { display: none !important; }
+.scrollbar-none { -ms-overflow-style: none !important; scrollbar-width: none !important; }
+
+/* Specific padding, margin & spacing shims */
+.p-3\.5 { padding: 0.875rem !important; }
+.mt-2\.5 { margin-top: 0.625rem !important; }
+.pt-2 { padding-top: 0.5rem !important; }
+.pt-3\.5 { padding-top: 0.875rem !important; }
+.py-3\.5 { padding-top: 0.875rem !important; padding-bottom: 0.875rem !important; }
+.px-3\.5 { padding-left: 0.875rem !important; padding-right: 0.875rem !important; }
+.mb-2\.5 { margin-bottom: 0.625rem !important; }
+.m-3\.5 { margin: 0.875rem !important; }
+
+/* Specific border radius shims */
+.rounded-r-xl { border-top-right-radius: var(--radius-xl) !important; border-bottom-right-radius: var(--radius-xl) !important; }
+.rounded-2xl { border-radius: 1rem !important; }
+.rounded-l-xl { border-top-left-radius: var(--radius-xl) !important; border-bottom-left-radius: var(--radius-xl) !important; }
+
+/* Input sizes */
+.form-control-xs { padding: 0.25rem 0.5rem !important; font-size: 0.75rem !important; }
+
+/* Hover background states */
+.hover-bg-light:hover { background-color: #f8fafc !important; }
+.hover-bg-gray-100:hover { background-color: #f3f4f6 !important; }
+.hover-bg-amber-50:hover { background-color: #fffbeb !important; }
+.hover-bg-emerald-50:hover { background-color: #ecfdf5 !important; }
+.hover-bg-red-50:hover { background-color: #fef2f2 !important; }
+
+/* Micro-animations keyframes & classes */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-out forwards !important;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite !important;
+}

@@ -8,6 +8,7 @@ import api from "../lib/api.js";
 
 // Categorías para filtrar
 const CATEGORIES = [
+  "Estilismo",
   "Corte y Peinado",
   "Coloración",
   "Tratamiento Capilar",
@@ -75,14 +76,16 @@ export default function ServicesView() {
     }
   }, [searchText, selectedCategory, selectedStatus, selectedWorkerId, onlyVisibleOnline]);
 
-  // Carga inicial
+  // Carga de colaboradores una sola vez al montar
   useEffect(() => {
-    loadServices();
-
-    // Cargar profesionales para el filtro
     api.get("/workers")
       .then(res => setWorkersList(Array.isArray(res.data) ? res.data : []))
       .catch(err => console.error("Error loading workers for filter:", err));
+  }, []);
+
+  // Recargar servicios al cambiar los filtros
+  useEffect(() => {
+    loadServices();
   }, [loadServices]);
 
   // Acciones
@@ -205,7 +208,7 @@ export default function ServicesView() {
             </Form.Group>
           </Col>
 
-          <Col md={2.5}>
+          <Col md={2}>
             <Form.Group>
               <Form.Label className="fw-semibold text-xs text-muted block mb-1">Categoría</Form.Label>
               <Form.Select
@@ -239,7 +242,7 @@ export default function ServicesView() {
             </Form.Group>
           </Col>
 
-          <Col md={2.5}>
+          <Col md={3}>
             <Form.Group>
               <Form.Label className="fw-semibold text-xs text-muted block mb-1">Profesional asignado</Form.Label>
               <Form.Select

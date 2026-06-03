@@ -6,6 +6,7 @@ import api from "../../lib/api.js";
 
 // Categorías predefinidas comunes
 const PRESET_CATEGORIES = [
+  "Estilismo",
   "Corte y Peinado",
   "Coloración",
   "Tratamiento Capilar",
@@ -46,7 +47,7 @@ export default function ServiceModal({ show, onHide, editService = null }) {
   // TAB 1: INFORMACIÓN BÁSICA
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("Corte y Peinado");
+  const [category, setCategory] = useState("Estilismo");
   const [status, setStatus] = useState("active");
   const [color, setColor] = useState("#10b981");
 
@@ -74,7 +75,8 @@ export default function ServiceModal({ show, onHide, editService = null }) {
   const [productsList, setProductsList] = useState([]);
   const [associatedItems, setAssociatedItems] = useState([]); // Array of { productId, quantity }
 
-  const isEditing = Boolean(editService);
+  const isEditing = Boolean(editService && editService.id);
+  const isDuplicating = Boolean(editService && !editService.id);
 
   // Cargar catálogos y profesionales
   useEffect(() => {
@@ -101,7 +103,7 @@ export default function ServiceModal({ show, onHide, editService = null }) {
     if (editService) {
       setName(editService.name || "");
       setDescription(editService.description || "");
-      setCategory(editService.category || "Corte y Peinado");
+      setCategory(editService.category || "Estilismo");
       setStatus(editService.status || "active");
       setColor(editService.color || "#10b981");
 
@@ -129,7 +131,7 @@ export default function ServiceModal({ show, onHide, editService = null }) {
     } else {
       setName("");
       setDescription("");
-      setCategory("Corte y Peinado");
+      setCategory("Estilismo");
       setStatus("active");
       setColor("#10b981");
 
@@ -269,7 +271,7 @@ export default function ServiceModal({ show, onHide, editService = null }) {
       <Modal.Header closeButton={!saving} className="bg-light border-0 py-3.5 px-4 rounded-top">
         <Modal.Title className="fw-black text-gray-900 d-flex align-items-center gap-2">
           <Sparkles className="text-purple-600 animate-pulse" size={22} />
-          <span>{isEditing ? `Editar Servicio: ${name}` : "Crear Servicio Comercial SaaS Enterprise"}</span>
+          <span>{isEditing ? `Editar Servicio: ${name}` : isDuplicating ? `Duplicar Servicio: ${name}` : "Crear Servicio Comercial SaaS Enterprise"}</span>
         </Modal.Title>
       </Modal.Header>
 
