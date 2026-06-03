@@ -14,7 +14,7 @@ function currency(n) {
   }).format(isNaN(num) ? 0 : num);
 }
 
-export default function InventoryAIInsights({ products = [], suppliers = [], movements = [], rules = [], onTabChange }) {
+export default function InventoryAIInsights({ products = [], suppliers = [], movements = [], rules = [], showConsumptionRules = true, onTabChange }) {
   const [messages, setMessages] = useState([
     {
       id: "1",
@@ -71,26 +71,28 @@ export default function InventoryAIInsights({ products = [], suppliers = [], mov
     }
 
     // 2. Automations & Service Mapping Advice
-    if (unmappedProducts.length > 0) {
-      cards.push({
-        id: "unmapped-rules",
-        title: "Configuración de Fórmulas Técnicas",
-        desc: `Tienes ${unmappedProducts.length} insumos que no están vinculados a ninguna regla de consumo. Citas completadas no descontarán stock de éstos automáticamente.`,
-        severity: "warning",
-        actionText: "Mapear Consumos",
-        tab: "reglas",
-        icon: Compass
-      });
-    } else {
-      cards.push({
-        id: "unmapped-rules-ok",
-        title: "Fórmulas Técnicas Listas",
-        desc: "¡Excelente! Tienes todos tus insumos operativos vinculados a tus tratamientos en las Reglas de Consumo.",
-        severity: "success",
-        actionText: "Ver Reglas",
-        tab: "reglas",
-        icon: Compass
-      });
+    if (showConsumptionRules) {
+      if (unmappedProducts.length > 0) {
+        cards.push({
+          id: "unmapped-rules",
+          title: "Configuración de Fórmulas Técnicas",
+          desc: `Tienes ${unmappedProducts.length} insumos que no están vinculados a ninguna regla de consumo. Citas completadas no descontarán stock de éstos automáticamente.`,
+          severity: "warning",
+          actionText: "Mapear Consumos",
+          tab: "reglas",
+          icon: Compass
+        });
+      } else {
+        cards.push({
+          id: "unmapped-rules-ok",
+          title: "Fórmulas Técnicas Listas",
+          desc: "¡Excelente! Tienes todos tus insumos operativos vinculados a tus tratamientos en las Reglas de Consumo.",
+          severity: "success",
+          actionText: "Ver Reglas",
+          tab: "reglas",
+          icon: Compass
+        });
+      }
     }
 
     // 3. Capital Optimization Advice

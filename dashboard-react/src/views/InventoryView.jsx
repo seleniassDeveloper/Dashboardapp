@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Container, Button, Row, Col, Spinner, Alert, Badge, Card, Form } from "react-bootstrap";
 import {
   Package, AlertTriangle, Activity, User, ShoppingCart,
@@ -34,19 +34,21 @@ export default function InventoryView() {
   const [rules, setRules] = useState([]);
   const [movements, setMovements] = useState([]);
   const [branchesCount, setBranchesCount] = useState(1);
+  const [businessIndustry, setBusinessIndustry] = useState("Estética");
 
   const fetchAllData = async () => {
     try {
       setLoading(true);
       setError("");
 
-      const [dashRes, prodRes, supRes, ruleRes, movRes, branchRes] = await Promise.all([
+      const [dashRes, prodRes, supRes, ruleRes, movRes, branchRes, bizRes] = await Promise.all([
         api.get("/inventory/dashboard"),
         api.get("/inventory/products"),
         api.get("/inventory/suppliers"),
         api.get("/inventory/rules"),
         api.get("/inventory/movements"),
-        api.get("/finances/branches").catch(() => ({ data: [] }))
+        api.get("/finances/branches").catch(() => ({ data: [] })),
+        api.get("/businesses/me").catch(() => null)
       ]);
 
       setDashboardData(dashRes.data);
@@ -55,6 +57,10 @@ export default function InventoryView() {
       setRules(Array.isArray(ruleRes.data) ? ruleRes.data : []);
       setMovements(Array.isArray(movRes.data) ? movRes.data : []);
       setBranchesCount(Array.isArray(branchRes.data) ? branchRes.data.length : 1);
+
+      if (bizRes && bizRes.data && bizRes.data.business) {
+        setBusinessIndustry(bizRes.data.business.industry || "Estética");
+      }
     } catch (err) {
       console.error(err);
       setError("No se pudieron cargar los datos del inventario ERP.");
@@ -66,6 +72,12 @@ export default function InventoryView() {
   useEffect(() => {
     fetchAllData();
   }, []);
+
+  const showConsumptionRules = useMemo(() => {
+    const norm = (businessIndustry || "").toLowerCase();
+    const isBeautyOrSalon = ["estética", "estetica", "peluquería", "peluqueria", "salon", "salón", "barbería", "barberia", "bienestar", "spa"].some(term => norm.includes(term));
+    return !isBeautyOrSalon;
+  }, [businessIndustry]);
 
   if (loading && !dashboardData) {
     return (
@@ -132,18 +144,20 @@ export default function InventoryView() {
               Existencias Sucursal
             </button>
           )}
-          <button
-            onClick={() => setActiveTab("reglas")}
-            className={`nav-tab-premium px-4 py-2 fw-bold text-nowrap border-0 transition-all bg-transparent ${
-              activeTab === "reglas" ? "active text-purple-700 border-bottom-purple" : "text-muted hover-text-gray-900"
-            }`}
-            style={{
-              fontSize: "14px",
-              borderBottom: activeTab === "reglas" ? "2px solid #7c3aed" : "2px solid transparent"
-            }}
-          >
-            Reglas de Consumo
-          </button>
+          {showConsumptionRules && (
+            <button
+              onClick={() => setActiveTab("reglas")}
+              className={`nav-tab-premium px-4 py-2 fw-bold text-nowrap border-0 transition-all bg-transparent ${
+                activeTab === "reglas" ? "active text-purple-700 border-bottom-purple" : "text-muted hover-text-gray-900"
+              }`}
+              style={{
+                fontSize: "14px",
+                borderBottom: activeTab === "reglas" ? "2px solid #7c3aed" : "2px solid transparent"
+              }}
+            >
+              Reglas de Consumo
+            </button>
+          )}
           <button
             onClick={() => setActiveTab("rentabilidad")}
             className={`nav-tab-premium px-4 py-2 fw-bold text-nowrap border-0 transition-all bg-transparent ${
@@ -212,11 +226,12 @@ export default function InventoryView() {
               suppliers={suppliers}
               movements={movements}
               rules={rules}
+              showConsumptionRules={showConsumptionRules}
               onTabChange={(tab) => setActiveTab(tab)}
             />
           )}
 
-          {activeTab === "reglas" && (
+          {activeTab === "reglas" && showConsumptionRules && (
             <ServiceConsumptionRules 
               products={products}
               onRefresh={fetchAllData}
