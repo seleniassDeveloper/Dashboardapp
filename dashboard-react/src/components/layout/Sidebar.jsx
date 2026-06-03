@@ -48,7 +48,6 @@ const MENU_ITEMS = [
 
 const FINANCE_SUB_ITEMS = [
   { id: "resumen", path: "/app/finances?tab=resumen" },
-  { id: "gastos_operativos", path: "/app/finances?tab=gastos_operativos" },
   { id: "gastos", path: "/app/finances?tab=gastos" },
   { id: "sueldos", path: "/app/finances?tab=sueldos" },
   { id: "conciliacion", path: "/app/finances?tab=conciliacion" },

@@ -115,7 +115,7 @@ export default function SalaryManagement({ professionalStats = [] }) {
     <div>
       <Row className="g-4">
         {/* Panel de Liquidación Activo */}
-        <Col lg={7}>
+        <Col xs={12}>
           <Card className="card-premium border-0 shadow-sm h-100 bg-white">
             <Card.Body className="p-4">
               <h3 className="h6 fw-black text-gray-900 mb-3 d-flex align-items-center gap-2">
@@ -284,7 +284,7 @@ export default function SalaryManagement({ professionalStats = [] }) {
         </Col>
 
         {/* Historial de Liquidaciones */}
-        <Col lg={5}>
+        <Col xs={12}>
           <Card className="card-premium border-0 shadow-sm h-100 bg-white">
             <Card.Body className="p-4">
               <h3 className="h6 fw-black text-gray-900 mb-4 d-flex align-items-center gap-2">
