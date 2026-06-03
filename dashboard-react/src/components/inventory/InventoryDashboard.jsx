@@ -100,13 +100,12 @@ export default function InventoryDashboard({ summary = {}, products = [], moveme
 
   return (
     <div className="animate-fade-in">
-      {/* 5 STANDALONE COMPACT INTERACTIVE KPIS */}
+      {/* 5 STANDALONE COMPACT KPIS (STATIC) */}
       <Row className="g-3 mb-4">
         {/* KPI 1: Stock Crítico */}
         <Col className="flex-grow-1" style={{ minWidth: "200px" }}>
           <div 
-            onClick={() => setSelectedKPI("lowStock")}
-            className="p-3 bg-white border rounded-2xl shadow-sm-hover cursor-pointer transition-all d-flex align-items-center gap-3 h-100 position-relative overflow-hidden hover-scale"
+            className="p-3 bg-white border rounded-2xl shadow-sm d-flex align-items-center gap-3 h-100 position-relative overflow-hidden"
             style={{ borderColor: "rgba(239, 68, 68, 0.15)" }}
           >
             <div className="p-2.5 rounded-xl bg-red-50 text-red-500 d-flex align-items-center justify-content-center">
@@ -121,17 +120,13 @@ export default function InventoryDashboard({ summary = {}, products = [], moveme
                 )}
               </h4>
             </div>
-            <div className="position-absolute" style={{ right: "12px", bottom: "12px" }}>
-              <ArrowUpRight size={14} className="text-secondary opacity-30" />
-            </div>
           </div>
         </Col>
 
         {/* KPI 2: Valuación Total */}
         <Col className="flex-grow-1" style={{ minWidth: "200px" }}>
           <div 
-            onClick={() => setSelectedKPI("value")}
-            className="p-3 bg-white border rounded-2xl shadow-sm-hover cursor-pointer transition-all d-flex align-items-center gap-3 h-100 position-relative overflow-hidden hover-scale"
+            className="p-3 bg-white border rounded-2xl shadow-sm d-flex align-items-center gap-3 h-100 position-relative overflow-hidden"
           >
             <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-600 d-flex align-items-center justify-content-center">
               <DollarSign size={20} />
@@ -140,17 +135,13 @@ export default function InventoryDashboard({ summary = {}, products = [], moveme
               <span className="smaller text-muted d-block fw-bold mb-0.5">Valor del Inventario</span>
               <h4 className="fw-black text-emerald-600 m-0" style={{ fontSize: "20px" }}>{currency(safeSummary.totalValue)}</h4>
             </div>
-            <div className="position-absolute" style={{ right: "12px", bottom: "12px" }}>
-              <ArrowUpRight size={14} className="text-secondary opacity-30" />
-            </div>
           </div>
         </Col>
 
         {/* KPI 3: Cantidad Insumos */}
         <Col className="flex-grow-1" style={{ minWidth: "200px" }}>
           <div 
-            onClick={() => setSelectedKPI("catalog")}
-            className="p-3 bg-white border rounded-2xl shadow-sm-hover cursor-pointer transition-all d-flex align-items-center gap-3 h-100 position-relative overflow-hidden hover-scale"
+            className="p-3 bg-white border rounded-2xl shadow-sm d-flex align-items-center gap-3 h-100 position-relative overflow-hidden"
           >
             <div className="p-2.5 rounded-xl bg-purple-50 text-purple-600 d-flex align-items-center justify-content-center">
               <Package size={20} />
@@ -159,17 +150,13 @@ export default function InventoryDashboard({ summary = {}, products = [], moveme
               <span className="smaller text-muted d-block fw-bold mb-0.5">Cantidad de Productos</span>
               <h4 className="fw-black text-gray-900 m-0" style={{ fontSize: "20px" }}>{safeSummary.totalUnique} ítems</h4>
             </div>
-            <div className="position-absolute" style={{ right: "12px", bottom: "12px" }}>
-              <ArrowUpRight size={14} className="text-secondary opacity-30" />
-            </div>
           </div>
         </Col>
 
         {/* KPI 4: Consumo Estimado */}
         <Col className="flex-grow-1" style={{ minWidth: "200px" }}>
           <div 
-            onClick={() => setSelectedKPI("spend")}
-            className="p-3 bg-white border rounded-2xl shadow-sm-hover cursor-pointer transition-all d-flex align-items-center gap-3 h-100 position-relative overflow-hidden hover-scale"
+            className="p-3 bg-white border rounded-2xl shadow-sm d-flex align-items-center gap-3 h-100 position-relative overflow-hidden"
           >
             <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600 d-flex align-items-center justify-content-center">
               <TrendingUp size={20} />
@@ -178,17 +165,13 @@ export default function InventoryDashboard({ summary = {}, products = [], moveme
               <span className="smaller text-muted d-block fw-bold mb-0.5">Consumo Mensual</span>
               <h4 className="fw-black text-purple-700 m-0" style={{ fontSize: "20px" }}>{currency(safeSummary.estimatedMonthlySpend)}</h4>
             </div>
-            <div className="position-absolute" style={{ right: "12px", bottom: "12px" }}>
-              <ArrowUpRight size={14} className="text-secondary opacity-30" />
-            </div>
           </div>
         </Col>
 
         {/* KPI 5: Más Utilizado */}
         <Col className="flex-grow-1" style={{ minWidth: "200px" }}>
           <div 
-            onClick={() => setSelectedKPI("mostUsed")}
-            className="p-3 bg-white border rounded-2xl shadow-sm-hover cursor-pointer transition-all d-flex align-items-center gap-3 h-100 position-relative overflow-hidden hover-scale"
+            className="p-3 bg-white border rounded-2xl shadow-sm d-flex align-items-center gap-3 h-100 position-relative overflow-hidden"
           >
             <div className="p-2.5 rounded-xl bg-amber-50 text-amber-600 d-flex align-items-center justify-content-center">
               <Sparkles size={20} />
@@ -198,9 +181,6 @@ export default function InventoryDashboard({ summary = {}, products = [], moveme
               <h4 className="fw-black text-gray-800 m-0 text-truncate" style={{ fontSize: "15px", maxWidth: "160px", marginTop: "4px" }} title={safeSummary.mostConsumed}>
                 {safeSummary.mostConsumed}
               </h4>
-            </div>
-            <div className="position-absolute" style={{ right: "12px", bottom: "12px" }}>
-              <ArrowUpRight size={14} className="text-secondary opacity-30" />
             </div>
           </div>
         </Col>
