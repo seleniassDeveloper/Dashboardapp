@@ -1,16 +1,24 @@
 import React, { useState, useMemo } from "react";
-import { Row, Col, Card, Badge, Offcanvas, ListGroup, Table, Form } from "react-bootstrap";
-import { Package, AlertTriangle, DollarSign, Calendar, TrendingUp, Sparkles, Filter, X, ArrowUpRight, ArrowDownRight, Layers } from "lucide-react";
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell } from "recharts";
+import { Row, Col, Card, Badge, Offcanvas, ListGroup, Form } from "react-bootstrap";
+import { Package, AlertTriangle, DollarSign, TrendingUp, Sparkles, X, ArrowUpRight } from "lucide-react";
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell } from "recharts";
 
 const COLORS = ["#7c3aed", "#10b981", "#3b82f6", "#ec4899", "#f59e0b", "#06b6d4"];
 
 function currency(n) {
+  const num = Number(n);
   return new Intl.NumberFormat("es-AR", {
     style: "currency",
     currency: "ARS",
     maximumFractionDigits: 0,
-  }).format(n || 0);
+  }).format(isNaN(num) ? 0 : num);
+}
+
+function safeFormatDate(dateVal) {
+  if (!dateVal) return "Fecha no registrada";
+  const d = new Date(dateVal);
+  if (isNaN(d.getTime())) return "Fecha inválida";
+  return d.toLocaleDateString("es-AR");
 }
 
 export default function InventoryDashboard({ summary = {}, products = [], movements = [], onTabChange }) {
@@ -22,54 +30,73 @@ export default function InventoryDashboard({ summary = {}, products = [], moveme
     setDrawerFilter("");
   };
 
-  // Pre-calculations for drawer content
-  const lowStockProducts = useMemo(() => products.filter(p => p.stock < p.minStock), [products]);
+  // Safe pre-calculations for drawer content
+  const lowStockProducts = useMemo(() => {
+    return (products || []).filter(p => p && typeof p.stock === "number" && typeof p.minStock === "number" && p.stock < p.minStock);
+  }, [products]);
   
   const productsWithValue = useMemo(() => {
-    return products
-      .map(p => ({ ...p, totalVal: p.stock * p.costPrice }))
+    return (products || [])
+      .filter(p => p !== null && p !== undefined)
+      .map(p => ({ ...p, totalVal: (p.stock || 0) * (p.costPrice || 0) }))
       .sort((a, b) => b.totalVal - a.totalVal);
   }, [products]);
 
   const categoryBreakdown = useMemo(() => {
-    const map = products.reduce((acc, p) => {
-      acc[p.category] = (acc[p.category] || 0) + 1;
-      return acc;
-    }, {});
+    const map = (products || [])
+      .filter(p => p !== null && p !== undefined)
+      .reduce((acc, p) => {
+        const cat = p.category || "General";
+        acc[cat] = (acc[cat] || 0) + 1;
+        return acc;
+      }, {});
     return Object.keys(map).map(name => ({ name, value: map[name] }));
   }, [products]);
 
   const recentAutomaticMovements = useMemo(() => {
-    return movements
-      .filter(m => m.type === "automatic" || m.type === "output")
+    return (movements || [])
+      .filter(m => m && (m.type === "automatic" || m.type === "output"))
       .slice(0, 15);
   }, [movements]);
 
   // Chart data
   const stockChartData = useMemo(() => {
-    return products
+    return (products || [])
+      .filter(p => p && p.name)
       .slice(0, 8)
       .map(p => ({
         name: p.name.length > 15 ? p.name.slice(0, 15) + "..." : p.name,
-        stock: p.stock,
-        minStock: p.minStock
+        stock: p.stock || 0,
+        minStock: p.minStock || 0
       }));
   }, [products]);
 
   // Filtered lists for the drawer
   const filteredDrawerItems = useMemo(() => {
-    const q = drawerFilter.toLowerCase().trim();
+    const q = (drawerFilter || "").toLowerCase().trim();
     if (selectedKPI === "lowStock") {
-      return lowStockProducts.filter(p => p.name.toLowerCase().includes(q));
+      return lowStockProducts.filter(p => p && (p.name || "").toLowerCase().includes(q));
     }
     if (selectedKPI === "value") {
-      return productsWithValue.filter(p => p.name.toLowerCase().includes(q));
+      return productsWithValue.filter(p => p && (p.name || "").toLowerCase().includes(q));
     }
     if (selectedKPI === "catalog") {
-      return products.filter(p => p.name.toLowerCase().includes(q));
+      return (products || []).filter(p => p && (p.name || "").toLowerCase().includes(q));
     }
     return [];
   }, [selectedKPI, drawerFilter, lowStockProducts, productsWithValue, products]);
+
+  // Safe checks for summary fields
+  const safeSummary = useMemo(() => {
+    return {
+      lowStockCount: typeof summary?.lowStockCount === "number" ? summary.lowStockCount : 0,
+      totalValue: typeof summary?.totalValue === "number" ? summary.totalValue : 0,
+      totalUnique: typeof summary?.totalUnique === "number" ? summary.totalUnique : 0,
+      estimatedMonthlySpend: typeof summary?.estimatedMonthlySpend === "number" ? summary.estimatedMonthlySpend : 0,
+      mostConsumed: summary?.mostConsumed || "Sin registros",
+      costliestService: summary?.costliestService || "Sin registrar"
+    };
+  }, [summary]);
 
   return (
     <div className="animate-fade-in">
@@ -83,13 +110,13 @@ export default function InventoryDashboard({ summary = {}, products = [], moveme
             style={{ borderColor: "rgba(239, 68, 68, 0.15)" }}
           >
             <div className="p-2.5 rounded-xl bg-red-50 text-red-500 d-flex align-items-center justify-content-center">
-              <AlertTriangle size={20} className={summary.lowStockCount > 0 ? "animate-pulse" : ""} />
+              <AlertTriangle size={20} className={safeSummary.lowStockCount > 0 ? "animate-pulse" : ""} />
             </div>
             <div>
               <span className="smaller text-muted d-block fw-bold mb-0.5">Stock Crítico</span>
               <h4 className="fw-black m-0 d-flex align-items-center gap-1.5" style={{ fontSize: "20px" }}>
-                <span className={summary.lowStockCount > 0 ? "text-danger" : "text-gray-900"}>{summary.lowStockCount}</span>
-                {summary.lowStockCount > 0 && (
+                <span className={safeSummary.lowStockCount > 0 ? "text-danger" : "text-gray-900"}>{safeSummary.lowStockCount}</span>
+                {safeSummary.lowStockCount > 0 && (
                   <Badge bg="danger-soft" className="text-danger rounded-pill px-2 py-0.5" style={{ fontSize: "9px" }}>¡Reponer!</Badge>
                 )}
               </h4>
@@ -111,7 +138,7 @@ export default function InventoryDashboard({ summary = {}, products = [], moveme
             </div>
             <div>
               <span className="smaller text-muted d-block fw-bold mb-0.5">Valor del Inventario</span>
-              <h4 className="fw-black text-emerald-600 m-0" style={{ fontSize: "20px" }}>{currency(summary.totalValue)}</h4>
+              <h4 className="fw-black text-emerald-600 m-0" style={{ fontSize: "20px" }}>{currency(safeSummary.totalValue)}</h4>
             </div>
             <div className="position-absolute" style={{ right: "12px", bottom: "12px" }}>
               <ArrowUpRight size={14} className="text-secondary opacity-30" />
@@ -130,7 +157,7 @@ export default function InventoryDashboard({ summary = {}, products = [], moveme
             </div>
             <div>
               <span className="smaller text-muted d-block fw-bold mb-0.5">Cantidad de Productos</span>
-              <h4 className="fw-black text-gray-900 m-0" style={{ fontSize: "20px" }}>{summary.totalUnique} ítems</h4>
+              <h4 className="fw-black text-gray-900 m-0" style={{ fontSize: "20px" }}>{safeSummary.totalUnique} ítems</h4>
             </div>
             <div className="position-absolute" style={{ right: "12px", bottom: "12px" }}>
               <ArrowUpRight size={14} className="text-secondary opacity-30" />
@@ -149,7 +176,7 @@ export default function InventoryDashboard({ summary = {}, products = [], moveme
             </div>
             <div>
               <span className="smaller text-muted d-block fw-bold mb-0.5">Consumo Mensual</span>
-              <h4 className="fw-black text-purple-700 m-0" style={{ fontSize: "20px" }}>{currency(summary.estimatedMonthlySpend)}</h4>
+              <h4 className="fw-black text-purple-700 m-0" style={{ fontSize: "20px" }}>{currency(safeSummary.estimatedMonthlySpend)}</h4>
             </div>
             <div className="position-absolute" style={{ right: "12px", bottom: "12px" }}>
               <ArrowUpRight size={14} className="text-secondary opacity-30" />
@@ -168,8 +195,8 @@ export default function InventoryDashboard({ summary = {}, products = [], moveme
             </div>
             <div>
               <span className="smaller text-muted d-block fw-bold mb-0.5">Más Utilizado</span>
-              <h4 className="fw-black text-gray-800 m-0 text-truncate" style={{ fontSize: "15px", maxWidth: "160px", marginTop: "4px" }}>
-                {summary.mostConsumed}
+              <h4 className="fw-black text-gray-800 m-0 text-truncate" style={{ fontSize: "15px", maxWidth: "160px", marginTop: "4px" }} title={safeSummary.mostConsumed}>
+                {safeSummary.mostConsumed}
               </h4>
             </div>
             <div className="position-absolute" style={{ right: "12px", bottom: "12px" }}>
@@ -281,7 +308,7 @@ export default function InventoryDashboard({ summary = {}, products = [], moveme
         </Offcanvas.Header>
 
         <Offcanvas.Body className="p-4 d-flex flex-column justify-content-between">
-          <div className="flex-grow-1 overflow-auto scrollbar-none">
+          <div className="flex-grow-1 overflow-auto">
             {/* Search Input for List KPIs */}
             {(selectedKPI === "lowStock" || selectedKPI === "value" || selectedKPI === "catalog") && (
               <div className="mb-3">
@@ -306,8 +333,8 @@ export default function InventoryDashboard({ summary = {}, products = [], moveme
                   {filteredDrawerItems.map(p => (
                     <ListGroup.Item key={p.id} className="p-3 border rounded-xl bg-light bg-opacity-50 d-flex justify-content-between align-items-center">
                       <div>
-                        <strong className="text-gray-900 small d-block">{p.name}</strong>
-                        <span className="smaller text-muted">Stock actual: <strong className="text-danger">{p.stock}</strong> / Límite: {p.minStock} {p.unit}</span>
+                        <strong className="text-gray-900 small d-block">{p.name || "Insumo sin nombre"}</strong>
+                        <span className="smaller text-muted">Stock actual: <strong className="text-danger">{p.stock ?? 0}</strong> / Límite: {p.minStock ?? 0} {p.unit || "unidad"}</span>
                       </div>
                       <Badge bg="danger-soft" className="text-danger rounded-pill px-2.5 py-1 fw-bold smaller">CRÍTICO</Badge>
                     </ListGroup.Item>
@@ -324,15 +351,15 @@ export default function InventoryDashboard({ summary = {}, products = [], moveme
               <div>
                 <div className="p-3 bg-emerald-50 text-emerald-950 rounded-2xl mb-4 border border-emerald-100 d-flex align-items-center justify-content-between">
                   <span className="fw-bold small">Capital Inmovilizado Total:</span>
-                  <span className="fw-black h5 m-0 text-emerald-700">{currency(summary.totalValue)}</span>
+                  <span className="fw-black h5 m-0 text-emerald-700">{currency(safeSummary.totalValue)}</span>
                 </div>
                 <h5 className="smaller fw-bold text-muted uppercase tracking-wider mb-2">Contribución de Productos</h5>
                 <ListGroup variant="flush" className="gap-2">
                   {filteredDrawerItems.map(p => (
                     <ListGroup.Item key={p.id} className="p-3 border rounded-xl bg-light bg-opacity-50 d-flex justify-content-between align-items-center">
                       <div>
-                        <strong className="text-gray-900 small d-block">{p.name}</strong>
-                        <span className="smaller text-muted">{p.stock} {p.unit} x {currency(p.costPrice)} c/u</span>
+                        <strong className="text-gray-900 small d-block">{p.name || "Insumo sin nombre"}</strong>
+                        <span className="smaller text-muted">{p.stock ?? 0} {p.unit || "unidad"} x {currency(p.costPrice)} c/u</span>
                       </div>
                       <span className="fw-black text-gray-900 small">{currency(p.totalVal)}</span>
                     </ListGroup.Item>
@@ -357,10 +384,10 @@ export default function InventoryDashboard({ summary = {}, products = [], moveme
                   {filteredDrawerItems.map(p => (
                     <ListGroup.Item key={p.id} className="p-3 border rounded-xl bg-light bg-opacity-50 d-flex justify-content-between align-items-center">
                       <div>
-                        <strong className="text-gray-900 small d-block">{p.name}</strong>
+                        <strong className="text-gray-900 small d-block">{p.name || "Insumo sin nombre"}</strong>
                         <span className="smaller text-muted">Ubicación: {p.location || "Sin especificar"}</span>
                       </div>
-                      <Badge bg="light" className="text-secondary border rounded-pill px-2.5">{p.category}</Badge>
+                      <Badge bg="light" className="text-secondary border rounded-pill px-2.5">{p.category || "General"}</Badge>
                     </ListGroup.Item>
                   ))}
                 </ListGroup>
@@ -375,17 +402,17 @@ export default function InventoryDashboard({ summary = {}, products = [], moveme
                 </Alert>
                 <div className="p-3 bg-purple-50 text-purple-950 rounded-2xl mb-4 border border-purple-100 d-flex align-items-center justify-content-between">
                   <span className="fw-bold small">Costo Mensual Estimado:</span>
-                  <span className="fw-black h5 m-0 text-purple-700">{currency(summary.estimatedMonthlySpend)}</span>
+                  <span className="fw-black h5 m-0 text-purple-700">{currency(safeSummary.estimatedMonthlySpend)}</span>
                 </div>
                 <h5 className="smaller fw-bold text-muted uppercase tracking-wider mb-2">Descuentos de Existencias Recientes</h5>
-                <ListGroup variant="flush">
+                <ListGroup variant="flush" className="gap-2">
                   {recentAutomaticMovements.map(m => (
-                    <ListGroup.Item key={m.id} className="px-0 py-2.5 bg-transparent border-bottom d-flex align-items-center justify-content-between">
+                    <ListGroup.Item key={m.id} className="p-3 border rounded-xl bg-light bg-opacity-50 d-flex align-items-center justify-content-between">
                       <div>
                         <strong className="text-gray-900 small d-block">{m.product?.name || "Insumo"}</strong>
-                        <span className="smaller text-muted">{new Date(m.createdAt).toLocaleDateString("es-AR")} • {m.reason}</span>
+                        <span className="smaller text-muted">{safeFormatDate(m.createdAt)} • {m.reason || "Consumo automático"}</span>
                       </div>
-                      <span className="fw-bold text-danger small">-{Math.abs(m.diff)} {m.product?.unit}</span>
+                      <span className="fw-bold text-danger small">-{Math.abs(m.diff || 0)} {m.product?.unit || "unidad"}s</span>
                     </ListGroup.Item>
                   ))}
                   {recentAutomaticMovements.length === 0 && (
@@ -400,14 +427,14 @@ export default function InventoryDashboard({ summary = {}, products = [], moveme
               <div>
                 <div className="p-4 bg-amber-50 rounded-2xl mb-4 border border-amber-100 text-center">
                   <span className="text-amber-800 smaller block mb-1 uppercase font-semibold">Insumo de Mayor Consumo</span>
-                  <h4 className="fw-black text-gray-900 mb-1">{summary.mostConsumed}</h4>
+                  <h4 className="fw-black text-gray-900 mb-1">{safeSummary.mostConsumed}</h4>
                   <p className="text-muted smaller mb-0">Este insumo presenta el mayor número de deducciones contables automáticas por citas este mes.</p>
                 </div>
                 <h5 className="smaller fw-bold text-muted uppercase tracking-wider mb-2">Detalles Técnicos</h5>
                 <div className="p-3 bg-light rounded-xl border small">
                   <div className="d-flex justify-content-between mb-2">
                     <span className="text-muted">Servicio asociado principal:</span>
-                    <strong className="text-gray-900">{summary.costliestService}</strong>
+                    <strong className="text-gray-900">{safeSummary.costliestService}</strong>
                   </div>
                   <div className="d-flex justify-content-between">
                     <span className="text-muted">Fórmula estándar:</span>
