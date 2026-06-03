@@ -15,7 +15,6 @@ import InventoryView from "./views/InventoryView";
 import GoogleSheetsSyncView from "./views/GoogleSheetsSyncView";
 import WorkflowsView from "./views/WorkflowsView";
 import AutomationsView from "./views/AutomationsView";
-import TemplatesView from "./views/TemplatesView";
 import HistoryView from "./views/HistoryView";
 import HowItWorks from "./views/HowItWorks";
 import SettingsView from "./views/SettingsView";
@@ -144,14 +143,7 @@ export default function App() {
           }
         />
 
-        <Route
-          path="/templates"
-          element={
-            <Can permission="workflows.view" fallback={<UnauthorizedView />}>
-              <TemplatesView />
-            </Can>
-          }
-        />
+
 
         <Route
           path="/history"

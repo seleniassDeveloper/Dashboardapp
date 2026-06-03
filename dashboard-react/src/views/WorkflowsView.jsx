@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useState, useMemo } from "react";
 import { Container, Row, Col, Badge, Button, Spinner, Alert, Table, Card, Offcanvas, ListGroup, Form, ProgressBar } from "react-bootstrap";
-import { Play, Plus, GitBranch, Zap, Pencil, Trash2, Pause, Sparkles, Activity, MessageSquare, Mail, AlertTriangle, ShieldCheck, ArrowUpRight, XCircle, CheckCircle2, X } from "lucide-react";
+import { Play, Plus, GitBranch, Zap, Pencil, Trash2, Pause, Sparkles, Activity, MessageSquare, Mail, AlertTriangle, ShieldCheck, ArrowUpRight, XCircle, CheckCircle2, X, Clock, ArrowRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import WorkflowBuilder from "../components/workflows/WorkflowBuilder.jsx";
 import api from "../lib/api.js";
+import { TEMPLATES } from "./TemplatesView.jsx";
 
 // Pre-populated realistic high-fidelity mock logs with dual Spanish/English fields
 const HIGH_FIDELITY_MOCKS = [
@@ -66,6 +67,73 @@ export default function WorkflowsView() {
   const [selectedKPI, setSelectedKPI] = useState(null); // 'activeFlows' | 'todayExecutions' | 'conversion' | 'errors'
   const [executions, setExecutions] = useState([]);
   const [drawerFilter, setDrawerFilter] = useState("");
+
+  // States for Flow Templates Tab Navigation
+  const [activeTab, setActiveTab] = useState("my-flows"); // 'my-flows' | 'templates'
+  const [installingId, setInstallingId] = useState(null);
+  const [successMsg, setSuccessMsg] = useState("");
+
+  const handleInstallTemplate = async (tpl) => {
+    try {
+      setInstallingId(tpl.id);
+      setError("");
+      setSuccessMsg("");
+
+      const name = isEs ? `${tpl.nameEs} (Instalado)` : `${tpl.nameEn} (Installed)`;
+      const description = isEs ? tpl.descEs : tpl.descEn;
+
+      const payload = {
+        name,
+        description,
+        status: "ACTIVE",
+        trigger: {
+          type: tpl.triggerType,
+          config: {}
+        },
+        steps: tpl.steps,
+        transitions: tpl.transitions,
+        screens: []
+      };
+
+      await api.post("/workflows", payload);
+
+      setSuccessMsg(
+        isEs 
+          ? `¡Excelente! La plantilla "${tpl.nameEs}" ha sido instalada y activada con éxito.`
+          : `Great! The template "${tpl.nameEn}" has been successfully installed and activated.`
+      );
+
+      await load();
+
+      setTimeout(() => {
+        setActiveTab("my-flows");
+      }, 1500);
+
+      setTimeout(() => {
+        setSuccessMsg("");
+      }, 4000);
+    } catch (e) {
+      console.error(e);
+      setError(
+        isEs 
+          ? "No pudimos instalar la plantilla. Por favor, vuelve a intentarlo."
+          : "We couldn't install the template. Please, try again."
+      );
+    } finally {
+      setInstallingId(null);
+    }
+  };
+
+  const getTemplateChannelIcon = (ch) => {
+    switch (ch) {
+      case "whatsapp":
+        return <MessageSquare size={14} className="text-success animate-pulse" />;
+      case "email":
+        return <Mail size={14} className="text-primary animate-pulse" />;
+      default:
+        return <Zap size={14} className="text-warning" />;
+    }
+  };
 
   const load = useCallback(async () => {
     try {
@@ -204,10 +272,59 @@ export default function WorkflowsView() {
         </div>
       </header>
 
-      {error && <Alert variant="danger" onClose={() => setError("")} dismissible className="rounded-2xl border-0 shadow-sm mb-4">{error}</Alert>}
+      {/* TABS DE SELECCIÓN PREMIUM */}
+      <div className="d-flex mb-4 gap-2 border-bottom pb-2">
+        <button
+          onClick={() => setActiveTab("my-flows")}
+          className={`d-flex align-items-center gap-2 px-4 py-2.5 fw-bold rounded-xl border-0 transition-all ${
+            activeTab === "my-flows" ? "bg-purple-600 text-white shadow-sm btn-purple" : "bg-light text-muted hover-bg-gray-100"
+          }`}
+          style={{ fontSize: "13px" }}
+        >
+          <GitBranch size={15} />
+          <span>{isEs ? "Mis Flujos" : "My Flows"}</span>
+        </button>
 
-      {/* OPERATIONAL PROCESSES METRICS GRID */}
-      <Row className="g-4 mb-4">
+        <button
+          onClick={() => setActiveTab("templates")}
+          className={`d-flex align-items-center gap-2 px-4 py-2.5 fw-bold rounded-xl border-0 transition-all ${
+            activeTab === "templates" ? "bg-purple-600 text-white shadow-sm btn-purple" : "bg-light text-muted hover-bg-gray-100"
+          }`}
+          style={{ fontSize: "13px" }}
+        >
+          <Sparkles size={15} />
+          <span>{isEs ? "Librería de Plantillas" : "Templates Library"}</span>
+        </button>
+      </div>
+
+      {successMsg && (
+        <Alert 
+          variant="success" 
+          onClose={() => setSuccessMsg("")} 
+          dismissible 
+          className="rounded-2xl border-0 shadow-sm mb-4 d-flex align-items-center gap-2 animate-fade-in"
+          style={{ backgroundColor: "rgba(16, 185, 129, 0.1)", color: "#065f46" }}
+        >
+          <CheckCircle2 size={18} className="text-success animate-bounce" />
+          <span>{successMsg}</span>
+        </Alert>
+      )}
+
+      {error && (
+        <Alert 
+          variant="danger" 
+          onClose={() => setError("")} 
+          dismissible 
+          className="rounded-2xl border-0 shadow-sm mb-4 animate-fade-in"
+        >
+          {error}
+        </Alert>
+      )}
+
+      {activeTab === "my-flows" && (
+        <>
+          {/* OPERATIONAL PROCESSES METRICS GRID */}
+          <Row className="g-4 mb-4">
         {/* KPI 1: Flujos Activos */}
         <Col lg={3} md={6}>
           <div 
@@ -456,6 +573,74 @@ export default function WorkflowsView() {
           )}
         </Col>
       </Row>
+        </>
+      )}
+
+      {activeTab === "templates" && (
+        <Row className="g-4 mb-4">
+          {TEMPLATES.map((tpl) => (
+            <Col lg={4} md={6} key={tpl.id}>
+              <Card className="card-premium h-100 border bg-white p-4 rounded-2xl shadow-sm d-flex flex-column justify-content-between hover-scale">
+                <div>
+                  <div className="d-flex align-items-center justify-content-between mb-3">
+                    <div className="d-flex gap-1">
+                      {tpl.channels.map((ch) => (
+                        <span
+                          key={ch}
+                          className="p-2 rounded-xl border bg-light d-flex align-items-center justify-content-center"
+                          style={{ width: "32px", height: "32px" }}
+                          title={`Channel: ${ch.toUpperCase()}`}
+                        >
+                          {getTemplateChannelIcon(ch)}
+                        </span>
+                      ))}
+                    </div>
+                    <Badge bg={`${tpl.complexityColor}-soft`} className={`text-${tpl.complexityColor} px-2.5 py-1.5 border border-${tpl.complexityColor} border-opacity-10`} style={{ borderRadius: "8px", fontSize: "10.5px" }}>
+                      {isEs ? "Complejidad" : "Complexity"}: {isEs ? tpl.complexityEs : tpl.complexityEn}
+                    </Badge>
+                  </div>
+
+                  <h3 className="h6 fw-black text-gray-900 mb-2">
+                    {isEs ? tpl.nameEs : tpl.nameEn}
+                  </h3>
+                  <p className="text-muted smaller mb-4" style={{ lineHeight: "1.45", minHeight: "60px" }}>
+                    {isEs ? tpl.descEs : tpl.descEn}
+                  </p>
+                </div>
+
+                <div className="pt-3 border-top d-flex justify-content-between align-items-center mt-auto">
+                  <div className="smaller text-muted d-flex align-items-center gap-1">
+                    <Clock size={13} />
+                    <span>
+                      {isEs ? "Configuración en 1s" : "Set up in 1s"}
+                    </span>
+                  </div>
+                  
+                  <Button
+                    variant="purple"
+                    size="sm"
+                    className="rounded-xl px-3 py-2 fw-bold d-flex align-items-center gap-1.5 border-0 text-white bg-purple-600 hover-bg-purple-700 btn-purple"
+                    disabled={installingId !== null}
+                    onClick={() => handleInstallTemplate(tpl)}
+                  >
+                    {installingId === tpl.id ? (
+                      <>
+                        <Spinner size="sm" animation="border" className="me-1" />
+                        <span>{isEs ? "Instalando..." : "Installing..."}</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>{isEs ? "Usar plantilla" : "Use template"}</span>
+                        <ArrowRight size={14} />
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </Card>
+            </Col>
+          ))}
+        </Row>
+      )}
 
       {/* FULL VIEWPORT WORKFLOW BUILDER OVERLAY */}
       {showBuilder && (

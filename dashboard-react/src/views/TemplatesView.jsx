@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import api from "../lib/api.js";
 
-const TEMPLATES = [
+export const TEMPLATES = [
   {
     id: "template-1",
     nameEs: "Confirmación de cita",

@@ -40,7 +40,6 @@ const MENU_ITEMS = [
   // Grupo Automatización
   { id: "workflows", icon: GitBranch, path: "/app/workflows", isAutomation: true },
   { id: "automations", icon: Zap, path: "/app/automations", isAutomation: true },
-  { id: "templates", icon: Sparkles, path: "/app/templates", isAutomation: true },
   { id: "history", icon: Clock, path: "/app/history", isAutomation: true },
   
   { id: "config", icon: Settings, path: "/app/settings" },
