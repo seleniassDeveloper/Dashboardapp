@@ -109,6 +109,35 @@ export function AuthProvider({ children }) {
     setFinanceUnlocked(false);
   }, []);
 
+  const [userBusinesses, setUserBusinesses] = useState([]);
+
+  const switchBusiness = useCallback(async (businessId) => {
+    localStorage.setItem("active_business_id", businessId);
+    try {
+      const bizRes = await api.get("/appointments/business");
+      if (bizRes.data) {
+        setBusiness(bizRes.data);
+      }
+    } catch (err) {
+      console.error("Error switching business:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (role) {
+      api.get("/me/businesses")
+        .then(res => {
+          setUserBusinesses(Array.isArray(res.data) ? res.data : []);
+        })
+        .catch(err => {
+          console.error("Error fetching user businesses:", err);
+        });
+    } else {
+      setUserBusinesses([]);
+    }
+  }, [role]);
+
+
   // Fetch session details from Firestore and perform Owner auto-seeding
   const fetchSession = useCallback(async (firebaseUser = firebaseAuth?.currentUser) => {
     console.group("🔥 [Aura Firebase Diagnostic]");
@@ -450,9 +479,11 @@ export function AuthProvider({ children }) {
       business,
       role,
       permissions,
-      isUnauthorized,
-      firestoreError,
-      fetchSession,
+      financeUnlocked,
+      unlockFinance,
+      lockFinance,
+      userBusinesses,
+      switchBusiness,
     }),
     [
       user,
@@ -466,6 +497,11 @@ export function AuthProvider({ children }) {
       isUnauthorized,
       firestoreError,
       fetchSession,
+      financeUnlocked,
+      unlockFinance,
+      lockFinance,
+      userBusinesses,
+      switchBusiness,
     ]
   );
 

@@ -65,7 +65,7 @@ function getAuditDetails(log, isEs = true) {
 
 export default function FinancialAudit() {
   const { t, i18n } = useTranslation("finances");
-  const isEs = i18n.language === "es";
+  const isEs = i18n && i18n.language ? i18n.language === "es" : true;
 
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(false);
