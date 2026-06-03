@@ -5,6 +5,7 @@ import {
   Layers, Scan, DollarSign, Building, Sliders, Bot, Scissors
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useSearchParams } from "react-router-dom";
 import api from "../lib/api.js";
 
 // ERP inventory sub-modules
@@ -25,8 +26,17 @@ export default function InventoryView() {
   const { t } = useTranslation("views");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [activeTab, setActiveTab] = useState("resumen");
-  const [repoSubTab, setRepoSubTab] = useState("pedidos");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") || "resumen";
+  const repoSubTab = searchParams.get("sub") || "pedidos";
+
+  const setActiveTab = (newTab) => {
+    setSearchParams({ tab: newTab });
+  };
+
+  const setRepoSubTab = (newSubTab) => {
+    setSearchParams({ tab: "reposicion", sub: newSubTab });
+  };
 
   // State populated from Neon Cloud DB
   const [dashboardData, setDashboardData] = useState(null);
@@ -132,6 +142,18 @@ export default function InventoryView() {
             Catálogo de Stock
           </button>
           <button
+            onClick={() => setActiveTab("lotes")}
+            className={`nav-tab-premium px-4 py-2 fw-bold text-nowrap border-0 transition-all bg-transparent ${
+              activeTab === "lotes" ? "active text-purple-700 border-bottom-purple" : "text-muted hover-text-gray-900"
+            }`}
+            style={{
+              fontSize: "14px",
+              borderBottom: activeTab === "lotes" ? "2px solid #7c3aed" : "2px solid transparent"
+            }}
+          >
+            Control de Lotes (FIFO)
+          </button>
+          <button
             onClick={() => setActiveTab("reposicion")}
             className={`nav-tab-premium px-4 py-2 fw-bold text-nowrap border-0 transition-all bg-transparent ${
               activeTab === "reposicion" ? "active text-purple-700 border-bottom-purple" : "text-muted hover-text-gray-900"
@@ -212,6 +234,14 @@ export default function InventoryView() {
 
           {activeTab === "productos" && (
             <ProductForm 
+              products={products}
+              suppliers={suppliers}
+              onRefresh={fetchAllData}
+            />
+          )}
+
+          {activeTab === "lotes" && (
+            <BatchControl 
               products={products}
               suppliers={suppliers}
               onRefresh={fetchAllData}
