@@ -252,6 +252,45 @@
     },
     "cta": "Get started now"
   },
+  "liveDemo": {
+    "badge": "LIVE DEMO",
+    "title": "See AuraDash in Action",
+    "desc": "Discover how each module works in a guided interactive tour.",
+    "cta": "Watch Interactive Tour"
+  },
+  "stats": {
+    "activeBusinesses": "Active Businesses",
+    "users": "Users",
+    "appointments": "Appointments Managed",
+    "uptime": "Uptime"
+  },
+  "testimonial": {
+    "quote": "AuraDash completely changed how we manage our salon. Now we have more clients and fewer no-shows.",
+    "role": "Owner of Salón Studio"
+  },
+  "aiSimulator": {
+    "financeResponse": {
+      "header": "Sales Analysis",
+      "message": "Sales this week are up 18.5% compared to the monthly average. Excellent performance.",
+      "target": "$5,000,000 COP",
+      "liquidity": "$4,250,000 COP",
+      "status": "On Track"
+    },
+    "workflowResponse": {
+      "header": "Active Automation",
+      "message": "Automatic workflows have notified clients with pending appointments for today via WhatsApp.",
+      "trigger": "Confirmed Appointment",
+      "action1": "Send WhatsApp (Notified)",
+      "action2": "Log to Google Sheets"
+    },
+    "agendaResponse": {
+      "header": "Calendar Occupancy",
+      "message": "Average occupancy for today is at 78%. You have 3 open slots left in the afternoon.",
+      "busy": "12 shifts",
+      "free": "3 shifts",
+      "staff": "4 active staff members"
+    }
+  },
   "footer": {
     "copyright": "AuraDash © 2026",
     "privacy": "Privacy Policy",

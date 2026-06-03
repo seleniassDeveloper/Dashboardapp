@@ -25,7 +25,9 @@ import {
   Briefcase,
   Home,
   ArrowUpRight,
-  Check
+  Check,
+  ChevronRight,
+  Star
 } from "lucide-react";
 import LanguageSwitcher from "../components/language/LanguageSwitcher.jsx";
 import "./styles/landing.css";
@@ -146,8 +148,15 @@ function HowItWorksModal({ show, onHide }) {
 
 function MainNavbar({ onHowItWorks, onFreeTrial }) {
   const { t } = useTranslation("landing");
+  const [expanded, setExpanded] = useState(false);
+
+  const handleLinkClick = (callback) => {
+    setExpanded(false);
+    if (callback) callback();
+  };
+
   return (
-    <Navbar bg="transparent" expand="lg" className="py-4">
+    <Navbar expanded={expanded} onToggle={setExpanded} bg="transparent" expand="lg" className="py-4">
       <Container>
         <Navbar.Brand href="/" className="fw-black d-flex align-items-center gap-2">
           <div className="logo-dot"></div>
@@ -156,18 +165,18 @@ function MainNavbar({ onHowItWorks, onFreeTrial }) {
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
         <Navbar.Collapse id="basic-navbar-nav">
           <Nav className="ms-auto align-items-center gap-4">
-            <Nav.Link onClick={onHowItWorks} className="fw-semibold text-dark" style={{ cursor: 'pointer' }}>
+            <Nav.Link onClick={() => handleLinkClick(onHowItWorks)} className="fw-semibold text-dark" style={{ cursor: 'pointer' }}>
               {t("nav.howItWorks")}
             </Nav.Link>
-            <Nav.Link href="#funcionalidades" className="fw-semibold">{t("nav.features")}</Nav.Link>
-            <Nav.Link href="#precios" className="fw-semibold">{t("nav.pricing")}</Nav.Link>
-            <Nav.Link href="#recursos" className="fw-semibold">{t("nav.resources")}</Nav.Link>
-            <Nav.Link onClick={onFreeTrial} className="fw-semibold" style={{ cursor: 'pointer' }}>{t("nav.demo")}</Nav.Link>
+            <Nav.Link href="#funcionalidades" onClick={() => handleLinkClick()} className="fw-semibold">{t("nav.features")}</Nav.Link>
+            <Nav.Link href="#precios" onClick={() => handleLinkClick()} className="fw-semibold">{t("nav.pricing")}</Nav.Link>
+            <Nav.Link href="#recursos" onClick={() => handleLinkClick()} className="fw-semibold">{t("nav.resources")}</Nav.Link>
+            <Nav.Link onClick={() => handleLinkClick(onFreeTrial)} className="fw-semibold" style={{ cursor: 'pointer' }}>{t("nav.demo")}</Nav.Link>
             <LanguageSwitcher variant="landing" />
-            <Link to="/app" className="fw-semibold text-dark text-decoration-none" style={{ fontSize: '0.95rem' }}>
+            <Link to="/app" onClick={() => handleLinkClick()} className="fw-semibold text-dark text-decoration-none" style={{ fontSize: '0.95rem' }}>
               {t("nav.login")}
             </Link>
-            <button onClick={onFreeTrial} className="btn-premium px-4 py-2 text-decoration-none border-0 text-white bg-purple-600 hover-bg-purple-700" style={{ fontWeight: 600 }}>
+            <button onClick={() => handleLinkClick(onFreeTrial)} className="btn-premium px-4 py-2 text-decoration-none border-0 text-white bg-purple-600 hover-bg-purple-700" style={{ fontWeight: 600 }}>
               {t("nav.freeTrial")}
             </button>
           </Nav>
@@ -195,6 +204,11 @@ export default function LandingPage() {
 
   // Estados del Explorador de Módulos (9 Módulos)
   const [activeExplorer, setActiveExplorer] = useState("dashboard");
+  const [activeMobileExplorer, setActiveMobileExplorer] = useState("dashboard");
+
+  const toggleMobileExplorer = (key) => {
+    setActiveMobileExplorer(activeMobileExplorer === key ? null : key);
+  };
 
   const explorerConfig = {
     dashboard: {
@@ -270,7 +284,7 @@ export default function LandingPage() {
                 </div>
                 <h1 className="display-4 fw-black mb-4" style={{ letterSpacing: '-0.03em', lineHeight: 1.1, fontSize: '3.5rem' }}>
                   {t("hero.titleLine1")} <br/>
-                  <span style={{ color: '#ea580c' }}>{t("hero.titleLine2")}</span>
+                  <span style={{ color: 'var(--lp-accent)' }}>{t("hero.titleLine2")}</span>
                 </h1>
                 <p className="lead text-muted mb-5 pe-lg-4" style={{ fontSize: '1.1rem', lineHeight: '1.6' }}>
                   {t("hero.subtitle")}
@@ -419,7 +433,7 @@ export default function LandingPage() {
                     <p className="text-muted smaller mb-0">{t("target.c2Desc")}</p>
                   </div>
                   <div className="target-card">
-                    <div className="target-icon-wrapper orange">
+                    <div className="target-icon-wrapper indigo">
                       <Briefcase size={20} />
                     </div>
                     <h4 className="fw-bold h6 text-dark mb-1">{t("target.c3Title")}</h4>
@@ -437,79 +451,159 @@ export default function LandingPage() {
 
               {/* Right Column: 9 Tabs Explorer */}
               <Col lg={8}>
-                <div className="h-100 p-4 p-md-5" style={{ background: '#ffffff', borderRadius: '24px', border: '1px solid rgba(15, 23, 42, 0.05)', boxShadow: '0 20px 40px -15px rgba(15, 23, 42, 0.02)' }}>
-                  <span className="text-uppercase fw-bold text-muted small" style={{ letterSpacing: '0.1em' }}>
-                    {t("explorer.subtitle")}
-                  </span>
-                  <h2 className="fw-black h2 mt-2 mb-4" style={{ letterSpacing: '-0.02em' }}>
-                    {t("explorer.title")}
-                  </h2>
-                  
-                  <Row className="g-4 mt-2">
-                    <Col md={4} className="d-flex flex-column gap-2" style={{ borderRight: '1px solid rgba(15, 23, 42, 0.06)' }}>
+                {/* Desktop view */}
+                <div className="desktop-explorer-only h-100">
+                  <div className="h-100 p-4 p-md-5" style={{ background: '#ffffff', borderRadius: '24px', border: '1px solid rgba(15, 23, 42, 0.05)', boxShadow: '0 20px 40px -15px rgba(15, 23, 42, 0.02)' }}>
+                    <span className="text-uppercase fw-bold text-muted small" style={{ letterSpacing: '0.1em' }}>
+                      {t("explorer.subtitle")}
+                    </span>
+                    <h2 className="fw-black h2 mt-2 mb-4" style={{ letterSpacing: '-0.02em' }}>
+                      {t("explorer.title")}
+                    </h2>
+                    
+                    <Row className="g-4 mt-2">
+                      <Col md={4} className="d-flex flex-column gap-2" style={{ borderRight: '1px solid rgba(15, 23, 42, 0.06)' }}>
+                        {Object.keys(explorerConfig).map((key) => {
+                          const conf = explorerConfig[key];
+                          return (
+                            <button
+                              key={key}
+                              className={`pillar-tab-btn ${activeExplorer === key ? 'active' : ''}`}
+                              onClick={() => setActiveExplorer(key)}
+                              style={{ border: 'none', background: 'transparent', padding: '10px 16px', borderRadius: '10px', fontSize: '0.9rem' }}
+                            >
+                              <span className="d-flex align-items-center gap-2">
+                                {conf.icon}
+                                {t(`explorer.${key}.tab`)}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </Col>
+                      
+                      <Col md={8}>
+                        <div className="mb-4">
+                          <Badge bg="warning" className="text-dark px-3 py-2 rounded mb-3 smaller fw-bold uppercase">
+                            {t(`explorer.${activeExplorer}.tab`)}
+                          </Badge>
+                          <h4 className="h5 fw-bold text-dark mb-3">{t(`explorer.${activeExplorer}.title`)}</h4>
+                          <ul className="list-unstyled text-muted small mb-0">
+                            <li className="mb-2 d-flex align-items-start gap-2">
+                              <CheckCircle size={16} className="text-success mt-1 flex-shrink-0" />
+                              <span>{t(`explorer.${activeExplorer}.bullet1`)}</span>
+                            </li>
+                            <li className="mb-2 d-flex align-items-start gap-2">
+                              <CheckCircle size={16} className="text-success mt-1 flex-shrink-0" />
+                              <span>{t(`explorer.${activeExplorer}.bullet2`)}</span>
+                            </li>
+                            <li className="mb-2 d-flex align-items-start gap-2">
+                              <CheckCircle size={16} className="text-success mt-1 flex-shrink-0" />
+                              <span>{t(`explorer.${activeExplorer}.bullet3`)}</span>
+                            </li>
+                          </ul>
+                        </div>
+
+                        {/* Mockup Browser Visor */}
+                        <div className="explorer-screenshot-frame mt-3">
+                          <div className="browser-header">
+                            <div className="browser-dots">
+                              <span className="dot red"></span>
+                              <span className="dot yellow"></span>
+                              <span className="dot green"></span>
+                            </div>
+                            <div className="browser-address-bar">
+                              {explorerConfig[activeExplorer].url}
+                            </div>
+                          </div>
+                          <div className="explorer-screenshot-body">
+                            <img 
+                              src={explorerConfig[activeExplorer].img} 
+                              alt={t(`explorer.${activeExplorer}.title`)} 
+                              className="img-fluid w-100 animate-fade-in"
+                              style={{ objectFit: 'cover', objectPosition: 'top' }}
+                            />
+                          </div>
+                        </div>
+                      </Col>
+                    </Row>
+                  </div>
+                </div>
+
+                {/* Mobile view accordion style */}
+                <div className="mobile-explorer-only">
+                  <div className="p-4" style={{ background: '#ffffff', borderRadius: '24px', border: '1px solid rgba(15, 23, 42, 0.05)', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.02)' }}>
+                    <span className="text-uppercase fw-bold text-muted small" style={{ letterSpacing: '0.1em' }}>
+                      {t("explorer.subtitle")}
+                    </span>
+                    <h2 className="fw-black h2 mt-2 mb-4" style={{ letterSpacing: '-0.02em', fontSize: '1.8rem' }}>
+                      {t("explorer.title")}
+                    </h2>
+                    
+                    <div className="mobile-accordion">
                       {Object.keys(explorerConfig).map((key) => {
                         const conf = explorerConfig[key];
+                        const isActive = activeMobileExplorer === key;
                         return (
-                          <button
-                            key={key}
-                            className={`pillar-tab-btn ${activeExplorer === key ? 'active' : ''}`}
-                            onClick={() => setActiveExplorer(key)}
-                            style={{ border: 'none', background: 'transparent', padding: '10px 16px', borderRadius: '10px', fontSize: '0.9rem' }}
-                          >
-                            <span className="d-flex align-items-center gap-2">
-                              {conf.icon}
-                              {t(`explorer.${key}.tab`)}
-                            </span>
-                          </button>
+                          <div key={key} className={`mobile-accordion-item ${isActive ? 'active' : ''}`}>
+                            <button 
+                              className="mobile-accordion-header"
+                              onClick={() => toggleMobileExplorer(key)}
+                            >
+                              <div className="mobile-accordion-header-content">
+                                <div className="mobile-accordion-icon">
+                                  {conf.icon}
+                                </div>
+                                <div>
+                                  <h3 className="mobile-accordion-title">{t(`explorer.${key}.tab`)}</h3>
+                                  <p className="mobile-accordion-subtitle">{t(`explorer.${key}.tab`)}</p>
+                                </div>
+                              </div>
+                              <ChevronRight size={18} className="mobile-accordion-chevron" />
+                            </button>
+                            
+                            {isActive && (
+                              <div className="mobile-accordion-body">
+                                <p className="mobile-accordion-desc">
+                                  {t(`explorer.${key}.title`)}
+                                </p>
+                                <ul className="mobile-accordion-bullets list-unstyled">
+                                  <li className="d-flex align-items-start gap-2">
+                                    <CheckCircle size={14} className="text-success mt-1 flex-shrink-0" />
+                                    <span>{t(`explorer.${key}.bullet1`)}</span>
+                                  </li>
+                                  <li className="d-flex align-items-start gap-2">
+                                    <CheckCircle size={14} className="text-success mt-1 flex-shrink-0" />
+                                    <span>{t(`explorer.${key}.bullet2`)}</span>
+                                  </li>
+                                  <li className="d-flex align-items-start gap-2">
+                                    <CheckCircle size={14} className="text-success mt-1 flex-shrink-0" />
+                                    <span>{t(`explorer.${key}.bullet3`)}</span>
+                                  </li>
+                                </ul>
+                                <div className="mobile-accordion-screenshot">
+                                  <div className="browser-header">
+                                    <div className="browser-dots">
+                                      <span className="dot red"></span>
+                                      <span className="dot yellow"></span>
+                                      <span className="dot green"></span>
+                                    </div>
+                                    <div className="browser-address-bar" style={{ padding: '2px 10px', fontSize: '9px' }}>
+                                      {conf.url}
+                                    </div>
+                                  </div>
+                                  <img 
+                                    src={conf.img} 
+                                    alt={t(`explorer.${key}.tab`)} 
+                                    className="img-fluid w-100" 
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         );
                       })}
-                    </Col>
-                    
-                    <Col md={8}>
-                      <div className="mb-4">
-                        <Badge bg="warning" className="text-dark px-3 py-2 rounded mb-3 smaller fw-bold uppercase">
-                          {t(`explorer.${activeExplorer}.tab`)}
-                        </Badge>
-                        <h4 className="h5 fw-bold text-dark mb-3">{t(`explorer.${activeExplorer}.title`)}</h4>
-                        <ul className="list-unstyled text-muted small mb-0">
-                          <li className="mb-2 d-flex align-items-start gap-2">
-                            <CheckCircle size={16} className="text-success mt-1 flex-shrink-0" />
-                            <span>{t(`explorer.${activeExplorer}.bullet1`)}</span>
-                          </li>
-                          <li className="mb-2 d-flex align-items-start gap-2">
-                            <CheckCircle size={16} className="text-success mt-1 flex-shrink-0" />
-                            <span>{t(`explorer.${activeExplorer}.bullet2`)}</span>
-                          </li>
-                          <li className="mb-2 d-flex align-items-start gap-2">
-                            <CheckCircle size={16} className="text-success mt-1 flex-shrink-0" />
-                            <span>{t(`explorer.${activeExplorer}.bullet3`)}</span>
-                          </li>
-                        </ul>
-                      </div>
-
-                      {/* Mockup Browser Visor */}
-                      <div className="explorer-screenshot-frame mt-3">
-                        <div className="browser-header">
-                          <div className="browser-dots">
-                            <span className="dot red"></span>
-                            <span className="dot yellow"></span>
-                            <span className="dot green"></span>
-                          </div>
-                          <div className="browser-address-bar">
-                            {explorerConfig[activeExplorer].url}
-                          </div>
-                        </div>
-                        <div className="explorer-screenshot-body">
-                          <img 
-                            src={explorerConfig[activeExplorer].img} 
-                            alt={t(`explorer.${activeExplorer}.title`)} 
-                            className="img-fluid w-100 animate-fade-in"
-                            style={{ objectFit: 'cover', objectPosition: 'top' }}
-                          />
-                        </div>
-                      </div>
-                    </Col>
-                  </Row>
+                    </div>
+                  </div>
                 </div>
               </Col>
             </Row>
@@ -749,6 +843,19 @@ export default function LandingPage() {
                 <p className="text-muted smaller px-lg-3">{t("steps.s5Desc")}</p>
               </div>
             </div>
+
+            {/* Live Demo Banner */}
+            <div className="live-demo-card mt-5">
+              <div className="live-demo-badge">
+                <span className="pulse-dot me-2"></span> {t("liveDemo.badge", "LIVE DEMO")}
+              </div>
+              <h3 className="fw-black h3 mb-2 text-dark">{t("liveDemo.title", "Ver AuraDash en acción")}</h3>
+              <p className="text-muted small mb-4">{t("liveDemo.desc", "Descubre cómo funciona cada módulo en un tour interactivo guiado.")}</p>
+              <button onClick={() => setShowManual(true)} className="btn-outline-premium px-4 py-2 d-inline-flex align-items-center gap-2" style={{ borderRadius: '12px', background: '#ffffff' }}>
+                <Play size={14} />
+                {t("liveDemo.cta", "Ver Tour Interactivo")}
+              </button>
+            </div>
           </Container>
         </section>
 
@@ -858,6 +965,83 @@ export default function LandingPage() {
             </Row>
             <div className="text-center mt-5">
               <span className="text-muted small">{t("pricing.footnote")}</span>
+            </div>
+
+            {/* Stats & Testimonial Section (Mockup Screen 3) */}
+            <div className="mt-5 pt-4">
+              <Row className="g-4 align-items-stretch justify-content-center">
+                <Col md={6} lg={5}>
+                  <div className="stats-purple-card h-100">
+                    <div className="stats-purple-item">
+                      <div className="stats-purple-icon">
+                        <Users size={20} />
+                      </div>
+                      <div>
+                        <div className="stats-purple-val">1,200+</div>
+                        <div className="stats-purple-label">{t("stats.activeBusinesses", "Negocios activos")}</div>
+                      </div>
+                    </div>
+                    
+                    <div className="stats-purple-item">
+                      <div className="stats-purple-icon">
+                        <Users size={20} />
+                      </div>
+                      <div>
+                        <div className="stats-purple-val">50,000+</div>
+                        <div className="stats-purple-label">{t("stats.users", "Usuarios")}</div>
+                      </div>
+                    </div>
+                    
+                    <div className="stats-purple-item">
+                      <div className="stats-purple-icon">
+                        <Calendar size={20} />
+                      </div>
+                      <div>
+                        <div className="stats-purple-val">2M+</div>
+                        <div className="stats-purple-label">{t("stats.appointments", "Citas gestionadas")}</div>
+                      </div>
+                    </div>
+                    
+                    <div className="stats-purple-item">
+                      <div className="stats-purple-icon">
+                        <Zap size={20} />
+                      </div>
+                      <div>
+                        <div className="stats-purple-val">99.9%</div>
+                        <div className="stats-purple-label">{t("stats.uptime", "Uptime")}</div>
+                      </div>
+                    </div>
+                  </div>
+                </Col>
+                
+                <Col md={6} lg={5}>
+                  <div className="mobile-testimonial-card h-100 d-flex flex-column justify-content-between">
+                    <div>
+                      <div className="text-warning mb-3">
+                        {[...Array(5)].map((_, i) => (
+                          <Star key={i} size={18} fill="#f59e0b" color="#f59e0b" className="me-1" />
+                        ))}
+                      </div>
+                      <p className="text-dark fw-medium mb-4" style={{ fontSize: '1rem', lineHeight: '1.6', fontStyle: 'italic' }}>
+                        "{t("testimonial.quote", "AuraDash cambió por completo la forma en que gestionamos nuestro salón. Ahora tenemos más clientes y menos ausencias.")}"
+                      </p>
+                    </div>
+                    
+                    <div className="d-flex align-items-center gap-3 mt-auto">
+                      <img 
+                        src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=80&h=80&q=80" 
+                        alt="Mariana López" 
+                        className="rounded-circle" 
+                        style={{ width: '44px', height: '44px', objectFit: 'cover' }}
+                      />
+                      <div>
+                        <div className="fw-bold text-dark small">Mariana López</div>
+                        <div className="text-muted smaller">{t("testimonial.role", "Dueña de Salón Studio")}</div>
+                      </div>
+                    </div>
+                  </div>
+                </Col>
+              </Row>
             </div>
           </Container>
         </section>

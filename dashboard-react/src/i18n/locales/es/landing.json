@@ -252,6 +252,45 @@
     },
     "cta": "Empezar ahora mismo"
   },
+  "liveDemo": {
+    "badge": "LIVE DEMO",
+    "title": "Ver AuraDash en acción",
+    "desc": "Descubre cómo funciona cada módulo en un tour interactivo guiado.",
+    "cta": "Ver Tour Interactivo"
+  },
+  "stats": {
+    "activeBusinesses": "Negocios activos",
+    "users": "Usuarios",
+    "appointments": "Citas gestionadas",
+    "uptime": "Uptime"
+  },
+  "testimonial": {
+    "quote": "AuraDash cambió por completo la forma en que gestionamos nuestro salón. Ahora tenemos más clientes y menos ausencias.",
+    "role": "Dueña de Salón Studio"
+  },
+  "aiSimulator": {
+    "financeResponse": {
+      "header": "Análisis de Ventas",
+      "message": "Las ventas de esta semana han subido un 18.5% comparado con el promedio mensual. Excelente rendimiento.",
+      "target": "$5,000,000 COP",
+      "liquidity": "$4,250,000 COP",
+      "status": "Alineado con Meta"
+    },
+    "workflowResponse": {
+      "header": "Automatización Activa",
+      "message": "Los workflows automáticos han notificado a los clientes con citas pendientes para hoy por WhatsApp.",
+      "trigger": "Cita Confirmada",
+      "action1": "Enviar WhatsApp (Notificado)",
+      "action2": "Registrar en Sheets"
+    },
+    "agendaResponse": {
+      "header": "Ocupación de Agenda",
+      "message": "La ocupación promedio para hoy es del 78%. Tienes 3 espacios libres en la tarde.",
+      "busy": "12 turnos",
+      "free": "3 turnos",
+      "staff": "4 colaboradores activos"
+    }
+  },
   "footer": {
     "copyright": "AuraDash © 2026",
     "privacy": "Política de Privacidad",
