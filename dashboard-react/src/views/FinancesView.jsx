@@ -186,17 +186,10 @@ export default function FinancesView() {
         </div>
         <div className="d-flex align-items-center gap-2.5">
           <Button
-            variant="purple"
-            className="rounded-xl px-4 py-2.5 fw-bold text-white bg-purple-600 hover-bg-purple-700 d-flex align-items-center gap-2 shadow-sm"
-            onClick={() => setShowExpenseModal(true)}
-          >
-            <Plus size={18} />
-            <span>{t("finances.newExpense")}</span>
-          </Button>
-          <Button
             variant="dark"
-            className="rounded-xl px-4 py-2.5 fw-bold text-white bg-gray-900 d-flex align-items-center gap-2"
+            className="rounded-xl px-4 py-2.5 fw-bold text-white bg-gray-900 d-flex align-items-center gap-2 border-0"
             onClick={() => setActiveTab("reportes")}
+            style={{ backgroundColor: "#111827" }}
           >
             <Download size={18} />
             <span>{t("finances.reportsCenter")}</span>
@@ -344,10 +337,22 @@ export default function FinancesView() {
             </Form.Group>
           </Modal.Body>
           <Modal.Footer className="border-0 bg-light rounded-bottom px-4 py-3">
-            <Button variant="outline-secondary" onClick={() => setShowExpenseModal(false)} className="rounded-xl px-4" disabled={savingExpense}>
+            <Button 
+              variant="light" 
+              onClick={() => setShowExpenseModal(false)} 
+              className="rounded-xl px-4 fw-bold"
+              style={{ backgroundColor: "#ffffff", color: "#111827", border: "1px solid #d1d5db" }}
+              disabled={savingExpense}
+            >
               Cancelar
             </Button>
-            <Button type="submit" variant="purple" disabled={savingExpense} className="rounded-xl px-5 text-white bg-purple-600 hover-bg-purple-700 fw-bold shadow">
+            <Button 
+              type="submit" 
+              variant="dark" 
+              disabled={savingExpense} 
+              className="rounded-xl px-5 fw-bold shadow border-0 text-white"
+              style={{ backgroundColor: "#111827" }}
+            >
               {savingExpense ? <Spinner size="sm" /> : "Guardar Gasto"}
             </Button>
           </Modal.Footer>

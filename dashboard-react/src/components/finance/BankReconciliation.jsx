@@ -117,24 +117,24 @@ export default function BankReconciliation() {
                       <div className="d-inline-flex gap-1.5">
                         {m.status !== "conciliated" ? (
                           <Button 
-                            variant="success" 
+                            variant="dark" 
                             size="sm" 
                             disabled={updatingId === m.id}
-                            className="rounded-xl py-1 px-2.5 text-white fw-bold d-flex align-items-center gap-1"
+                            className="rounded-xl py-1 px-2.5 text-white fw-bold d-flex align-items-center gap-1 border-0"
                             onClick={() => handleReconcile(m.id, "conciliated")}
-                            style={{ fontSize: "11.5px" }}
+                            style={{ backgroundColor: "#111827", fontSize: "11.5px" }}
                           >
                             <CheckCircle size={12} />
                             <span>Conciliar</span>
                           </Button>
                         ) : (
                           <Button 
-                            variant="outline-secondary" 
+                            variant="light" 
                             size="sm" 
                             disabled={updatingId === m.id}
-                            className="rounded-xl py-1 px-2.5"
+                            className="rounded-xl py-1 px-2.5 border"
                             onClick={() => handleReconcile(m.id, "pending")}
-                            style={{ fontSize: "11.5px" }}
+                            style={{ backgroundColor: "#ffffff", color: "#111827", border: "1px solid #d1d5db", fontSize: "11.5px" }}
                           >
                             <span>Deshacer</span>
                           </Button>
@@ -144,9 +144,9 @@ export default function BankReconciliation() {
                             variant="danger" 
                             size="sm" 
                             disabled={updatingId === m.id}
-                            className="rounded-xl py-1 px-2.5 text-white fw-bold d-flex align-items-center gap-1"
+                            className="rounded-xl py-1 px-2.5 text-white fw-bold d-flex align-items-center gap-1 border-0"
                             onClick={() => handleReconcile(m.id, "discrepancy")}
-                            style={{ fontSize: "11.5px" }}
+                            style={{ backgroundColor: "#ef4444", fontSize: "11.5px" }}
                           >
                             <AlertCircle size={12} />
                             <span>Diferencia</span>

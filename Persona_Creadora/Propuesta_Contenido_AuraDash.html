@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Propuesta de Contenido — AuraDash</title>
+<style>
+  :root{
+    --bg:#0e0e10;
+    --card:#17171b;
+    --card2:#1d1d22;
+    --line:#2a2a31;
+    --text:#ece9e3;
+    --muted:#9a958c;
+    --accent:#e8a14a;
+    --accent2:#7c9a7e;
+    --beige:#d8cfc0;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    line-height:1.6;
+    padding:48px 20px;
+  }
+  .wrap{max-width:880px;margin:0 auto}
+
+  /* Header */
+  .hero{
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:44px 40px;
+    background:linear-gradient(145deg,#1a1a1f,#121216);
+    margin-bottom:28px;
+  }
+  .kicker{
+    text-transform:uppercase;
+    letter-spacing:3px;
+    font-size:12px;
+    color:var(--accent);
+    font-weight:700;
+    margin-bottom:16px;
+  }
+  .hero h1{
+    font-size:34px;
+    line-height:1.25;
+    font-weight:800;
+    margin-bottom:14px;
+  }
+  .hero h1 span{color:var(--accent)}
+  .hero p.lead{
+    color:var(--beige);
+    font-size:17px;
+    font-style:italic;
+    max-width:640px;
+  }
+
+  /* Sections */
+  .section{margin:34px 0}
+  .section-title{
+    display:flex;align-items:center;gap:12px;
+    font-size:13px;letter-spacing:2px;text-transform:uppercase;
+    color:var(--muted);font-weight:700;margin-bottom:16px;
+  }
+  .section-title .num{
+    color:var(--bg);background:var(--accent);
+    width:26px;height:26px;border-radius:8px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:13px;font-weight:800;
+  }
+
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:24px 26px;
+  }
+
+  /* Balance */
+  .balance{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .balance .b{
+    border-radius:16px;padding:22px 24px;border:1px solid var(--line);
+  }
+  .balance .b.big{background:rgba(232,161,74,.10);border-color:rgba(232,161,74,.35)}
+  .balance .b.small{background:rgba(124,154,126,.10);border-color:rgba(124,154,126,.35)}
+  .balance .pct{font-size:40px;font-weight:800;line-height:1}
+  .balance .b.big .pct{color:var(--accent)}
+  .balance .b.small .pct{color:var(--accent2)}
+  .balance .b h3{font-size:15px;margin:10px 0 6px}
+  .balance .b p{color:var(--muted);font-size:14px}
+  .note{
+    margin-top:16px;text-align:center;color:var(--beige);
+    font-size:15px;font-style:italic;
+  }
+
+  /* Pillars */
+  .pillars{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .pillar{
+    background:var(--card);border:1px solid var(--line);
+    border-radius:16px;padding:22px 24px;position:relative;overflow:hidden;
+  }
+  .pillar::before{
+    content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent);
+  }
+  .pillar h3{font-size:16px;margin-bottom:6px}
+  .pillar .job{
+    display:inline-block;font-size:11px;letter-spacing:1.5px;font-weight:700;
+    text-transform:uppercase;color:var(--accent2);margin-bottom:10px;
+  }
+  .pillar p{color:var(--muted);font-size:14px}
+
+  /* Steps / structure */
+  .steps{display:flex;flex-direction:column;gap:0}
+  .step{
+    display:flex;gap:16px;padding:14px 0;border-bottom:1px solid var(--line);
+  }
+  .step:last-child{border-bottom:none}
+  .step .dot{
+    flex:none;width:30px;height:30px;border-radius:50%;
+    background:var(--card2);border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;
+    font-weight:800;color:var(--accent);font-size:14px;
+  }
+  .step .t b{display:block;margin-bottom:2px}
+  .step .t span{color:var(--muted);font-size:14px}
+
+  /* Hooks */
+  .hooks{display:flex;flex-direction:column;gap:10px}
+  .hook{
+    background:var(--card2);border:1px solid var(--line);border-left:3px solid var(--accent);
+    border-radius:10px;padding:13px 16px;font-size:15px;
+  }
+  .hook::before{content:"“";color:var(--accent);font-weight:800;margin-right:4px}
+
+  /* Funnel list */
+  ul.clean{list-style:none;display:flex;flex-direction:column;gap:12px}
+  ul.clean li{display:flex;gap:12px;align-items:flex-start;font-size:15px}
+  ul.clean li .ic{color:var(--accent);font-weight:800;flex:none}
+  ul.clean li span.muted{color:var(--muted)}
+
+  /* two col */
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+
+  /* Money rank */
+  .rank{display:flex;flex-direction:column;gap:12px}
+  .rank .r{display:flex;gap:14px;align-items:center;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .rank .r .n{font-size:22px;font-weight:800;color:var(--accent);width:28px;flex:none;text-align:center}
+  .rank .r b{display:block}
+  .rank .r span{color:var(--muted);font-size:14px}
+
+  /* Goal */
+  .goal{
+    background:linear-gradient(145deg,rgba(232,161,74,.14),rgba(124,154,126,.10));
+    border:1px solid rgba(232,161,74,.3);border-radius:18px;padding:30px 32px;text-align:center;
+  }
+  .goal .big{font-size:32px;font-weight:800;color:var(--accent)}
+  .goal .row{display:flex;justify-content:center;gap:30px;flex-wrap:wrap;margin-top:16px}
+  .goal .row div small{display:block;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:1px}
+  .goal .row div b{font-size:17px}
+
+  .footer{text-align:center;color:var(--muted);font-size:13px;margin-top:40px;padding-top:20px;border-top:1px solid var(--line)}
+
+  @media(max-width:680px){
+    .balance,.pillars,.grid2{grid-template-columns:1fr}
+    .hero h1{font-size:26px}
+    body{padding:24px 14px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <div class="kicker">Propuesta de Contenido · Estrategia Creativa</div>
+    <h1>De mi historia a una comunidad que <span>compra mi producto</span></h1>
+    <p class="lead">"Soy una programadora que convierte ideas en productos para demostrar que cualquiera puede construir su propio camino."</p>
+  </div>
+
+  <!-- Balance -->
+  <div class="section">
+    <div class="section-title"><span class="num">1</span> El balance maestro</div>
+    <div class="balance">
+      <div class="b big">
+        <div class="pct">80%</div>
+        <h3>Viralizar mi historia</h3>
+        <p>Despido, viaje, construir sola, lifestyle. Trae audiencia masiva.</p>
+      </div>
+      <div class="b small">
+        <div class="pct">20%</div>
+        <h3>Vender el dashboard</h3>
+        <p>Apunta a dueños de negocios por citas. Trae usuarios reales.</p>
+      </div>
+    </div>
+    <p class="note">La historia trae a la gente; el producto se vende DENTRO de la historia, no aparte.</p>
+  </div>
+
+  <!-- Pillars -->
+  <div class="section">
+    <div class="section-title"><span class="num">2</span> Pilares de contenido</div>
+    <div class="pillars">
+      <div class="pillar">
+        <span class="job">Conectar</span>
+        <h3>Mi día viajando y trabajando</h3>
+        <p>La prueba viva de que el estilo de vida es real.</p>
+      </div>
+      <div class="pillar">
+        <span class="job">Inspirar + Vender</span>
+        <h3>Behind-the-scenes del dashboard</h3>
+        <p>El producto se muestra solo, dentro del relato.</p>
+      </div>
+      <div class="pillar">
+        <span class="job">Educar</span>
+        <h3>Monetizar skills sin empleador</h3>
+        <p>Los pasos concretos, sin teoría vacía.</p>
+      </div>
+      <div class="pillar">
+        <span class="job">Conectar + Inspirar</span>
+        <h3>Storytime: despido y aprendizajes</h3>
+        <p>Mi contenido más viral y emocional.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Structure -->
+  <div class="section">
+    <div class="section-title"><span class="num">3</span> Anatomía de cada video</div>
+    <div class="card">
+      <div class="steps">
+        <div class="step"><div class="dot">1</div><div class="t"><b>Hook (0–2s)</b><span>Rompe el patrón o promete algo. Si no para el scroll, nada más importa.</span></div></div>
+        <div class="step"><div class="dot">2</div><div class="t"><b>Tensión (2–8s)</b><span>El conflicto o la pregunta que obliga a quedarse.</span></div></div>
+        <div class="step"><div class="dot">3</div><div class="t"><b>Valor / relato (8–30s)</b><span>Lo que pasó, el aprendizaje, el paso concreto.</span></div></div>
+        <div class="step"><div class="dot">4</div><div class="t"><b>Cierre + CTA suave</b><span>Pregunta para comentar o cliffhanger.</span></div></div>
+      </div>
+      <p class="note" style="margin-top:18px">Prioridad del algoritmo: <b style="color:var(--text)">retención + comentarios</b> &gt; likes.</p>
+    </div>
+  </div>
+
+  <!-- Hooks -->
+  <div class="section">
+    <div class="section-title"><span class="num">4</span> Banco de hooks</div>
+    <div class="hooks">
+      <div class="hook">Me despidieron hace un año. Hoy mi código viaja conmigo por el mundo.</div>
+      <div class="hook">Construí algo usado en 17 países y me pagaban $800. Nunca más.</div>
+      <div class="hook">Nadie en Latam te dice esto: no necesitás $3k de sueldo para vivir bien.</div>
+      <div class="hook">Dejé de buscar trabajo. Esto es lo que pasó.</div>
+      <div class="hook">POV: tenés skills que valen más de lo que te pagan… y recién te das cuenta.</div>
+    </div>
+  </div>
+
+  <!-- Funnel + Cadence -->
+  <div class="section">
+    <div class="section-title"><span class="num">5</span> El embudo y la cadencia</div>
+    <div class="grid2">
+      <div class="card">
+        <h3 style="margin-bottom:14px;font-size:15px;color:var(--accent)">Views → usuarios del dashboard</h3>
+        <ul class="clean">
+          <li><span class="ic">→</span><div>Bio clara: <span class="muted">"Construyo AuraDash · auradash.digital"</span></div></li>
+          <li><span class="ic">→</span><div>Link en bio a demo / WhatsApp / formulario</div></li>
+          <li><span class="ic">→</span><div>1 video "puente" por semana para dueños de negocios</div></li>
+          <li><span class="ic">→</span><div>CTA: <span class="muted">"Abro pocos lugares gratis. Comentá INFO."</span></div></li>
+          <li><span class="ic">→</span><div>Prueba social: mis 2 primeras clientas usándolo</div></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 style="margin-bottom:14px;font-size:15px;color:var(--accent)">Cadencia semanal</h3>
+        <ul class="clean">
+          <li><span class="ic">●</span><div>1 video/día en TikTok + Reels (cruzado)</div></li>
+          <li><span class="ic">●</span><div><span class="muted">3 storytime · 2 behind-the-scenes · 1 día-en-mi-vida · 1 educativo</span></div></li>
+          <li><span class="ic">●</span><div>Responder TODOS los comentarios en los primeros 60 min</div></li>
+          <li><span class="ic">●</span><div>Medir qué hook y pilar retienen más → duplicarlo</div></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Money -->
+  <div class="section">
+    <div class="section-title"><span class="num">6</span> Monetización (en orden)</div>
+    <div class="rank">
+      <div class="r"><div class="n">1</div><div><b>Usuarios del dashboard · $30/mes</b><span>Ingreso real y recurrente. La meta principal.</span></div></div>
+      <div class="r"><div class="n">2</div><div><b>Monetización de views</b><span>Creator Rewards, bonos de Reels. Un extra con volumen.</span></div></div>
+      <div class="r"><div class="n">3</div><div><b>Marca / colaboraciones</b><span>Cuando haya audiencia. Llegan solas.</span></div></div>
+    </div>
+    <p class="note" style="margin-top:14px">Sin vender cursos hasta llegar a mis metas.</p>
+  </div>
+
+  <!-- Signals -->
+  <div class="section">
+    <div class="section-title"><span class="num">7</span> Señales de que funciona</div>
+    <div class="card">
+      <ul class="clean">
+        <li><span class="ic">✓</span><div>Comentarios "yo también quiero hacer esto" y "¿cómo empiezo?"</div></li>
+        <li><span class="ic">✓</span><div>DMs pidiendo demo del dashboard</div></li>
+        <li><span class="ic">✓</span><div>Guardados y compartidos creciendo (más que likes)</div></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Goal -->
+  <div class="section">
+    <div class="section-title"><span class="num">8</span> La meta a 12 meses</div>
+    <div class="goal">
+      <div class="big">300 usuarios · ~$9.000 MRR</div>
+      <div class="row">
+        <div><small>Viajando</small><b>Argentina → Venezuela → Bruselas → Asia</b></div>
+        <div><small>Dejado atrás</small><b>La pobreza</b></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">AuraDash · Propuesta de contenido · Documento vivo — se actualiza con cada aprendizaje</div>
+
+</div>
+</body>
+</html>

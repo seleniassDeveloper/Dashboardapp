@@ -152,9 +152,10 @@ export default function SalaryManagement({ professionalStats = [] }) {
                         <td className="fw-bold text-emerald-600">{currency(p.commission)}</td>
                         <td className="text-end">
                           <Button 
-                            variant={selectedStylist?.id === p.id ? "purple" : "outline-purple"} 
+                            variant={selectedStylist?.id === p.id ? "dark" : "outline-dark"} 
                             size="sm" 
                             className="rounded-xl font-bold"
+                            style={selectedStylist?.id === p.id ? { backgroundColor: "#111827", color: "#ffffff", border: "none" } : { backgroundColor: "#ffffff", color: "#111827", border: "1px solid #d1d5db" }}
                             onClick={() => handleSelectStylist(p)}
                           >
                             Seleccionar
@@ -253,14 +254,20 @@ export default function SalaryManagement({ professionalStats = [] }) {
                   </Row>
 
                   <div className="d-flex justify-content-end gap-2.5 mt-3">
-                    <Button variant="outline-secondary" onClick={() => setSelectedStylist(null)} className="rounded-xl px-4">
+                    <Button 
+                      variant="light" 
+                      onClick={() => setSelectedStylist(null)} 
+                      className="rounded-xl px-4 fw-bold"
+                      style={{ backgroundColor: "#ffffff", color: "#111827", border: "1px solid #d1d5db" }}
+                    >
                       Cancelar
                     </Button>
                     <Button
                       type="submit"
-                      variant="purple"
+                      variant="dark"
                       disabled={saving}
-                      className="rounded-xl px-5 text-white bg-purple-600 hover-bg-purple-700 fw-bold shadow d-flex align-items-center gap-1.5"
+                      className="rounded-xl px-5 text-white fw-bold shadow border-0 d-flex align-items-center gap-1.5"
+                      style={{ backgroundColor: "#111827" }}
                     >
                       {saving ? <Spinner size="sm" animation="border" /> : <Save size={16} />}
                       <span>Liquidar Haberes</span>
@@ -429,10 +436,20 @@ export default function SalaryManagement({ professionalStats = [] }) {
           )}
         </Modal.Body>
         <Modal.Footer className="border-0 bg-light rounded-bottom px-4 py-3">
-          <Button variant="outline-secondary" onClick={() => setShowReceiptModal(false)} className="rounded-xl px-4">
+          <Button 
+            variant="light" 
+            onClick={() => setShowReceiptModal(false)} 
+            className="rounded-xl px-4 fw-bold"
+            style={{ backgroundColor: "#ffffff", color: "#111827", border: "1px solid #d1d5db" }}
+          >
             Cerrar
           </Button>
-          <Button variant="purple" onClick={triggerPrintWindow} className="rounded-xl px-5 text-white bg-purple-600 hover-bg-purple-700 fw-bold d-flex align-items-center gap-1.5 shadow">
+          <Button 
+            variant="dark" 
+            onClick={triggerPrintWindow} 
+            className="rounded-xl px-5 text-white fw-bold d-flex align-items-center gap-1.5 shadow border-0"
+            style={{ backgroundColor: "#111827" }}
+          >
             <Printer size={16} />
             <span>Imprimir Recibo</span>
           </Button>

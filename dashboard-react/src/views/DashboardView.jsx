@@ -39,7 +39,7 @@ function currency(n) {
 export default function DashboardView() {
   const { brand } = useBrand();
   const { t, i18n } = useTranslation(["dashboard", "common"]);
-  const isEs = i18n.language === "es";
+  const isEs = i18n && i18n.language ? i18n.language === "es" : true;
 
   const currency = (n) => new Intl.NumberFormat(isEs ? "es-AR" : "en-US", {
     style: "currency",
@@ -106,7 +106,7 @@ export default function DashboardView() {
   };
 
   const getFormattedDate = () => {
-    const locale = i18n.language === "es" ? "es-AR" : "en-US";
+    const locale = isEs ? "es-AR" : "en-US";
     return new Date().toLocaleDateString(locale, {
       weekday: "long",
       day: "numeric",

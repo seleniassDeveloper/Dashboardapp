@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Container, Nav, Tab } from "react-bootstrap";
 import { Trans, useTranslation } from "react-i18next";
 import FieldRegistryEditor from "../components/configurable-fields/FieldRegistryEditor.jsx";
@@ -6,6 +7,7 @@ import ComponentAssignmentEditor from "../components/configurable-fields/Compone
 import ActiveModulesEditor from "../components/configurable-fields/ActiveModulesEditor.jsx";
 import BookingSettings from "../components/configurable-fields/BookingSettings.jsx";
 import UsersPermissionsSettings from "../components/configurable-fields/UsersPermissionsSettings.jsx";
+import BranchSettings from "../components/configurable-fields/BranchSettings.jsx";
 import { usePermissions } from "../auth/PermissionProvider.jsx";
 
 export default function SettingsView() {
@@ -15,11 +17,26 @@ export default function SettingsView() {
   const canManageSettings = hasPermission("manage_settings");
   const canManageUsers = hasPermission("manage_users");
 
-  const [tab, setTab] = useState(() => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const queryTab = searchParams.get("tab");
+
+  const [tab, setTabState] = useState(() => {
+    if (queryTab) return queryTab;
     if (canManageSettings) return "assign";
     if (canManageUsers) return "users";
     return "";
   });
+
+  const setTab = (newTab) => {
+    setTabState(newTab);
+    setSearchParams({ tab: newTab });
+  };
+
+  useEffect(() => {
+    if (queryTab && queryTab !== tab) {
+      setTabState(queryTab);
+    }
+  }, [queryTab]);
 
   if (!canManageSettings && !canManageUsers) {
     return (
@@ -60,6 +77,11 @@ export default function SettingsView() {
                   {t("settings.tabs.booking")}
                 </Nav.Link>
               </Nav.Item>
+              <Nav.Item>
+                <Nav.Link eventKey="sucursales" className="rounded-pill px-4">
+                  Sucursales
+                </Nav.Link>
+              </Nav.Item>
             </>
           )}
           {canManageUsers && (
@@ -85,6 +107,9 @@ export default function SettingsView() {
               </Tab.Pane>
               <Tab.Pane eventKey="booking">
                 <BookingSettings />
+              </Tab.Pane>
+              <Tab.Pane eventKey="sucursales">
+                <BranchSettings />
               </Tab.Pane>
             </>
           )}

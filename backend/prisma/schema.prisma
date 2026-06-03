@@ -296,6 +296,9 @@ model Branch {
   name              String
   address           String?
   phone             String?
+  managerId         String?
+  isMain            Boolean           @default(false)
+  active            Boolean           @default(true)
   createdAt         DateTime          @default(now())
   appointments      Appointment[]
   workers           Worker[]

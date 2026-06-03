@@ -11,7 +11,10 @@ import {
   listBankMovements,
   reconcileMovement,
   listAuditLogs,
-  listBranches
+  listBranches,
+  createBranch,
+  updateBranch,
+  deleteBranch
 } from "../controllers/finances.controller.js";
 import { requirePermission, requireFinanceAccess } from "../middleware/rbac.middleware.js";
 
@@ -37,5 +40,8 @@ router.put("/bank-recon/:id", requirePermission("finance.expenses.edit"), reconc
 
 router.get("/audit", requirePermission("audit.view"), listAuditLogs);
 router.get("/branches", listBranches);
+router.post("/branches", requirePermission("settings.edit"), createBranch);
+router.put("/branches/:id", requirePermission("settings.edit"), updateBranch);
+router.delete("/branches/:id", requirePermission("settings.delete"), deleteBranch);
 
 export default router;

@@ -58,7 +58,7 @@ function FinancialReportsContent({
   error = null 
 }) {
   const { t, i18n } = useTranslation(["finances", "common"]);
-  const isEs = i18n.language === "es";
+  const isEs = i18n && i18n.language ? i18n.language === "es" : true;
 
   // 1. Safe defaults from props data (Punto 2)
   const reports = data?.reports ?? [];

@@ -157,9 +157,10 @@ export default function DailyCashClosing({ currentRevenue = 0 }) {
 
                   <Button
                     type="submit"
-                    variant="purple"
+                    variant="dark"
                     disabled={saving}
-                    className="w-100 rounded-xl py-3 fw-bold text-white bg-purple-600 hover-bg-purple-700 shadow d-flex align-items-center justify-content-center gap-2"
+                    className="w-100 rounded-xl py-3 fw-bold text-white shadow border-0 d-flex align-items-center justify-content-center gap-2"
+                    style={{ backgroundColor: "#111827" }}
                   >
                     {saving ? (
                       <>
