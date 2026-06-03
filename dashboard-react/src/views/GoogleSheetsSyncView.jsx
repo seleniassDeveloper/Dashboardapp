@@ -54,6 +54,7 @@ export default function GoogleSheetsSyncView() {
   });
   const [exportFormat, setExportFormat] = useState("xls"); // "xls" | "csv" | "json"
   const [livePreview, setLivePreview] = useState([]);
+  const [fullData, setFullData] = useState([]);
   const [previewLoading, setPreviewLoading] = useState(false);
   
   // Simulated Google Sheets Output Sync State
@@ -75,76 +76,89 @@ export default function GoogleSheetsSyncView() {
       if (type === "clients") {
         res = await api.get("/clients");
         const list = Array.isArray(res.data) ? res.data : [];
+        let mappedFull = [];
         if (list.length === 0) {
           // Fallback to salon samples if database is empty
-          setLivePreview(SAMPLE_SALON_DATA.map(d => ({ 
+          mappedFull = SAMPLE_SALON_DATA.map(d => ({ 
             id: d.firstName + d.lastName, 
             firstName: d.firstName, 
             lastName: d.lastName, 
             phone: d.phone, 
             email: d.email, 
             status: "VIP" 
-          })));
+          }));
         } else {
-          setLivePreview(list.slice(0, 6).map(c => ({
+          mappedFull = list.map(c => ({
             id: c.id,
             firstName: c.firstName,
             lastName: c.lastName,
             phone: c.phone || "Sin Teléfono",
             email: c.email || "Sin Email",
             status: c.vip ? "VIP" : "Activo"
-          })));
+          }));
         }
+        setFullData(mappedFull);
+        setLivePreview(mappedFull.slice(0, 6));
       } else if (type === "inventory") {
         res = await api.get("/inventory/products");
         const list = Array.isArray(res.data) ? res.data : [];
+        let mappedFull = [];
         if (list.length === 0) {
-          setLivePreview([
+          mappedFull = [
             { id: "1", name: "Tinta L'Oreal Majirel 7.1", category: "Coloración", stock: 3, costPrice: 4500, salePrice: 9000 },
             { id: "2", name: "Shampoo PH Neutro Premium 5L", category: "Lavado", stock: 1, costPrice: 12000, salePrice: 24000 },
             { id: "3", name: "Keratina Hidrolizada 1L", category: "Tratamientos", stock: 6, costPrice: 28000, salePrice: 45000 }
-          ]);
+          ];
         } else {
-          setLivePreview(list.slice(0, 6));
+          mappedFull = list;
         }
+        setFullData(mappedFull);
+        setLivePreview(mappedFull.slice(0, 6));
       } else if (type === "appointments") {
         res = await api.get("/appointments");
         const list = Array.isArray(res.data) ? res.data : [];
+        let mappedFull = [];
         if (list.length === 0) {
-          setLivePreview([
+          mappedFull = [
             { id: "1", startsAt: new Date().toISOString(), clientName: "Sofía Altieri", serviceName: "Balayage Premium", workerName: "Andrea", status: "DONE" },
             { id: "2", startsAt: new Date().toISOString(), clientName: "Javier Rossi", serviceName: "Corte Diseñador", workerName: "Nicolás", status: "CONFIRMED" },
             { id: "3", startsAt: new Date().toISOString(), clientName: "Martina López", serviceName: "Tratamiento Keratina", workerName: "Florencia", status: "CONFIRMED" }
-          ]);
+          ];
         } else {
-          setLivePreview(list.slice(0, 6).map(a => ({
+          mappedFull = list.map(a => ({
             id: a.id,
             startsAt: a.startsAt,
             clientName: a.client ? `${a.client.firstName} ${a.client.lastName}` : "Cliente Anónimo",
             serviceName: a.service ? a.service.name : "Servicio",
             workerName: a.worker ? `${a.worker.firstName} ${a.worker.lastName}` : "Profesional",
             status: a.status
-          })));
+          }));
         }
+        setFullData(mappedFull);
+        setLivePreview(mappedFull.slice(0, 6));
       } else if (type === "expenses") {
         try {
           res = await api.get("/finances/expenses");
           const list = Array.isArray(res.data) ? res.data : [];
+          let mappedFull = [];
           if (list.length === 0) {
-            setLivePreview([
+            mappedFull = [
               { id: "1", concept: "Alquiler Local CABA", amount: 180000, date: new Date().toISOString(), category: "Alquiler" },
               { id: "2", concept: "Luz Edesur", amount: 45000, date: new Date().toISOString(), category: "Servicios" },
               { id: "3", concept: "Sueldo Limpieza", amount: 60000, date: new Date().toISOString(), category: "Sueldos" }
-            ]);
+            ];
           } else {
-            setLivePreview(list.slice(0, 6));
+            mappedFull = list;
           }
+          setFullData(mappedFull);
+          setLivePreview(mappedFull.slice(0, 6));
         } catch {
-          // Alternative fallback
-          setLivePreview([
+          const mappedFull = [
             { id: "1", concept: "Alquiler Local CABA", amount: 180000, date: new Date().toISOString(), category: "Alquiler" },
             { id: "2", concept: "Luz Edesur", amount: 45000, date: new Date().toISOString(), category: "Servicios" }
-          ]);
+          ];
+          setFullData(mappedFull);
+          setLivePreview(mappedFull.slice(0, 6));
         }
       }
     } catch (err) {
@@ -172,9 +186,10 @@ export default function GoogleSheetsSyncView() {
     }));
   };
 
-  // TRIGGER ACTUAL BROWSER DOWNLOAD (XLS/CSV/JSON)
+  // TRIGGER BROWSER DOWNLOAD (XLS/CSV/JSON)
   const triggerDownload = () => {
-    if (livePreview.length === 0) return;
+    const dataToExport = fullData.length > 0 ? fullData : livePreview;
+    if (dataToExport.length === 0) return;
 
     const cols = Object.keys(selectedColumns[exportType]).filter(k => selectedColumns[exportType][k]);
     if (cols.length === 0) {
@@ -188,7 +203,7 @@ export default function GoogleSheetsSyncView() {
 
     if (exportFormat === "json") {
       // JSON format
-      const jsonExport = livePreview.map(row => {
+      const jsonExport = dataToExport.map(row => {
         const obj = {};
         cols.forEach(c => { obj[c] = row[c]; });
         return obj;
@@ -198,7 +213,7 @@ export default function GoogleSheetsSyncView() {
     } else if (exportFormat === "csv") {
       // CSV format
       const headers = cols.join(",");
-      const rows = livePreview.map(row => 
+      const rows = dataToExport.map(row => 
         cols.map(c => {
           const val = row[c] !== undefined ? String(row[c]).replace(/"/g, '""') : "";
           return `"${val}"`;
@@ -209,7 +224,7 @@ export default function GoogleSheetsSyncView() {
     } else {
       // MS Excel friendly HTML format (.xls)
       const headersHTML = cols.map(c => `<th style="background-color: #8b5cf6; color: white; font-weight: bold; padding: 6px; border: 1px solid #ddd;">${c.toUpperCase()}</th>`).join("");
-      const rowsHTML = livePreview.map(row => {
+      const rowsHTML = dataToExport.map(row => {
         const cells = cols.map(c => `<td style="padding: 6px; border: 1px solid #ddd;">${row[c] !== undefined ? row[c] : ""}</td>`).join("");
         return `<tr>${cells}</tr>`;
       }).join("\n");
@@ -270,7 +285,9 @@ export default function GoogleSheetsSyncView() {
         if (step.p === 100) {
           setIsSyncingOut(false);
           setSyncSuccessOut(true);
-          setSyncOutUrl(`https://docs.google.com/spreadsheets/d/1aura_studio_live_${exportType}_sync`);
+          setSyncOutUrl("https://sheets.new");
+          // Automatically trigger download of full detailed data
+          triggerDownload();
         }
       }, (index + 1) * 800);
     });
@@ -891,7 +908,8 @@ export default function GoogleSheetsSyncView() {
                     <CheckCircle2 size={32} />
                   </div>
                   <h4 className="fw-black text-gray-900 mb-1">¡Sincronización Exitosa!</h4>
-                  <p className="text-muted small mb-4">Los datos de {exportType.toUpperCase()} se han consolidado y enviado a tu planilla en línea de Google Drive.</p>
+                  <p className="text-muted small mb-2">Se ha descargado automáticamente el archivo de datos con todos los detalles de <strong>{exportType.toUpperCase()}</strong>.</p>
+                  <p className="text-muted smaller mb-4">Puedes abrir una planilla limpia en Google Sheets con el botón inferior e importar el archivo descargado.</p>
                   
                   <div className="d-grid gap-2 mx-auto" style={{ maxWidth: "340px" }}>
                     <Button 
