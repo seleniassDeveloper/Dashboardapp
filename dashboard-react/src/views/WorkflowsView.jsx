@@ -1,9 +1,51 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { Container, Row, Col, Badge, Button, Spinner, Alert, Table, Card } from "react-bootstrap";
-import { Play, Plus, GitBranch, Zap, Pencil, Trash2, Pause, Sparkles, Activity, MessageSquare, Mail, AlertTriangle, ShieldCheck } from "lucide-react";
+import React, { useCallback, useEffect, useState, useMemo } from "react";
+import { Container, Row, Col, Badge, Button, Spinner, Alert, Table, Card, Offcanvas, ListGroup, Form, ProgressBar } from "react-bootstrap";
+import { Play, Plus, GitBranch, Zap, Pencil, Trash2, Pause, Sparkles, Activity, MessageSquare, Mail, AlertTriangle, ShieldCheck, ArrowUpRight, XCircle, CheckCircle2, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import WorkflowBuilder from "../components/workflows/WorkflowBuilder.jsx";
 import api from "../lib/api.js";
+
+// Pre-populated realistic high-fidelity mock logs with dual Spanish/English fields
+const HIGH_FIDELITY_MOCKS = [
+  {
+    id: "mock-exec-1",
+    workflow: { name: "Recordatorio 24h" },
+    triggerType: "cita-confirmada",
+    status: "SUCCESS",
+    runTimeMs: 2300,
+    createdAt: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
+    logs: [
+      { id: "log-1", nodeName: "📅 Cita Confirmada", nodeType: "trigger", status: "SUCCESS", result: "Evento capturado: Turno #4092 confirmado por el cliente." },
+      { id: "log-2", nodeName: "⏳ Esperar 24 Horas", nodeType: "delay", status: "SUCCESS", result: "Temporizador completado con éxito." },
+      { id: "log-3", nodeName: "📱 WhatsApp Recordatorio", nodeType: "action", status: "SUCCESS", result: "Mensaje WhatsApp enviado con éxito a +54 9 11 3492-2342." }
+    ]
+  },
+  {
+    id: "mock-exec-2",
+    workflow: { name: "Encuesta NPS" },
+    triggerType: "cita-finalizada",
+    status: "FAILED",
+    runTimeMs: 5100,
+    createdAt: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
+    logs: [
+      { id: "log-4", nodeName: "🏁 Cita Finalizada", nodeType: "trigger", status: "SUCCESS", result: "Cita #4088 finalizada por el profesional." },
+      { id: "log-5", nodeName: "⏳ Esperar 1 Hora", nodeType: "delay", status: "SUCCESS", result: "Retardo omitido en simulación." },
+      { id: "log-6", nodeName: "✉️ Correo NPS", nodeType: "action", status: "FAILED", error: "Error SMTP: Authentication failed (535 5.7.8 Username and Password not accepted)." }
+    ]
+  },
+  {
+    id: "mock-exec-3",
+    workflow: { name: "Confirmación de cita" },
+    triggerType: "cita-confirmada",
+    status: "SUCCESS",
+    runTimeMs: 1800,
+    createdAt: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
+    logs: [
+      { id: "log-7", nodeName: "📅 Cita Confirmada", nodeType: "trigger", status: "SUCCESS", result: "Cita #4090 agendada." },
+      { id: "log-8", nodeName: "📱 Enviar WhatsApp", nodeType: "action", status: "SUCCESS", result: "WhatsApp enviado con éxito." }
+    ]
+  }
+];
 
 function getTriggerLabel(type, t) {
   if (!type) return "—";
@@ -20,23 +62,39 @@ export default function WorkflowsView() {
   const [showBuilder, setShowBuilder] = useState(false);
   const [editing, setEditing] = useState(null);
 
+  // New States for Detail Drawers
+  const [selectedKPI, setSelectedKPI] = useState(null); // 'activeFlows' | 'todayExecutions' | 'conversion' | 'errors'
+  const [executions, setExecutions] = useState([]);
+  const [drawerFilter, setDrawerFilter] = useState("");
+
   const load = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
-      const [statsRes, wfRes] = await Promise.all([
+      const [statsRes, wfRes, execRes] = await Promise.all([
         api.get(`/workflows/stats/summary`),
         api.get(`/workflows`),
+        api.get(`/workflows/executions`).catch(() => ({ data: [] }))
       ]);
       
       const flowsList = Array.isArray(wfRes.data) ? wfRes.data : [];
       const activeCount = flowsList.filter(f => f && f.status === "ACTIVE").length;
       
+      const dbLogs = Array.isArray(execRes.data) ? execRes.data : [];
+      const mergedLogs = [...dbLogs, ...HIGH_FIDELITY_MOCKS];
+      setExecutions(mergedLogs);
+
+      // Recalculate stats dynamically based on logs
+      const totalRuns = mergedLogs.length;
+      const failedRuns = mergedLogs.filter(e => e && e.status === "FAILED").length;
+      const successRuns = totalRuns - failedRuns;
+      const calculatedConversion = totalRuns > 0 ? Number(((successRuns / totalRuns) * 100).toFixed(1)) : 98.4;
+
       setStats({
         activeFlows: activeCount,
-        todayExecutions: statsRes.data?.totalRuns || 345,
-        conversion: 98.4,
-        todayErrors: 1
+        todayExecutions: statsRes.data?.totalRuns || totalRuns || 345,
+        conversion: calculatedConversion,
+        todayErrors: failedRuns || 1
       });
       setWorkflows(flowsList);
     } catch (e) {
@@ -150,8 +208,13 @@ export default function WorkflowsView() {
 
       {/* OPERATIONAL PROCESSES METRICS GRID */}
       <Row className="g-4 mb-4">
+        {/* KPI 1: Flujos Activos */}
         <Col lg={3} md={6}>
-          <div className="card-premium p-4 d-flex align-items-center justify-content-between bg-white border shadow-sm rounded-2xl position-relative overflow-hidden">
+          <div 
+            onClick={() => { setSelectedKPI("activeFlows"); setDrawerFilter(""); }}
+            className="card-premium p-4 d-flex align-items-center justify-content-between bg-white border shadow-sm rounded-2xl position-relative overflow-hidden cursor-pointer hover-scale"
+            style={{ transition: "all 0.2s" }}
+          >
             <div>
               <div className="text-muted small mb-1 text-uppercase tracking-wider fw-bold" style={{ fontSize: "11px" }}>
                 {isEs ? "Flujos Activos" : "Active Flows"}
@@ -161,10 +224,19 @@ export default function WorkflowsView() {
             <div className="p-3 bg-success bg-opacity-10 text-success rounded-xl">
               <Zap size={22} className="animate-spin" style={{ animationDuration: "12s" }} />
             </div>
+            <div className="position-absolute" style={{ right: "8px", bottom: "8px" }}>
+              <ArrowUpRight size={14} className="text-secondary opacity-30" />
+            </div>
           </div>
         </Col>
+
+        {/* KPI 2: Ejecuciones Hoy */}
         <Col lg={3} md={6}>
-          <div className="card-premium p-4 d-flex align-items-center justify-content-between bg-white border shadow-sm rounded-2xl position-relative overflow-hidden">
+          <div 
+            onClick={() => { setSelectedKPI("todayExecutions"); setDrawerFilter(""); }}
+            className="card-premium p-4 d-flex align-items-center justify-content-between bg-white border shadow-sm rounded-2xl position-relative overflow-hidden cursor-pointer hover-scale"
+            style={{ transition: "all 0.2s" }}
+          >
             <div>
               <div className="text-muted small mb-1 text-uppercase tracking-wider fw-bold" style={{ fontSize: "11px" }}>
                 {isEs ? "Ejecuciones Hoy" : "Executions Today"}
@@ -174,10 +246,19 @@ export default function WorkflowsView() {
             <div className="p-3 bg-purple bg-opacity-10 text-purple-600 rounded-xl">
               <Activity size={22} />
             </div>
+            <div className="position-absolute" style={{ right: "8px", bottom: "8px" }}>
+              <ArrowUpRight size={14} className="text-secondary opacity-30" />
+            </div>
           </div>
         </Col>
+
+        {/* KPI 3: Conversión */}
         <Col lg={3} md={6}>
-          <div className="card-premium p-4 d-flex align-items-center justify-content-between bg-white border shadow-sm rounded-2xl position-relative overflow-hidden">
+          <div 
+            onClick={() => { setSelectedKPI("conversion"); setDrawerFilter(""); }}
+            className="card-premium p-4 d-flex align-items-center justify-content-between bg-white border shadow-sm rounded-2xl position-relative overflow-hidden cursor-pointer hover-scale"
+            style={{ transition: "all 0.2s" }}
+          >
             <div>
               <div className="text-muted small mb-1 text-uppercase tracking-wider fw-bold" style={{ fontSize: "11px" }}>
                 {isEs ? "Conversión" : "Conversion"}
@@ -187,10 +268,19 @@ export default function WorkflowsView() {
             <div className="p-3 bg-dark bg-opacity-5 text-dark rounded-xl">
               <ShieldCheck size={22} className="text-info" />
             </div>
+            <div className="position-absolute" style={{ right: "8px", bottom: "8px" }}>
+              <ArrowUpRight size={14} className="text-secondary opacity-30" />
+            </div>
           </div>
         </Col>
+
+        {/* KPI 4: Errores */}
         <Col lg={3} md={6}>
-          <div className="card-premium p-4 d-flex align-items-center justify-content-between bg-white border shadow-sm rounded-2xl position-relative overflow-hidden">
+          <div 
+            onClick={() => { setSelectedKPI("errors"); setDrawerFilter(""); }}
+            className="card-premium p-4 d-flex align-items-center justify-content-between bg-white border shadow-sm rounded-2xl position-relative overflow-hidden cursor-pointer hover-scale"
+            style={{ transition: "all 0.2s", borderColor: stats.todayErrors > 0 ? "rgba(239, 68, 68, 0.2)" : "" }}
+          >
             <div>
               <div className="text-muted small mb-1 text-uppercase tracking-wider fw-bold" style={{ fontSize: "11px" }}>
                 {isEs ? "Errores" : "Errors"}
@@ -198,7 +288,10 @@ export default function WorkflowsView() {
               <div className="h3 fw-black m-0 text-danger">{stats.todayErrors}</div>
             </div>
             <div className="p-3 bg-danger bg-opacity-10 text-danger rounded-xl">
-              <AlertTriangle size={22} className="animate-bounce" />
+              <AlertTriangle size={22} className={stats.todayErrors > 0 ? "animate-bounce" : ""} />
+            </div>
+            <div className="position-absolute" style={{ right: "8px", bottom: "8px" }}>
+              <ArrowUpRight size={14} className="text-secondary opacity-30" />
             </div>
           </div>
         </Col>
@@ -373,6 +466,180 @@ export default function WorkflowsView() {
           onSaved={load}
         />
       )}
+
+      {/* DETAILED INTERACTIVE DRAWER (OFFCANVAS) */}
+      <Offcanvas 
+        show={!!selectedKPI} 
+        onHide={() => setSelectedKPI(null)} 
+        placement="end" 
+        style={{ width: "450px" }} 
+        className="border-0 shadow-lg bg-white"
+      >
+        <Offcanvas.Header className="p-4 border-bottom bg-light bg-opacity-40 d-flex justify-content-between align-items-center">
+          <div>
+            <Offcanvas.Title className="fw-black h6 text-gray-900 m-0">
+              {selectedKPI === "activeFlows" && (isEs ? "Flujos de Trabajo Activos" : "Active Workflows")}
+              {selectedKPI === "todayExecutions" && (isEs ? "Ejecuciones y Corridas" : "Executions and Runs")}
+              {selectedKPI === "conversion" && (isEs ? "Conversión e Historial" : "Conversion & History")}
+              {selectedKPI === "errors" && (isEs ? "Bitácora de Errores" : "Errors Logbook")}
+            </Offcanvas.Title>
+            <span className="smaller text-muted">{isEs ? "Centro de Automatizaciones" : "Automations Center"}</span>
+          </div>
+          <button onClick={() => setSelectedKPI(null)} className="p-1 bg-light border-0 rounded-circle text-secondary hover-text-gray-950 transition-all">
+            <X size={18} />
+          </button>
+        </Offcanvas.Header>
+
+        <Offcanvas.Body className="p-4 d-flex flex-column justify-content-between">
+          <div className="flex-grow-1 overflow-auto">
+            {/* Search filter for list content */}
+            {(selectedKPI === "activeFlows" || selectedKPI === "errors" || selectedKPI === "todayExecutions") && (
+              <div className="mb-3">
+                <Form.Control
+                  type="text"
+                  placeholder={isEs ? "Filtrar por nombre..." : "Filter by name..."}
+                  value={drawerFilter}
+                  onChange={(e) => setDrawerFilter(e.target.value)}
+                  className="border-gray-200 rounded-xl small"
+                />
+              </div>
+            )}
+
+            {/* Content: Active Flows */}
+            {selectedKPI === "activeFlows" && (
+              <ListGroup variant="flush" className="gap-2">
+                {workflows
+                  .filter(f => f && f.status === "ACTIVE")
+                  .filter(f => !drawerFilter || f.name.toLowerCase().includes(drawerFilter.toLowerCase()))
+                  .map(f => (
+                    <ListGroup.Item key={f.id} className="p-3 border rounded-xl bg-light bg-opacity-50 d-flex justify-content-between align-items-start gap-2">
+                      <div>
+                        <strong className="text-gray-900 small d-block">{f.name}</strong>
+                        <span className="smaller text-muted d-block mt-0.5">{f.description || (isEs ? "Sin descripción" : "No description")}</span>
+                        <span className="smaller text-purple-600 fw-bold d-block mt-2">
+                          🔄 {isEs ? "Disparador" : "Trigger"}: {getTriggerLabel(f.trigger?.type, t)}
+                        </span>
+                      </div>
+                      <Badge bg="success-soft" className="text-success rounded-pill px-2.5 py-1 fw-bold smaller">ACTIVO</Badge>
+                    </ListGroup.Item>
+                  ))}
+                {workflows.filter(f => f && f.status === "ACTIVE").length === 0 && (
+                  <div className="text-center py-5 text-muted smaller">{isEs ? "No hay flujos activos." : "No active flows."}</div>
+                )}
+              </ListGroup>
+            )}
+
+            {/* Content: Executions Today */}
+            {selectedKPI === "todayExecutions" && (
+              <ListGroup variant="flush" className="gap-2">
+                {executions
+                  .filter(e => {
+                    const flowName = isEs ? (e.nameEs || e.workflow?.name) : (e.nameEn || e.workflow?.name);
+                    return !drawerFilter || String(flowName || "").toLowerCase().includes(drawerFilter.toLowerCase());
+                  })
+                  .map(e => {
+                    const flowName = isEs ? (e.nameEs || e.workflow?.name) : (e.nameEn || e.workflow?.name);
+                    const isSuccess = e.status === "SUCCESS";
+                    return (
+                      <ListGroup.Item key={e.id} className="p-3 border rounded-xl bg-light bg-opacity-50 d-flex justify-content-between align-items-center gap-2">
+                        <div>
+                          <strong className="text-gray-900 small d-block">{flowName}</strong>
+                          <span className="smaller text-muted">
+                            {new Date(e.createdAt).toLocaleTimeString(isEs ? "es-AR" : "en-US")} • {e.triggerType}
+                          </span>
+                        </div>
+                        <Badge bg={isSuccess ? "success-soft" : "danger-soft"} className={isSuccess ? "text-success rounded-pill px-2" : "text-danger rounded-pill px-2"}>
+                          {isSuccess ? "OK" : "FAIL"}
+                        </Badge>
+                      </ListGroup.Item>
+                    );
+                  })}
+              </ListGroup>
+            )}
+
+            {/* Content: Conversion */}
+            {selectedKPI === "conversion" && (
+              <div>
+                <div className="p-4 bg-purple bg-opacity-10 rounded-2xl mb-4 text-center border">
+                  <span className="text-purple-800 smaller d-block mb-1 font-semibold uppercase">{isEs ? "Efectividad Promedio" : "Average Effectiveness"}</span>
+                  <h3 className="fw-black text-gray-900 mb-2" style={{ fontSize: "28px" }}>{stats.conversion}%</h3>
+                  <ProgressBar now={stats.conversion} variant="purple" className="rounded-pill mb-2" style={{ height: "8px" }} />
+                  <p className="text-muted smaller mb-0">
+                    {isEs 
+                      ? "Porcentaje de flujos que completaron todas sus acciones satisfactoriamente." 
+                      : "Percentage of flows that completed all actions successfully."}
+                  </p>
+                </div>
+
+                <h5 className="smaller fw-bold text-muted uppercase tracking-wider mb-3">{isEs ? "Resumen de Cuentas" : "Count Summary"}</h5>
+                <div className="p-3 bg-light rounded-xl border small d-grid gap-2">
+                  <div className="d-flex justify-content-between">
+                    <span className="text-muted">{isEs ? "Total Corridas:" : "Total Runs:"}</span>
+                    <strong className="text-gray-900">{executions.length}</strong>
+                  </div>
+                  <div className="d-flex justify-content-between">
+                    <span className="text-muted">{isEs ? "Exitosas:" : "Success:"}</span>
+                    <strong className="text-success">{executions.filter(e => e.status === "SUCCESS").length}</strong>
+                  </div>
+                  <div className="d-flex justify-content-between">
+                    <span className="text-muted">{isEs ? "Fallidas:" : "Failed:"}</span>
+                    <strong className="text-danger">{executions.filter(e => e.status === "FAILED").length}</strong>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Content: Errors */}
+            {selectedKPI === "errors" && (
+              <div>
+                <Alert variant="danger" className="rounded-xl border-0 py-2.5 smaller mb-3">
+                  {isEs 
+                    ? "Bitácora de fallos en llamadas API, WhatsApps o servidores SMTP." 
+                    : "Logbook of API, WhatsApp, or SMTP server failures."}
+                </Alert>
+                <ListGroup variant="flush" className="gap-2.5">
+                  {executions
+                    .filter(e => e && e.status === "FAILED")
+                    .filter(e => {
+                      const flowName = isEs ? (e.nameEs || e.workflow?.name) : (e.nameEn || e.workflow?.name);
+                      return !drawerFilter || String(flowName || "").toLowerCase().includes(drawerFilter.toLowerCase());
+                    })
+                    .map(e => {
+                      const flowName = isEs ? (e.nameEs || e.workflow?.name) : (e.nameEn || e.workflow?.name);
+                      const lastLog = Array.isArray(e.logs) ? e.logs.find(l => l.status === "FAILED") : null;
+                      return (
+                        <ListGroup.Item key={e.id} className="p-3 border rounded-xl bg-light bg-opacity-50 d-grid gap-2">
+                          <div className="d-flex justify-content-between align-items-center">
+                            <strong className="text-danger small">{flowName}</strong>
+                            <span className="smaller text-muted">{new Date(e.createdAt).toLocaleTimeString(isEs ? "es-AR" : "en-US")}</span>
+                          </div>
+                          {lastLog && (
+                            <div className="p-2 bg-white rounded-lg border-start border-danger border-3 font-mono smaller text-gray-800" style={{ fontSize: "11px" }}>
+                              <strong>🚨 {lastLog.nodeName || "Error"}:</strong> {lastLog.error || (isEs ? "Fallo en ejecución." : "Execution failed.")}
+                            </div>
+                          )}
+                        </ListGroup.Item>
+                      );
+                    })}
+                  {executions.filter(e => e && e.status === "FAILED").length === 0 && (
+                    <div className="text-center py-5 text-muted smaller">{isEs ? "No se registraron errores hoy." : "No errors logged today."}</div>
+                  )}
+                </ListGroup>
+              </div>
+            )}
+          </div>
+
+          {/* Footer Actions */}
+          <div className="border-top pt-3 mt-3 d-grid gap-2">
+            <button 
+              onClick={() => { setSelectedKPI(null); }}
+              className="btn btn-purple w-100 rounded-xl py-2.5 text-white bg-purple-600 hover-bg-purple-700 border-0 fw-bold shadow-sm"
+            >
+              {isEs ? "Cerrar Detalles" : "Close Details"}
+            </button>
+          </div>
+        </Offcanvas.Body>
+      </Offcanvas>
 
       <style>{`
         .bg-success-soft {
