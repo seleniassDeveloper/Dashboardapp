@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState, useMemo } from "react";
 import { Container, Row, Col, Badge, Button, Spinner, Alert, Table, Card, Offcanvas, ListGroup, Form, ProgressBar } from "react-bootstrap";
-import { Play, Plus, GitBranch, Zap, Pencil, Trash2, Pause, Sparkles, Activity, MessageSquare, Mail, AlertTriangle, ShieldCheck, ArrowUpRight, XCircle, CheckCircle2, X, Clock, ArrowRight } from "lucide-react";
+import { Play, Plus, GitBranch, Zap, Pencil, Trash2, Pause, Sparkles, Activity, MessageSquare, Mail, AlertTriangle, ShieldCheck, ArrowUpRight, XCircle, CheckCircle2, X, Clock, ArrowRight, ClipboardCheck, Search, Filter, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import WorkflowBuilder from "../components/workflows/WorkflowBuilder.jsx";
 import api from "../lib/api.js";
@@ -69,9 +69,14 @@ export default function WorkflowsView() {
   const [drawerFilter, setDrawerFilter] = useState("");
 
   // States for Flow Templates Tab Navigation
-  const [activeTab, setActiveTab] = useState("my-flows"); // 'my-flows' | 'templates'
+  const [activeTab, setActiveTab] = useState("my-flows"); // 'my-flows' | 'templates' | 'history'
   const [installingId, setInstallingId] = useState(null);
   const [successMsg, setSuccessMsg] = useState("");
+
+  // States for Execution History Tab
+  const [historySearchTerm, setHistorySearchTerm] = useState("");
+  const [historyFilterStatus, setHistoryFilterStatus] = useState("all");
+  const [historyExpandedId, setHistoryExpandedId] = useState(null);
 
   const handleInstallTemplate = async (tpl) => {
     try {
@@ -134,6 +139,46 @@ export default function WorkflowsView() {
         return <Zap size={14} className="text-warning" />;
     }
   };
+
+  const handleHistoryExpandToggle = (id) => {
+    setHistoryExpandedId(prev => prev === id ? null : id);
+  };
+
+  const getHistoryChannelIcon = (logs = [], triggerType = "") => {
+    const subtypes = logs.map(l => l.nodeType || l.type || "");
+    const isWfWhatsapp = subtypes.includes("whatsapp") || triggerType.toLowerCase().includes("whatsapp");
+    const isWfEmail = subtypes.includes("email") || triggerType.toLowerCase().includes("email");
+
+    if (isWfWhatsapp && isWfEmail) {
+      return (
+        <div className="d-flex gap-1 justify-content-center">
+          <MessageSquare size={13} className="text-success animate-pulse" />
+          <Mail size={13} className="text-primary animate-pulse" />
+        </div>
+      );
+    } else if (isWfWhatsapp) {
+      return <MessageSquare size={14} className="text-success animate-pulse" />;
+    } else if (isWfEmail) {
+      return <Mail size={14} className="text-primary animate-pulse" />;
+    }
+    return <Zap size={14} className="text-warning" />;
+  };
+
+  const formatHistoryDuration = (ms) => {
+    if (!ms) return "0s";
+    const sec = ms / 1000;
+    return isEs ? `${sec.toFixed(1)} segundos` : `${sec.toFixed(1)} seconds`;
+  };
+
+  const filteredHistoryList = useMemo(() => {
+    return executions.filter(e => {
+      const name = isEs ? (e.nameEs || e.workflow?.name) : (e.nameEn || e.workflow?.name);
+      const matchSearch = String(name || "").toLowerCase().includes(historySearchTerm.toLowerCase()) || 
+                          String(e.triggerType || "").toLowerCase().includes(historySearchTerm.toLowerCase());
+      const matchStatus = historyFilterStatus === "all" || e.status === historyFilterStatus;
+      return matchSearch && matchStatus;
+    });
+  }, [executions, historySearchTerm, historyFilterStatus, isEs]);
 
   const load = useCallback(async () => {
     try {
@@ -294,6 +339,17 @@ export default function WorkflowsView() {
         >
           <Sparkles size={15} />
           <span>{isEs ? "Librería de Plantillas" : "Templates Library"}</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("history")}
+          className={`d-flex align-items-center gap-2 px-4 py-2.5 fw-bold rounded-xl border-0 transition-all ${
+            activeTab === "history" ? "bg-purple-600 text-white shadow-sm btn-purple" : "bg-light text-muted hover-bg-gray-100"
+          }`}
+          style={{ fontSize: "13px" }}
+        >
+          <ClipboardCheck size={15} />
+          <span>{isEs ? "Historial de Ejecuciones" : "Execution History"}</span>
         </button>
       </div>
 
@@ -642,6 +698,162 @@ export default function WorkflowsView() {
         </Row>
       )}
 
+      {activeTab === "history" && (
+        <Card className="card-premium border bg-white p-4 rounded-2xl shadow-sm mb-4 animate-fade-in">
+          {/* SEARCH AND FILTERS */}
+          <Row className="g-3 mb-4">
+            <Col md={7}>
+              <Form.Group className="position-relative">
+                <Form.Control
+                  type="text"
+                  placeholder={isEs ? "Buscar por nombre de flujo o disparador..." : "Search by flow name or trigger..."}
+                  value={historySearchTerm}
+                  onChange={(e) => setHistorySearchTerm(e.target.value)}
+                  className="rounded-xl border-gray-200 small ps-5 py-2.5 bg-light bg-opacity-30"
+                />
+                <Search className="position-absolute text-muted" size={16} style={{ left: "16px", top: "50%", transform: "translateY(-50%)" }} />
+              </Form.Group>
+            </Col>
+            <Col md={5}>
+              <Form.Group className="position-relative">
+                <Form.Select
+                  value={historyFilterStatus}
+                  onChange={(e) => setHistoryFilterStatus(e.target.value)}
+                  className="rounded-xl border-gray-200 small ps-5 py-2.5 bg-light bg-opacity-30"
+                >
+                  <option value="all">{isEs ? "🟢 Todos los Resultados" : "🟢 All Results"}</option>
+                  <option value="SUCCESS">{isEs ? "✅ Exitoso" : "✅ Success"}</option>
+                  <option value="FAILED">{isEs ? "🚨 Con Error" : "🚨 Failed"}</option>
+                </Form.Select>
+                <Filter className="position-absolute text-muted" size={16} style={{ left: "16px", top: "50%", transform: "translateY(-50%)" }} />
+              </Form.Group>
+            </Col>
+          </Row>
+
+          {/* LOGS LIST */}
+          {loading && executions.length === 0 ? (
+            <div className="text-center py-5">
+              <Spinner animation="border" variant="purple" />
+            </div>
+          ) : filteredHistoryList.length === 0 ? (
+            <div className="text-center py-5 text-muted small bg-gray-50 rounded-2xl border">
+              {isEs ? "No se encontraron ejecuciones registradas en la bitácora." : "No registered executions found in the ledger."}
+            </div>
+          ) : (
+            <div className="d-flex flex-column gap-3">
+              {filteredHistoryList.map((e) => {
+                const isExpanded = historyExpandedId === e.id;
+                const hasError = e.status !== "SUCCESS";
+                const flowName = isEs ? (e.nameEs || e.workflow?.name) : (e.nameEn || e.workflow?.name);
+
+                return (
+                  <div key={e.id} className="border rounded-2xl overflow-hidden bg-white shadow-sm transition-all hover-row-focus">
+                    {/* Summary Bar */}
+                    <div 
+                      onClick={() => handleHistoryExpandToggle(e.id)}
+                      className="p-3 bg-light bg-opacity-20 d-flex align-items-center justify-content-between flex-wrap gap-3 cursor-pointer select-none"
+                      style={{ fontSize: "13px" }}
+                    >
+                      <div className="d-flex align-items-center gap-3 flex-grow-1">
+                        <div 
+                          className={`rounded-circle p-2 d-flex align-items-center justify-content-center ${hasError ? "bg-danger bg-opacity-10 text-danger" : "bg-success bg-opacity-10 text-success"}`} 
+                          style={{ width: "36px", height: "36px" }}
+                        >
+                          {hasError ? <XCircle size={18} /> : <CheckCircle2 size={18} />}
+                        </div>
+                        <div>
+                          <strong className="text-gray-900 d-block">{flowName || (isEs ? "Flujo Desconocido" : "Unknown Flow")}</strong>
+                          <span className="smaller text-muted">
+                            {isEs ? "Disparador" : "Trigger"}: <strong>{e.triggerType}</strong> • {new Date(e.createdAt).toLocaleString(isEs ? "es-AR" : "en-US")}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="d-flex align-items-center gap-4">
+                        {/* Canal Column */}
+                        <div className="text-center">
+                          <span className="smaller text-muted d-block mb-0.5">{isEs ? "Canal" : "Channel"}</span>
+                          <div className="d-flex justify-content-center">{getHistoryChannelIcon(e.logs, e.triggerType)}</div>
+                        </div>
+
+                        {/* Duración Column */}
+                        <div className="text-end">
+                          <span className="smaller text-muted d-block">{isEs ? "Duración" : "Duration"}</span>
+                          <strong className="text-purple-600 font-mono smaller">{formatHistoryDuration(e.runTimeMs)}</strong>
+                        </div>
+
+                        {/* Resultado Column */}
+                        <Badge bg={hasError ? "danger-soft" : "success-soft"} className={hasError ? "text-danger px-3 py-2 border border-danger border-opacity-10" : "text-success px-3 py-2 border border-success border-opacity-10"} style={{ borderRadius: "8px", minWidth: "85px" }}>
+                          {hasError ? (isEs ? "Error" : "Failed") : (isEs ? "Exitoso" : "Success")}
+                        </Badge>
+                        
+                        {isExpanded ? <ChevronUp size={16} className="text-muted" /> : <ChevronDown size={16} className="text-muted" />}
+                      </div>
+                    </div>
+
+                    {/* Expanded Logs Details */}
+                    {isExpanded && (
+                      <div className="p-4 bg-light bg-opacity-30 border-top small" style={{ fontSize: "12.5px" }}>
+                        <span className="smaller text-muted fw-bold d-block mb-3">
+                          {isEs ? "Trazabilidad del Flujo de Ejecución (Paso a Paso):" : "Execution Flow Traceability (Step-by-Step):"}
+                        </span>
+                        
+                        {(!e.logs || e.logs.length === 0) ? (
+                          <div className="text-muted italic py-2">
+                            {isEs ? "Sin sub-logs detallados para esta ejecución." : "No detailed sub-logs for this execution."}
+                          </div>
+                        ) : (
+                          <div className="d-flex flex-column gap-3.5 position-relative ps-4 before-line">
+                            {e.logs.map((log) => {
+                              const isLogSuccess = log.status === "SUCCESS";
+                              const logNodeName = isEs ? (log.nameEs || log.nodeName) : (log.nameEn || log.nodeName);
+                              const logResult = isEs ? (log.resultEs || log.result || "Acción completada con éxito.") : (log.resultEn || log.result || "Action completed successfully.");
+                              const logError = isEs ? (log.errorEs || log.error || "Fallo en ejecución.") : (log.errorEn || log.error || "Execution failed.");
+
+                              return (
+                                <div key={log.id} className="position-relative d-flex align-items-start gap-3">
+                                  {/* Dot connector */}
+                                  <div 
+                                    className="position-absolute bg-white rounded-circle border border-2 animate-pulse" 
+                                    style={{ 
+                                      width: "12px", 
+                                      height: "12px", 
+                                      left: "-25px", 
+                                      top: "4px",
+                                      borderColor: isLogSuccess ? "#10b981" : "#ef4444",
+                                      zIndex: 2
+                                    }} 
+                                  />
+                                  
+                                  <div className="flex-grow-1 p-3 bg-white rounded-2xl border shadow-sm">
+                                    <div className="d-flex justify-content-between align-items-center mb-1">
+                                      <strong className="text-gray-900">{logNodeName}</strong>
+                                      <Badge bg={isLogSuccess ? "success-soft" : "danger-soft"} className={isLogSuccess ? "text-success border border-success border-opacity-10" : "text-danger border border-danger border-opacity-10"}>
+                                        {(log.nodeType || "action").toUpperCase()}
+                                      </Badge>
+                                    </div>
+                                    <span className="smaller text-muted d-block mb-1.5">
+                                      {isEs ? "Estado" : "Status"}: <strong>{isLogSuccess ? (isEs ? "EXITOSO" : "SUCCESS") : (isEs ? "FALLIDO" : "FAILED")}</strong> • {new Date(log.createdAt || e.createdAt).toLocaleTimeString(isEs ? "es-AR" : "en-US")}
+                                    </span>
+                                    <div className="p-2.5 bg-light rounded-xl font-mono text-gray-800" style={{ fontSize: "11px", whiteSpace: "pre-line", borderLeft: `3px solid ${isLogSuccess ? '#10b981' : '#ef4444'}` }}>
+                                      {isLogSuccess ? logResult : logError}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Card>
+      )}
+
       {/* FULL VIEWPORT WORKFLOW BUILDER OVERLAY */}
       {showBuilder && (
         <WorkflowBuilder
@@ -838,6 +1050,17 @@ export default function WorkflowsView() {
         }
         .hover-row-focus:hover {
           background-color: rgba(248, 250, 252, 0.6) !important;
+        }
+        .before-line::before {
+          content: '';
+          position: absolute;
+          left: 14px;
+          top: 8px;
+          bottom: 8px;
+          width: 2px;
+          background-color: #cbd5e1;
+          z-index: 1;
+          opacity: 0.6;
         }
       `}</style>
     </Container>
