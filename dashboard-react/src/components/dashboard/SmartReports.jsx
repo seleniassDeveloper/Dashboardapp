@@ -379,8 +379,24 @@ export default function SmartReports({ appointments = [], clients = [], workers 
     };
 
     if (isNew) {
+      const exists = gadgets.some(g => g.title.toLowerCase().trim() === formTitle.toLowerCase().trim());
+      if (exists) {
+        alert(isEs 
+          ? "Ya existe un gadget con ese título en el panel. Por favor elige otro." 
+          : "A gadget with that title already exists in the panel. Please choose another one."
+        );
+        return;
+      }
       setGadgets(prev => [savedGadget, ...prev]);
     } else {
+      const hasTitleCollision = gadgets.some(g => g.id !== selectedGadget.id && g.title.toLowerCase().trim() === formTitle.toLowerCase().trim());
+      if (hasTitleCollision) {
+        alert(isEs 
+          ? "Ya existe otro gadget con ese título en el panel. Por favor elige otro." 
+          : "Another gadget with that title already exists in the panel. Please choose another one."
+        );
+        return;
+      }
       setGadgets(prev => prev.map(g => g.id === selectedGadget.id ? savedGadget : g));
     }
 
@@ -449,6 +465,18 @@ export default function SmartReports({ appointments = [], clients = [], workers 
         // Fallback genérico
         type = "bar";
         title = `Análisis de ${text}`;
+      }
+
+      // Evitar duplicados por título en la generación por IA
+      const exists = gadgets.some(g => g.title.toLowerCase().trim() === title.toLowerCase().trim());
+      if (exists) {
+        setSuccessMessage(isEs 
+          ? `El gadget "${title}" ya está en tu panel.` 
+          : `The gadget "${title}" is already on your panel.`
+        );
+        setIsAiGenerating(false);
+        setAiInput("");
+        return;
       }
 
       // Crear nuevo gadget adaptado
