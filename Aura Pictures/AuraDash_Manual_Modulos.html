@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AuraDash Suite — Manual de Módulos</title>
+<style>
+  :root{
+    --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb;
+    --brand:#1f3864; --brand2:#2e75b6; --brand-soft:#eef4fb;
+    --info:#0f766e; --info-soft:#e7f6f4;
+    --func:#b45309; --func-soft:#fdf3e3;
+    --chip:#2e75b6; --chip-bg:#e7f0fb;
+    --bg:#f6f8fb; --card:#ffffff;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.55; font-size:15px;
+  }
+  .wrap{max-width:940px; margin:0 auto; padding:32px 22px 80px;}
+
+  /* Cover */
+  .cover{
+    background:linear-gradient(135deg,var(--brand) 0%,var(--brand2) 100%);
+    color:#fff; border-radius:18px; padding:46px 40px; margin-bottom:26px;
+    box-shadow:0 12px 30px rgba(31,56,100,.25);
+  }
+  .cover .badge{display:inline-block; background:rgba(255,255,255,.18); padding:5px 12px;
+    border-radius:999px; font-size:12px; letter-spacing:.06em; text-transform:uppercase; margin-bottom:14px;}
+  .cover h1{margin:0; font-size:38px; line-height:1.1; font-weight:800;}
+  .cover p{margin:10px 0 0; font-size:17px; opacity:.92;}
+
+  /* Legend */
+  .legend{
+    background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:18px 20px; margin-bottom:30px; box-shadow:0 2px 8px rgba(0,0,0,.03);
+  }
+  .legend h2{margin:0 0 12px; font-size:14px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted);}
+  .legend-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px 22px;}
+  @media(max-width:640px){.legend-grid{grid-template-columns:1fr}}
+  .leg{display:flex; gap:10px; align-items:flex-start; font-size:13.5px;}
+  .leg .swatch{width:16px; height:16px; border-radius:5px; margin-top:3px; flex:none;}
+  .sw-desc{background:var(--muted)}
+  .sw-info{background:var(--info)}
+  .sw-func{background:var(--func)}
+  .sw-chip{background:var(--chip)}
+
+  /* Module card */
+  .module{
+    background:var(--card); border:1px solid var(--line); border-radius:16px;
+    margin-bottom:24px; overflow:hidden; box-shadow:0 3px 12px rgba(0,0,0,.04);
+  }
+  .module > header{
+    background:linear-gradient(135deg,var(--brand) 0%,var(--brand2) 100%);
+    color:#fff; padding:18px 24px;
+  }
+  .module > header .num{font-size:12px; letter-spacing:.08em; text-transform:uppercase; opacity:.85;}
+  .module > header h2{margin:2px 0 0; font-size:23px; font-weight:800;}
+  .module > header .desc{margin:6px 0 0; font-size:14px; opacity:.9; font-style:italic;}
+  .module-body{padding:8px 24px 22px;}
+
+  /* Screen (pantalla / pestaña / modal) */
+  .screen{margin-top:18px;}
+  .screen > h3{
+    font-size:16.5px; margin:0 0 4px; color:var(--brand);
+    border-bottom:2px solid var(--brand-soft); padding-bottom:6px;
+  }
+  .screen .sub{font-size:13px; color:var(--muted); margin:0 0 8px;}
+
+  /* Blocks: info vs func */
+  .block{border-radius:10px; padding:12px 14px 12px 16px; margin:12px 0;}
+  .block .tag{
+    display:inline-block; font-size:11px; font-weight:700; letter-spacing:.05em;
+    text-transform:uppercase; padding:3px 10px; border-radius:999px; margin-bottom:8px;
+  }
+  .block.info{background:var(--info-soft); border-left:4px solid var(--info);}
+  .block.info .tag{background:var(--info); color:#fff;}
+  .block.func{background:var(--func-soft); border-left:4px solid var(--func);}
+  .block.func .tag{background:var(--func); color:#fff;}
+
+  ul{margin:4px 0 0; padding-left:20px;}
+  li{margin:5px 0;}
+  ul ul{margin:4px 0;}
+  .term{font-weight:700; color:var(--ink);}
+  .descr{color:#374151;}
+
+  /* Button chip */
+  .btn{
+    display:inline-block; font-weight:700; font-size:12.5px; color:#fff;
+    background:var(--chip); padding:2px 9px; border-radius:6px; margin-right:2px;
+    box-shadow:0 1px 2px rgba(0,0,0,.12);
+  }
+  .pill{display:inline-block; background:#eef2f7; color:#374151; font-size:12px;
+    padding:1px 8px; border-radius:5px; font-weight:600;}
+
+  .tabs-note{font-size:13px; color:var(--muted); margin:10px 0 0; font-style:italic;}
+
+  @media print{
+    body{background:#fff}
+    .module,.legend{box-shadow:none; break-inside:avoid}
+    .cover{box-shadow:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="cover">
+    <span class="badge">Documentación · Organizada por módulos</span>
+    <h1>AuraDash Suite</h1>
+    <p>Manual de Pantallas y Funcionalidades</p>
+  </div>
+
+  <div class="legend">
+    <h2>Cómo leer este documento</h2>
+    <div class="legend-grid">
+      <div class="leg"><span class="swatch sw-desc"></span><div><span class="term">Texto descriptivo</span> — explica para qué sirve cada módulo o pantalla.</div></div>
+      <div class="leg"><span class="swatch sw-info"></span><div><span class="term">Información en Pantalla</span> — qué datos ve el usuario (bloque verde).</div></div>
+      <div class="leg"><span class="swatch sw-func"></span><div><span class="term">Funcionalidades / Formulario</span> — qué se puede hacer (bloque ámbar).</div></div>
+      <div class="leg"><span class="swatch sw-chip"></span><div><span class="btn">Botón</span> — acciones clicables resaltadas como etiqueta.</div></div>
+    </div>
+  </div>
+
+  <!-- 1 -->
+  <section class="module">
+    <header>
+      <div class="num">Módulo 01</div>
+      <h2>Panel de Control (Dashboard)</h2>
+      <div class="desc">Pantalla de inicio y central de monitoreo del negocio.</div>
+    </header>
+    <div class="module-body">
+
+      <div class="screen">
+        <h3>A. Vista Principal del Dashboard</h3>
+        <div class="block info">
+          <span class="tag">Información en Pantalla</span>
+          <ul>
+            <li><span class="term">Buscador Superior:</span> <span class="descr">busca en tiempo real. Oculta los gadgets que no coinciden y desactiva el arrastre de widgets mientras la búsqueda está activa.</span></li>
+            <li><span class="term">Gadgets KPI:</span> <span class="descr">tarjetas flotantes con gradientes que muestran:</span>
+              <ul>
+                <li><span class="term">Facturación Total</span> — suma de cobros de citas completadas en el rango.</li>
+                <li><span class="term">Comisiones a Pagar</span> — monto acumulado para los profesionales (40%).</li>
+                <li><span class="term">Gastos</span> — suma de egresos registrados en el mes.</li>
+                <li><span class="term">Ganancia Neta</span> — facturación menos comisiones y gastos.</li>
+                <li><span class="term">Productos Críticos</span> — insumos por debajo del stock mínimo.</li>
+              </ul>
+            </li>
+            <li><span class="term">Gráfico de Facturación:</span> <span class="descr">barras (Recharts) que comparan ventas día a día o mes a mes.</span></li>
+            <li><span class="term">Gráfico de Métodos de Pago:</span> <span class="descr">dona con el % cobrado en Efectivo, Débito, Crédito y Transferencia.</span></li>
+            <li><span class="term">Agenda Rápida del Día:</span> <span class="descr">tabla con las citas de hoy (Cliente, Hora, Servicio, Profesional, Estado de Pago y edición).</span></li>
+          </ul>
+        </div>
+        <div class="block func">
+          <span class="tag">Funcionalidades / Botones</span>
+          <ul>
+            <li><span class="btn">Agregar Gadget</span> abre el modal de configuración de widgets.</li>
+            <li><span class="btn">Limpiar Búsqueda</span> visible en "Sin Resultados" cuando no encuentra gadgets.</li>
+            <li><span class="btn">Grip de Arrastre</span> reordena visualmente los gadgets (solo sin búsqueda activa).</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="screen">
+        <h3>B. Modal: Configuración de Gadgets <span class="pill">WidgetSettingsModal</span></h3>
+        <div class="block info">
+          <span class="tag">Información / Formulario</span>
+          <ul>
+            <li>Checkboxes para activar o desactivar cada widget de la pantalla principal.</li>
+            <li>Configuración del tamaño del widget (1x1, 2x1, full ancho).</li>
+            <li>Selector de color de fondo (tema clásico, HSL moderno, dark mode).</li>
+          </ul>
+        </div>
+        <div class="block func">
+          <span class="tag">Funcionalidades / Botones</span>
+          <ul><li><span class="btn">Guardar Diseño</span> persiste la configuración en el perfil del usuario en PostgreSQL.</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 2 -->
+  <section class="module">
+    <header>
+      <div class="num">Módulo 02</div>
+      <h2>Agenda Inteligente (Calendario)</h2>
+      <div class="desc">Herramienta principal de agendamiento y control diario de citas.</div>
+    </header>
+    <div class="module-body">
+
+      <div class="screen">
+        <h3>A. Vista General de Agenda</h3>
+        <div class="block info">
+          <span class="tag">Información en Pantalla</span>
+          <ul>
+            <li><span class="term">Calendario Central (FullCalendar):</span> <span class="descr">grilla de horarios con código de colores según el profesional asignado.</span></li>
+            <li><span class="term">Barra Lateral Izquierda (Buscador de Huecos):</span> <span class="descr">formulario rápido para encontrar huecos libres.</span></li>
+            <li><span class="term">Lista de Espera:</span> <span class="descr">clientes anotados para hoy que esperan una cancelación.</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="screen">
+        <h3>B. Barra Lateral: Lista de Espera y Buscador de Huecos</h3>
+        <div class="block info">
+          <span class="tag">Información / Formulario</span>
+          <ul>
+            <li><span class="term">Buscador de Huecos:</span> <span class="descr">selectores de Servicio, Profesional y Rango de Horas preferido.</span></li>
+            <li><span class="term">Lista de Espera:</span> <span class="descr">tarjetas con Nombre, Teléfono, Servicio solicitado y Rango Horario deseado.</span></li>
+          </ul>
+        </div>
+        <div class="block func">
+          <span class="tag">Funcionalidades / Botones</span>
+          <ul>
+            <li><span class="btn">Buscar Huecos</span> analiza la agenda y muestra horarios disponibles; al elegir uno abre el formulario de cita pre-completado.</li>
+            <li><span class="btn">Añadir a Lista de Espera</span> abre un miniformulario para encolar a un cliente.</li>
+            <li><span class="btn">Asignar Turno</span> convierte la tarjeta de espera en una cita cuando se libera un espacio.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="screen">
+        <h3>C. Modal: Crear / Editar Cita</h3>
+        <div class="block info">
+          <span class="tag">Información / Formulario</span>
+          <ul>
+            <li><span class="term">Buscador de Cliente:</span> <span class="descr">input con autocompletado; si no existe permite [+ Nuevo Cliente].</span></li>
+            <li><span class="term">Servicios:</span> <span class="descr">selector múltiple con cálculo dinámico de duración y precio en tiempo real.</span></li>
+            <li><span class="term">Colaborador/Estilista:</span> <span class="descr">selector del profesional responsable.</span></li>
+            <li><span class="term">Horario:</span> <span class="descr">Fecha, Hora de Inicio y Hora de Fin (calculada según los servicios).</span></li>
+            <li><span class="term">Notas de la Cita:</span> <span class="descr">texto libre (ej: "Alergia a decolorantes").</span></li>
+          </ul>
+        </div>
+        <div class="block func">
+          <span class="tag">Funcionalidades / Botones</span>
+          <ul>
+            <li><span class="btn">Guardar Cita</span> registra la cita y valida que el profesional no tenga turnos solapados.</li>
+            <li><span class="btn">Eliminar / Cancelar</span> cambia el estado a "Cancelado" y libera el espacio.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="screen">
+        <h3>D. Modal: Detalle de Cita y Cobro</h3>
+        <div class="block info">
+          <span class="tag">Información / Formulario</span>
+          <ul>
+            <li>Resumen de la cita: Cliente, Servicios, Total a pagar.</li>
+            <li><span class="term">Estado del Turno:</span> <span class="descr">PENDIENTE, CONFIRMADO, REALIZADO y CANCELADO.</span></li>
+            <li><span class="term">Método de Pago:</span> <span class="descr">Efectivo, Débito, Crédito o Transferencia.</span></li>
+          </ul>
+        </div>
+        <div class="block func">
+          <span class="tag">Funcionalidades / Botones</span>
+          <ul>
+            <li><span class="btn">Completar y Cobrar</span> registra el pago, liquida la comisión y descuenta insumos del inventario (si hay reglas de consumo).</li>
+            <li><span class="btn">Enviar Recordatorio</span> abre WhatsApp Web con un mensaje formateado con los datos de la cita.</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 3 -->
+  <section class="module">
+    <header>
+      <div class="num">Módulo 03</div>
+      <h2>Clientes (CRM)</h2>
+      <div class="desc">Directorio avanzado de clientes y fichas de salud/estética.</div>
+    </header>
+    <div class="module-body">
+
+      <div class="screen">
+        <h3>A. Vista Principal de Clientes</h3>
+        <div class="block info">
+          <span class="tag">Información en Pantalla</span>
+          <ul>
+            <li><span class="term">Buscador:</span> <span class="descr">filtra por Nombre, Teléfono o Email.</span></li>
+            <li><span class="term">Grilla de Clientes:</span> <span class="descr">tarjetas con Nombre, Teléfono, última visita, Ticket Promedio y etiquetas (Activo, Inactivo, En Riesgo).</span></li>
+          </ul>
+        </div>
+        <div class="block func">
+          <span class="tag">Funcionalidades / Botones</span>
+          <ul>
+            <li><span class="btn">+ Registrar Cliente</span> abre el modal de creación.</li>
+            <li><span class="btn">Exportar Excel</span> descarga la base de clientes mapeada.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="screen">
+        <h3>B. Panel Detalle del Cliente <span class="pill">ClientDetailModal</span></h3>
+        <p class="tabs-note">Se divide en 4 pestañas:</p>
+        <div class="block info">
+          <span class="tag">Pestaña · Perfil y Estadísticas</span>
+          <ul><li>Gráficos de gasto acumulado, ticket promedio, servicios más contratados y profesional favorito.</li></ul>
+        </div>
+        <div class="block info">
+          <span class="tag">Pestaña · Ficha Técnica (Dossier)</span>
+          <ul>
+            <li>Fórmulas químicas (ej. "Tintura L'Oreal 7.1 (45g) + Oxidante 20 vol (60ml)"), marcas de esmalte, tipo de piel/cabello y contraindicaciones médicas.</li>
+            <li><span class="btn">Editar Ficha</span> modifica fórmulas y notas en tiempo real.</li>
+          </ul>
+        </div>
+        <div class="block info">
+          <span class="tag">Pestaña · Historial de Visitas</span>
+          <ul><li>Tabla cronológica: Fecha, Cita ID, Servicios, Profesional, Total cobrado y Estado de pago.</li></ul>
+        </div>
+        <div class="block info">
+          <span class="tag">Pestaña · Galería Antes y Después</span>
+          <ul>
+            <li>Mosaico de imágenes que documentan los trabajos realizados.</li>
+            <li><span class="btn">Subir Foto</span> carga imágenes directo al servidor/nube.</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 4 -->
+  <section class="module">
+    <header>
+      <div class="num">Módulo 04</div>
+      <h2>Catálogo de Servicios</h2>
+      <div class="desc">Definición de tratamientos y su vinculación con los insumos.</div>
+    </header>
+    <div class="module-body">
+
+      <div class="screen">
+        <h3>A. Vista de Servicios</h3>
+        <div class="block info">
+          <span class="tag">Información en Pantalla</span>
+          <ul>
+            <li>Servicios agrupados por categorías (Coloración, Manicuría, Tratamientos, etc.).</li>
+            <li>Cada fila: Nombre, Duración (min), Precio de venta, Color de agenda y Sucursales activas.</li>
+          </ul>
+        </div>
+        <div class="block func">
+          <span class="tag">Funcionalidades / Botones</span>
+          <ul>
+            <li><span class="btn">+ Crear Servicio</span> abre el formulario de creación.</li>
+            <li><span class="btn">Editar</span> <span class="btn">Borrar</span> disponibles en cada fila.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="screen">
+        <h3>B. Modal: Formulario de Servicio</h3>
+        <div class="block info">
+          <span class="tag">Información / Formulario</span>
+          <ul>
+            <li>Campos de Nombre, Categoría, Duración, Precio y Color en la agenda.</li>
+            <li><span class="term">Reglas de Consumo:</span> <span class="descr">añadir insumos consumidos por sesión (ej: "Crema Oxidante 20 Vol", cantidad "100", unidad "ml").</span></li>
+          </ul>
+        </div>
+        <div class="block func">
+          <span class="tag">Funcionalidades</span>
+          <ul><li><span class="btn">Guardar</span> sincroniza el servicio y establece las reglas de consumo relacionales.</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 5 -->
+  <section class="module">
+    <header>
+      <div class="num">Módulo 05</div>
+      <h2>Equipo de Trabajo y Liquidaciones</h2>
+      <div class="desc">Control del personal, horarios y cálculo automatizado de comisiones.</div>
+    </header>
+    <div class="module-body">
+
+      <div class="screen">
+        <h3>A. Vista Principal del Personal</h3>
+        <div class="block info">
+          <span class="tag">Información en Pantalla</span>
+          <ul>
+            <li>Colaboradores con su cargo, sucursal asignada y estado de actividad.</li>
+            <li><span class="term">Indicadores de Desempeño:</span> <span class="descr">retención de clientes nuevos y participación en las ventas globales.</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="screen">
+        <h3>B. Pestaña: Gestión de Horarios</h3>
+        <div class="block info">
+          <span class="tag">Información / Formulario</span>
+          <ul>
+            <li>Tabla de lunes a domingo para cada profesional.</li>
+            <li>Campos de Hora de Entrada, Hora de Salida y pausas (almuerzo) por día.</li>
+          </ul>
+        </div>
+        <div class="block func">
+          <span class="tag">Funcionalidades</span>
+          <ul><li><span class="btn">Guardar Horario</span> aplica los límites al calendario para bloquear agendamientos fuera de turno.</li></ul>
+        </div>
+      </div>
+
+      <div class="screen">
+        <h3>C. Pestaña: Liquidación de Comisiones</h3>
+        <div class="block info">
+          <span class="tag">Información en Pantalla</span>
+          <ul>
+            <li>Selector de rango de fechas (Mes actual, Mes anterior, personalizado).</li>
+            <li>Selector de Profesional.</li>
+            <li><span class="term">Resumen de Cuentas:</span>
+              <ul>
+                <li><span class="term">Total Trabajos</span> — valor de todos los turnos atendidos.</li>
+                <li><span class="term">Comisión Acumulada</span> — el 40% (o el % configurado) del profesional.</li>
+                <li><span class="term">Pagos Realizados</span> — adelantos o liquidaciones previas.</li>
+                <li><span class="term">Saldo Pendiente</span> — diferencia a liquidar.</li>
+              </ul>
+            </li>
+            <li><span class="term">Detalle de Trabajos:</span> <span class="descr">desglose por cita (fecha, cliente, servicios e importe).</span></li>
+          </ul>
+        </div>
+        <div class="block func">
+          <span class="tag">Funcionalidades / Botones</span>
+          <ul><li><span class="btn">Registrar Pago de Comisión</span> paga el saldo, crea un egreso financiero y pone en cero el saldo del profesional.</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 6 -->
+  <section class="module">
+    <header>
+      <div class="num">Módulo 06</div>
+      <h2>Finanzas y Caja</h2>
+      <div class="desc">Gestión de ingresos, egresos y control de efectivo diario.</div>
+    </header>
+    <div class="module-body">
+
+      <div class="screen">
+        <h3>A. Pestaña: Caja Diaria <span class="pill">DailyCashClosing</span></h3>
+        <div class="block info">
+          <span class="tag">Información / Formulario</span>
+          <ul>
+            <li><span class="term">Monto de Apertura:</span> <span class="descr">caja chica con la que se inicia el día.</span></li>
+            <li><span class="term">Movimiento Manual:</span> <span class="descr">entradas (ej. cambio) o salidas (ej. café) directas de la caja física.</span></li>
+            <li><span class="term">Arqueo / Cierre:</span> <span class="descr">efectivo físico real contado al final de la jornada.</span></li>
+            <li><span class="term">Balance del Sistema:</span> <span class="descr">suma automática de pagos en Efectivo, Tarjeta y Transferencia.</span></li>
+            <li><span class="term">Diferencia de Caja:</span> <span class="descr">discrepancia entre lo contado y lo registrado.</span></li>
+          </ul>
+        </div>
+        <div class="block func">
+          <span class="tag">Funcionalidades / Botones</span>
+          <ul>
+            <li><span class="btn">Abrir Caja</span> registra hora y monto de inicio de operaciones.</li>
+            <li><span class="btn">Registrar Movimiento</span> suma o resta efectivo de la caja chica.</li>
+            <li><span class="btn">Cerrar Caja</span> bloquea la edición del día, calcula diferencias e ingresa el reporte en el libro diario.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="screen">
+        <h3>B. Pestaña: Historial de Gastos</h3>
+        <div class="block info">
+          <span class="tag">Información / Formulario</span>
+          <ul><li>Tabla de gastos: Concepto, Categoría (Alquiler, Insumos, Impuestos, Sueldos), Fecha, Monto, Método de Pago y Estado (Pagado/Pendiente).</li></ul>
+        </div>
+        <div class="block func">
+          <span class="tag">Funcionalidades / Botones</span>
+          <ul><li><span class="btn">+ Registrar Gasto</span> abre formulario para añadir un nuevo gasto.</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 7 -->
+  <section class="module">
+    <header>
+      <div class="num">Módulo 07</div>
+      <h2>Inventario ERP</h2>
+      <div class="desc">Control total de stock, lotes FIFO, reposiciones y consumo.</div>
+    </header>
+    <div class="module-body">
+
+      <div class="screen">
+        <h3>A. Pestaña: Resumen General <span class="pill">InventoryDashboard</span></h3>
+        <div class="block info">
+          <span class="tag">Información en Pantalla</span>
+          <ul>
+            <li>Valorización total del stock y % de productos cerca del límite crítico.</li>
+            <li>Alertas de insumos agotados.</li>
+            <li>Bitácora con los últimos 5 movimientos (entradas, salidas, ajustes).</li>
+          </ul>
+        </div>
+        <div class="block func">
+          <span class="tag">Funcionalidades / Botones</span>
+          <ul><li><span class="btn">Ver Bitácora Completa</span> redirige al historial de movimientos.</li></ul>
+        </div>
+      </div>
+
+      <div class="screen">
+        <h3>B. Pestaña: Catálogo de Stock <span class="pill">ProductForm</span></h3>
+        <div class="block info">
+          <span class="tag">Información en Pantalla</span>
+          <ul><li>Productos con foto/ícono, categoría, código de barras, stock actual, stock mínimo y ubicación física (ej: "Estante A1").</li></ul>
+        </div>
+        <div class="block func">
+          <span class="tag">Funcionalidades / Botones</span>
+          <ul>
+            <li><span class="btn">+ Nuevo Producto</span> abre un formulario lateral.</li>
+            <li><span class="btn">+ / -</span> botones rápidos para ajustar stock sin abrir el formulario completo.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="screen">
+        <h3>C. Pestaña: Control de Lotes (FIFO) <span class="pill">BatchControl</span></h3>
+        <div class="block info">
+          <span class="tag">Información en Pantalla</span>
+          <ul>
+            <li>Lotes activos organizados por fecha de vencimiento.</li>
+            <li>Cada tarjeta: Código de Lote, Producto, Cantidad Inicial/Actual, Costo Unitario y Días para Expirar (semáforo: Verde = Seguro, Amarillo = Vence pronto, Rojo = Expirado).</li>
+          </ul>
+        </div>
+        <div class="block func">
+          <span class="tag">Funcionalidades / Botones</span>
+          <ul><li><span class="btn">+ Registrar Nuevo Lote</span> carga mercadería (código, costo, cantidad, vencimiento). Aumenta el stock global automáticamente.</li></ul>
+        </div>
+      </div>
+
+      <div class="screen">
+        <h3>D. Pestaña: Reposición de Stock <span class="pill">PurchaseOrders</span> <span class="pill">SupplierCRUD</span></h3>
+        <p class="tabs-note">Dividida en 2 sub-pestañas:</p>
+        <div class="block info">
+          <span class="tag">Sub-pestaña · Pedidos de Reposición</span>
+          <ul>
+            <li>Órdenes de compra con estados: BORRADOR, ENVIADO, CONFIRMADO, RECIBIDO y CANCELADO.</li>
+            <li><span class="term">Formulario de Pedido:</span> <span class="descr">Proveedor, notas y grilla de productos, cantidades y precios pactados.</span></li>
+            <li><span class="btn">Crear Orden</span> genera el borrador.</li>
+            <li><span class="btn">Cambiar Estado a Recibido</span> crea los lotes FIFO e incrementa el stock general de los productos de la orden.</li>
+          </ul>
+        </div>
+        <div class="block info">
+          <span class="tag">Sub-pestaña · Directorio de Proveedores</span>
+          <ul>
+            <li>Fichas con Nombre, Contacto, Teléfono, Email, Plazos de Pago (ej: "A 30 días") y Días de Entrega Promedio.</li>
+            <li><span class="term">CRUD de Proveedores</span> para añadir o editar.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="screen">
+        <h3>E. Pestaña: Reglas de Consumo <span class="pill">ServiceConsumptionRules</span></h3>
+        <div class="block info">
+          <span class="tag">Información en Pantalla</span>
+          <ul><li>Grilla con la relación "Servicio X consume cantidad Y del producto Z".</li></ul>
+        </div>
+        <div class="block func">
+          <span class="tag">Funcionalidades / Botones</span>
+          <ul><li><span class="btn">Asociar Consumo</span> crea/modifica una regla (ej. "Alisado" con "Keratina Líquida (150ml)").</li></ul>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 8 -->
+  <section class="module">
+    <header>
+      <div class="num">Módulo 08</div>
+      <h2>Copilot Aura IA y Automatizaciones</h2>
+      <div class="desc">Módulo de inteligencia operativa y flujos automáticos.</div>
+    </header>
+    <div class="module-body">
+
+      <div class="screen">
+        <h3>A. Vista Copilot Aura IA</h3>
+        <div class="block info">
+          <span class="tag">Información en Pantalla</span>
+          <ul>
+            <li>Sugerencias de la IA basadas en el análisis de datos de PostgreSQL:
+              <ul>
+                <li><span class="term">Previsión de Días Vacíos</span> — sugiere campañas de descuento.</li>
+                <li><span class="term">Clientes Fugados</span> — clientes que no regresaron, con botón para enviar un cupón personalizado.</li>
+                <li><span class="term">Puntos de Quiebre de Stock</span> — estima cuándo se agotará un producto según el ritmo de turnos.</li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="screen">
+        <h3>B. Vista de Flujos de Trabajo (Workflows)</h3>
+        <div class="block info">
+          <span class="tag">Información en Pantalla</span>
+          <ul><li>Flujos activos e inactivos (ej. "Confirmación de Cita por Email", "Felicitación de Cumpleaños").</li></ul>
+        </div>
+        <div class="block func">
+          <span class="tag">Funcionalidades / Botones</span>
+          <ul>
+            <li><span class="btn">+ Crear Workflow</span> abre el constructor visual de automatizaciones.</li>
+            <li><span class="btn">Ver Historial de Ejecuciones</span> muestra logs de mensajes enviados, hora y fallos.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="screen">
+        <h3>C. Constructor de Workflows</h3>
+        <div class="block func">
+          <span class="tag">Formulario de Configuración</span>
+          <ul>
+            <li><span class="term">Desencadenante (Trigger):</span> <span class="descr">Cita Creada, Cita Cancelada, Pago Recibido, Cumpleaños del Cliente, Cliente Inactivo.</span></li>
+            <li><span class="term">Condiciones:</span> <span class="descr">filtros por Servicio, Profesional o Sucursal.</span></li>
+            <li><span class="term">Acción:</span> <span class="descr">Enviar Email (plantillas), Enviar SMS, Notificar a Estilista o Disparar Webhook.</span></li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 9 -->
+  <section class="module">
+    <header>
+      <div class="num">Módulo 09</div>
+      <h2>Sincronizador de Google Sheets</h2>
+      <div class="desc">Herramienta visual para importar bases de datos externas de clientes y servicios.</div>
+    </header>
+    <div class="module-body">
+
+      <div class="screen">
+        <h3>A. Pantalla de Configuración e Importación</h3>
+        <div class="block info">
+          <span class="tag">Información / Formulario</span>
+          <ul><li>Campo para pegar la URL del documento de Google Sheets (o subir un CSV).</li></ul>
+        </div>
+        <div class="block func">
+          <span class="tag">Funcionalidades</span>
+          <ul><li><span class="btn">Conectar Planilla</span> carga las primeras filas en memoria y abre la pantalla de mapeo.</li></ul>
+        </div>
+      </div>
+
+      <div class="screen">
+        <h3>B. Pantalla de Mapeo de Columnas</h3>
+        <div class="block info">
+          <span class="tag">Información / Formulario</span>
+          <ul>
+            <li>Desplegables que listan las columnas de la planilla importada.</li>
+            <li>El usuario empareja campos con columnas (ej: "Celular" en PostgreSQL ↔ "WhatsApp / Teléfono").</li>
+          </ul>
+        </div>
+        <div class="block func">
+          <span class="tag">Funcionalidades</span>
+          <ul>
+            <li><span class="btn">Simular Importación</span> valida formatos (teléfonos, correos) y muestra registros listos y con errores (en rojo).</li>
+            <li><span class="btn">Procesar e Importar</span> guarda masivamente los registros válidos en la base Postgres de Neon Cloud.</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 10 -->
+  <section class="module">
+    <header>
+      <div class="num">Módulo 10</div>
+      <h2>Configuración General y Roles (RBAC)</h2>
+      <div class="desc">Administración de la identidad del negocio y permisos de seguridad del personal.</div>
+    </header>
+    <div class="module-body">
+
+      <div class="screen">
+        <h3>A. Configuración de Marca y Sucursales</h3>
+        <div class="block info">
+          <span class="tag">Información / Formulario</span>
+          <ul>
+            <li><span class="term">Datos del Salón:</span> <span class="descr">Nombre, Teléfono, Sector e Industria.</span></li>
+            <li><span class="term">Personalización Visual:</span> <span class="descr">Logo y paleta de colores corporativos (usados en la reserva pública).</span></li>
+            <li><span class="term">Slug de Reserva:</span> <span class="descr">URL pública (ej. /booking/salon-aura).</span></li>
+            <li><span class="term">Lista de Sucursales:</span> <span class="descr">CRUD de locales físicos con direcciones y teléfonos.</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="screen">
+        <h3>B. Matriz de Roles y Permisos <span class="pill">RolesPermissionsPage</span></h3>
+        <div class="block info">
+          <span class="tag">Información en Pantalla</span>
+          <ul>
+            <li>Tabla de doble entrada (Matriz RBAC):
+              <ul>
+                <li><span class="term">Filas</span> — más de 70 permisos por áreas (Agenda, Clientes, Finanzas, Inventario, Configuraciones, etc.).</li>
+                <li><span class="term">Columnas</span> — Roles (Owner/Dueño, Administrador, Encargado, Estilista, Recepción, Visualizador).</li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+        <div class="block func">
+          <span class="tag">Funcionalidades / Botones</span>
+          <ul>
+            <li><span class="btn">Checkboxes de la Matriz</span> tilda o destilda permisos individuales por rol.</li>
+            <li><span class="btn">Crear Rol Personalizado</span> nuevo rol (ej: "Estilista Junior") con accesos desde cero.</li>
+            <li><span class="btn">Guardar Cambios de Seguridad</span> aplica los permisos en caliente, impactando las sesiones activas.</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

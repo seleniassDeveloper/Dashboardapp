@@ -326,32 +326,8 @@ export default function GoogleSheetsSyncView() {
     setError("");
 
     try {
-      // 1. Crear Profesionales
+      // 1. Crear Servicios Primero para obtener sus IDs relacionales
       setProgress(15);
-      setStatusText("Creando perfiles del equipo de profesionales en la base de datos...");
-      const workersMap = {};
-      
-      for (const wName of ["Andrea", "Nicolás", "Florencia"]) {
-        try {
-          const wRes = await api.post("/workers", {
-            firstName: wName,
-            lastName: "Aura",
-            email: `${wName.toLowerCase()}@salonaura.com`,
-            phone: "1123456789",
-            roleTitle: wName === "Andrea" ? "Colorista Top" : wName === "Nicolás" ? "Barbero Principal" : "Manicurista Experta",
-          });
-          workersMap[wName] = wRes.data.id;
-        } catch (e) {
-          const listRes = await api.get("/workers");
-          const existing = listRes.data.find(w => w.firstName === wName);
-          if (existing) {
-            workersMap[wName] = existing.id;
-          }
-        }
-      }
-
-      // 2. Crear Servicios
-      setProgress(40);
       setStatusText("Configurando catálogo de servicios e importando importes...");
       const servicesMap = {};
       
@@ -370,6 +346,48 @@ export default function GoogleSheetsSyncView() {
           const existing = listRes.data.find(s => s.name === item.service);
           if (existing) {
             servicesMap[item.service] = existing.id;
+          }
+        }
+      }
+
+      // 2. Crear Profesionales Segundo, vinculándolos con sus respectivos servicios y horarios requeridos por la base de datos
+      setProgress(40);
+      setStatusText("Creando perfiles del equipo de profesionales en la base de datos...");
+      const workersMap = {};
+      const defaultSchedules = [
+        { dayOfWeek: 1, startTime: "09:00", endTime: "19:00" },
+        { dayOfWeek: 2, startTime: "09:00", endTime: "19:00" },
+        { dayOfWeek: 3, startTime: "09:00", endTime: "19:00" },
+        { dayOfWeek: 4, startTime: "09:00", endTime: "19:00" },
+        { dayOfWeek: 5, startTime: "09:00", endTime: "19:00" }
+      ];
+      
+      for (const wName of ["Andrea", "Nicolás", "Florencia"]) {
+        // Recopilar servicios correspondientes a este profesional de acuerdo al set de datos
+        const associatedServices = SAMPLE_SALON_DATA
+          .filter(item => item.worker === wName)
+          .map(item => servicesMap[item.service])
+          .filter(Boolean);
+
+        // Fallback en caso de no tener servicios asociados
+        const serviceIds = associatedServices.length > 0 ? associatedServices : [Object.values(servicesMap)[0]].filter(Boolean);
+
+        try {
+          const wRes = await api.post("/workers", {
+            firstName: wName,
+            lastName: "Aura",
+            email: `${wName.toLowerCase()}@salonaura.com`,
+            phone: "1123456789",
+            roleTitle: wName === "Andrea" ? "Colorista Top" : wName === "Nicolás" ? "Barbero Principal" : "Manicurista Experta",
+            serviceIds,
+            schedules: defaultSchedules
+          });
+          workersMap[wName] = wRes.data.id;
+        } catch (e) {
+          const listRes = await api.get("/workers");
+          const existing = listRes.data.find(w => w.firstName === wName);
+          if (existing) {
+            workersMap[wName] = existing.id;
           }
         }
       }
@@ -401,7 +419,7 @@ export default function GoogleSheetsSyncView() {
         }
       }
 
-      // 4. Crear Citas
+      // 4. Crear Citas con bypass de disponibilidad activado para admitir migración histórica
       setProgress(85);
       setStatusText("Creando historial de citas y asignando horas a colaboradores...");
       let createdAppointments = 0;
@@ -428,10 +446,11 @@ export default function GoogleSheetsSyncView() {
               startsAt: targetDate.toISOString(),
               notes: item.notes,
               status: i === 0 || i === 3 ? "DONE" : i === 4 ? "CANCELLED" : "CONFIRMED",
+              bypassAvailability: true
             });
             createdAppointments++;
           } catch (e) {
-            console.error("Error creando cita:", e);
+            console.error("Error creando cita en la migración:", e);
           }
         }
       }

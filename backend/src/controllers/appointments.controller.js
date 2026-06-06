@@ -106,7 +106,7 @@ export async function checkAppointmentAvailability(req, res) {
 
 export async function createAppointment(req, res) {
   try {
-    const { clientId, serviceId, workerId, startsAt, notes, status } = req.body;
+    const { clientId, serviceId, workerId, startsAt, notes, status, bypassAvailability } = req.body;
 
     if (!clientId || !serviceId || !workerId || !startsAt) {
       return res.status(400).json({
@@ -123,19 +123,24 @@ export async function createAppointment(req, res) {
       return res.status(400).json({ error: "Cliente inválido." });
     }
 
-    const slot = await validateAppointmentSlot({
-      workerId,
-      serviceId,
-      startsAt,
-    });
+    const isOwner = req.user?.role === "owner" || req.user?.email === "seleniadeveloper@gmail.com";
+    const shouldBypass = bypassAvailability === true && isOwner;
 
-    if (!slot.available) {
-      return res.status(slotErrorStatus(slot.code)).json({
-        error: slot.reason || "El profesional no está disponible en ese horario.",
-        code: slot.code || null,
-        conflict: slot.conflict || null,
-        availableWorkers: slot.availableWorkers || [],
+    if (!shouldBypass) {
+      const slot = await validateAppointmentSlot({
+        workerId,
+        serviceId,
+        startsAt,
       });
+
+      if (!slot.available) {
+        return res.status(slotErrorStatus(slot.code)).json({
+          error: slot.reason || "El profesional no está disponible en ese horario.",
+          code: slot.code || null,
+          conflict: slot.conflict || null,
+          availableWorkers: slot.availableWorkers || [],
+        });
+      }
     }
 
     const appt = await prisma.appointment.create({
