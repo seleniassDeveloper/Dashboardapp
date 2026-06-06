@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, Button, Dropdown } from "react-bootstrap";
-import { GripVertical, Trash2, Settings, Plus, LayoutGrid } from "lucide-react";
+import { GripVertical, Trash2, Settings, Plus, LayoutGrid, Search } from "lucide-react";
 import WidgetRenderer from "./WidgetRenderer";
 import { WIDGET_TYPES } from "./WidgetRegistry";
 import { useTranslation } from "react-i18next";
@@ -12,6 +12,8 @@ export default function DashboardGrid({
   clients = [],
   workers = [],
   services = [],
+  searchQuery = "",
+  onClearSearch,
   onUpdateLayouts,
   onEditWidget,
   onDeleteWidget,
@@ -83,6 +85,28 @@ export default function DashboardGrid({
   };
 
   if (widgets.length === 0) {
+    if (searchQuery.trim()) {
+      return (
+        <div
+          className="d-flex flex-column align-items-center justify-content-center text-center p-5 border border-dashed rounded-4 bg-light"
+          style={{ minHeight: "350px", borderColor: "#c0c0c0" }}
+        >
+          <Search size={48} className="text-muted mb-3" />
+          <h3 className="fw-bold mb-2">{isEs ? "Sin resultados" : "No results found"}</h3>
+          <p className="text-muted small mb-4" style={{ maxWidth: "420px" }}>
+            {isEs 
+              ? `No encontramos ningún gadget que coincida con "${searchQuery}". Probá buscando con otro término.`
+              : `We couldn't find any gadgets matching "${searchQuery}". Try searching for another term.`}
+          </p>
+          <div className="d-flex gap-3">
+            <Button variant="dark" onClick={onClearSearch} className="btn-premium rounded-pill px-4">
+              {isEs ? "Limpiar búsqueda" : "Clear Search"}
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div
         className="d-flex flex-column align-items-center justify-content-center text-center p-5 border border-dashed rounded-4 bg-light"
@@ -152,14 +176,14 @@ export default function DashboardGrid({
             >
               {/* Cabecera / Drag Handle */}
               <div
-                className="px-3.5 py-2.5 bg-light d-flex align-items-center justify-content-between border-bottom cursor-grab"
-                draggable
+                className={`px-3.5 py-2.5 bg-light d-flex align-items-center justify-content-between border-bottom ${searchQuery ? "" : "cursor-grab"}`}
+                draggable={!searchQuery}
                 onDragStart={(e) => handleDragStart(e, idx)}
                 onDragEnd={handleDragEnd}
-                style={{ userSelect: "none" }}
+                style={{ userSelect: "none", cursor: searchQuery ? "default" : "grab" }}
               >
                 <div className="d-flex align-items-center gap-2">
-                  <GripVertical size={13} className="text-muted opacity-65" style={{ cursor: "grab" }} />
+                  {!searchQuery && <GripVertical size={13} className="text-muted opacity-65" style={{ cursor: "grab" }} />}
                   <span className="small text-dark fw-bold" style={{ fontSize: "12.5px" }}>
                     {w.title}
                   </span>
@@ -207,8 +231,8 @@ export default function DashboardGrid({
               <Card.Body className="p-3 flex-grow-1 overflow-auto">
                 <WidgetRenderer
                   widget={w}
-                  appointments={appointments}
-                  clients={clients}
+                  appointments={w.appointmentsData || appointments}
+                  clients={w.clientsData || clients}
                   workers={workers}
                   services={services}
                   onUpdateAppointmentStatus={onUpdateAppointmentStatus}

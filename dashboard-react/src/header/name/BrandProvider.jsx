@@ -17,9 +17,9 @@ const DEFAULT_BRAND = {
   coverImage: "",
   fontFamily: 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial',
   textColor: "#1a1d24",
-  accentColor: "#10b981",
-  dashboardBg: "#fafaf9",
-  menuSelectionColor: "#10b981",
+  accentColor: "#7c3aed",
+  dashboardBg: "#f8fafc",
+  menuSelectionColor: "#7c3aed",
   activeModules: {
     finances: true,
     workflows: true,
@@ -41,6 +41,18 @@ function normalizeBrand(saved) {
       ...(rest.activeModules || {}),
     },
   };
+
+  // Migrate from old default green (#10b981) to the new landing page violet theme
+  if (merged.accentColor === "#10b981") {
+    merged.accentColor = "#7c3aed";
+  }
+  if (merged.menuSelectionColor === "#10b981") {
+    merged.menuSelectionColor = "#7c3aed";
+  }
+  if (merged.dashboardBg === "#fafaf9") {
+    merged.dashboardBg = "#f8fafc";
+  }
+
   const bg = String(merged.dashboardBg || "");
   if (bg === "#111827" || bg === "#0f172a" || bg === "#0f0f10") {
     merged.dashboardBg = DEFAULT_BRAND.dashboardBg;
@@ -67,7 +79,7 @@ export function BrandProvider({ children }) {
   useEffect(() => {
     const root = document.documentElement;
 
-    const accent = brand.accentColor || brand.textColor || "#10b981";
+    const accent = brand.accentColor || brand.textColor || "#7c3aed";
     const menuActive = brand.menuSelectionColor || accent;
 
     root.style.setProperty("--brand-accent", accent);

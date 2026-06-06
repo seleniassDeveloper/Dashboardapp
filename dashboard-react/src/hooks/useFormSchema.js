@@ -24,7 +24,9 @@ export function useFormSchema(schemaKey, { enabled = true } = {}) {
         setSchema(res.data);
       }
     } catch (e) {
-      setError(e?.response?.data?.error || "No se pudo cargar el formulario.");
+      console.error("useFormSchema load error:", e);
+      const detail = e?.response?.data?.error || e?.message || "";
+      setError(detail ? `No se pudo cargar el formulario: ${detail}` : "No se pudo cargar el formulario.");
       setSchema(null);
     } finally {
       setLoading(false);

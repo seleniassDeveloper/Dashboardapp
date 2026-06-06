@@ -371,3 +371,22 @@ a { text-decoration: none !important; color: inherit; }
   border-color: #c084fc !important;
   box-shadow: 0 0 0 0.25rem rgba(147, 51, 234, 0.25) !important;
 }
+
+/* Custom status switch coloring */
+.custom-status-switch .form-check-input {
+  cursor: pointer;
+  width: 1.8em !important;
+  height: 1.0em !important;
+}
+.custom-status-switch.switch-success .form-check-input:checked {
+  background-color: #10b981 !important; /* emerald green */
+  border-color: #10b981 !important;
+}
+.custom-status-switch.switch-warning .form-check-input:checked {
+  background-color: #f59e0b !important; /* warning amber */
+  border-color: #f59e0b !important;
+}
+.custom-status-switch.switch-danger .form-check-input:not(:checked) {
+  background-color: #ef4444 !important; /* red */
+  border-color: #ef4444 !important;
+}

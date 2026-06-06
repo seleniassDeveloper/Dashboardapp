@@ -313,7 +313,7 @@ export default function PublicBookingPage() {
     );
   }
 
-  const primaryColor = business?.bookingPrimaryColor || "#10b981";
+  const primaryColor = business?.bookingPrimaryColor || "#7c3aed";
 
   return (
     <div className="min-vh-100 bg-light py-4 py-md-5 position-relative" style={{ fontFamily: "Outfit, sans-serif" }}>

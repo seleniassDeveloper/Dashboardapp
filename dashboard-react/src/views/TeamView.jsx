@@ -135,8 +135,8 @@ export default function TeamView() {
       case "licencia":
         return "#3b82f6"; // Blue
       case "suspendido":
-        return "#ef4444"; // Red
       case "inactivo":
+        return "#ef4444"; // Red
       default:
         return "#6b7280"; // Gray
     }

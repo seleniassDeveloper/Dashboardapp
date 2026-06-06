@@ -51,13 +51,43 @@ export default function InventoryView() {
     try {
       setLoading(true);
       setError("");
+      let hasFailures = false;
 
       const [dashRes, prodRes, supRes, ruleRes, movRes, branchRes, bizRes] = await Promise.all([
-        api.get("/inventory/dashboard"),
-        api.get("/inventory/products"),
-        api.get("/inventory/suppliers"),
-        api.get("/inventory/rules"),
-        api.get("/inventory/movements"),
+        api.get("/inventory/dashboard").catch(err => {
+          console.error("Error fetching inventory dashboard:", err);
+          hasFailures = true;
+          return {
+            data: {
+              summary: {
+                lowStockCount: 0,
+                totalValue: 0,
+                totalUnique: 0,
+                estimatedMonthlySpend: 0,
+                mostConsumed: "-",
+                costliestService: "-"
+              }
+            }
+          };
+        }),
+        api.get("/inventory/products").catch(err => {
+          console.error("Error fetching inventory products:", err);
+          hasFailures = true;
+          return { data: [] };
+        }),
+        api.get("/inventory/suppliers").catch(err => {
+          console.error("Error fetching inventory suppliers:", err);
+          hasFailures = true;
+          return { data: [] };
+        }),
+        api.get("/inventory/rules").catch(err => {
+          console.error("Error fetching inventory rules:", err);
+          return { data: [] };
+        }),
+        api.get("/inventory/movements").catch(err => {
+          console.error("Error fetching inventory movements:", err);
+          return { data: [] };
+        }),
         api.get("/finances/branches").catch(() => ({ data: [] })),
         api.get("/businesses/me").catch(() => null)
       ]);
@@ -71,6 +101,10 @@ export default function InventoryView() {
 
       if (bizRes && bizRes.data && bizRes.data.business) {
         setBusinessIndustry(bizRes.data.business.industry || "Estética");
+      }
+
+      if (hasFailures) {
+        setError("Algunos datos del inventario ERP no pudieron cargarse por completo (compruebe sus permisos de acceso).");
       }
     } catch (err) {
       console.error(err);

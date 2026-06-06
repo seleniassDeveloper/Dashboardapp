@@ -577,7 +577,6 @@ export default function RolesPermissionsPage() {
                         <th className="py-3 text-muted fw-bold small text-uppercase">Descripción</th>
                         <th className="py-3 text-muted fw-bold small text-uppercase text-center" style={{ width: "130px" }}>Colaboradores</th>
                         <th className="py-3 text-muted fw-bold small text-uppercase text-center" style={{ width: "120px" }}>Tipo</th>
-                        <th className="py-3 text-muted fw-bold small text-uppercase text-center" style={{ width: "120px" }}>Estado</th>
                         <th className="px-4 py-3 text-muted fw-bold small text-uppercase text-center" style={{ width: "160px" }}>Acciones</th>
                       </tr>
                     </thead>
@@ -611,25 +610,24 @@ export default function RolesPermissionsPage() {
                                 <Badge bg="purple" className="px-3 py-1.5 rounded-pill text-white">Personalizado</Badge>
                               )}
                             </td>
-                            <td className="py-3 text-center">
-                              {isSystem ? (
-                                <Badge bg="success" className="px-3 py-1.5 rounded-pill text-white">Siempre Activo</Badge>
-                              ) : (
-                                <button
-                                  onClick={() => handleToggleActiveRole(r)}
-                                  disabled={!hasPermission("roles.edit")}
-                                  className="btn p-0 border-0 bg-transparent text-secondary"
-                                >
-                                  {r.isActive ? (
-                                    <ToggleRight size={28} className="text-success" />
-                                  ) : (
-                                    <ToggleLeft size={28} className="text-muted" />
-                                  )}
-                                </button>
-                              )}
-                            </td>
                             <td className="px-4 py-3 text-center">
                               <div className="d-flex justify-content-center align-items-center gap-2">
+                                <Button
+                                  variant="light"
+                                  size="sm"
+                                  disabled={isSystem || !hasPermission("roles.edit")}
+                                  onClick={() => handleToggleActiveRole(r)}
+                                  className={`p-1 px-2 border rounded-xl ${
+                                    r.isActive || isSystem ? "hover-bg-red-50" : "hover-bg-emerald-50"
+                                  }`}
+                                  title={isSystem ? "Rol del sistema siempre activo" : r.isActive ? "Desactivar Rol" : "Activar Rol"}
+                                >
+                                  {r.isActive || isSystem ? (
+                                    <ToggleRight size={14} className="text-success" />
+                                  ) : (
+                                    <ToggleLeft size={14} className="text-danger" />
+                                  )}
+                                </Button>
                                 {hasPermission("roles.create") && (
                                   <Button
                                     variant="light"
@@ -936,8 +934,8 @@ export default function RolesPermissionsPage() {
                               <td className="py-3 text-center">
                                 {member.status === "ACTIVE" ? (
                                   <Badge bg="success-50" className="text-success border border-success px-3 py-1.5 rounded-pill">Activo</Badge>
-                                ) : member.status === "SUSPENDED" ? (
-                                  <Badge bg="danger-50" className="text-danger border border-danger px-3 py-1.5 rounded-pill">Suspendido</Badge>
+                                ) : member.status === "SUSPENDED" || member.status === "INACTIVE" || member.status === "INACTIVO" ? (
+                                  <Badge bg="danger-50" className="text-danger border border-danger px-3 py-1.5 rounded-pill">Inactivo</Badge>
                                 ) : (
                                   <Badge bg="warning-50" className="text-warning border border-warning px-3 py-1.5 rounded-pill">{member.status}</Badge>
                                 )}

@@ -301,7 +301,7 @@ export default function ServicesView() {
                 <th className="py-3 border-0 text-center">Precio Base</th>
                 <th className="py-3 border-0">Profesionales Habilitados</th>
                 <th className="py-3 border-0 text-center">Comisión</th>
-                <th className="py-3 border-0 text-center">Estado</th>
+                <th className="py-3 border-0 text-center" style={{ width: "130px" }}>Estado</th>
                 <th className="py-3 border-0 text-end px-4">Acciones</th>
               </tr>
             </thead>
@@ -379,7 +379,29 @@ export default function ServicesView() {
                       {getCommissionText(s)}
                     </td>
                     <td className="text-center">
-                      {getStatusBadge(s.status)}
+                      <div className="d-flex align-items-center justify-content-center gap-1.5">
+                        <Form.Check 
+                          type="switch"
+                          id={`status-switch-${s.id}`}
+                          checked={s.status === "active" || s.status === "hidden_online"}
+                          onChange={() => handleToggleStatus(s)}
+                          className={`custom-status-switch ${
+                            s.status === "active" ? "switch-success" : 
+                            s.status === "hidden_online" ? "switch-warning" : "switch-danger"
+                          }`}
+                          title={s.status === "active" || s.status === "hidden_online" ? "Desactivar servicio" : "Activar servicio"}
+                        />
+                        <span 
+                          className={`fw-bold ${
+                            s.status === "active" ? "text-emerald-500" : 
+                            s.status === "hidden_online" ? "text-amber-500" : "text-red-600"
+                          }`} 
+                          style={{ fontSize: "12px", minWidth: "55px", textAlign: "left" }}
+                        >
+                          {s.status === "active" ? "Activo" : 
+                           s.status === "hidden_online" ? "Oculto" : "Inactivo"}
+                        </span>
+                      </div>
                     </td>
                     <td className="py-3 text-end px-4">
                       <div className="d-flex justify-content-end gap-1.5">
@@ -409,21 +431,6 @@ export default function ServicesView() {
                           title="Duplicar / Clonar"
                         >
                           <Copy size={14} className="text-purple-600" />
-                        </Button>
-                        <Button 
-                          variant="light" 
-                          size="sm" 
-                          onClick={() => handleToggleStatus(s)} 
-                          className={`p-2 border rounded-xl ${
-                            s.status === "active" ? "hover-bg-amber-50" : "hover-bg-emerald-50"
-                          }`}
-                          title={s.status === "active" ? "Desactivar temporalmente" : "Activar servicio"}
-                        >
-                          {s.status === "active" ? (
-                            <ToggleRight size={14} className="text-emerald-600" />
-                          ) : (
-                            <ToggleLeft size={14} className="text-muted" />
-                          )}
                         </Button>
                         <Button 
                           variant="light" 

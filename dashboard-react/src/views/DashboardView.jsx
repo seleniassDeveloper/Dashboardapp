@@ -26,6 +26,7 @@ import SaaSMetricsGrid from "../components/dashboard/SaaSMetricsGrid";
 import AppointmentModal from "../gadgets/appointments/AppointmentModal";
 import ClientModal from "../header/clients/ClientModal";
 import SmartReports from "../components/dashboard/SmartReports";
+import { getWidgetTypes, getMetricOptions } from "../components/dashboard/WidgetRegistry";
 
 // Formato de moneda ARS
 function currency(n) {
@@ -235,6 +236,157 @@ export default function DashboardView() {
     });
   }, [clients, searchQuery]);
 
+  // --- Filtrado Reactivo de Widgets por Búsqueda ---
+  const filteredWidgets = useMemo(() => {
+    if (!searchQuery.trim()) return widgets;
+    const q = searchQuery.toLowerCase();
+    const widgetTypes = getWidgetTypes ? getWidgetTypes(isEs) : {};
+    const metricOptions = getMetricOptions ? getMetricOptions(isEs) : [];
+
+    const result = [];
+
+    for (const w of widgets) {
+      if (!w) continue;
+
+      let metadataMatch = false;
+
+      // 1. Coincidencia por título del widget
+      if (w.title && w.title.toLowerCase().includes(q)) {
+        metadataMatch = true;
+      }
+
+      // 2. Coincidencia por tipo de widget (su etiqueta o descripción traducida)
+      if (!metadataMatch) {
+        const typeInfo = widgetTypes[w.type];
+        if (typeInfo) {
+          if (typeInfo.label && typeInfo.label.toLowerCase().includes(q)) metadataMatch = true;
+          if (typeInfo.description && typeInfo.description.toLowerCase().includes(q)) metadataMatch = true;
+        }
+      }
+
+      // 3. Coincidencia por métrica configurada (ej. "Ingresos", "Ocupación")
+      if (!metadataMatch && w.config?.metric) {
+        const opt = metricOptions.find((o) => o.value === w.config.metric);
+        if (opt && opt.label && opt.label.toLowerCase().includes(q)) metadataMatch = true;
+      }
+
+      if (metadataMatch) {
+        // Si coincide por metadatos, mostramos el widget con todos sus datos originales
+        result.push({
+          ...w,
+          appointmentsData: appointments,
+          clientsData: clients,
+        });
+        continue;
+      }
+
+      // 4. Coincidencia por datos internos del widget
+      let dataMatch = false;
+      let matchedAppts = [];
+      let matchedClients = [];
+
+      if (w.type === "calendar" || w.type === "table" || w.type === "attention" || w.type === "activity") {
+        // Obtenemos las citas filtradas por el rango temporal del propio widget
+        const range = w.config?.range || "ALL";
+        const now = new Date();
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+        const widgetAppointments = appointments.filter((a) => {
+          if (!a || !a.startsAt) return false;
+          const date = new Date(a.startsAt);
+          if (range === "TODAY") return date >= startOfToday;
+          if (range === "THIS_WEEK") {
+            const startOfWeek = new Date(startOfToday.getTime() - startOfToday.getDay() * 24 * 60 * 60 * 1000);
+            return date >= startOfWeek;
+          }
+          if (range === "THIS_MONTH") {
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+            return date >= startOfMonth;
+          }
+          if (range === "LAST_30_DAYS") {
+            const thirtyDaysAgo = new Date(startOfToday.getTime() - 30 * 24 * 60 * 60 * 1000);
+            return date >= thirtyDaysAgo;
+          }
+          if (range === "THIS_YEAR") {
+            const startOfYear = new Date(now.getFullYear(), 0, 1);
+            return date >= startOfYear;
+          }
+          return true;
+        });
+
+        matchedAppts = widgetAppointments.filter((a) => {
+          if (!a) return false;
+          const clientName = `${a.client?.firstName || ""} ${a.client?.lastName || ""}`.toLowerCase();
+          const serviceName = String(a.service?.name || "").toLowerCase();
+          const workerName = `${a.worker?.firstName || ""} ${a.worker?.lastName || ""}`.toLowerCase();
+          const notes = String(a.notes || "").toLowerCase();
+          return (
+            clientName.includes(q) ||
+            serviceName.includes(q) ||
+            workerName.includes(q) ||
+            notes.includes(q)
+          );
+        });
+
+        if (matchedAppts.length > 0) {
+          dataMatch = true;
+        }
+
+        if (w.type === "activity") {
+          matchedClients = clients.filter((c) => {
+            if (!c) return false;
+            const clientName = `${c.firstName || ""} ${c.lastName || ""}`.toLowerCase();
+            const email = String(c.email || "").toLowerCase();
+            const phone = String(c.phone || "").toLowerCase();
+            return clientName.includes(q) || email.includes(q) || phone.includes(q);
+          });
+          if (matchedClients.length > 0) {
+            dataMatch = true;
+          }
+        }
+      }
+
+      if (w.type === "chart") {
+        if (w.config?.metric === "services_sales") {
+          const hasMatchingService = services.some((s) => s && String(s.name || "").toLowerCase().includes(q));
+          if (hasMatchingService) dataMatch = true;
+        }
+        if (w.config?.metric === "workers_load") {
+          const hasMatchingWorker = workers.some((wk) =>
+            wk && `${wk.firstName || ""} ${wk.lastName || ""}`.toLowerCase().includes(q)
+          );
+          if (hasMatchingWorker) dataMatch = true;
+        }
+        // Para gráficos, pasamos las citas filtradas si coincide
+        if (dataMatch) {
+          matchedAppts = filteredAppointments;
+        }
+      }
+
+      if (w.type === "ai_insight") {
+        const insightsList = [
+          "ingresos bajaron 18%", "promoción", "Laura Pérez", "Balayage", "uñas",
+          "Andrea", "retención de clientes", "sábados", "ocupación", "Jueves", "2x1", "descuento",
+          "nutrición gratis", "estilista"
+        ];
+        if (insightsList.some((text) => text.toLowerCase().includes(q))) {
+          dataMatch = true;
+          matchedAppts = filteredAppointments;
+        }
+      }
+
+      if (dataMatch) {
+        result.push({
+          ...w,
+          appointmentsData: matchedAppts,
+          clientsData: matchedClients.length > 0 ? matchedClients : clients,
+        });
+      }
+    }
+
+    return result;
+  }, [widgets, searchQuery, appointments, clients, workers, services, filteredAppointments, isEs]);
+
   // --- Operaciones de Widgets ---
   const handleSaveWidget = async (widgetData) => {
     try {
@@ -415,7 +567,9 @@ export default function DashboardView() {
       {/* 3-7. GRID DE WIDGETS CONFIGURABLES (MÉTRICAS Y GADGETS ARRIBA) */}
       <Container fluid className="px-0">
         <DashboardGrid
-          widgets={widgets}
+          widgets={filteredWidgets}
+          searchQuery={searchQuery}
+          onClearSearch={() => setSearchQuery("")}
           appointments={filteredAppointments}
           clients={filteredClients}
           workers={workers}

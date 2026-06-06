@@ -25,9 +25,9 @@ const FONT_OPTIONS = [
 const THEME_PRESETS = [
   {
     name: "Classic Minimal (Por defecto)",
-    textColor: "#10b981",
-    dashboardBg: "#fafaf9",
-    menuSelectionColor: "#10b981",
+    textColor: "#7c3aed",
+    dashboardBg: "#f8fafc",
+    menuSelectionColor: "#7c3aed",
     fontFamily: 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial',
   },
   {
@@ -70,8 +70,8 @@ export default function BrandModal({ show, onHide, forceRequired = false }) {
   const [coverUrl, setCoverUrl] = useState("");
   const [preview, setPreview] = useState("");
   const [fontFamily, setFontFamily] = useState(FONT_OPTIONS[0].value);
-  const [dashboardBg, setDashboardBg] = useState("#f8f9fa");
-  const [menuSelectionColor, setMenuSelectionColor] = useState("#10b981");
+  const [dashboardBg, setDashboardBg] = useState("#f8fafc");
+  const [menuSelectionColor, setMenuSelectionColor] = useState("#7c3aed");
 
   const nameIsValid = companyName.trim().length > 0;
 
@@ -90,8 +90,8 @@ export default function BrandModal({ show, onHide, forceRequired = false }) {
     setCoverUrl(image.startsWith("http") ? image : "");
 
     setFontFamily(brand.fontFamily || FONT_OPTIONS[0].value);
-    setDashboardBg(brand.dashboardBg || "#f8f9fa");
-    setMenuSelectionColor(brand.menuSelectionColor || brand.accentColor || "#10b981");
+    setDashboardBg(brand.dashboardBg || "#f8fafc");
+    setMenuSelectionColor(brand.menuSelectionColor || brand.accentColor || "#7c3aed");
   }, [show, brand]);
 
   const handleUrlChange = (e) => {

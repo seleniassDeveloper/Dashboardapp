@@ -58,8 +58,8 @@ export async function checkTenant(req, res, next) {
       }
     }
 
-    // AUTO-SEEDING en PostgreSQL para el Propietario Real Google
-    if (req.user?.email === "seleniadeveloper@gmail.com") {
+    // AUTO-SEEDING en PostgreSQL para el Propietario Real Google y el Usuario Demo
+    if (req.user?.email === "seleniadeveloper@gmail.com" || firebaseUid === "quick-booking-user") {
       let devBusiness = await prisma.business.findFirst();
       if (!devBusiness) {
         devBusiness = await prisma.business.create({
@@ -72,9 +72,21 @@ export async function checkTenant(req, res, next) {
         });
       }
 
-      const ownerRole = await prisma.role.findFirst({
+      let ownerRole = await prisma.role.findFirst({
         where: { key: "owner", businessId: null }
       });
+
+      if (!ownerRole) {
+        ownerRole = await prisma.role.create({
+          data: {
+            key: "owner",
+            name: "Owner / Dueño",
+            description: "Propietario del negocio. Acceso total.",
+            isSystemRole: true,
+            isActive: true
+          }
+        });
+      }
 
       if (ownerRole) {
         let devMember = await prisma.businessMember.findFirst({
@@ -82,7 +94,7 @@ export async function checkTenant(req, res, next) {
         });
 
         if (!devMember) {
-          console.log("[auth] Creando membresía relacional de Owner en Postgres para:", req.user.email);
+          console.log("[auth] Creando membresía relacional de Owner en Postgres para:", req.user?.email || firebaseUid);
           await prisma.businessMember.create({
             data: {
               userId: firebaseUid,

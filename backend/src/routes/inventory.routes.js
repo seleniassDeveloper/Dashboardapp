@@ -25,8 +25,7 @@ import { requirePermission } from "../middleware/rbac.middleware.js";
 
 const router = Router();
 
-// Apply requireAuth middleware to secure all inventory ERP endpoints
-router.use(requireAuth);
+// requireAuth is already applied at the mount point in app.js before checkTenant, ensuring roles/permissions are preserved.
 
 router.get("/dashboard", requirePermission("inventory.view"), getInventoryDashboardData);
 

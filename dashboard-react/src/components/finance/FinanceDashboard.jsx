@@ -1,5 +1,5 @@
-import React from "react";
-import { Row, Col, Card, Badge, ProgressBar, Table, Button, Form } from "react-bootstrap";
+import React, { useState } from "react";
+import { Row, Col, Card, Badge, ProgressBar, Table, Button, Form, Modal } from "react-bootstrap";
 import { TrendingUp, DollarSign, CreditCard, Sparkles, ShoppingBag, Plus } from "lucide-react";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, BarChart, Bar, Legend } from "recharts";
 
@@ -20,6 +20,8 @@ export default function FinanceDashboard({
   recentTransactions = [],
   onAddExpenseClick
 }) {
+  const [activeModal, setActiveModal] = useState(null);
+
   const chartData = [
     { name: "Semana 1", ingresos: Math.round(summary.totalRevenues * 0.22), egresos: Math.round(summary.totalExpenses * 0.25) },
     { name: "Semana 2", ingresos: Math.round(summary.totalRevenues * 0.28), egresos: Math.round(summary.totalExpenses * 0.23) },
@@ -32,7 +34,11 @@ export default function FinanceDashboard({
       <Row className="g-4 mb-4">
         {/* KPI 1: Ingresos Totales */}
         <Col md={3}>
-          <div className="card-premium p-4 h-100 bg-white">
+          <div 
+            className="card-premium p-4 h-100 bg-white hover-scale transition-all" 
+            style={{ cursor: "pointer" }}
+            onClick={() => setActiveModal("revenues")}
+          >
             <div className="d-flex justify-content-between mb-3 align-items-start">
               <div className="p-2 rounded bg-purple-50 text-purple-600"><TrendingUp size={20} /></div>
               <Badge bg="success-soft" className="text-success rounded-pill px-2.5 py-1 small">+{summary.growthPercentage}% vs mes ant</Badge>
@@ -44,7 +50,11 @@ export default function FinanceDashboard({
 
         {/* KPI 2: Ganancia Real */}
         <Col md={3}>
-          <div className="card-premium p-4 h-100 bg-white" style={{ borderLeft: "4px solid #10b981" }}>
+          <div 
+            className="card-premium p-4 h-100 bg-white hover-scale transition-all" 
+            style={{ cursor: "pointer", borderLeft: "4px solid #10b981" }}
+            onClick={() => setActiveModal("profit")}
+          >
             <div className="d-flex justify-content-between mb-3 align-items-start">
               <div className="p-2 rounded bg-emerald-50 text-emerald-600"><DollarSign size={20} /></div>
               <span className="text-muted smaller fw-bold uppercase">Caja Neta</span>
@@ -56,7 +66,11 @@ export default function FinanceDashboard({
 
         {/* KPI 3: Ticket Promedio */}
         <Col md={3}>
-          <div className="card-premium p-4 h-100 bg-white">
+          <div 
+            className="card-premium p-4 h-100 bg-white hover-scale transition-all" 
+            style={{ cursor: "pointer" }}
+            onClick={() => setActiveModal("ticket")}
+          >
             <div className="d-flex justify-content-between mb-3 align-items-start">
               <div className="p-2 rounded bg-blue-50 text-blue-600"><CreditCard size={20} /></div>
               <span className="text-muted smaller fw-bold uppercase">Consumo Medio</span>
@@ -68,7 +82,11 @@ export default function FinanceDashboard({
 
         {/* KPI 4: Cancelaciones */}
         <Col md={3}>
-          <div className="card-premium p-4 h-100 bg-white" style={{ borderLeft: "4px solid #f87171" }}>
+          <div 
+            className="card-premium p-4 h-100 bg-white hover-scale transition-all" 
+            style={{ cursor: "pointer", borderLeft: "4px solid #f87171" }}
+            onClick={() => setActiveModal("cancellations")}
+          >
             <div className="d-flex justify-content-between mb-3 align-items-start">
               <div className="p-2 rounded bg-red-50 text-red-500"><ShoppingBag size={20} /></div>
               <span className="text-muted smaller fw-bold uppercase">Pérdida Neto</span>
@@ -427,6 +445,175 @@ export default function FinanceDashboard({
           </>
         )}
       </Row>
+
+      {/* MODAL 1: Ingresos Totales */}
+      <Modal show={activeModal === "revenues"} onHide={() => setActiveModal(null)} size="lg" centered>
+        <Modal.Header closeButton className="border-0 bg-light py-3 px-4">
+          <Modal.Title className="fw-bold text-dark d-flex align-items-center gap-2">
+            <TrendingUp className="text-purple-600" size={22} />
+            <span>Detalle de Ingresos Totales</span>
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="p-4">
+          <p className="text-muted mb-4">
+            A continuación se presenta el desglose de los ingresos registrados en el mes actual a través de turnos y ventas cobradas.
+          </p>
+          <h5 className="fw-bold mb-3 text-purple-700">Resumen por Método de Pago:</h5>
+          <Row className="g-3 mb-4">
+            {paymentMethods.map((pm, idx) => (
+              <Col key={pm.name} xs={6} md={3}>
+                <div className="p-3 border rounded-3 text-center bg-light">
+                  <div className="text-muted smaller uppercase fw-bold mb-1">{pm.name}</div>
+                  <div className="h5 fw-bold m-0 text-dark">{currency(pm.value)}</div>
+                </div>
+              </Col>
+            ))}
+          </Row>
+          <h5 className="fw-bold mb-3 text-purple-700">Últimos Movimientos de Caja:</h5>
+          {recentTransactions.length === 0 ? (
+            <div className="py-4 text-center text-muted border rounded">No hay transacciones registradas en este período.</div>
+          ) : (
+            <div className="table-responsive" style={{ maxHeight: "300px" }}>
+              <Table hover responsive className="mb-0 align-middle">
+                <thead>
+                  <tr className="table-header-small" style={{ fontSize: "11px" }}>
+                    <th>Cliente</th>
+                    <th>Servicio</th>
+                    <th>Profesional</th>
+                    <th>Medio de Pago</th>
+                    <th className="text-end">Monto</th>
+                  </tr>
+                </thead>
+                <tbody style={{ fontSize: "13px" }}>
+                  {recentTransactions.map((tx) => (
+                    <tr key={tx.id}>
+                      <td>{tx.clientName}</td>
+                      <td><Badge bg="primary-soft" className="text-primary">{tx.serviceName}</Badge></td>
+                      <td>{tx.workerName}</td>
+                      <td>{tx.paymentMethod}</td>
+                      <td className="text-end fw-bold text-success">{currency(tx.amount)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer className="border-0 bg-light py-2">
+          <Button variant="secondary" onClick={() => setActiveModal(null)} className="rounded-xl px-4 fw-bold">Cerrar</Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* MODAL 2: Ganancia Real */}
+      <Modal show={activeModal === "profit"} onHide={() => setActiveModal(null)} centered>
+        <Modal.Header closeButton className="border-0 bg-light py-3 px-4">
+          <Modal.Title className="fw-bold text-dark d-flex align-items-center gap-2">
+            <DollarSign className="text-emerald-600" size={22} />
+            <span>Desglose de Ganancia Real (Caja Neta)</span>
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="p-4">
+          <p className="text-muted mb-4">
+            La ganancia real neta se calcula deduciendo de los ingresos totales los gastos operativos registrados y las comisiones calculadas para los profesionales.
+          </p>
+          <div className="d-grid gap-3 p-3 bg-light rounded-4 border">
+            <div className="d-flex justify-content-between align-items-center">
+              <span className="text-muted font-medium">Ingresos Totales (Cobros)</span>
+              <span className="fw-bold text-dark">+{currency(summary.totalRevenues)}</span>
+            </div>
+            <div className="d-flex justify-content-between align-items-center text-danger border-top pt-2">
+              <span className="text-muted font-medium">Gastos Registrados (Mes)</span>
+              <span className="fw-bold">-{currency(summary.totalExpenses)}</span>
+            </div>
+            <div className="d-flex justify-content-between align-items-center text-danger border-top pt-2">
+              <span className="text-muted font-medium">Comisiones de Colaboradores (Est.)</span>
+              <span className="fw-bold">-{currency(summary.totalRevenues * 0.40)}</span>
+            </div>
+            <div className="d-flex justify-content-between align-items-center border-top pt-3 fs-5">
+              <span className="fw-black text-gray-900">Ganancia Real Neta</span>
+              <span className="fw-black text-emerald-600">{currency(summary.realProfit)}</span>
+            </div>
+          </div>
+          <div className="mt-4 smaller text-muted text-center">
+            * Nota: Los egresos y comisiones se pueden administrar y liquidar en los módulos de <strong>Cierre de Caja</strong> y <strong>Nóminas</strong> respectivamente.
+          </div>
+        </Modal.Body>
+        <Modal.Footer className="border-0 bg-light py-2">
+          <Button variant="secondary" onClick={() => setActiveModal(null)} className="rounded-xl px-4 fw-bold">Cerrar</Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* MODAL 3: Ticket Promedio */}
+      <Modal show={activeModal === "ticket"} onHide={() => setActiveModal(null)} centered>
+        <Modal.Header closeButton className="border-0 bg-light py-3 px-4">
+          <Modal.Title className="fw-bold text-dark d-flex align-items-center gap-2">
+            <CreditCard className="text-blue-600" size={22} />
+            <span>Cálculo del Ticket Promedio</span>
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="p-4">
+          <p className="text-muted mb-4">
+            El ticket promedio representa el valor medio consumido por cliente en cada turno realizado en el salón durante el mes actual.
+          </p>
+          <div className="d-grid gap-3 p-3 bg-light rounded-4 border">
+            <div className="d-flex justify-content-between align-items-center">
+              <span className="text-muted font-medium">Fórmula Aplicada</span>
+              <span className="fw-bold text-blue-700">Total Ingresos / Citas Realizadas</span>
+            </div>
+            <div className="d-flex justify-content-between align-items-center border-top pt-2">
+              <span className="text-muted">Total Ingresos</span>
+              <span className="fw-bold text-dark">{currency(summary.totalRevenues)}</span>
+            </div>
+            <div className="d-flex justify-content-between align-items-center border-top pt-2">
+              <span className="text-muted">Citas Estimadas Realizadas</span>
+              <span className="fw-bold text-dark">{Math.max(1, Math.round(summary.totalRevenues / (summary.avgTicket || 1)))}</span>
+            </div>
+            <div className="d-flex justify-content-between align-items-center border-top pt-3 fs-5">
+              <span className="fw-black text-gray-900">Ticket Promedio</span>
+              <span className="fw-black text-blue-600">{currency(summary.avgTicket)}</span>
+            </div>
+          </div>
+        </Modal.Body>
+        <Modal.Footer className="border-0 bg-light py-2">
+          <Button variant="secondary" onClick={() => setActiveModal(null)} className="rounded-xl px-4 fw-bold">Cerrar</Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* MODAL 4: Cancelaciones */}
+      <Modal show={activeModal === "cancellations"} onHide={() => setActiveModal(null)} centered>
+        <Modal.Header closeButton className="border-0 bg-light py-3 px-4">
+          <Modal.Title className="fw-bold text-dark d-flex align-items-center gap-2">
+            <ShoppingBag className="text-red-500" size={22} />
+            <span>Pérdidas por Cancelación</span>
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="p-4">
+          <p className="text-muted mb-4">
+            Esta métrica estima la pérdida de ingresos potenciales debido a citas marcadas como "CANCELADO" o clientes que no se presentaron en el período seleccionado.
+          </p>
+          <div className="d-grid gap-3 p-3 bg-light rounded-4 border">
+            <div className="d-flex justify-content-between align-items-center">
+              <span className="text-muted font-medium">Fórmula Aplicada</span>
+              <span className="fw-bold text-red-700">Cant. Cancelados * Ticket Promedio</span>
+            </div>
+            <div className="d-flex justify-content-between align-items-center border-top pt-2">
+              <span className="text-muted">Ticket Promedio del Salón</span>
+              <span className="fw-bold text-dark">{currency(summary.avgTicket)}</span>
+            </div>
+            <div className="d-flex justify-content-between align-items-center border-top pt-2">
+              <span className="text-muted">Turnos Cancelados Estimados</span>
+              <span className="fw-bold text-dark">{Math.max(0, Math.round(summary.cancellationLoss / (summary.avgTicket || 15000)))}</span>
+            </div>
+            <div className="d-flex justify-content-between align-items-center border-top pt-3 fs-5">
+              <span className="fw-black text-gray-900">Total Pérdida Estimada</span>
+              <span className="fw-black text-red-600">{currency(summary.cancellationLoss)}</span>
+            </div>
+          </div>
+        </Modal.Body>
+        <Modal.Footer className="border-0 bg-light py-2">
+          <Button variant="secondary" onClick={() => setActiveModal(null)} className="rounded-xl px-4 fw-bold">Cerrar</Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 }
