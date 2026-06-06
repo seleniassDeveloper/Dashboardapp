@@ -105,8 +105,9 @@ export default function InventoryDashboard({ summary = {}, products = [], moveme
         {/* KPI 1: Stock Crítico */}
         <Col className="flex-grow-1" style={{ minWidth: "200px" }}>
           <div 
-            className="p-3 bg-white border rounded-2xl shadow-sm d-flex align-items-center gap-3 h-100 position-relative overflow-hidden"
-            style={{ borderColor: "rgba(239, 68, 68, 0.15)" }}
+            className="p-3 bg-white border rounded-2xl shadow-sm d-flex align-items-center gap-3 h-100 position-relative overflow-hidden hover-scale transition-all"
+            style={{ borderColor: "rgba(239, 68, 68, 0.15)", cursor: "pointer" }}
+            onClick={() => setSelectedKPI("lowStock")}
           >
             <div className="p-2.5 rounded-xl bg-red-50 text-red-500 d-flex align-items-center justify-content-center">
               <AlertTriangle size={20} className={safeSummary.lowStockCount > 0 ? "animate-pulse" : ""} />
@@ -126,7 +127,9 @@ export default function InventoryDashboard({ summary = {}, products = [], moveme
         {/* KPI 2: Valuación Total */}
         <Col className="flex-grow-1" style={{ minWidth: "200px" }}>
           <div 
-            className="p-3 bg-white border rounded-2xl shadow-sm d-flex align-items-center gap-3 h-100 position-relative overflow-hidden"
+            className="p-3 bg-white border rounded-2xl shadow-sm d-flex align-items-center gap-3 h-100 position-relative overflow-hidden hover-scale transition-all"
+            style={{ cursor: "pointer" }}
+            onClick={() => setSelectedKPI("value")}
           >
             <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-600 d-flex align-items-center justify-content-center">
               <DollarSign size={20} />
@@ -141,7 +144,9 @@ export default function InventoryDashboard({ summary = {}, products = [], moveme
         {/* KPI 3: Cantidad Insumos */}
         <Col className="flex-grow-1" style={{ minWidth: "200px" }}>
           <div 
-            className="p-3 bg-white border rounded-2xl shadow-sm d-flex align-items-center gap-3 h-100 position-relative overflow-hidden"
+            className="p-3 bg-white border rounded-2xl shadow-sm d-flex align-items-center gap-3 h-100 position-relative overflow-hidden hover-scale transition-all"
+            style={{ cursor: "pointer" }}
+            onClick={() => setSelectedKPI("catalog")}
           >
             <div className="p-2.5 rounded-xl bg-purple-50 text-purple-600 d-flex align-items-center justify-content-center">
               <Package size={20} />
@@ -156,7 +161,9 @@ export default function InventoryDashboard({ summary = {}, products = [], moveme
         {/* KPI 4: Consumo Estimado */}
         <Col className="flex-grow-1" style={{ minWidth: "200px" }}>
           <div 
-            className="p-3 bg-white border rounded-2xl shadow-sm d-flex align-items-center gap-3 h-100 position-relative overflow-hidden"
+            className="p-3 bg-white border rounded-2xl shadow-sm d-flex align-items-center gap-3 h-100 position-relative overflow-hidden hover-scale transition-all"
+            style={{ cursor: "pointer" }}
+            onClick={() => setSelectedKPI("spend")}
           >
             <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600 d-flex align-items-center justify-content-center">
               <TrendingUp size={20} />
@@ -171,7 +178,9 @@ export default function InventoryDashboard({ summary = {}, products = [], moveme
         {/* KPI 5: Más Utilizado */}
         <Col className="flex-grow-1" style={{ minWidth: "200px" }}>
           <div 
-            className="p-3 bg-white border rounded-2xl shadow-sm d-flex align-items-center gap-3 h-100 position-relative overflow-hidden"
+            className="p-3 bg-white border rounded-2xl shadow-sm d-flex align-items-center gap-3 h-100 position-relative overflow-hidden hover-scale transition-all"
+            style={{ cursor: "pointer" }}
+            onClick={() => setSelectedKPI("mostUsed")}
           >
             <div className="p-2.5 rounded-xl bg-amber-50 text-amber-600 d-flex align-items-center justify-content-center">
               <Sparkles size={20} />
