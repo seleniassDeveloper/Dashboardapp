@@ -5,8 +5,8 @@
 
 :root {
   --lp-bg: #f8fafc;
-  --lp-accent: #7c3aed;
-  --lp-accent-rgb: 124, 58, 237;
+  --lp-accent: #5b21b6;
+  --lp-accent-rgb: 91, 33, 182;
   --lp-text: #0f172a;
   --lp-text-muted: #64748b;
   --lp-border: #e2e8f0;
@@ -32,7 +32,7 @@
 .grid-bg {
   position: relative;
   background-image: 
-    radial-gradient(circle at 80% 20%, rgba(124, 58, 237, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 80% 20%, rgba(91, 33, 182, 0.08) 0%, transparent 40%),
     radial-gradient(circle at 10% 80%, rgba(16, 185, 129, 0.05) 0%, transparent 35%);
 }
 
@@ -53,7 +53,7 @@
   height: 12px;
   background-color: var(--lp-accent);
   border-radius: 50%;
-  box-shadow: 0 0 10px rgba(124, 58, 237, 0.5);
+  box-shadow: 0 0 10px rgba(91, 33, 182, 0.5);
 }
 
 /* Hero Carousel */
@@ -140,7 +140,7 @@
 }
 
 .shadow-accent {
-  box-shadow: 0 25px 50px -12px rgba(124, 58, 237, 0.25) !important;
+  box-shadow: 0 25px 50px -12px rgba(91, 33, 182, 0.25) !important;
 }
 
 /* Scroll Reveal */
@@ -178,7 +178,7 @@
   background: var(--lp-accent);
   transform: translateY(-2px);
   color: white;
-  box-shadow: 0 15px 30px -5px rgba(124, 58, 237, 0.35);
+  box-shadow: 0 15px 30px -5px rgba(91, 33, 182, 0.35);
 }
 
 .btn-outline-premium {
@@ -205,7 +205,7 @@
   color: var(--lp-text);
   overflow: hidden;
   background-image: 
-    radial-gradient(circle at 10% 20%, rgba(124, 58, 237, 0.04) 0%, transparent 40%),
+    radial-gradient(circle at 10% 20%, rgba(91, 33, 182, 0.04) 0%, transparent 40%),
     radial-gradient(circle at 90% 80%, rgba(16, 185, 129, 0.03) 0%, transparent 45%);
 }
 
@@ -243,10 +243,10 @@
 }
 
 .pillar-tab-btn.active {
-  background: linear-gradient(135deg, rgba(124, 58, 237, 0.08) 0%, rgba(124, 58, 237, 0.02) 100%);
+  background: linear-gradient(135deg, rgba(91, 33, 182, 0.08) 0%, rgba(91, 33, 182, 0.02) 100%);
   border-color: var(--lp-accent);
   color: var(--lp-accent);
-  box-shadow: 0 8px 20px -8px rgba(124, 58, 237, 0.25);
+  box-shadow: 0 8px 20px -8px rgba(91, 33, 182, 0.25);
   font-weight: 700;
 }
 
@@ -319,8 +319,8 @@
 }
 
 .mock-calendar-cell.has-booking-pending {
-  background: linear-gradient(135deg, rgba(124, 58, 237, 0.15) 0%, rgba(124, 58, 237, 0.05) 100%);
-  border-color: rgba(124, 58, 237, 0.4);
+  background: linear-gradient(135deg, rgba(91, 33, 182, 0.15) 0%, rgba(91, 33, 182, 0.05) 100%);
+  border-color: rgba(91, 33, 182, 0.4);
 }
 
 /* Workflows Canvas Mockup */
@@ -342,7 +342,7 @@
   left: 50%;
   width: 2px;
   height: 20px;
-  background: rgba(124, 58, 237, 0.3);
+  background: rgba(91, 33, 182, 0.3);
   z-index: 1;
 }
 
@@ -381,7 +381,7 @@
   color: white;
   box-shadow: 0 30px 60px -15px rgba(15, 23, 42, 0.25);
   position: relative;
-  background-image: radial-gradient(circle at 90% 10%, rgba(124, 58, 237, 0.06) 0%, transparent 40%);
+  background-image: radial-gradient(circle at 90% 10%, rgba(91, 33, 182, 0.06) 0%, transparent 40%);
 }
 
 .ai-simulator-wrapper h2,
@@ -470,14 +470,14 @@
   color: white;
   border-color: var(--lp-accent);
   transform: translateY(-2px);
-  box-shadow: 0 10px 20px -5px rgba(124, 58, 237, 0.3);
+  box-shadow: 0 10px 20px -5px rgba(91, 33, 182, 0.3);
 }
 
 .ai-query-button.active {
   background: var(--lp-accent);
   color: white;
   border-color: var(--lp-accent);
-  box-shadow: 0 10px 20px -5px rgba(124, 58, 237, 0.35);
+  box-shadow: 0 10px 20px -5px rgba(91, 33, 182, 0.35);
   font-weight: 700;
 }
 
@@ -898,13 +898,13 @@
 
 /* Footer CTA Banner */
 .footer-cta-banner {
-  background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+  background: linear-gradient(135deg, #5b21b6 0%, #4f46e5 100%);
   border-radius: 32px;
   padding: 80px 40px;
   color: #ffffff;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 40px 80px -20px rgba(124, 58, 237, 0.35);
+  box-shadow: 0 40px 80px -20px rgba(91, 33, 182, 0.35);
 }
 
 .footer-cta-banner::before {

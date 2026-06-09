@@ -281,7 +281,7 @@ export default function LandingPage() {
             <Row className="align-items-center g-5">
               <Col lg={6}>
                 <div className="d-flex align-items-center gap-2 mb-4">
-                  <Badge bg="purple" className="px-2 py-1 rounded text-white" style={{ background: '#7c3aed', fontSize: '0.75rem', fontWeight: 800 }}>NUEVO</Badge>
+                  <Badge bg="purple" className="px-2 py-1 rounded text-white" style={{ background: 'var(--lp-accent)', fontSize: '0.75rem', fontWeight: 800 }}>NUEVO</Badge>
                   <span className="text-muted small fw-semibold" style={{ fontSize: '0.85rem' }}>{t("hero.badge")}</span>
                 </div>
                 <h1 className="display-4 fw-black mb-4" style={{ letterSpacing: '-0.03em', lineHeight: 1.1, fontSize: '3.5rem' }}>
@@ -699,7 +699,7 @@ export default function LandingPage() {
 
               {/* Right Column: AI Details & Stack Stats */}
               <Col lg={7} className="ps-lg-5">
-                <span className="text-uppercase fw-bold text-purple-600 small" style={{ color: '#7c3aed', letterSpacing: '0.1em' }}>
+                <span className="text-uppercase fw-bold text-purple-600 small" style={{ color: 'var(--lp-accent)', letterSpacing: '0.1em' }}>
                   {t("aiCopilot.title")}
                 </span>
                 <h2 className="fw-black h1 mt-2 mb-4" style={{ letterSpacing: '-0.02em', fontSize: '2.5rem' }}>
@@ -902,7 +902,7 @@ export default function LandingPage() {
               <Col lg={4} md={6}>
                 <div className="pricing-card featured h-100 p-5 text-start border-0 position-relative">
                   <div className="position-absolute top-0 end-0 mt-3 me-3">
-                    <Badge bg="purple" className="text-white px-3 py-2 rounded-pill small uppercase" style={{ background: '#7c3aed', fontSize: '9px', fontWeight: 800 }}>{t("pricing.popular")}</Badge>
+                    <Badge bg="purple" className="text-white px-3 py-2 rounded-pill small uppercase" style={{ background: 'var(--lp-accent)', fontSize: '9px', fontWeight: 800 }}>{t("pricing.popular")}</Badge>
                   </div>
                   <h3 className="h5 fw-bold text-dark mb-1">{t("pricing.growth.name")}</h3>
                   <p className="text-muted smaller mb-4">{t("pricing.growth.desc")}</p>
@@ -912,22 +912,22 @@ export default function LandingPage() {
                   
                   <ul className="list-unstyled mb-5 d-flex flex-column gap-3">
                     <li className="smaller fw-medium d-flex align-items-center gap-2 text-dark">
-                      <Check size={16} style={{ color: '#8b5cf6' }} /> {t("pricing.growth.f1")}
+                      <Check size={16} style={{ color: 'var(--lp-accent)' }} /> {t("pricing.growth.f1")}
                     </li>
                     <li className="smaller fw-medium d-flex align-items-center gap-2 text-dark">
-                      <Check size={16} style={{ color: '#8b5cf6' }} /> {t("pricing.growth.f2")}
+                      <Check size={16} style={{ color: 'var(--lp-accent)' }} /> {t("pricing.growth.f2")}
                     </li>
                     <li className="smaller fw-medium d-flex align-items-center gap-2 text-dark">
-                      <Check size={16} style={{ color: '#8b5cf6' }} /> {t("pricing.growth.f3")}
+                      <Check size={16} style={{ color: 'var(--lp-accent)' }} /> {t("pricing.growth.f3")}
                     </li>
                     <li className="smaller fw-medium d-flex align-items-center gap-2 text-dark">
-                      <Check size={16} style={{ color: '#8b5cf6' }} /> {t("pricing.growth.f4")}
+                      <Check size={16} style={{ color: 'var(--lp-accent)' }} /> {t("pricing.growth.f4")}
                     </li>
                     <li className="smaller fw-medium d-flex align-items-center gap-2 text-dark">
-                      <Check size={16} style={{ color: '#8b5cf6' }} /> {t("pricing.growth.f5")}
+                      <Check size={16} style={{ color: 'var(--lp-accent)' }} /> {t("pricing.growth.f5")}
                     </li>
                   </ul>
-                  <button onClick={handleFreeTrial} className="btn-premium w-100 py-3 fw-bold mt-auto text-white bg-purple-600 border-0" style={{ borderRadius: '12px', background: '#7c3aed' }}>
+                  <button onClick={handleFreeTrial} className="btn-premium w-100 py-3 fw-bold mt-auto text-white bg-purple-600 border-0" style={{ borderRadius: '12px', background: 'var(--lp-accent)' }}>
                     {t("pricing.cta")}
                   </button>
                 </div>
@@ -944,19 +944,19 @@ export default function LandingPage() {
                   
                   <ul className="list-unstyled mb-5 d-flex flex-column gap-3">
                     <li className="smaller fw-medium d-flex align-items-center gap-2 text-dark">
-                      <Check size={16} style={{ color: '#8b5cf6' }} /> {t("pricing.aipro.f1")}
+                      <Check size={16} style={{ color: 'var(--lp-accent)' }} /> {t("pricing.aipro.f1")}
                     </li>
                     <li className="smaller fw-medium d-flex align-items-center gap-2 text-dark">
-                      <Check size={16} style={{ color: '#8b5cf6' }} /> {t("pricing.aipro.f2")}
+                      <Check size={16} style={{ color: 'var(--lp-accent)' }} /> {t("pricing.aipro.f2")}
                     </li>
                     <li className="smaller fw-medium d-flex align-items-center gap-2 text-dark">
-                      <Check size={16} style={{ color: '#8b5cf6' }} /> {t("pricing.aipro.f3")}
+                      <Check size={16} style={{ color: 'var(--lp-accent)' }} /> {t("pricing.aipro.f3")}
                     </li>
                     <li className="smaller fw-medium d-flex align-items-center gap-2 text-dark">
-                      <Check size={16} style={{ color: '#8b5cf6' }} /> {t("pricing.aipro.f4")}
+                      <Check size={16} style={{ color: 'var(--lp-accent)' }} /> {t("pricing.aipro.f4")}
                     </li>
                     <li className="smaller fw-medium d-flex align-items-center gap-2 text-dark">
-                      <Check size={16} style={{ color: '#8b5cf6' }} /> {t("pricing.aipro.f5")}
+                      <Check size={16} style={{ color: 'var(--lp-accent)' }} /> {t("pricing.aipro.f5")}
                     </li>
                   </ul>
                   <button onClick={handleFreeTrial} className="btn-outline-premium w-100 py-3 fw-bold mt-auto" style={{ borderRadius: '12px', background: '#f8fafc', color: '#1e293b', border: '1px solid rgba(15, 23, 42, 0.08)' }}>
@@ -1061,7 +1061,7 @@ export default function LandingPage() {
                         <th>{t("comparison.table.header1")}</th>
                         <th className="text-center">{t("comparison.table.header2")}</th>
                         <th className="text-center">{t("comparison.table.header3")}</th>
-                        <th className="text-center" style={{ color: '#7c3aed', background: 'rgba(139, 92, 246, 0.02)' }}>{t("comparison.table.header4")}</th>
+                        <th className="text-center" style={{ color: 'var(--lp-accent)', background: 'rgba(139, 92, 246, 0.02)' }}>{t("comparison.table.header4")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1102,7 +1102,7 @@ export default function LandingPage() {
                         <td className="text-center text-yes" style={{ background: 'rgba(139, 92, 246, 0.02)' }}>{t("comparison.table.yes")}</td>
                       </tr>
                       <tr>
-                        <td className="fw-bold text-dark" style={{ color: '#7c3aed' }}>{t("comparison.table.r7")}</td>
+                        <td className="fw-bold text-dark" style={{ color: 'var(--lp-accent)' }}>{t("comparison.table.r7")}</td>
                         <td className="text-center text-no">{t("comparison.table.no")}</td>
                         <td className="text-center text-no">{t("comparison.table.no")}</td>
                         <td className="text-center text-yes" style={{ background: 'rgba(139, 92, 246, 0.02)' }}>{t("comparison.table.yes")}</td>
@@ -1114,7 +1114,7 @@ export default function LandingPage() {
               
               {/* Right Side: Text details */}
               <Col lg={5} className="ps-lg-5">
-                <span className="text-uppercase fw-bold text-purple-600 small" style={{ color: '#7c3aed', letterSpacing: '0.1em' }}>
+                <span className="text-uppercase fw-bold text-purple-600 small" style={{ color: 'var(--lp-accent)', letterSpacing: '0.1em' }}>
                   {t("comparison.title")}
                 </span>
                 <h2 className="fw-black h1 mt-2 mb-4" style={{ letterSpacing: '-0.02em', fontSize: '2.5rem' }}>
