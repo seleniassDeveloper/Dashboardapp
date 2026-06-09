@@ -239,25 +239,131 @@ export default function CalendarWidget({
                           </Badge>
                         </td>
                         <td className="text-end" onClick={(e) => e.stopPropagation()}>
-                          <Dropdown align="end">
-                            <Dropdown.Toggle variant="link" className="p-0 text-muted no-caret">
-                              <Edit3 size={14} />
-                            </Dropdown.Toggle>
-                            <Dropdown.Menu className="dropdown-premium">
-                              <Dropdown.Item onClick={() => handleStatusChange(a.id, "CONFIRMED")} className="small d-flex align-items-center gap-2">
-                                <Check size={12} className="text-success" /> {isEs ? "Confirmar" : "Confirm"}
-                              </Dropdown.Item>
-                              <Dropdown.Item onClick={() => handleStatusChange(a.id, "IN_PROCESS")} className="small d-flex align-items-center gap-2">
-                                <Clock size={12} className="text-primary" /> {isEs ? "Poner en proceso" : "Start process"}
-                              </Dropdown.Item>
-                              <Dropdown.Item onClick={() => handleStatusChange(a.id, "DONE")} className="small d-flex align-items-center gap-2">
-                                <Check size={12} className="text-success" /> {isEs ? "Finalizar" : "Complete"}
-                              </Dropdown.Item>
-                              <Dropdown.Item onClick={() => handleStatusChange(a.id, "CANCELLED")} className="small d-flex align-items-center gap-2">
-                                <X size={12} className="text-danger" /> {isEs ? "Cancelar" : "Cancel"}
-                              </Dropdown.Item>
-                            </Dropdown.Menu>
-                          </Dropdown>
+                          <div className="d-flex justify-content-end gap-1.5 align-items-center">
+                            {a.status === "PENDING" && (
+                              <>
+                                <Button
+                                  variant="light"
+                                  size="sm"
+                                  className="p-1 d-flex align-items-center justify-content-center border-0 hover-scale transition-all"
+                                  style={{
+                                    background: "rgba(16, 185, 129, 0.08)",
+                                    color: "#10b981",
+                                    borderRadius: "6px",
+                                    width: "26px",
+                                    height: "26px",
+                                  }}
+                                  title={isEs ? "Confirmar cita" : "Confirm appointment"}
+                                  onClick={() => handleStatusChange(a.id, "CONFIRMED")}
+                                >
+                                  <Check size={13} />
+                                </Button>
+                                <Button
+                                  variant="light"
+                                  size="sm"
+                                  className="p-1 d-flex align-items-center justify-content-center border-0 hover-scale transition-all"
+                                  style={{
+                                    background: "rgba(239, 68, 68, 0.08)",
+                                    color: "#ef4444",
+                                    borderRadius: "6px",
+                                    width: "26px",
+                                    height: "26px",
+                                  }}
+                                  title={isEs ? "Cancelar cita" : "Cancel appointment"}
+                                  onClick={() => handleStatusChange(a.id, "CANCELLED")}
+                                >
+                                  <X size={13} />
+                                </Button>
+                              </>
+                            )}
+                            {a.status === "CONFIRMED" && (
+                              <>
+                                <Button
+                                  variant="light"
+                                  size="sm"
+                                  className="p-1 d-flex align-items-center justify-content-center border-0 hover-scale transition-all"
+                                  style={{
+                                    background: "rgba(139, 92, 246, 0.08)",
+                                    color: "#8b5cf6",
+                                    borderRadius: "6px",
+                                    width: "26px",
+                                    height: "26px",
+                                  }}
+                                  title={isEs ? "Iniciar servicio (En proceso)" : "Start service (In process)"}
+                                  onClick={() => handleStatusChange(a.id, "IN_PROCESS")}
+                                >
+                                  <Clock size={13} />
+                                </Button>
+                                <Button
+                                  variant="light"
+                                  size="sm"
+                                  className="p-1 d-flex align-items-center justify-content-center border-0 hover-scale transition-all"
+                                  style={{
+                                    background: "rgba(239, 68, 68, 0.08)",
+                                    color: "#ef4444",
+                                    borderRadius: "6px",
+                                    width: "26px",
+                                    height: "26px",
+                                  }}
+                                  title={isEs ? "Cancelar cita" : "Cancel appointment"}
+                                  onClick={() => handleStatusChange(a.id, "CANCELLED")}
+                                >
+                                  <X size={13} />
+                                </Button>
+                              </>
+                            )}
+                            {a.status === "IN_PROCESS" && (
+                              <>
+                                <Button
+                                  variant="light"
+                                  size="sm"
+                                  className="p-1 d-flex align-items-center justify-content-center border-0 hover-scale transition-all"
+                                  style={{
+                                    background: "rgba(16, 185, 129, 0.08)",
+                                    color: "#10b981",
+                                    borderRadius: "6px",
+                                    width: "26px",
+                                    height: "26px",
+                                  }}
+                                  title={isEs ? "Finalizar cita" : "Complete appointment"}
+                                  onClick={() => handleStatusChange(a.id, "DONE")}
+                                >
+                                  <Check size={13} />
+                                </Button>
+                                <Button
+                                  variant="light"
+                                  size="sm"
+                                  className="p-1 d-flex align-items-center justify-content-center border-0 hover-scale transition-all"
+                                  style={{
+                                    background: "rgba(239, 68, 68, 0.08)",
+                                    color: "#ef4444",
+                                    borderRadius: "6px",
+                                    width: "26px",
+                                    height: "26px",
+                                  }}
+                                  title={isEs ? "Cancelar cita" : "Cancel appointment"}
+                                  onClick={() => handleStatusChange(a.id, "CANCELLED")}
+                                >
+                                  <X size={13} />
+                                </Button>
+                              </>
+                            )}
+                            <Button
+                              variant="light"
+                              size="sm"
+                              className="p-1 d-flex align-items-center justify-content-center border-0 hover-scale transition-all text-muted"
+                              style={{
+                                background: "rgba(107, 114, 128, 0.06)",
+                                borderRadius: "6px",
+                                width: "26px",
+                                height: "26px",
+                              }}
+                              title={isEs ? "Ver detalles / Editar" : "View details / Edit"}
+                              onClick={() => handleOpenApptDetails(a)}
+                            >
+                              <Edit3 size={13} />
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     );

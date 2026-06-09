@@ -78,6 +78,7 @@ model Appointment {
   downpaymentPaid          Int?
   downpaymentStatus        String? // "PENDING" | "PAID" | "REFUNDED"
   downpaymentTransactionId String?
+  googleEventId            String?
 }
 
 model Worker {
@@ -241,6 +242,10 @@ model Business {
   bookingDownpaymentPercent  Int      @default(30)
   bookingDownpaymentAmount   Int?
   bookingDownpaymentMethod   String?  @default("mock_mercadopago")
+  googleAccessToken          String?
+  googleRefreshToken         String?
+  googleCalendarId           String?
+  googleBookingUrl           String?
   createdAt                  DateTime @default(now())
   updatedAt                  DateTime @updatedAt
   services                   Service[]

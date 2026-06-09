@@ -32,6 +32,9 @@ import {
 import LanguageSwitcher from "../components/language/LanguageSwitcher.jsx";
 import "./styles/landing.css";
 
+import logoCircular from "../assets/logo-circular.png";
+import logoHorizontal from "../assets/logo-horizontal.png";
+
 import dashHome from "../assets/c1.png";
 import dashCalendar from "../assets/c2.png";
 import dashClients from "../assets/c3.png";
@@ -159,8 +162,7 @@ function MainNavbar({ onHowItWorks, onFreeTrial }) {
     <Navbar expanded={expanded} onToggle={setExpanded} bg="transparent" expand="lg" className="py-4">
       <Container>
         <Navbar.Brand href="/" className="fw-black d-flex align-items-center gap-2">
-          <div className="logo-dot"></div>
-          <span style={{ letterSpacing: '-0.02em', fontSize: '1.5rem', fontWeight: 900 }}>AuraDash</span>
+          <img src={logoHorizontal} alt="AuraDash Logo" style={{ height: "45px", objectFit: "contain" }} />
         </Navbar.Brand>
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
         <Navbar.Collapse id="basic-navbar-nav">
@@ -1172,7 +1174,10 @@ export default function LandingPage() {
       <footer className="py-5 border-top bg-white">
         <Container>
           <div className="d-flex flex-column flex-md-row justify-content-between align-items-center gap-4 text-muted small">
-            <div className="fw-bold text-dark">{t("footer.copyright")}</div>
+            <div className="fw-bold text-dark d-flex flex-column align-items-start gap-1">
+              <img src={logoHorizontal} alt="AuraDash Logo" style={{ height: "32px", objectFit: "contain" }} className="mb-2" />
+              <span>{t("footer.copyright")}</span>
+            </div>
             <div className="d-flex gap-4">
               <a href="#">{t("footer.privacy")}</a>
               <a href="#">{t("footer.terms")}</a>

@@ -42,7 +42,11 @@ const combineDateTime = (date, time) => {
   return `${date}T${time}`;
 };
 
-const toISO = (dtLocal) => new Date(dtLocal).toISOString();
+const toISO = (dtLocal) => {
+  if (!dtLocal) return "";
+  const d = new Date(dtLocal);
+  return isNaN(d.getTime()) ? "" : d.toISOString();
+};
 
 function normalizeService(raw) {
   if (!raw) return null;
@@ -362,10 +366,15 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
     const t = setTimeout(async () => {
       try {
         setAvailability((p) => ({ ...p, loading: true }));
+        const iso = toISO(startsAtLocal);
+        if (!iso) {
+          setAvailability({ loading: false, available: null, reason: "", availableWorkers: [] });
+          return;
+        }
         const params = {
           workerId: form.workerId,
           serviceId: form.serviceId,
-          startsAt: toISO(startsAtLocal),
+          startsAt: iso,
         };
         if (isEdit && initialData?.id) params.excludeId = initialData.id;
 

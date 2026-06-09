@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import { Modal, Row, Col, Form, Button, Alert, Spinner, Badge, Table, InputGroup, Card } from "react-bootstrap";
 import { User, Mail, Phone, Calendar, Briefcase, Shield, Sparkles, Clock, DollarSign, Settings, CheckCircle, HelpCircle, Save } from "lucide-react";
 import api from "../../lib/api.js";
+import { useFormSchema } from "../../hooks/useFormSchema.js";
 
 function currency(n) {
   return new Intl.NumberFormat("es-AR", {
@@ -85,6 +86,36 @@ export default function WorkerFormModal({
   onSaved,
 }) {
   const isEdit = mode === "edit" && Boolean(initialData?.id);
+
+  const schemaKey = isEdit ? "assign.worker.form.edit" : "assign.worker.form.create";
+  const { enabledFields, loading: schemaLoading, error: schemaError } = useFormSchema(schemaKey, {
+    enabled: show,
+  });
+
+  const isFirstNameEnabled = useMemo(() => enabledFields.some(f => f.id === "firstName"), [enabledFields]);
+  const isLastNameEnabled = useMemo(() => enabledFields.some(f => f.id === "lastName"), [enabledFields]);
+  const isEmailEnabled = useMemo(() => enabledFields.some(f => f.id === "email"), [enabledFields]);
+  const isPhoneEnabled = useMemo(() => enabledFields.some(f => f.id === "phone"), [enabledFields]);
+  const isRoleTitleEnabled = useMemo(() => enabledFields.some(f => f.id === "roleTitle"), [enabledFields]);
+  const isServicesEnabled = useMemo(() => enabledFields.some(f => f.id === "services"), [enabledFields]);
+  const isScheduleEnabled = useMemo(() => enabledFields.some(f => f.id === "schedule"), [enabledFields]);
+  const isServicePricingEnabled = useMemo(() => enabledFields.some(f => f.id === "servicePricing"), [enabledFields]);
+
+  const [customFieldValues, setCustomFieldValues] = useState({});
+
+  const customFields = useMemo(() => {
+    return enabledFields.filter(
+      (f) => !["firstName", "lastName", "roleTitle", "email", "phone", "services", "servicePricing", "schedule"].includes(f.id)
+    );
+  }, [enabledFields]);
+
+  const handleCustomFieldChange = (fieldId, val) => {
+    setCustomFieldValues(prev => ({
+      ...prev,
+      [fieldId]: val
+    }));
+  };
+
   const [activeTab, setActiveTab] = useState("general");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -188,6 +219,15 @@ export default function WorkerFormModal({
       });
       setSchedules(initialSchedules);
       setSelectedServiceIds(initialData.serviceIds || []);
+
+      // Cargar campos personalizados
+      const userCf = {};
+      Object.keys(cf).forEach(key => {
+        if (!["photo", "entryDate", "status", "role", "specialties", "commissions", "schedulesExtra", "lastAccess"].includes(key)) {
+          userCf[key] = cf[key];
+        }
+      });
+      setCustomFieldValues(userCf);
     } else {
       // Valores por defecto para creación
       setFirstName("");
@@ -216,6 +256,7 @@ export default function WorkerFormModal({
           breakEndTime: "14:00"
         }))
       );
+      setCustomFieldValues({});
     }
   }, [show, isEdit, initialData]);
 
@@ -267,8 +308,41 @@ export default function WorkerFormModal({
 
   // Guardar Colaborador
   const handleSave = async () => {
-    if (!firstName.trim() || !lastName.trim()) {
-      setError("Nombre y apellido son obligatorios.");
+    // Validación dinámica de campos obligatorios
+    const fieldErrors = {};
+    for (const field of enabledFields) {
+      let val = "";
+      if (field.id === "firstName") val = firstName;
+      else if (field.id === "lastName") val = lastName;
+      else if (field.id === "email") val = email;
+      else if (field.id === "phone") val = phone;
+      else if (field.id === "roleTitle") val = cargo;
+      else if (field.id === "services") {
+        if (field.required && selectedServiceIds.length === 0) {
+          fieldErrors[field.id] = "Debes seleccionar al menos un servicio.";
+        }
+        continue;
+      }
+      else if (field.id === "schedule") {
+        const activeDays = schedules.filter(s => s.active);
+        if (field.required && activeDays.length === 0) {
+          fieldErrors[field.id] = "Debes dejar al menos un día activo en el horario.";
+        }
+        continue;
+      }
+      else if (field.id === "servicePricing") {
+        continue;
+      } else {
+        val = customFieldValues[field.id] || "";
+      }
+
+      if (field.required && !String(val || "").trim()) {
+        fieldErrors[field.id] = `El campo ${field.label || field.id} es obligatorio.`;
+      }
+    }
+
+    if (Object.keys(fieldErrors).length > 0) {
+      setError(Object.values(fieldErrors)[0]);
       return;
     }
 
@@ -285,7 +359,7 @@ export default function WorkerFormModal({
           endTime: s.endTime
         }));
 
-      if (activeSchedules.length === 0) {
+      if (isScheduleEnabled && activeSchedules.length === 0 && enabledFields.find(f => f.id === "schedule")?.required) {
         setError("Debes dejar al menos un día activo en el horario.");
         setSaving(false);
         return;
@@ -301,28 +375,29 @@ export default function WorkerFormModal({
       });
 
       const payload = {
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        email: email.trim() || null,
-        phone: phone.trim() || null,
-        roleTitle: cargo, // Cargo principal
-        serviceIds: selectedServiceIds,
-        schedules: activeSchedules,
+        firstName: isFirstNameEnabled ? firstName.trim() : "",
+        lastName: isLastNameEnabled ? lastName.trim() : "",
+        email: isEmailEnabled ? (email.trim() || null) : null,
+        phone: isPhoneEnabled ? (phone.trim() || null) : null,
+        roleTitle: isRoleTitleEnabled ? cargo : null,
+        serviceIds: isServicesEnabled ? selectedServiceIds : [],
+        schedules: isScheduleEnabled ? activeSchedules : [],
         customFields: {
           photo: photo.trim() || null,
           entryDate,
           status,
           role, // Rol de permisos
-          specialties: selectedSpecialties,
-          commissions: {
+          specialties: isServicesEnabled ? selectedSpecialties : [],
+          commissions: isServicePricingEnabled ? {
             type: commissionType,
             services: Number(commissionServices),
             products: Number(commissionProducts),
             monthlyBonus: Number(monthlyBonus),
             monthlyTarget: Number(monthlyTarget)
-          },
-          schedulesExtra,
-          lastAccess: initialData?.lastAccess || "Nunca"
+          } : {},
+          schedulesExtra: isScheduleEnabled ? schedulesExtra : {},
+          lastAccess: initialData?.lastAccess || "Nunca",
+          ...customFieldValues
         }
       };
 
@@ -359,10 +434,17 @@ export default function WorkerFormModal({
       </Modal.Header>
 
       <Modal.Body className="p-0 bg-white rounded-bottom" style={{ minHeight: "560px" }}>
+        {schemaError && <Alert variant="warning" className="m-3.5 border-0 shadow-sm rounded-xl">{schemaError}</Alert>}
         {error && <Alert variant="danger" className="m-3.5 border-0 shadow-sm rounded-xl">{error}</Alert>}
         {success && <Alert variant="success" className="m-3.5 border-0 shadow-sm rounded-xl">{success}</Alert>}
 
-        <Row className="g-0">
+        {schemaLoading ? (
+          <div className="text-center py-5" style={{ minHeight: "560px", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
+            <Spinner animation="border" variant="primary" />
+            <p className="text-muted mt-2 small">Cargando configuración de formulario…</p>
+          </div>
+        ) : (
+          <Row className="g-0">
           {/* Navegación lateral izquierda para TABS (Estilo SaaS Enterprise) */}
           <Col md={3} className="bg-gray-50 border-end p-3 d-flex flex-column gap-1.5" style={{ minHeight: "560px" }}>
             <button
@@ -383,33 +465,39 @@ export default function WorkerFormModal({
               <Briefcase size={18} />
               <span>Cargo y Rol</span>
             </button>
-            <button
-              onClick={() => setActiveTab("specialties")}
-              className={`d-flex align-items-center gap-3 w-100 px-3 py-2.5 rounded-xl border-0 text-start fw-bold transition-all ${
-                activeTab === "specialties" ? "bg-purple-600 text-white shadow-sm" : "bg-transparent text-muted hover-bg-gray-200"
-              }`}
-            >
-              <Sparkles size={18} />
-              <span>Especialidades</span>
-            </button>
-            <button
-              onClick={() => setActiveTab("schedules")}
-              className={`d-flex align-items-center gap-3 w-100 px-3 py-2.5 rounded-xl border-0 text-start fw-bold transition-all ${
-                activeTab === "schedules" ? "bg-purple-600 text-white shadow-sm" : "bg-transparent text-muted hover-bg-gray-200"
-              }`}
-            >
-              <Clock size={18} />
-              <span>Horarios Semanales</span>
-            </button>
-            <button
-              onClick={() => setActiveTab("commissions")}
-              className={`d-flex align-items-center gap-3 w-100 px-3 py-2.5 rounded-xl border-0 text-start fw-bold transition-all ${
-                activeTab === "commissions" ? "bg-purple-600 text-white shadow-sm" : "bg-transparent text-muted hover-bg-gray-200"
-              }`}
-            >
-              <DollarSign size={18} />
-              <span>Comisiones</span>
-            </button>
+            {isServicesEnabled && (
+              <button
+                onClick={() => setActiveTab("specialties")}
+                className={`d-flex align-items-center gap-3 w-100 px-3 py-2.5 rounded-xl border-0 text-start fw-bold transition-all ${
+                  activeTab === "specialties" ? "bg-purple-600 text-white shadow-sm" : "bg-transparent text-muted hover-bg-gray-200"
+                }`}
+              >
+                <Sparkles size={18} />
+                <span>Especialidades</span>
+              </button>
+            )}
+            {isScheduleEnabled && (
+              <button
+                onClick={() => setActiveTab("schedules")}
+                className={`d-flex align-items-center gap-3 w-100 px-3 py-2.5 rounded-xl border-0 text-start fw-bold transition-all ${
+                  activeTab === "schedules" ? "bg-purple-600 text-white shadow-sm" : "bg-transparent text-muted hover-bg-gray-200"
+                }`}
+              >
+                <Clock size={18} />
+                <span>Horarios Semanales</span>
+              </button>
+            )}
+            {isServicePricingEnabled && (
+              <button
+                onClick={() => setActiveTab("commissions")}
+                className={`d-flex align-items-center gap-3 w-100 px-3 py-2.5 rounded-xl border-0 text-start fw-bold transition-all ${
+                  activeTab === "commissions" ? "bg-purple-600 text-white shadow-sm" : "bg-transparent text-muted hover-bg-gray-200"
+                }`}
+              >
+                <DollarSign size={18} />
+                <span>Comisiones</span>
+              </button>
+            )}
             <button
               onClick={() => setActiveTab("access")}
               className={`d-flex align-items-center gap-3 w-100 px-3 py-2.5 rounded-xl border-0 text-start fw-bold transition-all ${
@@ -430,56 +518,78 @@ export default function WorkerFormModal({
                 <div className="animate-fade-in">
                   <h3 className="h6 fw-black text-gray-900 border-bottom pb-2 mb-3">Información General del Colaborador</h3>
                   <Row className="g-3">
-                    <Col md={6}>
-                      <Form.Group>
-                        <Form.Label className="fw-semibold text-xs text-muted">Nombre *</Form.Label>
-                        <Form.Control
-                          type="text"
-                          required
-                          value={firstName}
-                          onChange={(e) => setFirstName(e.target.value)}
-                          placeholder="Ej: Andrea"
-                          className="rounded-xl border-gray-200"
-                        />
-                      </Form.Group>
-                    </Col>
-                    <Col md={6}>
-                      <Form.Group>
-                        <Form.Label className="fw-semibold text-xs text-muted">Apellido *</Form.Label>
-                        <Form.Control
-                          type="text"
-                          required
-                          value={lastName}
-                          onChange={(e) => setLastName(e.target.value)}
-                          placeholder="Ej: Paez"
-                          className="rounded-xl border-gray-200"
-                        />
-                      </Form.Group>
-                    </Col>
-                    <Col md={6}>
-                      <Form.Group>
-                        <Form.Label className="fw-semibold text-xs text-muted">Correo Electrónico</Form.Label>
-                        <Form.Control
-                          type="email"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          placeholder="Ej: andrea@salon.com"
-                          className="rounded-xl border-gray-200"
-                        />
-                      </Form.Group>
-                    </Col>
-                    <Col md={6}>
-                      <Form.Group>
-                        <Form.Label className="fw-semibold text-xs text-muted">Teléfono de Contacto</Form.Label>
-                        <Form.Control
-                          type="text"
-                          value={phone}
-                          onChange={(e) => setPhone(e.target.value)}
-                          placeholder="Ej: +54 9 11 2345 6789"
-                          className="rounded-xl border-gray-200"
-                        />
-                      </Form.Group>
-                    </Col>
+                    {isFirstNameEnabled && (
+                      <Col md={6}>
+                        <Form.Group>
+                          <Form.Label className="fw-semibold text-xs text-muted">
+                            {enabledFields.find(f => f.id === "firstName")?.label || "Nombre"}{" "}
+                            {enabledFields.find(f => f.id === "firstName")?.required && "*"}
+                          </Form.Label>
+                          <Form.Control
+                            type="text"
+                            required={enabledFields.find(f => f.id === "firstName")?.required}
+                            value={firstName}
+                            onChange={(e) => setFirstName(e.target.value)}
+                            placeholder="Ej: Andrea"
+                            className="rounded-xl border-gray-200"
+                          />
+                        </Form.Group>
+                      </Col>
+                    )}
+                    {isLastNameEnabled && (
+                      <Col md={6}>
+                        <Form.Group>
+                          <Form.Label className="fw-semibold text-xs text-muted">
+                            {enabledFields.find(f => f.id === "lastName")?.label || "Apellido"}{" "}
+                            {enabledFields.find(f => f.id === "lastName")?.required && "*"}
+                          </Form.Label>
+                          <Form.Control
+                            type="text"
+                            required={enabledFields.find(f => f.id === "lastName")?.required}
+                            value={lastName}
+                            onChange={(e) => setLastName(e.target.value)}
+                            placeholder="Ej: Paez"
+                            className="rounded-xl border-gray-200"
+                          />
+                        </Form.Group>
+                      </Col>
+                    )}
+                    {isEmailEnabled && (
+                      <Col md={6}>
+                        <Form.Group>
+                          <Form.Label className="fw-semibold text-xs text-muted">
+                            {enabledFields.find(f => f.id === "email")?.label || "Correo Electrónico"}{" "}
+                            {enabledFields.find(f => f.id === "email")?.required && "*"}
+                          </Form.Label>
+                          <Form.Control
+                            type="email"
+                            required={enabledFields.find(f => f.id === "email")?.required}
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="Ej: andrea@salon.com"
+                            className="rounded-xl border-gray-200"
+                          />
+                        </Form.Group>
+                      </Col>
+                    )}
+                    {isPhoneEnabled && (
+                      <Col md={6}>
+                        <Form.Group>
+                          <Form.Label className="fw-semibold text-xs text-muted">
+                            {enabledFields.find(f => f.id === "phone")?.label || "Teléfono de Contacto"}{" "}
+                            {enabledFields.find(f => f.id === "phone")?.required && "*"}
+                          </Form.Label>
+                          <Form.Control
+                            type="text"
+                            required={enabledFields.find(f => f.id === "phone")?.required}
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
+                            placeholder="Ej: +54 9 11 2345 6789"
+                            className="rounded-xl border-gray-200"
+                          />
+                        </Form.Group>
+                      </Col>
+                    )}
                     <Col md={6}>
                       <Form.Group>
                         <Form.Label className="fw-semibold text-xs text-muted">Fecha de Ingreso</Form.Label>
@@ -519,6 +629,56 @@ export default function WorkerFormModal({
                         />
                       </Form.Group>
                     </Col>
+
+                    {/* Campos Personalizados Dinámicos */}
+                    {customFields.map((field) => {
+                      const label = (
+                        <>
+                          {field.label}
+                          {field.required ? " *" : ""}
+                        </>
+                      );
+                      
+                      const commonProps = {
+                        value: customFieldValues[field.id] ?? "",
+                        onChange: (e) => handleCustomFieldChange(field.id, e.target.value),
+                        placeholder: field.placeholder || "",
+                        className: "rounded-xl border-gray-200"
+                      };
+
+                      let control;
+                      if (field.type === "textarea") {
+                        control = <Form.Control as="textarea" rows={2} {...commonProps} />;
+                      } else if (field.type === "select") {
+                        control = (
+                          <Form.Select {...commonProps}>
+                            <option value="">Seleccionar…</option>
+                            {(field.options || []).map((opt) => (
+                              <option key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </option>
+                            ))}
+                          </Form.Select>
+                        );
+                      } else if (field.type === "email") {
+                        control = <Form.Control type="email" {...commonProps} />;
+                      } else if (field.type === "phone") {
+                        control = <Form.Control type="tel" {...commonProps} />;
+                      } else if (field.type === "number" || field.type === "currency") {
+                        control = <Form.Control type="number" {...commonProps} />;
+                      } else {
+                        control = <Form.Control type="text" {...commonProps} />;
+                      }
+
+                      return (
+                        <Col md={field.type === "textarea" ? 12 : 6} key={field.id}>
+                          <Form.Group>
+                            <Form.Label className="fw-semibold text-xs text-muted">{label}</Form.Label>
+                            {control}
+                          </Form.Group>
+                        </Col>
+                      );
+                    })}
                   </Row>
                 </div>
               )}
@@ -530,30 +690,32 @@ export default function WorkerFormModal({
                   <p className="text-muted smaller">El <strong>Cargo</strong> define la ocupación laboral del colaborador, mientras que el <strong>Rol</strong> define sus credenciales de seguridad en el software.</p>
                   
                   <Row className="g-4 mt-1">
-                    <Col md={6}>
-                      <Card className="border p-3.5 rounded-2xl bg-light h-100">
-                        <Form.Group>
-                          <Form.Label className="fw-black text-gray-900 d-flex align-items-center gap-1.5 mb-2.5">
-                            <Briefcase size={16} className="text-pink-500" />
-                            <span>Cargo (Función Laboral)</span>
-                          </Form.Label>
-                          <Form.Select
-                            value={cargo}
-                            onChange={(e) => setCargo(e.target.value)}
-                            className="rounded-xl border-gray-200 focus-ring-purple"
-                          >
-                            {PRESET_CARGOS.map(c => (
-                              <option key={c} value={c}>{c}</option>
-                            ))}
-                          </Form.Select>
-                        </Form.Group>
-                        <div className="mt-3 text-muted small">
-                          Aparecerá en el portal de reserva online y en las fichas para los clientes.
-                        </div>
-                      </Card>
-                    </Col>
+                    {isRoleTitleEnabled && (
+                      <Col md={6}>
+                        <Card className="border p-3.5 rounded-2xl bg-light h-100">
+                          <Form.Group>
+                            <Form.Label className="fw-black text-gray-900 d-flex align-items-center gap-1.5 mb-2.5">
+                              <Briefcase size={16} className="text-pink-500" />
+                              <span>{enabledFields.find(f => f.id === "roleTitle")?.label || "Cargo (Función Laboral)"} {enabledFields.find(f => f.id === "roleTitle")?.required && "*"}</span>
+                            </Form.Label>
+                            <Form.Select
+                              value={cargo}
+                              onChange={(e) => setCargo(e.target.value)}
+                              className="rounded-xl border-gray-200 focus-ring-purple"
+                            >
+                              {PRESET_CARGOS.map(c => (
+                                <option key={c} value={c}>{c}</option>
+                              ))}
+                            </Form.Select>
+                          </Form.Group>
+                          <div className="mt-3 text-muted small">
+                            Aparecerá en el portal de reserva online y en las fichas para los clientes.
+                          </div>
+                        </Card>
+                      </Col>
+                    )}
 
-                    <Col md={6}>
+                    <Col md={isRoleTitleEnabled ? 6 : 12}>
                       <Card className="border p-3.5 rounded-2xl bg-light h-100">
                         <Form.Group>
                           <Form.Label className="fw-black text-gray-900 d-flex align-items-center gap-1.5 mb-2.5">
@@ -978,6 +1140,7 @@ export default function WorkerFormModal({
             </div>
           </Col>
         </Row>
+        )}
       </Modal.Body>
 
       {/* MODAL / POPUP DE LA MATRIZ DE PERMISOS */}

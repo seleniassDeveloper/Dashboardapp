@@ -4,59 +4,66 @@ import { useBrand } from "./BrandProvider";
 
 const FONT_OPTIONS = [
   {
-    label: "Inter (clean)",
-    value: 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial',
+    label: "Outfit (premium geometric)",
+    value: "'Outfit', system-ui, -apple-system, sans-serif",
   },
   {
-    label: "Poppins (friendly)",
-    value: 'Poppins, system-ui, -apple-system, "Segoe UI", Roboto, Arial',
+    label: "Space Grotesk (creative / tech)",
+    value: "'Space Grotesk', system-ui, -apple-system, sans-serif",
   },
   {
-    label: "Montserrat (modern)",
-    value: 'Montserrat, system-ui, -apple-system, "Segoe UI", Roboto, Arial',
+    label: "Lora (serif luxury)",
+    value: "'Lora', Georgia, serif",
   },
   {
-    label: "Roboto (classic)",
-    value: 'Roboto, system-ui, -apple-system, "Segoe UI", Arial',
+    label: "Poppins (friendly rounded)",
+    value: "'Poppins', system-ui, -apple-system, sans-serif",
   },
-  { label: "Georgia (serif)", value: "Georgia, serif" },
+  {
+    label: "Montserrat (modern bold)",
+    value: "'Montserrat', system-ui, -apple-system, sans-serif",
+  },
+  {
+    label: "Inter (clean neutral)",
+    value: "'Inter', system-ui, -apple-system, sans-serif",
+  },
 ];
 
 const THEME_PRESETS = [
   {
     name: "Classic Minimal (Por defecto)",
-    textColor: "#7c3aed",
+    textColor: "#0f172a",
     dashboardBg: "#f8fafc",
-    menuSelectionColor: "#7c3aed",
-    fontFamily: 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial',
+    menuSelectionColor: "#0f172a",
+    fontFamily: "'Outfit', system-ui, -apple-system, sans-serif",
   },
   {
-    name: "Spas & Wellness (Esmeralda)",
-    textColor: "#059669",
-    dashboardBg: "#f4fbf7",
-    menuSelectionColor: "#059669",
-    fontFamily: 'Poppins, system-ui, -apple-system, "Segoe UI", Roboto, Arial',
-  },
-  {
-    name: "Barber & Wood (Ámbar)",
-    textColor: "#d97706",
-    dashboardBg: "#fffbeb",
-    menuSelectionColor: "#d97706",
-    fontFamily: 'Montserrat, system-ui, -apple-system, "Segoe UI", Roboto, Arial',
-  },
-  {
-    name: "Clinical Blue (Médico)",
-    textColor: "#2563eb",
+    name: "Spas & Wellness (Esmeralda & Serif)",
+    textColor: "#0f766e",
     dashboardBg: "#f0fdfa",
+    menuSelectionColor: "#0d9488",
+    fontFamily: "'Lora', Georgia, serif",
+  },
+  {
+    name: "Barber & Wood (Ámbar y Madera)",
+    textColor: "#78350f",
+    dashboardBg: "#fef3c7",
+    menuSelectionColor: "#b45309",
+    fontFamily: "'Montserrat', system-ui, -apple-system, sans-serif",
+  },
+  {
+    name: "Clinical Blue (Médico / Dental)",
+    textColor: "#1d4ed8",
+    dashboardBg: "#f0f9ff",
     menuSelectionColor: "#2563eb",
-    fontFamily: 'Roboto, system-ui, -apple-system, "Segoe UI", Arial',
+    fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
   },
   {
     name: "Creative Violet (Gimnasios / Fitness)",
-    textColor: "#8b5cf6",
+    textColor: "#6d28d9",
     dashboardBg: "#f5f3ff",
-    menuSelectionColor: "#8b5cf6",
-    fontFamily: 'Montserrat, system-ui, -apple-system, "Segoe UI", Roboto, Arial',
+    menuSelectionColor: "#7c3aed",
+    fontFamily: "'Space Grotesk', system-ui, -apple-system, sans-serif",
   },
 ];
 

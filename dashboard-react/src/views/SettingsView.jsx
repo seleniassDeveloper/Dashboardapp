@@ -8,6 +8,7 @@ import ActiveModulesEditor from "../components/configurable-fields/ActiveModules
 import BookingSettings from "../components/configurable-fields/BookingSettings.jsx";
 import UsersPermissionsSettings from "../components/configurable-fields/UsersPermissionsSettings.jsx";
 import BranchSettings from "../components/configurable-fields/BranchSettings.jsx";
+import GoogleSyncSettings from "../components/configurable-fields/GoogleSyncSettings.jsx";
 import { usePermissions } from "../auth/PermissionProvider.jsx";
 
 export default function SettingsView() {
@@ -41,7 +42,7 @@ export default function SettingsView() {
   if (!canManageSettings && !canManageUsers) {
     return (
       <Container className="py-5 text-center">
-        <h2 className="text-secondary smaller fw-bold mb-0">No tienes permisos para ver las configuraciones.</h2>
+        <h2 className="text-secondary smaller fw-bold mb-0">{t("settings.noPermission")}</h2>
       </Container>
     );
   }
@@ -79,7 +80,12 @@ export default function SettingsView() {
               </Nav.Item>
               <Nav.Item>
                 <Nav.Link eventKey="sucursales" className="rounded-pill px-4">
-                  Sucursales
+                  {t("settings.tabs.branches")}
+                </Nav.Link>
+              </Nav.Item>
+              <Nav.Item>
+                <Nav.Link eventKey="google-sync" className="rounded-pill px-4">
+                  Google Calendar
                 </Nav.Link>
               </Nav.Item>
             </>
@@ -87,7 +93,7 @@ export default function SettingsView() {
           {canManageUsers && (
             <Nav.Item>
               <Nav.Link eventKey="users" className="rounded-pill px-4">
-                Roles y Permisos
+                {t("settings.tabs.users")}
               </Nav.Link>
             </Nav.Item>
           )}
@@ -106,10 +112,13 @@ export default function SettingsView() {
                 <ActiveModulesEditor />
               </Tab.Pane>
               <Tab.Pane eventKey="booking">
-                <BookingSettings />
+                <BookingSettings onNavigateToGoogleSync={() => setTab("google-sync")} />
               </Tab.Pane>
               <Tab.Pane eventKey="sucursales">
                 <BranchSettings />
+              </Tab.Pane>
+              <Tab.Pane eventKey="google-sync">
+                <GoogleSyncSettings />
               </Tab.Pane>
             </>
           )}

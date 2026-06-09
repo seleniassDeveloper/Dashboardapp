@@ -147,8 +147,10 @@ export default function AppointmentsCalendar() {
 
   const handleSendWhatsApp = (appt) => {
     const worker = workers.find(w => w.id === appt.workerId);
-    const dateStr = new Date(appt.startsAt).toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
-    const timeStr = new Date(appt.startsAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+    const startsDate = appt?.startsAt ? new Date(appt.startsAt) : null;
+    const validStarts = startsDate && !isNaN(startsDate.getTime());
+    const dateStr = validStarts ? startsDate.toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" }) : "—";
+    const timeStr = validStarts ? startsDate.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }) : "—";
     const text = `¡Hola ${appt.client?.firstName || "Cliente"}! Te confirmamos tu turno en Aura Studio para el día ${dateStr} a las ${timeStr} hs para el servicio de ${appt.service?.name || "Estética"}. Te atenderá ${worker?.firstName || "Profesional"}. ¡Te esperamos!`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
   };
@@ -166,11 +168,18 @@ export default function AppointmentsCalendar() {
     }
 
     try {
+      const startsDate = appt?.startsAt ? new Date(appt.startsAt) : null;
+      if (!startsDate || isNaN(startsDate.getTime())) {
+        alert("La fecha de la cita no es válida.");
+        return;
+      }
+      const dateStr = startsDate.toLocaleDateString("es-AR");
+      const timeStr = startsDate.toLocaleTimeString("es-AR", {hour: '2-digit', minute: '2-digit'});
       const payload = {
         appointmentId: appt.id,
         to: appt.client.email.trim(),
         subject: `Confirmación de Turno - Aura Studio`,
-        message: `Hola ${appt.client.firstName || "Cliente"},\n\nTe confirmamos tu turno para el día ${new Date(appt.startsAt).toLocaleDateString("es-AR")} a las ${new Date(appt.startsAt).toLocaleTimeString("es-AR", {hour: '2-digit', minute: '2-digit'})} hs para realizarte: ${appt.service?.name || "Estética"}.\n¡Muchas gracias por elegirnos!\n\nDirección del Local: Av. Principal 1234, Aura Studio.`
+        message: `Hola ${appt.client.firstName || "Cliente"},\n\nTe confirmamos tu turno para el día ${dateStr} a las ${timeStr} hs para realizarte: ${appt.service?.name || "Estética"}.\n¡Muchas gracias por elegirnos!\n\nDirección del Local: Av. Principal 1234, Aura Studio.`
       };
 
       await axiosApi.post(`/google/send-confirmation-email`, payload, {
@@ -223,7 +232,11 @@ export default function AppointmentsCalendar() {
 
   const events = useMemo(() => {
     return (appointments || [])
-      .filter((a) => a?.startsAt)
+      .filter((a) => {
+        if (!a?.startsAt) return false;
+        const d = new Date(a.startsAt);
+        return !isNaN(d.getTime());
+      })
       .map((a) => {
         const start = a.startsAt;
         const minutes = Number(a?.service?.duration) || 60;
@@ -488,7 +501,7 @@ export default function AppointmentsCalendar() {
                     Inicio
                   </div>
                   <div className="fw-semibold">
-                    {selected?.startsAt
+                    {selected?.startsAt && !isNaN(new Date(selected.startsAt).getTime())
                       ? new Date(selected.startsAt).toLocaleString()
                       : "—"}
                   </div>

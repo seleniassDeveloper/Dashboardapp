@@ -58,10 +58,15 @@ export default function AppointmentModal({
       setClientEmail(appointment.client?.email || "");
       setWorkerId(appointment.workerId || "");
       
-      const starts = new Date(appointment.startsAt);
-      const pad = (num) => String(num).padStart(2, "0");
-      setAppointmentDate(`${starts.getFullYear()}-${pad(starts.getMonth() + 1)}-${pad(starts.getDate())}`);
-      setAppointmentTime(`${pad(starts.getHours())}:${pad(starts.getMinutes())}`);
+      const starts = appointment.startsAt ? new Date(appointment.startsAt) : null;
+      if (starts && !isNaN(starts.getTime())) {
+        const pad = (num) => String(num).padStart(2, "0");
+        setAppointmentDate(`${starts.getFullYear()}-${pad(starts.getMonth() + 1)}-${pad(starts.getDate())}`);
+        setAppointmentTime(`${pad(starts.getHours())}:${pad(starts.getMinutes())}`);
+      } else {
+        setAppointmentDate("");
+        setAppointmentTime("");
+      }
       let cleanNotes = appointment.notes || "";
       if (cleanNotes.startsWith("[Servicios:")) {
         cleanNotes = cleanNotes.replace(/^\[Servicios:\s*[^\]]+\]\s*/, "");
@@ -195,6 +200,9 @@ export default function AppointmentModal({
     };
 
     const date = new Date(`${appointmentDate}T12:00:00`);
+    if (isNaN(date.getTime())) {
+      return { valid: false, reason: "La fecha seleccionada no es válida." };
+    }
     const daysOfWeek = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
     const dayName = daysOfWeek[date.getDay()];
     
@@ -223,6 +231,9 @@ export default function AppointmentModal({
     
     const duration = totals.duration || 60;
     const checkStart = new Date(`${appointmentDate}T${appointmentTime}`);
+    if (isNaN(checkStart.getTime())) {
+      return { valid: false, reason: "La fecha u hora seleccionada no es válida." };
+    }
     const checkEnd = new Date(checkStart.getTime() + duration * 60 * 1000);
 
     const excludeId = appointment?.id;
@@ -275,7 +286,11 @@ export default function AppointmentModal({
     if (saveDisabled) return;
 
     // Crear la estructura de Cita en hora local
-    const startsAt = new Date(`${appointmentDate}T${appointmentTime}`).toISOString();
+    const parsedDate = new Date(`${appointmentDate}T${appointmentTime}`);
+    if (isNaN(parsedDate.getTime())) {
+      return;
+    }
+    const startsAt = parsedDate.toISOString();
     
     // El servicio principal es el primero de la lista seleccionada
     const serviceId = selectedServiceIds[0] || "";
@@ -351,8 +366,16 @@ export default function AppointmentModal({
     setEmailStatus(null);
     try {
       const service = services.find(s => s.id === selectedServiceIds[0]);
-      const dateStr = new Date(appointment.startsAt).toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
-      const timeStr = new Date(appointment.startsAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+      const startsDate = new Date(appointment.startsAt);
+      if (isNaN(startsDate.getTime())) {
+        setEmailStatus({
+          type: "danger",
+          message: "La fecha de la cita no es válida para enviar confirmación."
+        });
+        return;
+      }
+      const dateStr = startsDate.toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
+      const timeStr = startsDate.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
       
       const payload = {
         appointmentId: appointment.id,
@@ -416,6 +439,13 @@ export default function AppointmentModal({
       // Calcular fecha/hora de fin en base a la duración del servicio
       const durationMin = service?.duration || 60;
       const starts = new Date(appointment.startsAt);
+      if (isNaN(starts.getTime())) {
+        setCalendarStatus({
+          type: "danger",
+          message: "La fecha de la cita no es válida para agregar al calendario."
+        });
+        return;
+      }
       const ends = new Date(starts.getTime() + durationMin * 60000);
 
       const payload = {

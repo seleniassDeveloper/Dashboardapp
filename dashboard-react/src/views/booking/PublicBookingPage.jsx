@@ -4,7 +4,7 @@ import { Container, Row, Col, Card, Button, Form, Spinner, Alert, Modal, InputGr
 import { 
   Calendar, User, Clock, CheckCircle2, ChevronRight, ArrowLeft, Heart, 
   ShieldCheck, CreditCard, Lock, MessageSquare, Mail, Award, CheckCircle, 
-  HelpCircle, Eye, EyeOff, Globe, Sparkles 
+  HelpCircle, Eye, EyeOff, Globe, Sparkles, AlertTriangle 
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "../../components/language/LanguageSwitcher.jsx";
@@ -44,6 +44,7 @@ export default function PublicBookingPage() {
   const [selProfessional, setSelProfessional] = useState(null); // null significa "Cualquiera"
   const [selDate, setSelDate] = useState("");
   const [selTime, setSelTime] = useState("");
+  const [serviceSearch, setServiceSearch] = useState("");
 
   // Slots e Info de Slots
   const [slots, setSlots] = useState([]);
@@ -86,6 +87,64 @@ export default function PublicBookingPage() {
       return business.bookingDownpaymentAmount;
     }
     return Math.round((selService.price * (business.bookingDownpaymentPercent || 30)) / 100);
+  };
+
+  const getNextDays = () => {
+    const days = [];
+    const daysOfWeekEs = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+    const daysOfWeekEn = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const monthsEs = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+    const monthsEn = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    
+    const baseDate = new Date();
+    for (let i = 0; i < 10; i++) {
+      const d = new Date();
+      d.setDate(baseDate.getDate() + i);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      const dateStr = `${yyyy}-${mm}-${dd}`;
+      
+      const dayNum = d.getDay();
+      const dayName = isEs ? daysOfWeekEs[dayNum] : daysOfWeekEn[dayNum];
+      const monthName = isEs ? monthsEs[d.getMonth()] : monthsEn[d.getMonth()];
+      
+      let label = dayName;
+      if (i === 0) label = isEs ? "Hoy" : "Today";
+      else if (i === 1) label = isEs ? "Mañana" : "Tomorrow";
+      
+      days.push({
+        dateStr,
+        label,
+        dayOfMonth: d.getDate(),
+        monthName
+      });
+    }
+    return days;
+  };
+
+  const groupSlots = (slotsList) => {
+    const morning = [];
+    const afternoon = [];
+    const evening = [];
+    
+    if (!Array.isArray(slotsList)) {
+      return { morning, afternoon, evening };
+    }
+    
+    slotsList.forEach((slot) => {
+      if (typeof slot !== "string") return;
+      const hour = parseInt(slot.split(":")[0]);
+      if (hour < 12) {
+        morning.push(slot);
+      } else if (hour < 18) {
+        afternoon.push(slot);
+      } else {
+        evening.push(slot);
+      }
+    });
+    
+    return { morning, afternoon, evening };
   };
 
   // Cargar info del negocio, servicios y profesionales
@@ -145,9 +204,7 @@ export default function PublicBookingPage() {
       setSubmitting(true);
       setError("");
 
-      const workerId = selProfessional
-        ? selProfessional.id
-        : professionals.find((p) => p.serviceIds.includes(selService.id))?.id;
+      const workerId = selProfessional ? selProfessional.id : "any";
 
       const payload = {
         ...clientForm,
@@ -164,7 +221,7 @@ export default function PublicBookingPage() {
           booking: {
             ...res.data.booking,
             service: selService,
-            worker: selProfessional || professionals.find((p) => p.id === workerId),
+            worker: selProfessional || professionals.find((p) => p.id === res.data.booking.workerId || p.id === workerId),
           },
           color: business.bookingPrimaryColor,
         },
@@ -191,9 +248,7 @@ export default function PublicBookingPage() {
       setPaying(true);
       setError("");
 
-      const workerId = selProfessional
-        ? selProfessional.id
-        : professionals.find((p) => p.serviceIds.includes(selService.id))?.id;
+      const workerId = selProfessional ? selProfessional.id : "any";
 
       const downpayment = getDownpaymentAmount();
       const transactionId = customTxId || (paymentMethod === "mercadopago" 
@@ -220,7 +275,7 @@ export default function PublicBookingPage() {
             ...res.data.booking,
             downpaymentPaid: downpayment,
             service: selService,
-            worker: selProfessional || professionals.find((p) => p.id === workerId),
+            worker: selProfessional || professionals.find((p) => p.id === res.data.booking.workerId || p.id === workerId),
           },
           color: business.bookingPrimaryColor,
         },
@@ -336,20 +391,65 @@ export default function PublicBookingPage() {
       <Container style={{ maxWidth: "720px" }}>
         
         {/* STEP PROGRESS BAR */}
-        <div className="card-premium border bg-white p-3 rounded-2xl shadow-sm mb-4">
-          <div className="d-flex justify-content-between align-items-center small text-muted px-1 mb-2">
+        <div className="card-premium border bg-white p-3.5 rounded-2xl shadow-sm mb-4">
+          <div className="d-flex justify-content-between align-items-center small text-muted px-1 mb-3">
             <span>Progreso de Reserva</span>
             <strong className="text-dark">{step} de {business?.bookingDownpaymentEnabled ? 5 : 4}</strong>
           </div>
-          <div className="w-100 bg-light rounded-pill" style={{ height: "6px", overflow: "hidden" }}>
+          
+          {/* Timeline dots layout */}
+          <div className="d-flex justify-content-between align-items-center position-relative mb-2 px-2">
+            {/* Background line */}
+            <div className="position-absolute start-0 end-0 bg-light rounded-pill" style={{ height: "4px", top: "50%", transform: "translateY(-50%)", zIndex: 0 }} />
+            
+            {/* Colored line representing progress */}
             <div 
-              className="h-100 rounded-pill transition-all" 
+              className="position-absolute start-0 bg-light rounded-pill transition-all" 
               style={{ 
-                width: `${(step / (business?.bookingDownpaymentEnabled ? 5 : 4)) * 100}%`,
+                height: "4px", 
+                top: "50%", 
+                transform: "translateY(-50%)", 
+                width: `${((step - 1) / (business?.bookingDownpaymentEnabled ? 4 : 3)) * 100}%`,
                 backgroundColor: primaryColor,
+                zIndex: 1,
                 transition: "width 0.4s cubic-bezier(0.4, 0, 0.2, 1)"
               }}
             />
+            
+            {/* Step bubbles */}
+            {Array.from({ length: business?.bookingDownpaymentEnabled ? 5 : 4 }).map((_, idx) => {
+              const currentStepNum = idx + 1;
+              const isActive = currentStepNum <= step;
+              const isCurrent = currentStepNum === step;
+              return (
+                <div 
+                  key={idx}
+                  className="rounded-circle d-flex align-items-center justify-content-center fw-bold transition-all"
+                  style={{
+                    width: "28px",
+                    height: "28px",
+                    fontSize: "11px",
+                    zIndex: 2,
+                    border: "2px solid",
+                    borderColor: isCurrent ? primaryColor : (isActive ? primaryColor : "#cbd5e1"),
+                    backgroundColor: isActive ? (isCurrent ? "#fff" : primaryColor) : "#fff",
+                    color: isActive ? (isCurrent ? primaryColor : "#fff") : "#94a3b8",
+                    boxShadow: isCurrent ? `0 0 0 4px ${primaryColor}20` : "none"
+                  }}
+                >
+                  {currentStepNum}
+                </div>
+              );
+            })}
+          </div>
+          
+          {/* Step Labels */}
+          <div className="d-flex justify-content-between text-muted px-1" style={{ fontSize: "10px", fontWeight: 700 }}>
+            <span>{isEs ? "Servicio" : "Service"}</span>
+            <span>{isEs ? "Profesional" : "Professional"}</span>
+            <span>{isEs ? "Fecha & Hora" : "Date & Time"}</span>
+            <span>{isEs ? "Tus Datos" : "Your Data"}</span>
+            {business?.bookingDownpaymentEnabled && <span>{isEs ? "Seña" : "Downpayment"}</span>}
           </div>
         </div>
 
@@ -361,26 +461,62 @@ export default function PublicBookingPage() {
             {/* PASO 1: SELECCIONAR SERVICIO */}
             {step === 1 && (
               <div className="animate-fade-in">
-                <h2 className="h5 fw-black text-gray-900 mb-1">Selecciona el Servicio</h2>
-                <p className="text-muted smaller mb-4">Elegí el tratamiento contable o estético que deseas agendar.</p>
+                <h2 className="h5 fw-black text-gray-900 mb-1">{isEs ? "Selecciona el Servicio" : "Select Service"}</h2>
+                <p className="text-muted smaller mb-4">{isEs ? "Elegí el tratamiento contable o estético que deseas agendar." : "Choose the accounting or aesthetic treatment you want to schedule."}</p>
                 
+                {/* Buscador de servicios */}
+                <div className="position-relative mb-4">
+                  <Form.Control
+                    type="text"
+                    placeholder={isEs ? "Buscar servicio..." : "Search service..."}
+                    value={serviceSearch}
+                    onChange={(e) => setServiceSearch(e.target.value)}
+                    className="rounded-xl border-gray-200 py-2.5 px-3"
+                    style={{ fontSize: "13px" }}
+                  />
+                </div>
+
                 <div className="d-flex flex-column gap-3">
-                  {services.map((s) => (
-                    <div 
-                      key={s.id}
-                      onClick={() => { setSelService(s); handleNextStep(); }}
-                      className={`p-3 border rounded-2xl cursor-pointer transition-all hover-row-focus d-flex justify-content-between align-items-center gap-3 ${selService?.id === s.id ? "border-dark bg-light bg-opacity-30" : "border-gray-200"}`}
-                    >
-                      <div>
-                        <strong className="text-gray-900 d-block small">{s.name}</strong>
-                        <span className="smaller text-muted d-block mt-0.5">{s.duration} min • Con profesional capacitado</span>
-                      </div>
-                      <div className="text-end d-flex align-items-center gap-2">
-                        <strong className="text-purple-600" style={{ fontSize: "15px" }}>{currency(s.price)}</strong>
-                        <ChevronRight size={16} className="text-muted" />
-                      </div>
+                  {services
+                    .filter((s) => s.name.toLowerCase().includes(serviceSearch.toLowerCase()))
+                    .length === 0 ? (
+                    <div className="p-4 border border-dashed rounded-3xl text-center text-muted small">
+                      {isEs ? "No se encontraron servicios con ese nombre." : "No services found with that name."}
                     </div>
-                  ))}
+                  ) : (
+                    services
+                      .filter((s) => s.name.toLowerCase().includes(serviceSearch.toLowerCase()))
+                      .map((s) => (
+                        <div 
+                          key={s.id}
+                          onClick={() => { setSelService(s); handleNextStep(); }}
+                          className="p-3 border rounded-2xl cursor-pointer transition-all hover-row-focus d-flex justify-content-between align-items-center gap-3"
+                          style={{
+                            borderColor: selService?.id === s.id ? primaryColor : "#e2e8f0",
+                            backgroundColor: selService?.id === s.id ? `${primaryColor}05` : "#fff",
+                            borderWidth: selService?.id === s.id ? "2px" : "1px",
+                            boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.05)"
+                          }}
+                        >
+                          <div className="d-flex align-items-center gap-3">
+                            <div className="rounded-xl d-flex align-items-center justify-content-center text-white" style={{ width: "42px", height: "42px", background: `linear-gradient(135deg, ${primaryColor} 0%, #1f2937 100%)` }}>
+                              <Sparkles size={18} />
+                            </div>
+                            <div>
+                              <strong className="text-gray-900 d-block small fw-bold">{s.name}</strong>
+                              <span className="smaller text-muted d-block mt-0.5 d-flex align-items-center gap-1">
+                                <Clock size={12} />
+                                <span>{s.duration} min</span>
+                              </span>
+                            </div>
+                          </div>
+                          <div className="text-end d-flex align-items-center gap-2">
+                            <strong style={{ fontSize: "15px", color: primaryColor }} className="fw-black">{currency(s.price)}</strong>
+                            <ChevronRight size={16} className="text-muted" />
+                          </div>
+                        </div>
+                      ))
+                  )}
                 </div>
               </div>
             )}
@@ -388,20 +524,29 @@ export default function PublicBookingPage() {
             {/* PASO 2: SELECCIONAR PROFESIONAL */}
             {step === 2 && (
               <div className="animate-fade-in">
-                <h2 className="h5 fw-black text-gray-900 mb-1">Selecciona el Profesional</h2>
-                <p className="text-muted smaller mb-4">¿Quién te gustaría que realice el servicio?</p>
+                <h2 className="h5 fw-black text-gray-900 mb-1">{isEs ? "Selecciona el Profesional" : "Select Professional"}</h2>
+                <p className="text-muted smaller mb-4">{isEs ? "¿Quién te gustaría que realice el servicio?" : "Who would you like to perform the service?"}</p>
 
-                <div className="d-flex flex-column gap-3">
+                <div className="d-grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))" }}>
                   {/* Cualquier Profesional */}
                   <div 
                     onClick={() => { setSelProfessional(null); handleNextStep(); }}
-                    className={`p-3 border rounded-2xl cursor-pointer transition-all hover-row-focus d-flex justify-content-between align-items-center gap-3 ${selProfessional === null ? "border-dark bg-light bg-opacity-30" : "border-gray-200"}`}
+                    className="p-3 border rounded-2xl cursor-pointer transition-all hover-row-focus d-flex flex-column justify-content-between text-center gap-2"
+                    style={{
+                      borderColor: selProfessional === null ? primaryColor : "#e2e8f0",
+                      backgroundColor: selProfessional === null ? `${primaryColor}05` : "#fff",
+                      borderWidth: selProfessional === null ? "2px" : "1px",
+                      boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.05)",
+                      minHeight: "140px"
+                    }}
                   >
-                    <div>
-                      <strong className="text-gray-900 d-block small">Cualquier Profesional disponible</strong>
-                      <span className="smaller text-muted d-block mt-0.5">Asigna automáticamente al miembro libre para mayor velocidad.</span>
+                    <div className="rounded-circle d-flex align-items-center justify-content-center text-white mx-auto mt-2" style={{ width: "48px", height: "48px", background: `linear-gradient(135deg, ${primaryColor} 0%, #1f2937 100%)` }}>
+                      <Sparkles size={20} />
                     </div>
-                    <ChevronRight size={16} className="text-muted" />
+                    <div>
+                      <strong className="text-gray-900 d-block small fw-bold">{isEs ? "Cualquier miembro" : "Any member"}</strong>
+                      <span className="smaller text-muted d-block mt-0.5" style={{ fontSize: "11px" }}>{isEs ? "Asignación rápida" : "Fast assignment"}</span>
+                    </div>
                   </div>
 
                   {professionals
@@ -410,18 +555,22 @@ export default function PublicBookingPage() {
                       <div 
                         key={p.id}
                         onClick={() => { setSelProfessional(p); handleNextStep(); }}
-                        className={`p-3 border rounded-2xl cursor-pointer transition-all hover-row-focus d-flex justify-content-between align-items-center gap-3 ${selProfessional?.id === p.id ? "border-dark bg-light bg-opacity-30" : "border-gray-200"}`}
+                        className="p-3 border rounded-2xl cursor-pointer transition-all hover-row-focus d-flex flex-column justify-content-between text-center gap-2"
+                        style={{
+                          borderColor: selProfessional?.id === p.id ? primaryColor : "#e2e8f0",
+                          backgroundColor: selProfessional?.id === p.id ? `${primaryColor}05` : "#fff",
+                          borderWidth: selProfessional?.id === p.id ? "2px" : "1px",
+                          boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.05)",
+                          minHeight: "140px"
+                        }}
                       >
-                        <div className="d-flex align-items-center gap-3">
-                          <div className="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold" style={{ width: "36px", height: "36px", background: "linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)", fontSize: "11px" }}>
-                            {p.firstName?.charAt(0)}{p.lastName?.charAt(0)}
-                          </div>
-                          <div>
-                            <strong className="text-gray-900 d-block small">{p.firstName} {p.lastName}</strong>
-                            <span className="smaller text-muted d-block mt-0.5">Especialista en {selService?.name}</span>
-                          </div>
+                        <div className="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold mx-auto mt-2" style={{ width: "48px", height: "48px", background: "linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)", fontSize: "14px" }}>
+                          {p.firstName?.charAt(0)}{p.lastName?.charAt(0)}
                         </div>
-                        <ChevronRight size={16} className="text-muted" />
+                        <div>
+                          <strong className="text-gray-900 d-block small fw-bold">{p.firstName} {p.lastName}</strong>
+                          <span className="smaller text-muted d-block mt-0.5" style={{ fontSize: "11px" }}>{isEs ? `Especialista en ${selService?.name}` : `Specialist in ${selService?.name}`}</span>
+                        </div>
                       </div>
                     ))}
                 </div>
@@ -431,52 +580,151 @@ export default function PublicBookingPage() {
             {/* PASO 3: SELECCIONAR FECHA Y HORA */}
             {step === 3 && (
               <div className="animate-fade-in">
-                <h2 className="h5 fw-black text-gray-900 mb-1">Selecciona Fecha y Hora</h2>
-                <p className="text-muted smaller mb-4">Escoge el bloque de tiempo de tu preferencia.</p>
+                <h2 className="h5 fw-black text-gray-900 mb-1">{isEs ? "Selecciona Fecha y Hora" : "Select Date & Time"}</h2>
+                <p className="text-muted smaller mb-4">{isEs ? "Escoge el bloque de tiempo de tu preferencia." : "Choose the time block of your preference."}</p>
+
+                {/* Selector rápido de 10 días */}
+                <div className="mb-3">
+                  <span className="smaller text-muted fw-bold uppercase d-block mb-2" style={{ fontSize: "10.5px", letterSpacing: "0.05em" }}>
+                    {isEs ? "Días recomendados" : "Recommended days"}
+                  </span>
+                  <div className="d-flex gap-2 overflow-auto pb-2 scrollbar-none" style={{ whiteSpace: "nowrap", WebkitOverflowScrolling: "touch" }}>
+                    {getNextDays().map((day) => (
+                      <div
+                        key={day.dateStr}
+                        onClick={() => { setSelDate(day.dateStr); setSelTime(""); }}
+                        className="p-3 border rounded-2xl text-center cursor-pointer transition-all d-inline-block"
+                        style={{
+                          minWidth: "75px",
+                          borderColor: selDate === day.dateStr ? primaryColor : "#e2e8f0",
+                          backgroundColor: selDate === day.dateStr ? `${primaryColor}10` : "#fff",
+                          borderWidth: selDate === day.dateStr ? "2px" : "1px",
+                          boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.02)"
+                        }}
+                      >
+                        <span className="smaller text-muted d-block uppercase fw-bold" style={{ fontSize: "10px", color: selDate === day.dateStr ? primaryColor : "#64748b" }}>{day.label}</span>
+                        <strong className="h4 my-1 d-block" style={{ color: selDate === day.dateStr ? primaryColor : "#1e293b" }}>{day.dayOfMonth}</strong>
+                        <span className="smaller text-muted d-block" style={{ fontSize: "10px" }}>{day.monthName}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
                 <Row className="g-3">
-                  <Col md={6}>
+                  <Col md={5}>
                     <Form.Group className="mb-3">
-                      <Form.Label className="fw-semibold small">Fecha del Turno</Form.Label>
+                      <Form.Label className="fw-semibold small">{isEs ? "O elegí otro día" : "Or choose another day"}</Form.Label>
                       <Form.Control
                         type="date"
                         value={selDate}
                         min={new Date().toISOString().split("T")[0]}
                         onChange={(e) => { setSelDate(e.target.value); setSelTime(""); }}
-                        className="rounded-xl border-gray-200 py-2.5"
+                        className="rounded-xl border-gray-200 py-2"
+                        style={{ fontSize: "13px" }}
                       />
                     </Form.Group>
                   </Col>
                   
-                  <Col md={6}>
-                    <Form.Label className="fw-semibold small">Horarios Disponibles</Form.Label>
+                  <Col md={7}>
+                    <Form.Label className="fw-semibold small">{isEs ? "Horarios Disponibles" : "Available Times"}</Form.Label>
                     {!selDate ? (
                       <div className="p-3 border border-dashed rounded-2xl text-center text-muted smaller">
-                        Selecciona primero una fecha para ver horarios.
+                        {isEs ? "Selecciona primero una fecha para ver horarios." : "Select a date first to see available schedules."}
                       </div>
                     ) : loadingSlots ? (
                       <div className="text-center py-4">
-                        <Spinner size="sm" className="me-2" /> buscando slots libres...
+                        <Spinner size="sm" className="me-2" /> {isEs ? "buscando slots libres..." : "searching free slots..."}
                       </div>
                     ) : slots.length === 0 ? (
-                      <div className="p-3 border border-dashed rounded-2xl text-center text-danger smaller">
-                        No hay horarios disponibles para esta fecha. Intentá con otro día.
+                      <div className="p-4 border border-dashed rounded-3xl text-center text-danger small bg-danger bg-opacity-5">
+                        <AlertTriangle size={20} className="mx-auto mb-2 text-danger animate-bounce" />
+                        <div>{isEs ? "No hay horarios disponibles." : "No schedules available."}</div>
+                        <span className="smaller text-muted">{isEs ? "Intentá con otro día." : "Please try a different day."}</span>
                       </div>
-                    ) : (
-                      <div className="d-grid gap-2 border p-3 rounded-2xl bg-light bg-opacity-30 overflow-auto scrollbar-none" style={{ maxHeight: "200px" }}>
-                        {slots.map((tSlot) => (
-                          <Button
-                            key={tSlot}
-                            variant={selTime === tSlot ? "dark" : "outline-dark"}
-                            size="sm"
-                            className="rounded-xl py-2 fw-semibold"
-                            onClick={() => setSelTime(tSlot)}
-                          >
-                            {tSlot}
-                          </Button>
-                        ))}
-                      </div>
-                    )}
+                    ) : (() => {
+                      const { morning, afternoon, evening } = groupSlots(slots);
+                      return (
+                        <div className="d-grid gap-3 p-3 border rounded-3xl bg-light bg-opacity-30 overflow-auto scrollbar-none" style={{ maxHeight: "260px" }}>
+                          {morning.length > 0 && (
+                            <div>
+                              <span className="smaller text-muted fw-bold d-block mb-1.5 uppercase" style={{ fontSize: "10px", letterSpacing: "0.05em" }}>🌅 {isEs ? "Mañana" : "Morning"}</span>
+                              <div className="d-flex flex-wrap gap-1.5">
+                                {morning.map((t) => (
+                                  <button
+                                    key={t}
+                                    type="button"
+                                    onClick={() => setSelTime(t)}
+                                    className="px-2.5 py-1.5 rounded-xl fw-bold text-center transition-all"
+                                    style={{
+                                      minWidth: "65px",
+                                      border: "1px solid",
+                                      borderColor: selTime === t ? primaryColor : "#e2e8f0",
+                                      backgroundColor: selTime === t ? primaryColor : "#fff",
+                                      color: selTime === t ? "#fff" : "#1e293b",
+                                      fontSize: "12px",
+                                    }}
+                                  >
+                                    {t}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {afternoon.length > 0 && (
+                            <div>
+                              <span className="smaller text-muted fw-bold d-block mb-1.5 uppercase" style={{ fontSize: "10px", letterSpacing: "0.05em" }}>☀️ {isEs ? "Tarde" : "Afternoon"}</span>
+                              <div className="d-flex flex-wrap gap-1.5">
+                                {afternoon.map((t) => (
+                                  <button
+                                    key={t}
+                                    type="button"
+                                    onClick={() => setSelTime(t)}
+                                    className="px-2.5 py-1.5 rounded-xl fw-bold text-center transition-all"
+                                    style={{
+                                      minWidth: "65px",
+                                      border: "1px solid",
+                                      borderColor: selTime === t ? primaryColor : "#e2e8f0",
+                                      backgroundColor: selTime === t ? primaryColor : "#fff",
+                                      color: selTime === t ? "#fff" : "#1e293b",
+                                      fontSize: "12px",
+                                    }}
+                                  >
+                                    {t}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {evening.length > 0 && (
+                            <div>
+                              <span className="smaller text-muted fw-bold d-block mb-1.5 uppercase" style={{ fontSize: "10px", letterSpacing: "0.05em" }}>🌙 {isEs ? "Noche" : "Evening"}</span>
+                              <div className="d-flex flex-wrap gap-1.5">
+                                {evening.map((t) => (
+                                  <button
+                                    key={t}
+                                    type="button"
+                                    onClick={() => setSelTime(t)}
+                                    className="px-2.5 py-1.5 rounded-xl fw-bold text-center transition-all"
+                                    style={{
+                                      minWidth: "65px",
+                                      border: "1px solid",
+                                      borderColor: selTime === t ? primaryColor : "#e2e8f0",
+                                      backgroundColor: selTime === t ? primaryColor : "#fff",
+                                      color: selTime === t ? "#fff" : "#1e293b",
+                                      fontSize: "12px",
+                                    }}
+                                  >
+                                    {t}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </Col>
                 </Row>
               </div>
@@ -923,7 +1171,14 @@ export default function PublicBookingPage() {
                       <strong className="text-gray-900 small d-block mb-1 border-bottom pb-1">{isEs ? "Resumen del Turno" : "Appointment Summary"}</strong>
                       <div className="small"><span className="text-muted">{isEs ? "Servicio:" : "Service:"}</span> <strong>{selService?.name}</strong></div>
                       <div className="small"><span className="text-muted">{isEs ? "Profesional:" : "Professional:"}</span> <strong>{selProfessional ? `${selProfessional.firstName}` : (isEs ? "Cualquiera" : "Any")}</strong></div>
-                      <div className="small"><span className="text-muted">{isEs ? "Fecha:" : "Date:"}</span> <strong>{new Date(selDate + "T00:00:00").toLocaleDateString(isEs ? "es-AR" : "en-US", { weekday: 'long', day: 'numeric', month: 'long' })}</strong></div>
+                      <div className="small">
+                        <span className="text-muted">{isEs ? "Fecha:" : "Date:"}</span>{" "}
+                        <strong>
+                          {selDate && !isNaN(new Date(selDate + "T00:00:00").getTime())
+                            ? new Date(selDate + "T00:00:00").toLocaleDateString(isEs ? "es-AR" : "en-US", { weekday: 'long', day: 'numeric', month: 'long' })
+                            : "—"}
+                        </strong>
+                      </div>
                       <div className="small"><span className="text-muted">{isEs ? "Hora:" : "Time:"}</span> <strong>{selTime} hs</strong></div>
                       <div className="small border-top pt-2 mt-1 d-flex justify-content-between align-items-center text-success">
                         <span>{isEs ? "Monto de Seña" : "Downpayment Amount"}</span>

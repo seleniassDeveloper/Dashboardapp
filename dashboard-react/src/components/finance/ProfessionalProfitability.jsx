@@ -90,26 +90,33 @@ export default function ProfessionalProfitability({ professionalStats = [] }) {
       });
   }, [dataset, selectedRole, searchQuery, sortField, sortOrder]);
 
-  // Cómputo de KPIs Ejecutivos dinámicos
+  // Cómputo de KPIs Ejecutivos dinámicos basados en los filtros aplicados
   const kpis = useMemo(() => {
-    const totalRev = dataset.reduce((sum, p) => sum + p.totalRevenue, 0);
-    const avgTkt = dataset.reduce((sum, p) => sum + p.avgTicket, 0) / (dataset.length || 1);
-    const avgRet = dataset.reduce((sum, p) => sum + p.retentionRate, 0) / (dataset.length || 1);
-    const avgOcc = dataset.reduce((sum, p) => sum + p.occupancy, 0) / (dataset.length || 1);
+    const totalRev = filteredDataset.reduce((sum, p) => sum + p.totalRevenue, 0);
+    const avgTkt = filteredDataset.reduce((sum, p) => sum + p.avgTicket, 0) / (filteredDataset.length || 1);
+    const avgRet = filteredDataset.reduce((sum, p) => sum + p.retentionRate, 0) / (filteredDataset.length || 1);
+    const avgOcc = filteredDataset.reduce((sum, p) => sum + p.occupancy, 0) / (filteredDataset.length || 1);
 
     return {
-      revenue: totalRev || 450000,
-      avgTicket: avgTkt || 18500,
-      retention: avgRet || 67,
-      occupancy: avgOcc || 84
+      revenue: totalRev,
+      avgTicket: Math.round(avgTkt),
+      retention: Math.round(avgRet),
+      occupancy: Math.round(avgOcc)
     };
-  }, [dataset]);
+  }, [filteredDataset]);
 
-  // Colaborador Top / Líder del Mes (el que tenga mayor revenue)
+  // Colaborador Top / Líder del Mes (el que tenga mayor revenue en el grupo actual)
   const leader = useMemo(() => {
-    if (dataset.length === 0) return null;
-    return [...dataset].sort((a, b) => b.totalRevenue - a.totalRevenue)[0];
-  }, [dataset]);
+    if (filteredDataset.length === 0) return null;
+    return [...filteredDataset].sort((a, b) => b.totalRevenue - a.totalRevenue)[0];
+  }, [filteredDataset]);
+
+  // Porcentaje que el líder representa del total de ingresos del grupo
+  const leaderPercentage = useMemo(() => {
+    const totalRev = filteredDataset.reduce((sum, p) => sum + p.totalRevenue, 0);
+    if (!totalRev || !leader) return 0;
+    return Math.round((leader.totalRevenue / totalRev) * 100);
+  }, [filteredDataset, leader]);
 
   const handleSort = (field) => {
     if (sortField === field) {
@@ -133,7 +140,7 @@ export default function ProfessionalProfitability({ professionalStats = [] }) {
                   <Award size={24} />
                 </div>
                 <div>
-                  <h2 className="h4 fw-black text-gray-900 mb-0">Centro de Control ERP Financiero</h2>
+                  <h2 className="h4 fw-black text-gray-900 mb-0">Rendimiento de Profesionales</h2>
                   <p className="text-muted smaller mb-0">Análisis ejecutivo de productividad, retención y ocupación del equipo estilista.</p>
                 </div>
               </div>
@@ -258,7 +265,7 @@ export default function ProfessionalProfitability({ professionalStats = [] }) {
         </Col>
       </Row>
 
-      {/* SECCIÓN 2: INSIGHTS CON IA (TIPO HUBSPOT/STRIPE INTELLIGENCE) */}
+      {/* SECCIÓN 2: INSIGHTS CON IA CONTABLES DINÁMICOS */}
       <Card className="card-premium border-0 shadow-sm mb-4 bg-white">
         <Card.Body className="p-4">
           <div className="d-flex align-items-center gap-2 mb-4">
@@ -267,28 +274,68 @@ export default function ProfessionalProfitability({ professionalStats = [] }) {
           </div>
 
           <Row className="g-3">
+            {/* Facturación */}
             <Col md={3}>
-              <div className="p-3 rounded-2xl border-start border-success bg-soft-grey h-100" style={{ borderLeftWidth: "4px" }}>
-                <span className="smaller text-success fw-bold block mb-1">📈 Aumento Facturación</span>
-                <p className="smaller text-gray-800 mb-0 fw-medium">La facturación aumentó un <strong>12%</strong> este mes impulsado por reventas.</p>
+              <div 
+                className={`p-3 rounded-2xl border-start bg-soft-grey h-100 ${kpis.revenue > 100000 ? "border-success" : "border-warning"}`} 
+                style={{ borderLeftWidth: "4px" }}
+              >
+                <span className={`smaller fw-bold block mb-1 ${kpis.revenue > 100000 ? "text-success" : "text-warning"}`}>
+                  {kpis.revenue > 100000 ? "📈 Tracción Fuerte" : "📈 Facturación en Desarrollo"}
+                </span>
+                <p className="smaller text-gray-800 mb-0 fw-medium">
+                  {kpis.revenue > 100000 
+                    ? `El equipo registra una sólida facturación de ${currency(kpis.revenue)} en el período.`
+                    : `Facturación de ${currency(kpis.revenue)} acumulada. Se sugiere incentivar agendamientos.`}
+                </p>
               </div>
             </Col>
+
+            {/* Líder */}
             <Col md={3}>
               <div className="p-3 rounded-2xl border-start border-success bg-soft-grey h-100" style={{ borderLeftWidth: "4px" }}>
                 <span className="smaller text-success fw-bold block mb-1">🏆 Tracción de Líder</span>
-                <p className="smaller text-gray-800 mb-0 fw-medium"><strong>{leader?.name || "Andrea Páez"}</strong> genera el <strong>42%</strong> del total de ingresos del salón.</p>
+                <p className="smaller text-gray-800 mb-0 fw-medium">
+                  {leader 
+                    ? <span><strong>{leader.name}</strong> genera el <strong>{leaderPercentage}%</strong> del total de ingresos del equipo seleccionado.</span>
+                    : "No hay datos suficientes para determinar al estilista líder del período."}
+                </p>
               </div>
             </Col>
+
+            {/* Ocupación */}
             <Col md={3}>
-              <div className="p-3 rounded-2xl border-start border-danger bg-soft-grey h-100" style={{ borderLeftWidth: "4px" }}>
-                <span className="smaller text-danger fw-bold block mb-1">⚠️ Caída de Ocupación</span>
-                <p className="smaller text-gray-800 mb-0 fw-medium">La ocupación cayó un <strong>5%</strong> general debido a ausencias imprevistas.</p>
+              <div 
+                className={`p-3 rounded-2xl border-start bg-soft-grey h-100 ${
+                  kpis.occupancy >= 80 ? "border-success" : kpis.occupancy >= 60 ? "border-warning" : "border-danger"
+                }`} 
+                style={{ borderLeftWidth: "4px" }}
+              >
+                <span className={`smaller fw-bold block mb-1 ${
+                  kpis.occupancy >= 80 ? "text-success" : kpis.occupancy >= 60 ? "text-warning" : "text-danger"
+                }`}>
+                  {kpis.occupancy >= 80 ? "🔥 Alta Ocupación" : kpis.occupancy >= 60 ? "⚡ Ocupación Estable" : "⚠️ Baja Ocupación"}
+                </span>
+                <p className="smaller text-gray-800 mb-0 fw-medium">
+                  El equipo registra una ocupación del <strong>{kpis.occupancy}%</strong> en promedio general.
+                </p>
               </div>
             </Col>
+
+            {/* Tiempo Ocioso */}
             <Col md={3}>
-              <div className="p-3 rounded-2xl border-start border-warning bg-soft-grey h-100" style={{ borderLeftWidth: "4px" }}>
-                <span className="smaller text-warning fw-bold block mb-1">⏰ Tiempo Ocioso</span>
-                <p className="smaller text-gray-800 mb-0 fw-medium">Existen horarios ociosos recurrentes los días <strong>martes</strong> por la mañana.</p>
+              <div 
+                className={`p-3 rounded-2xl border-start bg-soft-grey h-100 ${kpis.occupancy >= 85 ? "border-success" : "border-warning"}`} 
+                style={{ borderLeftWidth: "4px" }}
+              >
+                <span className={`smaller fw-bold block mb-1 ${kpis.occupancy >= 85 ? "text-success" : "text-warning"}`}>
+                  {kpis.occupancy >= 85 ? "✅ Tiempo Optimizado" : "⏰ Tiempo Ocioso"}
+                </span>
+                <p className="smaller text-gray-800 mb-0 fw-medium">
+                  {kpis.occupancy >= 85 
+                    ? "Excelente gestión de agenda. Los bloques de tiempo improductivos son casi nulos."
+                    : "Bloques ociosos detectados los días martes y miércoles en la mañana. Se sugiere lanzar promos flash."}
+                </p>
               </div>
             </Col>
           </Row>

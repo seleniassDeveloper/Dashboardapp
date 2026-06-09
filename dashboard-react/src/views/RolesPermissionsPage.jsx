@@ -7,9 +7,10 @@ import {
 } from "lucide-react";
 import api from "../lib/api.js";
 import { usePermissions } from "../auth/PermissionProvider.jsx";
-import i18n from "../i18n";
+import { useTranslation } from "react-i18next";
 
 export default function RolesPermissionsPage() {
+  const { t, i18n } = useTranslation("views");
   const { hasPermission } = usePermissions();
 
   const [activeTab, setActiveTab] = useState("matrix"); // "matrix" | "staff" | "create-permission"
@@ -78,12 +79,12 @@ export default function RolesPermissionsPage() {
     } catch (err) {
       console.error("Error loading permission matrix:", err);
       setError(
-        err.response?.data?.error || "Error al cargar la matriz de roles y permisos."
+        err.response?.data?.error || t("rolesPermissions.errors.loadMatrix")
       );
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   // Load Members for Staff tab
   const fetchMembers = useCallback(async () => {
@@ -97,11 +98,11 @@ export default function RolesPermissionsPage() {
       }
     } catch (err) {
       console.error("Error loading members:", err);
-      setMembersError(err.response?.data?.error || "Error al cargar la lista de colaboradores.");
+      setMembersError(err.response?.data?.error || t("rolesPermissions.errors.loadCollaborators"));
     } finally {
       setMembersLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     fetchData();
@@ -190,12 +191,12 @@ export default function RolesPermissionsPage() {
     try {
       const res = await api.patch("/permission-matrix", { matrix: matrixChanges });
       if (res.data?.success) {
-        setSuccess("Matriz de permisos actualizada y sincronizada exitosamente con la base de datos.");
+        setSuccess(t("rolesPermissions.success.matrixUpdated"));
         await fetchData();
       }
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.error || "Error al actualizar la matriz de permisos.");
+      setError(err.response?.data?.error || t("rolesPermissions.dirtyMatrixBar.saveMatrixError"));
     } finally {
       setSavingMatrix(false);
     }
@@ -209,7 +210,7 @@ export default function RolesPermissionsPage() {
     });
     setMatrixChanges(initialMatrix);
     setIsMatrixDirty(false);
-    setSuccess("Cambios descartados.");
+    setSuccess(t("rolesPermissions.success.changesDiscarded"));
   };
 
   // Create role action
@@ -234,7 +235,7 @@ export default function RolesPermissionsPage() {
   // Duplicate role action
   const handleOpenDuplicateModal = (role) => {
     setModalMode("duplicate");
-    setRoleName(`${role.name} (Copia)`);
+    setRoleName(`${role.name} (${t("rolesPermissions.modal.duplicateCopySuffix", { defaultValue: "Copia" })})`);
     setRoleDescription(role.description || "");
     setSelectedRole(role);
     setShowRoleModal(true);
@@ -270,15 +271,15 @@ export default function RolesPermissionsPage() {
 
       if (res.data?.success) {
         setSuccess(
-          modalMode === "create" ? "Rol personalizado creado con éxito." :
-          modalMode === "edit" ? "Rol modificado exitosamente." : "Rol duplicado con éxito con todos sus permisos."
+          modalMode === "create" ? t("rolesPermissions.success.roleCreated") :
+          modalMode === "edit" ? t("rolesPermissions.success.roleUpdated") : t("rolesPermissions.success.roleDuplicated")
         );
         setShowRoleModal(false);
         await fetchData();
       }
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.error || "Error al procesar el rol.");
+      setError(err.response?.data?.error || t("rolesPermissions.errors.saveRoleError"));
     } finally {
       setRoleSaving(false);
     }
@@ -288,11 +289,11 @@ export default function RolesPermissionsPage() {
   const handleDeleteRole = async (role) => {
     if (role.isSystemRole) return;
     if (role.userCount > 0) {
-      alert(`No puedes eliminar el rol '${role.name}' porque tiene ${role.userCount} usuario(s) asignado(s).`);
+      alert(t("rolesPermissions.errors.roleInUse", { name: role.name, count: role.userCount }));
       return;
     }
 
-    if (!window.confirm(`¿Estás seguro de que deseas eliminar permanentemente el rol '${role.name}'?`)) {
+    if (!window.confirm(t("rolesPermissions.errors.deleteConfirm", { name: role.name }))) {
       return;
     }
 
@@ -301,12 +302,12 @@ export default function RolesPermissionsPage() {
     try {
       const res = await api.delete(`/roles/${role.id}`);
       if (res.data?.success) {
-        setSuccess(`El rol '${role.name}' ha sido eliminado con éxito.`);
+        setSuccess(t("rolesPermissions.success.roleDeleted", { name: role.name }));
         await fetchData();
       }
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.error || "Error al eliminar el rol.");
+      setError(err.response?.data?.error || t("rolesPermissions.errors.deleteError"));
     }
   };
 
@@ -320,12 +321,15 @@ export default function RolesPermissionsPage() {
     try {
       const res = await api.patch(`/roles/${role.id}`, { isActive: nextStatus });
       if (res.data?.success) {
-        setSuccess(`El rol '${role.name}' ahora está ${nextStatus ? 'Activo' : 'Inactivo'}.`);
+        const statusText = nextStatus 
+          ? t("rolesPermissions.table.statusActive") 
+          : t("rolesPermissions.table.statusInactive");
+        setSuccess(t("rolesPermissions.success.roleToggled", { name: role.name, status: statusText }));
         await fetchData();
       }
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.error || "Error al cambiar el estado del rol.");
+      setError(err.response?.data?.error || t("rolesPermissions.errors.toggleError"));
     }
   };
 
@@ -337,13 +341,13 @@ export default function RolesPermissionsPage() {
     try {
       const res = await api.patch(`/members/${memberId}/role`, { roleKey });
       if (res.data?.success) {
-        setSuccess("Rol del colaborador actualizado exitosamente.");
+        setSuccess(t("rolesPermissions.success.memberRoleUpdated"));
         await fetchMembers();
         await fetchData(); // refresh counters on roles list
       }
     } catch (err) {
       console.error("Error updating member role:", err);
-      setError(err.response?.data?.error || "Error al actualizar el rol del colaborador.");
+      setError(err.response?.data?.error || t("rolesPermissions.errors.roleUpdateError"));
     } finally {
       setUpdatingMemberId(null);
     }
@@ -366,7 +370,7 @@ export default function RolesPermissionsPage() {
       });
 
       if (res.data?.success) {
-        setSuccess(`Permiso '${res.data.permission.action}' registrado exitosamente.`);
+        setSuccess(t("rolesPermissions.success.permCreated", { name: res.data.permission.action }));
         setNewPermissionAction("");
         setNewPermissionModule("");
         setNewPermissionDescription("");
@@ -375,7 +379,7 @@ export default function RolesPermissionsPage() {
       }
     } catch (err) {
       console.error("Error creating custom permission:", err);
-      setError(err.response?.data?.error || "Error al registrar el permiso personalizado.");
+      setError(err.response?.data?.error || t("rolesPermissions.errors.createPermError"));
     } finally {
       setCreatingPermission(false);
     }
@@ -388,10 +392,10 @@ export default function RolesPermissionsPage() {
         <div>
           <h1 className="fw-black h3 text-dark d-flex align-items-center gap-2">
             <Shield className="text-purple-600" size={28} />
-            Roles y Permisos Comerciales
+            {t("rolesPermissions.title")}
           </h1>
           <p className="text-secondary mb-0 small">
-            Gestioná los niveles de acceso del personal, asigná roles a colaboradores y definí qué acciones y módulos pueden ver u operar.
+            {t("rolesPermissions.subtitle")}
           </p>
         </div>
         {hasPermission("roles.create") && activeTab === "matrix" && (
@@ -401,7 +405,7 @@ export default function RolesPermissionsPage() {
             style={{ background: "linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)" }}
           >
             <UserPlus size={18} />
-            <span className="fw-bold">Crear Rol Personalizado</span>
+            <span className="fw-bold">{t("rolesPermissions.btnCreateRole")}</span>
           </Button>
         )}
       </header>
@@ -431,7 +435,7 @@ export default function RolesPermissionsPage() {
           <Card className="card-premium border-0 shadow-sm p-4 bg-white">
             <div className="d-flex justify-content-between align-items-center">
               <div>
-                <div className="text-muted smaller text-uppercase fw-semibold">Total de Roles</div>
+                <div className="text-muted smaller text-uppercase fw-semibold">{t("rolesPermissions.stats.totalRoles")}</div>
                 <div className="display-6 fw-black mt-1">{stats.totalRoles}</div>
               </div>
               <div className="p-3 bg-purple-50 text-purple-600 rounded-circle">
@@ -439,8 +443,8 @@ export default function RolesPermissionsPage() {
               </div>
             </div>
             <div className="text-muted smaller mt-3">
-              <Badge bg="dark" className="me-1">{stats.systemRoles} del sistema</Badge>
-              <Badge bg="purple" className="text-white">{stats.customRoles} custom</Badge>
+              <Badge bg="dark" className="me-1">{stats.systemRoles} {t("rolesPermissions.stats.systemRoles")}</Badge>
+              <Badge bg="purple" className="text-white">{stats.customRoles} {t("rolesPermissions.stats.customRoles")}</Badge>
             </div>
           </Card>
         </Col>
@@ -449,7 +453,7 @@ export default function RolesPermissionsPage() {
           <Card className="card-premium border-0 shadow-sm p-4 bg-white">
             <div className="d-flex justify-content-between align-items-center">
               <div>
-                <div className="text-muted smaller text-uppercase fw-semibold">Permisos Totales</div>
+                <div className="text-muted smaller text-uppercase fw-semibold">{t("rolesPermissions.stats.totalPerms")}</div>
                 <div className="display-6 fw-black mt-1">{stats.totalPerms}</div>
               </div>
               <div className="p-3 bg-success-50 text-success rounded-circle">
@@ -457,7 +461,7 @@ export default function RolesPermissionsPage() {
               </div>
             </div>
             <div className="text-muted smaller mt-3">
-              Políticas de seguridad activas en Neon
+              {t("rolesPermissions.stats.totalPermsDesc")}
             </div>
           </Card>
         </Col>
@@ -466,7 +470,7 @@ export default function RolesPermissionsPage() {
           <Card className="card-premium border-0 shadow-sm p-4 bg-white">
             <div className="d-flex justify-content-between align-items-center">
               <div>
-                <div className="text-muted smaller text-uppercase fw-semibold">Personal Activo</div>
+                <div className="text-muted smaller text-uppercase fw-semibold">{t("rolesPermissions.stats.activeStaff")}</div>
                 <div className="display-6 fw-black mt-1">{stats.activeStaff}</div>
               </div>
               <div className="p-3 bg-primary-50 text-primary rounded-circle">
@@ -474,7 +478,7 @@ export default function RolesPermissionsPage() {
               </div>
             </div>
             <div className="text-muted smaller mt-3">
-              Colaboradores operando en el dashboard
+              {t("rolesPermissions.stats.activeStaffDesc")}
             </div>
           </Card>
         </Col>
@@ -483,15 +487,15 @@ export default function RolesPermissionsPage() {
           <Card className="card-premium border-0 shadow-sm p-4 bg-white">
             <div className="d-flex justify-content-between align-items-center">
               <div>
-                <div className="text-muted smaller text-uppercase fw-semibold">Modificaciones</div>
-                <div className="display-6 fw-black mt-1">{isMatrixDirty ? "Pendientes" : "Guardadas"}</div>
+                <div className="text-muted smaller text-uppercase fw-semibold">{t("rolesPermissions.stats.changes")}</div>
+                <div className="display-6 fw-black mt-1">{isMatrixDirty ? t("rolesPermissions.stats.pending") : t("rolesPermissions.stats.saved")}</div>
               </div>
               <div className="p-3 bg-warning-50 text-warning rounded-circle">
                 <RotateCcw size={24} />
               </div>
             </div>
             <div className="text-muted smaller mt-3">
-              {isMatrixDirty ? "⚠️ Tenés cambios sin aplicar en la matriz" : "✓ Base de datos en sincronía"}
+              {isMatrixDirty ? t("rolesPermissions.stats.dirtyDesc") : t("rolesPermissions.stats.cleanDesc")}
             </div>
           </Card>
         </Col>
@@ -513,7 +517,7 @@ export default function RolesPermissionsPage() {
         >
           <div className="d-flex align-items-center gap-2">
             <Shield size={16} />
-            Matriz de Permisos & Roles
+            {t("rolesPermissions.matrixTab")}
           </div>
         </button>
 
@@ -531,7 +535,7 @@ export default function RolesPermissionsPage() {
         >
           <div className="d-flex align-items-center gap-2">
             <Users size={16} />
-            Asignación de Personal
+            {t("rolesPermissions.staffTab")}
           </div>
         </button>
 
@@ -550,7 +554,7 @@ export default function RolesPermissionsPage() {
           >
             <div className="d-flex align-items-center gap-2">
               <PlusCircle size={16} />
-              Crear Permiso Personalizado
+              {t("rolesPermissions.customPermTab")}
             </div>
           </button>
         )}
@@ -559,7 +563,7 @@ export default function RolesPermissionsPage() {
       {loading && activeTab === "matrix" ? (
         <div className="text-center py-5">
           <Spinner animation="border" variant="primary" />
-          <p className="text-muted small mt-2">Cargando matriz y roles relacionales...</p>
+          <p className="text-muted small mt-2">{t("rolesPermissions.stats.loadingMatrix", { defaultValue: "Cargando matriz y roles relacionales..." })}</p>
         </div>
       ) : (
         <>
@@ -568,16 +572,16 @@ export default function RolesPermissionsPage() {
             <>
               {/* ROLES MANAGEMENT LIST */}
               <Card className="card-premium border-0 shadow-sm overflow-hidden mb-5 p-4 bg-white">
-                <h2 className="fw-bold h5 mb-3 text-dark">Niveles de Roles del Negocio</h2>
+                <h2 className="fw-bold h5 mb-3 text-dark">{t("rolesPermissions.rolesListTitle")}</h2>
                 <div className="table-responsive rounded-3 border">
                   <Table hover align="middle" className="mb-0">
                     <thead className="bg-light">
                       <tr>
-                        <th className="px-4 py-3 text-muted fw-bold small text-uppercase" style={{ width: "220px" }}>Nombre del Rol</th>
-                        <th className="py-3 text-muted fw-bold small text-uppercase">Descripción</th>
-                        <th className="py-3 text-muted fw-bold small text-uppercase text-center" style={{ width: "130px" }}>Colaboradores</th>
-                        <th className="py-3 text-muted fw-bold small text-uppercase text-center" style={{ width: "120px" }}>Tipo</th>
-                        <th className="px-4 py-3 text-muted fw-bold small text-uppercase text-center" style={{ width: "160px" }}>Acciones</th>
+                        <th className="px-4 py-3 text-muted fw-bold small text-uppercase" style={{ width: "220px" }}>{t("rolesPermissions.table.roleName")}</th>
+                        <th className="py-3 text-muted fw-bold small text-uppercase">{t("rolesPermissions.table.description")}</th>
+                        <th className="py-3 text-muted fw-bold small text-uppercase text-center" style={{ width: "130px" }}>{t("rolesPermissions.table.collaborators")}</th>
+                        <th className="py-3 text-muted fw-bold small text-uppercase text-center" style={{ width: "120px" }}>{t("rolesPermissions.table.type")}</th>
+                        <th className="px-4 py-3 text-muted fw-bold small text-uppercase text-center" style={{ width: "160px" }}>{t("rolesPermissions.table.actions")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -593,21 +597,21 @@ export default function RolesPermissionsPage() {
                                 <Shield size={16} className={isSystem ? "text-purple-600" : "text-secondary"} />
                                 {r.name}
                               </div>
-                              <span className="text-muted smaller d-block mt-0.5">Clave: {r.key}</span>
+                              <span className="text-muted smaller d-block mt-0.5">{t("rolesPermissions.table.keyLabel", { defaultValue: "Clave:" })} {r.key}</span>
                             </td>
                             <td className="py-3 text-secondary small" style={{ fontSize: "12.5px" }}>
-                              {r.description || "Sin descripción proporcionada."}
+                              {r.description || t("rolesPermissions.table.noDesc")}
                             </td>
                             <td className="py-3 text-center">
                               <Badge bg="light" className="text-dark border px-3 py-1.5 rounded-pill fw-bold">
-                                {r.userCount || 0} activos
+                                {r.userCount || 0} {t("rolesPermissions.table.active")}
                               </Badge>
                             </td>
                             <td className="py-3 text-center">
                               {isSystem ? (
-                                <Badge bg="dark" className="px-3 py-1.5 rounded-pill text-white">Sistema</Badge>
+                                <Badge bg="dark" className="px-3 py-1.5 rounded-pill text-white">{t("rolesPermissions.table.system")}</Badge>
                               ) : (
-                                <Badge bg="purple" className="px-3 py-1.5 rounded-pill text-white">Personalizado</Badge>
+                                <Badge bg="purple" className="px-3 py-1.5 rounded-pill text-white">{t("rolesPermissions.table.custom")}</Badge>
                               )}
                             </td>
                             <td className="px-4 py-3 text-center">
@@ -620,7 +624,7 @@ export default function RolesPermissionsPage() {
                                   className={`p-1 px-2 border rounded-xl ${
                                     r.isActive || isSystem ? "hover-bg-red-50" : "hover-bg-emerald-50"
                                   }`}
-                                  title={isSystem ? "Rol del sistema siempre activo" : r.isActive ? "Desactivar Rol" : "Activar Rol"}
+                                  title={isSystem ? t("rolesPermissions.table.alwaysActiveTitle") : r.isActive ? t("rolesPermissions.table.deactivateTitle") : t("rolesPermissions.table.activateTitle")}
                                 >
                                   {r.isActive || isSystem ? (
                                     <ToggleRight size={14} className="text-success" />
@@ -633,7 +637,7 @@ export default function RolesPermissionsPage() {
                                     variant="light"
                                     size="sm"
                                     onClick={() => handleOpenDuplicateModal(r)}
-                                    title="Duplicar Rol"
+                                    title={t("rolesPermissions.table.duplicateTitle")}
                                     className="p-1 px-2 border"
                                   >
                                     <Copy size={14} className="text-primary" />
@@ -644,7 +648,7 @@ export default function RolesPermissionsPage() {
                                     variant="light"
                                     size="sm"
                                     onClick={() => handleOpenEditModal(r)}
-                                    title="Editar Rol"
+                                    title={t("rolesPermissions.table.editTitle")}
                                     className="p-1 px-2 border"
                                   >
                                     <Users size={14} className="text-dark" />
@@ -655,14 +659,14 @@ export default function RolesPermissionsPage() {
                                     variant="light"
                                     size="sm"
                                     onClick={() => handleDeleteRole(r)}
-                                    title="Eliminar Rol"
+                                    title={t("rolesPermissions.table.deleteTitle")}
                                     className="p-1 px-2 border"
                                   >
                                     <Trash2 size={14} className="text-danger" />
                                   </Button>
                                 ) : (
                                   !isSystem && (
-                                    <span className="text-muted smaller" title="No se puede eliminar porque tiene usuarios asignados o no tenés permiso.">
+                                    <span className="text-muted smaller" title={t("rolesPermissions.table.cannotDeleteTooltip", { defaultValue: "No se puede eliminar porque tiene usuarios asignados o no tenés permiso." })}>
                                       —
                                     </span>
                                   )
@@ -681,8 +685,8 @@ export default function RolesPermissionsPage() {
               <Card className="card-premium border-0 shadow-sm overflow-hidden p-4 bg-white">
                 <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4 pb-3 border-bottom">
                   <div>
-                    <h2 className="fw-bold h5 mb-1 text-dark">Matriz Visual de Permisos Granulares</h2>
-                    <span className="text-muted smaller">Marca o desmarca casillas por módulo para asignar o revocar accesos masivos.</span>
+                    <h2 className="fw-bold h5 mb-1 text-dark">{t("rolesPermissions.matrixTitle")}</h2>
+                    <span className="text-muted smaller">{t("rolesPermissions.matrixDesc")}</span>
                   </div>
                   
                   {/* FILTERS */}
@@ -692,7 +696,7 @@ export default function RolesPermissionsPage() {
                         <Search size={16} />
                       </InputGroup.Text>
                       <Form.Control
-                        placeholder="Buscar permiso..."
+                        placeholder={t("rolesPermissions.searchPlaceholder")}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="border-0 px-2 py-2 small"
@@ -706,7 +710,7 @@ export default function RolesPermissionsPage() {
                       className="rounded-pill px-4 py-2 border text-capitalize small"
                       style={{ width: "180px", fontSize: "13px" }}
                     >
-                      <option value="all">Todos los Módulos</option>
+                      <option value="all">{t("rolesPermissions.allModules")}</option>
                       {modulesList.map(mod => (
                         <option key={mod} value={mod}>{mod}</option>
                       ))}
@@ -719,7 +723,7 @@ export default function RolesPermissionsPage() {
                     <thead className="bg-light sticky-top" style={{ zIndex: 10 }}>
                       <tr>
                         <th className="px-4 py-3 text-muted fw-bold small text-uppercase" style={{ minWidth: "260px", background: "#f8f9fa" }}>
-                          Acción / Permiso del Sistema
+                          {t("rolesPermissions.table.matrixActionHeader", { defaultValue: "Acción / Permiso del Sistema" })}
                         </th>
                         {roles.map((r) => (
                           <th 
@@ -728,7 +732,7 @@ export default function RolesPermissionsPage() {
                             style={{ minWidth: "120px", background: "#f8f9fa" }}
                           >
                             <div>{r.name}</div>
-                            {!r.isActive && <Badge bg="danger" className="mt-1 text-white">Inactivo</Badge>}
+                            {!r.isActive && <Badge bg="danger" className="mt-1 text-white">{t("rolesPermissions.table.statusInactive")}</Badge>}
                           </th>
                         ))}
                       </tr>
@@ -737,7 +741,7 @@ export default function RolesPermissionsPage() {
                       {filteredPermissions.length === 0 ? (
                         <tr>
                           <td colSpan={roles.length + 1} className="text-center py-5 text-muted small">
-                            No se encontraron permisos que coincidan con la búsqueda.
+                            {t("rolesPermissions.noPermsFound")}
                           </td>
                         </tr>
                       ) : (
@@ -797,8 +801,8 @@ export default function RolesPermissionsPage() {
                   <div className="d-flex align-items-center gap-2">
                     <AlertTriangle className="text-warning" size={20} />
                     <div>
-                      <div className="fw-bold text-dark small">Cambios sin guardar en la matriz de accesos</div>
-                      <div className="text-muted smaller">Hay casillas modificadas que aún no han sido sincronizadas en el backend.</div>
+                      <div className="fw-bold text-dark small">{t("rolesPermissions.dirtyMatrixBar.title")}</div>
+                      <div className="text-muted smaller">{t("rolesPermissions.dirtyMatrixBar.desc")}</div>
                     </div>
                   </div>
                   <div className="d-flex gap-3">
@@ -809,7 +813,7 @@ export default function RolesPermissionsPage() {
                       className="rounded-pill px-4 py-2 small fw-semibold"
                     >
                       <RotateCcw size={16} className="me-1.5" />
-                      Descartar
+                      {t("rolesPermissions.dirtyMatrixBar.revert")}
                     </Button>
                     <Button
                       disabled={savingMatrix}
@@ -820,12 +824,12 @@ export default function RolesPermissionsPage() {
                       {savingMatrix ? (
                         <>
                           <Spinner size="sm" className="me-2" />
-                          Guardando...
+                          {t("rolesPermissions.dirtyMatrixBar.saving")}
                         </>
                       ) : (
                         <>
                           <Save size={16} className="me-1.5" />
-                          Guardar Cambios
+                          {t("rolesPermissions.dirtyMatrixBar.save")}
                         </>
                       )}
                     </Button>
@@ -840,8 +844,8 @@ export default function RolesPermissionsPage() {
             <Card className="card-premium border-0 shadow-sm p-4 bg-white">
               <div className="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
                 <div>
-                  <h2 className="fw-bold h5 mb-1 text-dark">Asignación de Personal a Roles</h2>
-                  <span className="text-muted smaller">Asigna o cambia el rol de los colaboradores activos del negocio al instante.</span>
+                  <h2 className="fw-bold h5 mb-1 text-dark">{t("rolesPermissions.staff.title")}</h2>
+                  <span className="text-muted smaller">{t("rolesPermissions.staff.desc")}</span>
                 </div>
                 <Button 
                   variant="light"
@@ -851,7 +855,7 @@ export default function RolesPermissionsPage() {
                   disabled={membersLoading}
                 >
                   <RefreshCw size={14} className={membersLoading ? "animate-spin" : ""} />
-                  Actualizar Lista
+                  {t("rolesPermissions.staff.refreshBtn", { defaultValue: "Actualizar Lista" })}
                 </Button>
               </div>
 
@@ -862,25 +866,25 @@ export default function RolesPermissionsPage() {
               {membersLoading ? (
                 <div className="text-center py-5">
                   <Spinner animation="border" variant="purple" />
-                  <p className="text-muted small mt-2">Cargando colaboradores del negocio...</p>
+                  <p className="text-muted small mt-2">{t("rolesPermissions.staff.loading", { defaultValue: "Cargando colaboradores del negocio..." })}</p>
                 </div>
               ) : (
                 <div className="table-responsive rounded-3 border">
                   <Table hover align="middle" className="mb-0">
                     <thead className="bg-light">
                       <tr>
-                        <th className="px-4 py-3 text-muted fw-bold small text-uppercase">Colaborador / Usuario</th>
-                        <th className="py-3 text-muted fw-bold small text-uppercase">Email</th>
-                        <th className="py-3 text-muted fw-bold small text-uppercase text-center">Rol en la Empresa</th>
-                        <th className="py-3 text-muted fw-bold small text-uppercase text-center">Estado</th>
-                        <th className="px-4 py-3 text-muted fw-bold small text-uppercase text-center" style={{ width: "240px" }}>Asignar Nuevo Rol</th>
+                        <th className="px-4 py-3 text-muted fw-bold small text-uppercase">{t("rolesPermissions.staff.table.name")}</th>
+                        <th className="py-3 text-muted fw-bold small text-uppercase">{t("rolesPermissions.staff.table.email")}</th>
+                        <th className="py-3 text-muted fw-bold small text-uppercase text-center">{t("rolesPermissions.staff.table.assignedRole")}</th>
+                        <th className="py-3 text-muted fw-bold small text-uppercase text-center">{t("rolesPermissions.staff.table.status", { defaultValue: "Estado" })}</th>
+                        <th className="px-4 py-3 text-muted fw-bold small text-uppercase text-center" style={{ width: "240px" }}>{t("rolesPermissions.staff.table.actions")}</th>
                       </tr>
                     </thead>
                     <tbody>
                       {members.length === 0 ? (
                         <tr>
                           <td colSpan={5} className="text-center py-5 text-muted small">
-                            No se encontraron colaboradores registrados en este negocio.
+                            {t("rolesPermissions.staff.noStaff")}
                           </td>
                         </tr>
                       ) : (
@@ -933,9 +937,9 @@ export default function RolesPermissionsPage() {
                               </td>
                               <td className="py-3 text-center">
                                 {member.status === "ACTIVE" ? (
-                                  <Badge bg="success-50" className="text-success border border-success px-3 py-1.5 rounded-pill">Activo</Badge>
+                                  <Badge bg="success-50" className="text-success border border-success px-3 py-1.5 rounded-pill">{t("rolesPermissions.table.statusActive")}</Badge>
                                 ) : member.status === "SUSPENDED" || member.status === "INACTIVE" || member.status === "INACTIVO" ? (
-                                  <Badge bg="danger-50" className="text-danger border border-danger px-3 py-1.5 rounded-pill">Inactivo</Badge>
+                                  <Badge bg="danger-50" className="text-danger border border-danger px-3 py-1.5 rounded-pill">{t("rolesPermissions.table.statusInactive")}</Badge>
                                 ) : (
                                   <Badge bg="warning-50" className="text-warning border border-warning px-3 py-1.5 rounded-pill">{member.status}</Badge>
                                 )}
@@ -952,7 +956,7 @@ export default function RolesPermissionsPage() {
                                   >
                                     {roles.map((r) => (
                                       <option key={r.id} value={r.key} disabled={!r.isActive}>
-                                        {r.name} {!r.isActive ? "(Inactivo)" : ""}
+                                        {r.name} {!r.isActive ? `(${t("rolesPermissions.table.statusInactive")})` : ""}
                                       </option>
                                     ))}
                                   </Form.Select>
@@ -981,51 +985,51 @@ export default function RolesPermissionsPage() {
                     <div className="p-3 bg-purple-50 text-purple-600 rounded-circle d-inline-block mb-3">
                       <KeyRound size={32} />
                     </div>
-                    <h2 className="fw-black h4 text-dark">Crear Permiso Personalizado</h2>
+                    <h2 className="fw-black h4 text-dark">{t("rolesPermissions.customPerm.title")}</h2>
                     <p className="text-secondary small max-w-480 mx-auto mt-1">
-                      Agrega nuevos permisos granulares al catálogo general. El nuevo permiso estará disponible de inmediato en la Matriz de Accesos para todos tus roles.
+                      {t("rolesPermissions.customPerm.desc")}
                     </p>
                   </div>
 
                   <Form onSubmit={handleCreatePermission}>
                     <Form.Group className="mb-3">
-                      <Form.Label className="fw-semibold small">Clave / Acción del Permiso *</Form.Label>
+                      <Form.Label className="fw-semibold small">{t("rolesPermissions.customPerm.actionLabel")}</Form.Label>
                       <Form.Control
                         type="text"
                         required
-                        placeholder="Ej: finances.full_history"
+                        placeholder={t("rolesPermissions.customPerm.actionPlaceholder")}
                         value={newPermissionAction}
                         onChange={(e) => setNewPermissionAction(e.target.value)}
                         className="rounded-3 py-2"
                         style={{ fontSize: "13.5px" }}
                       />
                       <Form.Text className="text-muted smaller">
-                        Debe ser un identificador único en minúsculas separado por puntos. Ej: `modulo.accion`.
+                        {t("rolesPermissions.customPerm.actionHint", { defaultValue: "Debe ser un identificador único en minúsculas separado por puntos. Ej: modulo.accion." })}
                       </Form.Text>
                     </Form.Group>
 
                     <Form.Group className="mb-3">
-                      <Form.Label className="fw-semibold small">Módulo del Sistema *</Form.Label>
+                      <Form.Label className="fw-semibold small">{t("rolesPermissions.customPerm.moduleLabel")}</Form.Label>
                       <Form.Control
                         type="text"
                         required
-                        placeholder="Ej: finances"
+                        placeholder={t("rolesPermissions.customPerm.modulePlaceholder")}
                         value={newPermissionModule}
                         onChange={(e) => setNewPermissionModule(e.target.value)}
                         className="rounded-3 py-2"
                         style={{ fontSize: "13.5px" }}
                       />
                       <Form.Text className="text-muted smaller">
-                        El nombre del módulo agrupará la fila del permiso en la cuadrícula visual de accesos.
+                        {t("rolesPermissions.customPerm.moduleHint", { defaultValue: "El nombre del módulo agrupará la fila del permiso en la cuadrícula visual de accesos." })}
                       </Form.Text>
                     </Form.Group>
 
                     <Form.Group className="mb-4">
-                      <Form.Label className="fw-semibold small">Descripción Operativa</Form.Label>
+                      <Form.Label className="fw-semibold small">{t("rolesPermissions.customPerm.descLabel")}</Form.Label>
                       <Form.Control
                         as="textarea"
                         rows={3}
-                        placeholder="Ej: Permite visualizar las métricas consolidadas e históricos extendidos de facturación..."
+                        placeholder={t("rolesPermissions.customPerm.descPlaceholder")}
                         value={newPermissionDescription}
                         onChange={(e) => setNewPermissionDescription(e.target.value)}
                         className="rounded-3 py-2"
@@ -1043,12 +1047,12 @@ export default function RolesPermissionsPage() {
                         {creatingPermission ? (
                           <>
                             <Spinner size="sm" animation="border" className="me-2" />
-                            Registrando en Postgres...
+                            {t("rolesPermissions.customPerm.saving")}
                           </>
                         ) : (
                           <>
                             <PlusCircle size={18} />
-                            Registrar Nuevo Permiso
+                            {t("rolesPermissions.customPerm.btn")}
                           </>
                         )}
                       </Button>
@@ -1072,24 +1076,24 @@ export default function RolesPermissionsPage() {
         <Modal.Header closeButton className="bg-light border-0 py-3">
           <Modal.Title className="h5 fw-bold d-flex align-items-center gap-2">
             <Shield className="text-purple-600" size={20} />
-            {modalMode === "create" ? "Crear Rol Personalizado" :
-             modalMode === "edit" ? "Modificar Rol" : `Duplicar Rol: ${selectedRole?.name}`}
+            {modalMode === "create" ? t("rolesPermissions.modal.createTitle") :
+             modalMode === "edit" ? t("rolesPermissions.modal.editTitle") : t("rolesPermissions.modal.duplicateTitle") + (selectedRole ? ": " + selectedRole.name : "")}
           </Modal.Title>
         </Modal.Header>
         <Form onSubmit={handleSaveRole}>
           <Modal.Body className="p-4">
             <p className="text-muted small mb-4">
-              {modalMode === "create" ? "Define un nuevo nivel de acceso. Su clave única (key) se autogenerará basándose en el nombre." :
-               modalMode === "edit" ? "Modifica el nombre o descripción del rol. Los roles predefinidos del sistema no se pueden alterar." :
-               "Genera una copia idéntica de este rol. Todos los permisos asignados en la matriz se clonarán de forma atómica en el nuevo rol."}
+              {modalMode === "create" ? t("rolesPermissions.modal.createDesc", { defaultValue: "Define un nuevo nivel de acceso. Su clave única (key) se autogenerará basándose en el nombre." }) :
+               modalMode === "edit" ? t("rolesPermissions.modal.editDesc", { defaultValue: "Modifica el nombre o descripción del rol. Los roles predefinidos del sistema no se pueden alterar." }) :
+               t("rolesPermissions.modal.duplicateDesc", { defaultValue: "Genera una copia idéntica de este rol. Todos los permisos asignados en la matriz se clonarán de forma atómica en el nuevo rol." })}
             </p>
 
             <Form.Group className="mb-3">
-              <Form.Label className="fw-semibold small">Nombre del Rol *</Form.Label>
+              <Form.Label className="fw-semibold small">{t("rolesPermissions.modal.nameLabel")}</Form.Label>
               <Form.Control
                 type="text"
                 required
-                placeholder="Ej: Esteticista Senior"
+                placeholder={t("rolesPermissions.modal.namePlaceholder")}
                 value={roleName}
                 onChange={(e) => setRoleName(e.target.value)}
                 className="rounded-3 py-2"
@@ -1097,11 +1101,11 @@ export default function RolesPermissionsPage() {
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label className="fw-semibold small">Descripción del Rol</Form.Label>
+              <Form.Label className="fw-semibold small">{t("rolesPermissions.modal.descLabel")}</Form.Label>
               <Form.Control
                 as="textarea"
                 rows={3}
-                placeholder="Ej: Acceso completo a sus fichas y agenda, pero limitado a finanzas."
+                placeholder={t("rolesPermissions.modal.descPlaceholder")}
                 value={roleDescription}
                 onChange={(e) => setRoleDescription(e.target.value)}
                 className="rounded-3 py-2"
@@ -1115,7 +1119,7 @@ export default function RolesPermissionsPage() {
               className="rounded-pill px-4"
               disabled={roleSaving}
             >
-              Cancelar
+              {t("rolesPermissions.modal.cancel")}
             </Button>
             <Button
               type="submit"
@@ -1126,11 +1130,11 @@ export default function RolesPermissionsPage() {
               {roleSaving ? (
                 <>
                   <Spinner size="sm" animation="border" className="me-2" />
-                  Sincronizando...
+                  {t("rolesPermissions.modal.saving")}
                 </>
               ) : (
-                modalMode === "create" ? "Crear Rol" :
-                modalMode === "edit" ? "Guardar Cambios" : "Duplicar Rol"
+                modalMode === "create" ? t("rolesPermissions.modal.createBtn", { defaultValue: "Crear Rol" }) :
+                modalMode === "edit" ? t("rolesPermissions.modal.save", { defaultValue: "Guardar Rol" }) : t("rolesPermissions.modal.duplicateBtn", { defaultValue: "Duplicar Rol" })
               )}
             </Button>
           </Modal.Footer>

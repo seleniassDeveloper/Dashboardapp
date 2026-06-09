@@ -79,7 +79,7 @@ app.use("/api/business-models", requireAuth, businessModelsRoutes);
 app.use("/api/workflows", requireAuth, checkTenant, workflowsRoutes);
 app.use("/api/ai", requireAuth, aiRoutes);
 app.use(`\/api\/dashboard`, requireAuth, dashboardRoutes);
-app.use("/api/google", requireAuth, googleRoutes);
+app.use("/api/google", requireAuth, checkTenant, googleRoutes);
 app.use("/api/crm", requireAuth, checkTenant, crmRoutes);
 app.use("/api/finances", requireAuth, checkTenant, financesRoutes);
 app.use("/api/finance", requireAuth, checkTenant, financesRoutes);

@@ -78,6 +78,13 @@ export function AppointmentsProvider({ children }) {
     
     fetchAppointments(true);
     fetchServices();
+
+    // Polling automático en segundo plano cada 10 segundos (sincroniza reservas en vivo sin parpadeos)
+    const interval = setInterval(() => {
+      fetchAppointments(false);
+    }, 10000);
+
+    return () => clearInterval(interval);
   }, [user, fetchAppointments, fetchServices]);
 
   const upsertAppointment = useCallback((appointment) => {

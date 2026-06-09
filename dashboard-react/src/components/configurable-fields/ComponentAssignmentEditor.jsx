@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { Card, Button, Form, Alert, Spinner, Badge, Row, Col } from "react-bootstrap";
-import { Save } from "lucide-react";
+import { Card, Button, Form, Alert, Spinner, Badge, Row, Col, InputGroup } from "react-bootstrap";
+import { Save, HelpCircle, Eye } from "lucide-react";
 import { FORM_TARGET_GROUPS, REGISTRY_SCHEMA_KEY } from "../../config/appFormTargets.js";
 import { resolveFieldsFromRegistry } from "../../utils/resolveFormFields.js";
 import api from "../../lib/api.js";
@@ -78,6 +78,7 @@ export default function ComponentAssignmentEditor() {
     try {
       setSaving(true);
       setError("");
+      setSuccess("");
       await api.put(`/form-schemas/${selectedKey}`, {
         label: componentMeta.label || selectedTarget?.label,
         schemaType: "assignment",
@@ -85,9 +86,10 @@ export default function ComponentAssignmentEditor() {
         component: selectedTarget?.component,
         fieldRefs,
       });
-      setSuccess(`Asignación guardada para ${selectedTarget?.component || selectedKey}`);
+      setSuccess(`Asignación guardada correctamente para ${selectedTarget?.label || selectedKey}.`);
+      setTimeout(() => setSuccess(""), 4000);
     } catch (e) {
-      setError(e?.response?.data?.error || "Error guardando.");
+      setError(e?.response?.data?.error || "Error guardando la asignación.");
     } finally {
       setSaving(false);
     }
@@ -95,8 +97,9 @@ export default function ComponentAssignmentEditor() {
 
   if (loading) {
     return (
-      <div className="text-center py-4">
-        <Spinner size="sm" /> Cargando…
+      <div className="text-center py-5">
+        <Spinner animation="border" variant="primary" />
+        <p className="text-muted mt-2 small">Cargando asignaciones…</p>
       </div>
     );
   }
@@ -104,99 +107,209 @@ export default function ComponentAssignmentEditor() {
   return (
     <Card className="card-premium border-0 shadow-sm">
       <Card.Body className="p-4">
-        <div className="d-flex flex-wrap justify-content-between gap-3 mb-3">
+        <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
           <div>
-            <h2 className="h5 fw-bold mb-1">Asignar campos a componentes</h2>
+            <h2 className="h4 fw-black text-gray-900 mb-1">Asignar campos a componentes</h2>
             <p className="text-muted small mb-0">
               Elegí un formulario o vista de la app y marcá qué campos del catálogo usa.
             </p>
           </div>
-          <Button variant="dark" onClick={save} disabled={saving || !selectedKey}>
-            <Save size={16} className="me-1" /> Guardar asignación
+          <Button 
+            variant="dark" 
+            onClick={save} 
+            disabled={saving || !selectedKey}
+            className="rounded-xl px-4 py-2.5 text-xs fw-bold d-flex align-items-center gap-2 shadow bg-purple-600 hover-bg-purple-700 text-white border-0"
+          >
+            {saving ? (
+              <>
+                <Spinner size="sm" animation="border" className="text-white" />
+                <span>Guardando...</span>
+              </>
+            ) : (
+              <>
+                <Save size={16} />
+                <span>Guardar asignación</span>
+              </>
+            )}
           </Button>
         </div>
 
-        {error && <Alert variant="danger">{error}</Alert>}
-        {success && <Alert variant="success">{success}</Alert>}
+        {error && <Alert variant="danger" className="border-0 shadow-sm rounded-xl mb-4">{error}</Alert>}
+        {success && <Alert variant="success" className="border-0 shadow-sm rounded-xl mb-4">{success}</Alert>}
 
-        <Row className="g-3">
-          <Col lg={5}>
-            <Form.Label className="small fw-semibold">Componente / pantalla</Form.Label>
-            <Form.Select value={selectedKey} onChange={(e) => setSelectedKey(e.target.value)} className="mb-2">
-              {FORM_TARGET_GROUPS.map((g) => (
-                <optgroup key={g.entity} label={g.label}>
-                  {g.targets.map((t) => (
-                    <option key={t.key} value={t.key}>
-                      {t.label}
-                    </option>
+        <Row className="g-4">
+          {/* Columna Izquierda: Configuración de Asignación */}
+          <Col lg={5} className="d-flex flex-column gap-3.5">
+            <div>
+              <Form.Group>
+                <Form.Label className="small text-muted mb-1.5 fw-bold text-xs uppercase">Componente / pantalla de destino</Form.Label>
+                <Form.Select 
+                  value={selectedKey} 
+                  onChange={(e) => setSelectedKey(e.target.value)} 
+                  className="rounded-xl border-gray-200 focus-ring-purple font-semibold text-gray-800"
+                >
+                  {FORM_TARGET_GROUPS.map((g) => (
+                    <optgroup key={g.entity} label={g.label}>
+                      {g.targets.map((t) => (
+                        <option key={t.key} value={t.key}>
+                          {t.label}
+                        </option>
+                      ))}
+                    </optgroup>
                   ))}
-                </optgroup>
-              ))}
-            </Form.Select>
-            {selectedTarget && (
-              <div className="small text-muted mb-3">
-                React: <code>{selectedTarget.component}</code> · Entidad:{" "}
-                <Badge bg="light" text="dark">
-                  {selectedTarget.entity}
-                </Badge>
-              </div>
-            )}
-
-            <Form.Label className="small fw-semibold">Campos del catálogo</Form.Label>
-            <div className="border rounded-3 p-2" style={{ maxHeight: 360, overflowY: "auto" }}>
-              {registryForEntity.length === 0 ? (
-                <p className="text-muted small p-2">No hay campos para esta entidad en el catálogo.</p>
-              ) : (
-                registryForEntity.map((f) => {
-                  const ref = fieldRefs.find((r) => r.id === f.id);
-                  const checked = Boolean(ref);
-                  return (
-                    <div key={f.id} className="p-2 border-bottom">
-                      <Form.Check
-                        type="checkbox"
-                        id={`assign-${f.id}`}
-                        label={
-                          <span>
-                            <span className="fw-semibold">{f.label}</span>{" "}
-                            <code className="small text-muted">{f.id}</code>
-                          </span>
-                        }
-                        checked={checked}
-                        onChange={() => toggleField(f.id)}
-                      />
-                      {checked && (
-                        <div className="ms-4 mt-1 d-flex gap-3">
-                          <Form.Check
-                            type="switch"
-                            size="sm"
-                            label="Obligatorio"
-                            checked={!!ref?.required}
-                            onChange={(e) => updateRef(f.id, { required: e.target.checked })}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  );
-                })
+                </Form.Select>
+              </Form.Group>
+              
+              {selectedTarget && (
+                <div className="d-flex align-items-center justify-content-between mt-2.5 px-3 py-2 rounded-xl bg-light border">
+                  <span className="text-xxs text-muted font-bold uppercase">Clase React</span>
+                  <code className="text-xxs text-purple-700 font-mono fw-bold">{selectedTarget.component}</code>
+                </div>
               )}
+            </div>
+
+            <div>
+              <Form.Label className="small text-muted mb-2 fw-bold text-xs uppercase block">Campos del catálogo</Form.Label>
+              <div className="d-flex flex-column gap-2 overflow-auto scrollbar-none" style={{ maxHeight: 420, paddingRight: "4px" }}>
+                {registryForEntity.length === 0 ? (
+                  <div className="text-center py-5 border border-dashed rounded-2xl bg-light">
+                    <p className="text-muted small m-0">No hay campos para esta entidad en el catálogo.</p>
+                  </div>
+                ) : (
+                  registryForEntity.map((f) => {
+                    const ref = fieldRefs.find((r) => r.id === f.id);
+                    const checked = Boolean(ref);
+                    return (
+                      <div 
+                        key={f.id} 
+                        className={`p-3 border rounded-2xl transition-all d-flex align-items-center justify-content-between ${
+                          checked 
+                            ? "border-purple-500 bg-purple-50 bg-opacity-30 shadow-sm" 
+                            : "border-gray-200 bg-white hover-bg-gray-50"
+                        }`}
+                      >
+                        <Form.Check
+                          type="checkbox"
+                          id={`assign-${f.id}`}
+                          label={
+                            <div className="d-flex flex-column ms-1">
+                              <span className="fw-bold text-gray-800 text-xs">{f.label}</span>
+                              <span className="text-xxs text-muted font-mono">{f.id} · {f.type}</span>
+                            </div>
+                          }
+                          checked={checked}
+                          onChange={() => toggleField(f.id)}
+                          className="custom-checkbox m-0 fw-semibold align-items-start"
+                        />
+                        {checked && (
+                          <div className="d-flex align-items-center">
+                            <Form.Check
+                              type="switch"
+                              id={`switch-req-${f.id}`}
+                              label={
+                                <span className={`text-xxs fw-bold uppercase ms-1.5 ${ref?.required ? "text-danger" : "text-muted"}`}>
+                                  {ref?.required ? "Obligatorio" : "Opcional"}
+                                </span>
+                              }
+                              checked={!!ref?.required}
+                              onChange={(e) => updateRef(f.id, { required: e.target.checked })}
+                              className="custom-switch"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             </div>
           </Col>
 
+          {/* Columna Derecha: Vista Previa Dinámica interactiva */}
           <Col lg={7}>
-            <Form.Label className="small fw-semibold">Vista previa ({previewFields.length} campos)</Form.Label>
-            <div className="border rounded-3 p-3 bg-light" style={{ minHeight: 360 }}>
+            <div className="d-flex justify-content-between align-items-center mb-2">
+              <Form.Label className="small text-muted mb-0 fw-bold text-xs uppercase d-flex align-items-center gap-1.5">
+                <Eye size={14} className="text-purple-600" />
+                <span>Vista previa interactiva ({previewFields.length} campos)</span>
+              </Form.Label>
+              <Badge bg="purple" className="bg-purple-100 text-purple-700 fw-bold rounded-lg text-xxs px-2.5 py-1">
+                Visualización de Formulario
+              </Badge>
+            </div>
+            
+            <div className="border rounded-2xl p-4 bg-gray-50 bg-opacity-70 overflow-auto shadow-inner" style={{ minHeight: 480, maxHeight: 520 }}>
               {previewFields.length === 0 ? (
-                <p className="text-muted small">Seleccioná campos a la izquierda.</p>
+                <div className="d-flex flex-column align-items-center justify-content-center h-100 py-5 text-center text-muted gap-2">
+                  <HelpCircle size={32} className="text-gray-300" />
+                  <p className="fw-medium small m-0">Seleccioná y activá campos del catálogo a la izquierda para armar el formulario.</p>
+                </div>
               ) : (
-                previewFields.map((f) => (
-                  <div key={f.id} className="mb-2 pb-2 border-bottom">
-                    <span className="fw-semibold">{f.label}</span>
-                    {f.required && <Badge className="ms-2">Requerido</Badge>}
-                    <div className="small text-muted">
-                      {f.type} · {f.id}
-                    </div>
-                  </div>
-                ))
+                <Form className="custom-form d-flex flex-column gap-3 bg-white p-4 rounded-2xl border shadow-sm">
+                  <h3 className="h6 text-purple-950 font-black border-bottom pb-2 mb-1 d-flex align-items-center gap-2">
+                    <span>{selectedTarget?.label || "Vista de Formulario"}</span>
+                  </h3>
+                  <Row className="g-3">
+                    {previewFields.map((f) => {
+                      let inputMock;
+                      if (f.type === "textarea") {
+                        inputMock = <Form.Control as="textarea" rows={2} disabled placeholder={`Ej: Notas sobre ${f.label.toLowerCase()}`} className="rounded-lg bg-gray-50 border-gray-200" />;
+                      } else if (f.type === "select") {
+                        inputMock = (
+                          <Form.Select disabled className="rounded-lg bg-gray-50 border-gray-200">
+                            <option>{(f.options || [])[0]?.label || "Seleccionar…"}</option>
+                          </Form.Select>
+                        );
+                      } else if (f.type === "services") {
+                        inputMock = (
+                          <div className="bg-light p-2.5 rounded-xl border border-gray-200 small text-muted font-semibold text-xxs">
+                            🛠️ [MÓDULO: Especialidades y servicios calificados del profesional]
+                          </div>
+                        );
+                      } else if (f.type === "schedule") {
+                        inputMock = (
+                          <div className="bg-light p-2.5 rounded-xl border border-gray-200 small text-muted font-semibold text-xxs">
+                            📅 [MÓDULO: Planificación de jornadas horarias semanales y descansos]
+                          </div>
+                        );
+                      } else if (f.type === "servicePricing") {
+                        inputMock = (
+                          <div className="bg-light p-2.5 rounded-xl border border-gray-200 small text-muted font-semibold text-xxs">
+                            💰 [MÓDULO: Esquema de comisiones por facturación y objetivos mensuales]
+                          </div>
+                        );
+                      } else if (f.type === "email") {
+                        inputMock = <Form.Control type="email" disabled placeholder="nombre@correo.com" className="rounded-lg bg-gray-50 border-gray-200" />;
+                      } else if (f.type === "phone") {
+                        inputMock = <Form.Control type="tel" disabled placeholder="+54 9 11 2345-6789" className="rounded-lg bg-gray-50 border-gray-200" />;
+                      } else if (f.type === "currency") {
+                        inputMock = (
+                          <InputGroup size="sm" className="rounded-lg overflow-hidden border border-gray-200">
+                            <InputGroup.Text className="bg-light">$</InputGroup.Text>
+                            <Form.Control type="number" disabled placeholder="0" className="bg-gray-50 border-0" />
+                          </InputGroup>
+                        );
+                      } else {
+                        inputMock = <Form.Control type="text" disabled placeholder={`Ej: ${f.label}`} className="rounded-lg bg-gray-50 border-gray-200" />;
+                      }
+
+                      const isWide = f.type === "services" || f.type === "schedule" || f.type === "servicePricing" || f.type === "textarea";
+
+                      return (
+                        <Col md={isWide ? 12 : 6} key={f.id}>
+                          <Form.Group>
+                            <Form.Label className="fw-semibold text-xs text-gray-700 d-flex justify-content-between align-items-center mb-1">
+                              <span>
+                                {f.label} {f.required && <span className="text-danger">*</span>}
+                              </span>
+                              <span className="text-xxs text-muted font-mono">{f.id}</span>
+                            </Form.Label>
+                            {inputMock}
+                          </Form.Group>
+                        </Col>
+                      );
+                    })}
+                  </Row>
+                </Form>
               )}
             </div>
           </Col>

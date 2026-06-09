@@ -58,8 +58,8 @@ export async function checkTenant(req, res, next) {
       }
     }
 
-    // AUTO-SEEDING en PostgreSQL para el Propietario Real Google y el Usuario Demo
-    if (req.user?.email === "seleniadeveloper@gmail.com" || firebaseUid === "quick-booking-user") {
+    // AUTO-SEEDING en PostgreSQL para cualquier usuario autenticado (Google o cuenta local)
+    if (firebaseUid) {
       let devBusiness = await prisma.business.findFirst();
       if (!devBusiness) {
         devBusiness = await prisma.business.create({

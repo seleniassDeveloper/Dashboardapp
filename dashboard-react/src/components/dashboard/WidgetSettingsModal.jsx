@@ -363,7 +363,7 @@ export default function WidgetSettingsModal({ show, onHide, onSave, widget = nul
                   </span>
                 </div>
                 
-                <div className="p-3 flex-grow-1 overflow-auto d-flex flex-column justify-content-center">
+                <div className="p-3 flex-grow-1 overflow-auto d-flex flex-column justify-content-center" style={{ minHeight: "200px" }}>
                   <WidgetRenderer
                     widget={{
                       id: "preview-widget-id",
@@ -385,6 +385,7 @@ export default function WidgetSettingsModal({ show, onHide, onSave, widget = nul
                     clients={MOCK_CLIENTS}
                     workers={MOCK_WORKERS}
                     services={MOCK_SERVICES}
+                    isPreview={true}
                   />
                 </div>
               </div>

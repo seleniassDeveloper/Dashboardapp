@@ -747,134 +747,81 @@ export default function SmartReports({ appointments = [], clients = [], workers 
       </div>
 
       {/* SECCIÓN 1: AURA ANALYTICS BUILDER */}
-      <Card className="aura-builder-card border-0 mb-4 p-4">
-        <Row className="g-4 align-items-stretch">
-          <Col lg={8} className="d-flex flex-column justify-content-between">
-            <div>
-              <h3 className="builder-title mb-1">Aura Analytics Builder</h3>
-              <p className="builder-subtitle">{isEs ? "Preguntá en lenguaje natural y generá dashboards inteligentes en segundos." : "Ask in natural language and generate smart dashboards in seconds."}</p>
-              
-              {/* IA input console */}
-              <div className="ai-input-glow-wrapper mb-3">
-                <Sparkles size={20} className="ai-input-icon animate-pulse" />
-                <Form.Control
-                  as="textarea"
-                  placeholder={isEs ? "Ej: Mostrar ventas por categoría últimos 6 meses" : "Ex: Show sales by category for the last 6 months"}
-                  value={aiInput}
-                  onChange={(e) => setAiInput(e.target.value)}
-                  disabled={isAiGenerating}
-                  className="ai-textarea shadow-none border-0"
-                />
-                <Button
-                  onClick={() => handleAiInterpret(aiInput)}
-                  disabled={isAiGenerating || !aiInput.trim()}
-                  className="btn-ai-generate"
-                >
-                  {isAiGenerating ? (
-                    <>
-                      <Spinner animation="border" size="sm" className="text-white" />
-                      <span>{isEs ? "Generando..." : "Generating..."}</span>
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles size={14} />
-                      <span>{isEs ? "Generar Gadget IA" : "Generate AI Gadget"}</span>
-                    </>
-                  )}
-                </Button>
-              </div>
-
-              {/* Chips sugerencias */}
-              <div className="chips-label">{isEs ? "Sugerencias Populares" : "Popular Suggestions"}</div>
-              <div className="chips-container">
-                {[
-                  isEs ? "Ventas por mes" : "Sales by month",
-                  isEs ? "Clientes nuevos vs recurrentes" : "New vs recurring clients",
-                  isEs ? "Servicios más rentables" : "Most profitable services",
-                  isEs ? "Ocupación semanal" : "Weekly occupation",
-                  isEs ? "Ingresos por profesional" : "Stylist revenue",
-                  isEs ? "Productos próximos a agotarse" : "Low stock items",
-                  isEs ? "Ticket promedio por sucursal" : "Average ticket"
-                ].map((chipText, idx) => (
-                  <button
-                    key={idx}
-                    disabled={isAiGenerating}
-                    onClick={() => {
-                      setAiInput(chipText);
-                      handleAiInterpret(chipText);
-                    }}
-                    className="suggestion-chip"
-                  >
-                    <Plus size={11} className="text-muted" />
-                    <span>{chipText}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </Col>
-
-          {/* Right step panel */}
-          <Col lg={4}>
-            <div className="how-it-works-panel">
-              <h4 className="how-it-works-title">
-                <HelpCircle size={14} className="text-primary" style={{ color: "#8b5cf6" }} />
-                <span>{isEs ? "¿Cómo funciona?" : "How it works?"}</span>
-              </h4>
-              <div className="d-grid gap-3">
-                <div className="step-item">
-                  <div className="step-badge">1</div>
-                  <div className="step-text">{isEs ? "Escribí tu pregunta sobre ventas, clientes, equipo o stock." : "Write your question about sales, clients, staff or stock."}</div>
-                </div>
-                <div className="step-item">
-                  <div className="step-badge">2</div>
-                  <div className="step-text">{isEs ? "Aura AI interpreta métricas, agrupaciones, periodos y filtros." : "Aura AI interprets metrics, groupings, periods, and filters."}</div>
-                </div>
-                <div className="step-item">
-                  <div className="step-badge">3</div>
-                  <div className="step-text">{isEs ? "Genera el gadget visual personalizado al instante." : "Generates the customized visual gadget instantly."}</div>
-                </div>
-                <div className="step-item">
-                  <div className="step-badge">4</div>
-                  <div className="step-text">{isEs ? "Visualizalo y guardalo de forma persistente en tu control." : "View it and save it persistently inside your control panel."}</div>
-                </div>
-              </div>
-            </div>
-          </Col>
-        </Row>
-      </Card>
-
-      {/* SECCIÓN 2: INFORMES RÁPIDOS */}
-      <h3 className="smaller text-muted fw-bold uppercase mb-2" style={{ letterSpacing: "0.08em", fontSize: "11px" }}>
-        {isEs ? "Informes rápidos (Accesos directos)" : "Quick Reports (Direct Access)"}
-      </h3>
-      
-      <div className="quick-reports-row mb-4">
-        {[
-          { title: isEs ? "Ventas de hoy" : "Today's sales", icon: <DollarSign size={13} />, bg: "#ecfdf5", color: "#10b981", prompt: "Ventas de hoy" },
-          { title: isEs ? "Ventas semanales" : "Weekly sales", icon: <TrendingUp size={13} />, bg: "#f0fdf4", color: "#22c55e", prompt: "Ventas semanales" },
-          { title: isEs ? "Clientes frecuentes" : "Frequent clients", icon: <Users size={13} />, bg: "#eff6ff", color: "#3b82f6", prompt: "Clientes más frecuentes" },
-          { title: isEs ? "Métodos de pago" : "Payment methods", icon: <CreditCard size={13} />, bg: "#fef2f2", color: "#ef4444", prompt: "Métodos de pago este mes" },
-          { title: isEs ? "Finanzas del mes" : "Monthly finances", icon: <Layers size={13} />, bg: "#fdf4ff", color: "#d946ef", prompt: "Ventas por mes de este año" },
-          { title: isEs ? "Bajo stock" : "Low stock", icon: <Package size={13} />, bg: "#fffbeb", color: "#f59e0b", prompt: "Productos próximos a agotarse" },
-          { title: isEs ? "Cancelaciones" : "Cancellations", icon: <XCircle size={13} />, bg: "#faf5ff", color: "#a855f7", prompt: "Citas canceladas" },
-          { title: isEs ? "Rendimiento equipo" : "Team Performance", icon: <Briefcase size={13} />, bg: "#f0fdfa", color: "#14b8a6", prompt: "Profesionales más rentables" }
-        ].map((item, idx) => (
-          <div
-            key={idx}
-            className="quick-report-mini-card"
-            onClick={() => {
-              setAiInput(item.prompt);
-              handleAiInterpret(item.prompt);
-            }}
-          >
-            <div className="quick-card-icon-wrapper" style={{ background: item.bg, color: item.color }}>
-              {item.icon}
-            </div>
-            <span className="quick-card-title">{item.title}</span>
-            <span className="quick-card-action">{isEs ? "Ir" : "Go"}</span>
+      <Card className="aura-builder-card border-0 mb-4 p-4 shadow-sm" style={{ borderRadius: "20px" }}>
+        <div style={{ maxWidth: "720px", margin: "0 auto", textAlign: "center" }}>
+          <h3 className="builder-title mb-1 text-center" style={{ fontSize: "22px" }}>Aura Analytics Builder</h3>
+          <p className="builder-subtitle text-center text-muted mb-4 small" style={{ fontSize: "13px" }}>
+            {isEs 
+              ? "Preguntá en lenguaje natural y generá gráficos o reportes dinámicos en segundos." 
+              : "Ask in natural language and generate charts or dynamic reports in seconds."}
+          </p>
+          
+          {/* IA input console */}
+          <div className="ai-input-glow-wrapper mb-3" style={{ background: "#ffffff" }}>
+            <Sparkles size={18} className="ai-input-icon animate-pulse" />
+            <Form.Control
+              type="text"
+              placeholder={isEs ? "Ej: Mostrar ventas por categoría últimos 6 meses..." : "Ex: Show sales by category for the last 6 months..."}
+              value={aiInput}
+              onChange={(e) => setAiInput(e.target.value)}
+              disabled={isAiGenerating}
+              className="ai-textarea shadow-none border-0"
+              style={{ fontSize: "13.5px", height: "36px", padding: "6px 8px" }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleAiInterpret(aiInput);
+                }
+              }}
+            />
+            <Button
+              onClick={() => handleAiInterpret(aiInput)}
+              disabled={isAiGenerating || !aiInput.trim()}
+              className="btn-ai-generate"
+              style={{ padding: "6px 16px", borderRadius: "10px", fontSize: "12px" }}
+            >
+              {isAiGenerating ? (
+                <>
+                  <Spinner animation="border" size="sm" className="text-white me-1" />
+                  <span>{isEs ? "Generando..." : "Generating..."}</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles size={12} className="me-1" />
+                  <span>{isEs ? "Generar" : "Generate"}</span>
+                </>
+              )}
+            </Button>
           </div>
-        ))}
-      </div>
+
+          {/* Chips sugerencias simplificados */}
+          <div className="d-flex flex-wrap justify-content-center gap-2 mt-3">
+            {[
+              { label: isEs ? "Ventas de hoy" : "Today's sales", prompt: "Ventas de hoy" },
+              { label: isEs ? "Ventas mensuales" : "Monthly sales", prompt: "Ventas por mes" },
+              { label: isEs ? "Clientes frecuentes" : "Frequent clients", prompt: "Clientes más frecuentes" },
+              { label: isEs ? "Servicios rentables" : "Profitable services", prompt: "Servicios más rentables" },
+              { label: isEs ? "Ocupación semanal" : "Weekly occupancy", prompt: "Ocupación semanal" },
+              { label: isEs ? "Bajo stock" : "Low stock", prompt: "Productos próximos a agotarse" },
+              { label: isEs ? "Métodos de pago" : "Payment methods", prompt: "Métodos de pago este mes" },
+            ].map((chip, idx) => (
+              <button
+                key={idx}
+                disabled={isAiGenerating}
+                onClick={() => {
+                  setAiInput(chip.prompt);
+                  handleAiInterpret(chip.prompt);
+                }}
+                className="suggestion-chip"
+                style={{ fontSize: "11.5px", padding: "5px 12px", border: "1px solid #e2e8f0", borderRadius: "50px", cursor: "pointer", background: "#ffffff" }}
+              >
+                <Plus size={10} className="text-muted me-1" />
+                <span>{chip.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </Card>
 
       {/* SECCIÓN 3: MIS GADGETS IA */}
       <div className="gadgets-header-container">

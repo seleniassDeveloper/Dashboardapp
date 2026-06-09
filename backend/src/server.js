@@ -4,6 +4,7 @@ import app from "./app.js";
 import prisma from "./prisma.js";
 import { assertProductionEnv } from "./config/env.js";
 import { startRemindersJob } from "./jobs/reminders.job.js";
+import { startGoogleSyncJob } from "./jobs/googleSync.job.js";
 
 console.log("Starting server...");
 
@@ -38,6 +39,11 @@ server.on("error", (err) => {
 if (process.env.ENABLE_REMINDERS_JOB === "true") {
   startRemindersJob();
   console.log("[server] Job de recordatorios activo");
+}
+
+if (process.env.ENABLE_GOOGLE_SYNC_JOB !== "false") {
+  startGoogleSyncJob();
+  console.log("[server] Job de sincronización de Google Calendar activo");
 }
 
 async function shutdown(signal) {

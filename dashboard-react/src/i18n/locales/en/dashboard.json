@@ -32,7 +32,20 @@
     "occupancy": "Occupancy",
     "topProfessional": "Top professional",
     "none": "None",
-    "vsYesterday": "vs. yesterday"
+    "vsYesterday": "vs. yesterday",
+    "customizeTitle": "Customize Key Metrics",
+    "customizeDesc": "Select which cards you want to display at the top of your dashboard.",
+    "customizeBtn": "Customize KPIs",
+    "resetBtn": "Reset",
+    "saveBtn": "Save and Apply",
+    "descriptions": {
+      "appointments": "Number of appointments scheduled for today.",
+      "revenue": "Amount invoiced for appointments attended today.",
+      "clients": "Total clients registered in your database.",
+      "cancellations": "Appointments cancelled today.",
+      "occupancy": "Estimated percentage of salon occupancy.",
+      "topWorker": "Stylist or professional with the most appointments today."
+    }
   },
   "widgets": {
     "title": "Widget",

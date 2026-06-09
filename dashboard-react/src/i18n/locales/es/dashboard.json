@@ -32,7 +32,20 @@
     "occupancy": "Ocupación",
     "topProfessional": "Profesional top",
     "none": "Ninguno",
-    "vsYesterday": "vs. ayer"
+    "vsYesterday": "vs. ayer",
+    "customizeTitle": "Personalizar Métricas Clave",
+    "customizeDesc": "Selecciona qué tarjetas deseas visualizar en la parte superior de tu panel.",
+    "customizeBtn": "Personalizar KPIs",
+    "resetBtn": "Restablecer",
+    "saveBtn": "Guardar y Aplicar",
+    "descriptions": {
+      "appointments": "Cantidad de citas programadas para el día de hoy.",
+      "revenue": "Monto facturado por las citas atendidas hoy.",
+      "clients": "Total de clientes registrados en tu base de datos.",
+      "cancellations": "Citas canceladas durante el día de hoy.",
+      "occupancy": "Porcentaje estimado de ocupación del salón.",
+      "topWorker": "Estilista o profesional con más citas hoy."
+    }
   },
   "widgets": {
     "title": "Widget",

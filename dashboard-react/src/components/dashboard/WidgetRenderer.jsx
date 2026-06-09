@@ -33,6 +33,7 @@ export default function WidgetRenderer({
   onConfirmAppointment,
   onViewCalendar,
   onEditWorker,
+  isPreview = false,
 }) {
   const { i18n } = useTranslation();
   const isEs = i18n.language === "es";
@@ -229,6 +230,7 @@ export default function WidgetRenderer({
           metric={metric}
           chartData={chartData}
           color={accent}
+          isPreview={isPreview}
         />
       );
     }

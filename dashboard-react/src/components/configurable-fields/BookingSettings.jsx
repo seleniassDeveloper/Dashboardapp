@@ -1,16 +1,17 @@
 import React, { useEffect, useState } from "react";
 import { Card, Form, Button, Row, Col, Spinner, Alert, InputGroup } from "react-bootstrap";
-import { Link2, Copy, Check, Sparkles, Globe, AlertTriangle, CheckCircle2, CreditCard } from "lucide-react";
+import { Link2, Copy, Check, Sparkles, Globe, AlertTriangle, CheckCircle2, CreditCard, Calendar } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import api from "../../lib/api.js";
 
-export default function BookingSettings() {
+export default function BookingSettings({ onNavigateToGoogleSync }) {
   const { t } = useTranslation("booking");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [copied, setCopied] = useState(false);
+  const [copiedGoogle, setCopiedGoogle] = useState(false);
 
   const [business, setBusiness] = useState({
     name: "",
@@ -24,6 +25,7 @@ export default function BookingSettings() {
     bookingDownpaymentPercent: 30,
     bookingDownpaymentAmount: "",
     bookingDownpaymentMethod: "mock_mercadopago",
+    googleBookingUrl: "",
   });
 
   const [isMpConnected, setIsMpConnected] = useState(false);
@@ -53,6 +55,7 @@ export default function BookingSettings() {
           bookingDownpaymentPercent: typeof res.data.bookingDownpaymentPercent !== "undefined" ? res.data.bookingDownpaymentPercent : 30,
           bookingDownpaymentAmount: res.data.bookingDownpaymentAmount || "",
           bookingDownpaymentMethod: res.data.bookingDownpaymentMethod || "mock_mercadopago",
+          googleBookingUrl: res.data.googleBookingUrl || "",
         });
       }
     } catch (e) {
@@ -144,6 +147,14 @@ export default function BookingSettings() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const copyGoogleToClipboard = () => {
+    if (business.googleBookingUrl) {
+      navigator.clipboard.writeText(business.googleBookingUrl);
+      setCopiedGoogle(true);
+      setTimeout(() => setCopiedGoogle(false), 2000);
+    }
+  };
+
   if (loading) {
     return (
       <Card className="card-premium border-0 shadow-sm mt-3">
@@ -211,6 +222,53 @@ export default function BookingSettings() {
                   {t("settings.yourLinkHint")}
                 </Form.Text>
               </div>
+
+              {/* Copiar Link de Google Calendar */}
+              {business.googleBookingUrl && (
+                <div className="p-3 border rounded-3 bg-light mt-3" style={{ borderLeft: "4px solid #7c3aed" }}>
+                  <Form.Label className="fw-semibold small d-flex align-items-center gap-2" style={{ color: "#7c3aed" }}>
+                    <Calendar size={16} />
+                    <span>Link de Reservas de Google Calendar (Citas Oficiales)</span>
+                  </Form.Label>
+                  <InputGroup className="mb-2">
+                    <Form.Control
+                      readOnly
+                      value={business.googleBookingUrl}
+                      style={{ background: "#fff", fontSize: "13px", color: "#5b21b6" }}
+                    />
+                    <Button variant="outline-dark" onClick={copyGoogleToClipboard}>
+                      {copiedGoogle ? <Check size={16} className="text-success" /> : <Copy size={16} />}
+                    </Button>
+                  </InputGroup>
+                  <Form.Text className="text-muted small">
+                    Este es el enlace de reservas generado por tu Google Calendar (Calendario de citas). Compártelo con tus clientes para que agenden directamente desde Google y los turnos se sincronicen de manera automática en tu panel.
+                  </Form.Text>
+                </div>
+              )}
+
+              {/* Conectar Google Calendar Banner */}
+              <Card className="border-0 shadow-sm p-3.5 rounded-4" style={{ backgroundColor: "#f3e8ff", border: "1px solid #e9d5ff" }}>
+                <div className="d-flex align-items-start gap-3">
+                  <div className="p-2.5 bg-white rounded-3 d-flex align-items-center justify-content-center text-primary" style={{ color: "#7c3aed", minWidth: "42px", height: "42px" }}>
+                    <Calendar size={22} style={{ color: "#7c3aed" }} />
+                  </div>
+                  <div className="flex-grow-1">
+                    <h4 className="h6 fw-bold mb-1" style={{ color: "#5b21b6" }}>¿Quieres vincular tu Google Calendar?</h4>
+                    <p className="text-secondary small mb-3 leading-relaxed">
+                      Puedes conectar la cuenta de tu salón a Google Calendar para usar tu propio enlace de citas de Google (Appointment Schedule) o el del Dashboard. Ambas agendas se mantendrán sincronizadas en tiempo real de forma bidireccional y automática sin perder ningún dato.
+                    </p>
+                    <Button 
+                      variant="primary" 
+                      size="sm" 
+                      onClick={onNavigateToGoogleSync}
+                      className="rounded-pill px-3.5 py-1.5 fw-semibold border-0"
+                      style={{ backgroundColor: "#7c3aed", backgroundImage: "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)" }}
+                    >
+                      Configurar Google Calendar
+                    </Button>
+                  </div>
+                </div>
+              </Card>
 
               {/* Ajustes de Seña (Downpayment) */}
               <div className="p-3 border rounded-3 bg-light">

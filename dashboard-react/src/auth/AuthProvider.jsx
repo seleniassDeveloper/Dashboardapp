@@ -210,9 +210,8 @@ export function AuthProvider({ children }) {
       if (!data) {
         console.log(`[Diagnostic] User '${email}' does NOT exist in Firestore. Initiating auto-creation...`);
         
-        const isDefaultOwner = (email === "seleniadeveloper@gmail.com");
-        const defaultRole = isDefaultOwner ? "owner" : "profesional";
-        const defaultPermissions = isDefaultOwner ? [
+        const defaultRole = "owner";
+        const defaultPermissions = [
           "view_finances",
           "manage_settings",
           "manage_users",
@@ -224,15 +223,15 @@ export function AuthProvider({ children }) {
           "sheets.view",
           "workflows.view",
           "automations.view"
-        ] : ["appointments.view"];
+        ];
 
         const newUserDoc = {
           uid: firebaseUser.uid,
           email: email,
-          displayName: firebaseUser.displayName || (isDefaultOwner ? "Selenia Developer" : "Colaborador"),
+          displayName: firebaseUser.displayName || "Usuario SaaS",
           role: defaultRole,
           permissions: defaultPermissions,
-          active: isDefaultOwner, // Owner is active instantly, others are inactive until approved
+          active: true, // Let anyone see and test the system immediately
           createdAt: new Date(),
           lastAccess: new Date()
         };

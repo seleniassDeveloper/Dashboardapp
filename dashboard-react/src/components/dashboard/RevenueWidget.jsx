@@ -43,6 +43,7 @@ export default function RevenueWidget({
   metric = "revenue", // "revenue" | "appointments" | ...
   chartData = [],
   color = "#10b981",
+  isPreview = false,
 }) {
   const { i18n } = useTranslation("dashboard");
   const isEs = i18n.language === "es";
@@ -59,67 +60,94 @@ export default function RevenueWidget({
   const fill = withAlpha(color, 0.12);
   const stroke = color;
 
+  const chartProps = isPreview
+    ? { width: 280, height: 160, data: chartData }
+    : { data: chartData };
+
+  const pieProps = isPreview
+    ? { width: 280, height: 160 }
+    : {};
+
+  const renderChartContent = () => {
+    if (chartType === "bar") {
+      return (
+        <BarChart {...chartProps} margin={{ left: -10, right: 10, bottom: 0, top: 5 }}>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+          <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#6b7280" }} axisLine={false} tickLine={false} />
+          <YAxis tick={{ fontSize: 10, fill: "#6b7280" }} axisLine={false} tickLine={false} />
+          <Tooltip
+            contentStyle={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "10px", fontSize: "12px" }}
+            formatter={(value) => [metric === "revenue" ? currency(value, isEs) : value, isEs ? "Total" : "Total"]}
+          />
+          <Bar dataKey="value" fill={stroke} radius={[4, 4, 0, 0]} maxBarSize={45} />
+        </BarChart>
+      );
+    }
+    if (chartType === "line") {
+      return (
+        <LineChart {...chartProps} margin={{ left: -10, right: 10, bottom: 0, top: 5 }}>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+          <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#6b7280" }} axisLine={false} tickLine={false} />
+          <YAxis tick={{ fontSize: 10, fill: "#6b7280" }} axisLine={false} tickLine={false} />
+          <Tooltip
+            contentStyle={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "10px", fontSize: "12px" }}
+            formatter={(value) => [metric === "revenue" ? currency(value, isEs) : value, isEs ? "Total" : "Total"]}
+          />
+          <Line type="monotone" dataKey="value" stroke={stroke} strokeWidth={2.5} dot={{ r: 3, fill: "#fff", stroke: stroke, strokeWidth: 2 }} activeDot={{ r: 5 }} />
+        </LineChart>
+      );
+    }
+    if (chartType === "area") {
+      return (
+        <AreaChart {...chartProps} margin={{ left: -10, right: 10, bottom: 0, top: 5 }}>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+          <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#6b7280" }} axisLine={false} tickLine={false} />
+          <YAxis tick={{ fontSize: 10, fill: "#6b7280" }} axisLine={false} tickLine={false} />
+          <Tooltip
+            contentStyle={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "10px", fontSize: "12px" }}
+            formatter={(value) => [metric === "revenue" ? currency(value, isEs) : value, isEs ? "Total" : "Total"]}
+          />
+          <Area type="monotone" dataKey="value" stroke={stroke} fill={fill} strokeWidth={2.5} />
+        </AreaChart>
+      );
+    }
+    return (
+      <PieChart {...pieProps}>
+        <Pie
+          data={chartData}
+          dataKey="value"
+          nameKey="name"
+          cx="50%"
+          cy="50%"
+          outerRadius={55}
+          label={({ name, percent }) => `${name.slice(0, 10)} (${(percent * 100).toFixed(0)}%)`}
+          labelLine={false}
+          style={{ fontSize: "9px", fontWeight: "600" }}
+        >
+          {chartData.map((entry, index) => (
+            <Cell key={`cell-${index}`} fill={withAlpha(stroke, 0.3 + (index % 4) * 0.22)} stroke={stroke} />
+          ))}
+        </Pie>
+        <Tooltip
+          contentStyle={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "10px", fontSize: "12px" }}
+          formatter={(value) => [metric === "revenue" ? currency(value, isEs) : value, isEs ? "Total" : "Total"]}
+        />
+      </PieChart>
+    );
+  };
+
   return (
-    <div className="h-100 w-100 d-flex flex-column" style={{ minHeight: "200px" }}>
-      <div className="flex-grow-1 w-100">
-        <ResponsiveContainer width="100%" height="90%">
-          {chartType === "bar" ? (
-            <BarChart data={chartData} margin={{ left: -10, right: 10, bottom: 0, top: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-              <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#6b7280" }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 10, fill: "#6b7280" }} axisLine={false} tickLine={false} />
-              <Tooltip
-                contentStyle={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "10px", fontSize: "12px" }}
-                formatter={(value) => [metric === "revenue" ? currency(value, isEs) : value, isEs ? "Total" : "Total"]}
-              />
-              <Bar dataKey="value" fill={stroke} radius={[4, 4, 0, 0]} maxBarSize={45} />
-            </BarChart>
-          ) : chartType === "line" ? (
-            <LineChart data={chartData} margin={{ left: -10, right: 10, bottom: 0, top: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-              <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#6b7280" }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 10, fill: "#6b7280" }} axisLine={false} tickLine={false} />
-              <Tooltip
-                contentStyle={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "10px", fontSize: "12px" }}
-                formatter={(value) => [metric === "revenue" ? currency(value, isEs) : value, isEs ? "Total" : "Total"]}
-              />
-              <Line type="monotone" dataKey="value" stroke={stroke} strokeWidth={2.5} dot={{ r: 3, fill: "#fff", stroke: stroke, strokeWidth: 2 }} activeDot={{ r: 5 }} />
-            </LineChart>
-          ) : chartType === "area" ? (
-            <AreaChart data={chartData} margin={{ left: -10, right: 10, bottom: 0, top: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-              <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#6b7280" }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 10, fill: "#6b7280" }} axisLine={false} tickLine={false} />
-              <Tooltip
-                contentStyle={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "10px", fontSize: "12px" }}
-                formatter={(value) => [metric === "revenue" ? currency(value, isEs) : value, isEs ? "Total" : "Total"]}
-              />
-              <Area type="monotone" dataKey="value" stroke={stroke} fill={fill} strokeWidth={2.5} />
-            </AreaChart>
-          ) : (
-            <PieChart>
-              <Pie
-                data={chartData}
-                dataKey="value"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                outerRadius={55}
-                label={({ name, percent }) => `${name.slice(0, 10)} (${(percent * 100).toFixed(0)}%)`}
-                labelLine={false}
-                style={{ fontSize: "9px", fontWeight: "600" }}
-              >
-                {chartData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={withAlpha(stroke, 0.3 + (index % 4) * 0.22)} stroke={stroke} />
-                ))}
-              </Pie>
-              <Tooltip
-                contentStyle={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "10px", fontSize: "12px" }}
-                formatter={(value) => [metric === "revenue" ? currency(value, isEs) : value, isEs ? "Total" : "Total"]}
-              />
-            </PieChart>
-          )}
-        </ResponsiveContainer>
+    <div className="h-100 w-100 d-flex flex-column" style={{ minHeight: "180px" }}>
+      <div className="flex-grow-1 w-100 d-flex align-items-center justify-content-center" style={{ minHeight: "180px", height: "100%" }}>
+        {isPreview ? (
+          <div style={{ width: "280px", height: "160px" }}>
+            {renderChartContent()}
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            {renderChartContent()}
+          </ResponsiveContainer>
+        )}
       </div>
     </div>
   );

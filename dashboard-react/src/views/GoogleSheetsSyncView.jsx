@@ -5,10 +5,43 @@ import {
   CheckCircle2, AlertTriangle, Sparkles, HelpCircle, Download,
   Database, Check, FileText, FileJson
 } from "lucide-react";
-import { useTranslation } from "react-i18next";
+import { useTranslation, Trans } from "react-i18next";
 import api from "../lib/api.js";
+import * as XLSX from "xlsx";
 
-const DEFAULT_COLUMNS = ["A (Nombre)", "B (Teléfono)", "C (Email)", "D (Servicio)", "E (Fecha)", "F (Profesional)", "G (Importe)", "H (Notas)"];
+const ENTITY_FIELDS = {
+  clients: [
+    { key: "firstName", label: "Nombre / Nombre Completo", required: true },
+    { key: "lastName", label: "Apellido", required: false },
+    { key: "phone", label: "Teléfono / WhatsApp", required: false },
+    { key: "email", label: "Correo Electrónico", required: false },
+    { key: "notes", label: "Notas / Origen", required: false }
+  ],
+  services: [
+    { key: "name", label: "Nombre del Servicio", required: true },
+    { key: "price", label: "Precio / Importe", required: false },
+    { key: "duration", label: "Duración (minutos)", required: false }
+  ],
+  workers: [
+    { key: "firstName", label: "Nombre / Nombre Completo", required: true },
+    { key: "lastName", label: "Apellido", required: false },
+    { key: "email", label: "Correo Electrónico", required: false },
+    { key: "phone", label: "Teléfono / WhatsApp", required: false },
+    { key: "roleTitle", label: "Cargo / Rol", required: false }
+  ],
+  appointments: [
+    { key: "clientName", label: "Nombre del Cliente", required: true },
+    { key: "phone", label: "Teléfono del Cliente", required: false },
+    { key: "email", label: "Correo del Cliente", required: false },
+    { key: "serviceName", label: "Nombre del Servicio", required: true },
+    { key: "workerName", label: "Nombre del Profesional", required: true },
+    { key: "startsAt", label: "Fecha del Turno", required: true },
+    { key: "time", label: "Hora del Turno (Opcional)", required: false },
+    { key: "price", label: "Importe Cobrado", required: false },
+    { key: "status", label: "Estado (DONE, CONFIRMED, CANCELLED)", required: false },
+    { key: "notes", label: "Notas / Detalles", required: false }
+  ]
+};
 
 // Datos reales de salón para simular una carga exitosa en la base de datos real
 const SAMPLE_SALON_DATA = [
@@ -21,28 +54,33 @@ const SAMPLE_SALON_DATA = [
 ];
 
 export default function GoogleSheetsSyncView() {
-  const { t } = useTranslation("views");
+  const { t, i18n } = useTranslation("views");
+  const currency = (n) => {
+    const isEs = i18n.language === "es";
+    return new Intl.NumberFormat(isEs ? "es-AR" : "en-US", {
+      style: "currency",
+      currency: isEs ? "ARS" : "USD",
+      maximumFractionDigits: 0,
+    }).format(n || 0);
+  };
+
   const [activeDirection, setActiveDirection] = useState("import"); // "import" | "export"
 
-  // STATE FOR IMPORT (EXISTING)
+  // STATE FOR IMPORT
   const [sheetUrl, setSheetUrl] = useState("");
-  const [mapping, setMapping] = useState({
-    firstName: "A (Nombre)",
-    lastName: "A (Nombre)",
-    phone: "B (Teléfono)",
-    email: "C (Email)",
-    service: "D (Servicio)",
-    date: "E (Fecha)",
-    worker: "F (Profesional)",
-    price: "G (Importe)",
-  });
+  const [entityType, setEntityType] = useState("appointments"); // "clients" | "services" | "workers" | "appointments"
+  const [sheetHeaders, setSheetHeaders] = useState([]);
+  const [mapping, setMapping] = useState({});
   const [step, setStep] = useState(1); // 1: URL & Mapping, 2: Preview, 3: Syncing, 4: Done
   const [loading, setLoading] = useState(false);
   const [previewRows, setPreviewRows] = useState([]);
   const [progress, setProgress] = useState(0);
   const [statusText, setStatusText] = useState("");
   const [error, setError] = useState("");
-  const [summary, setSummary] = useState({ clients: 0, services: 0, appointments: 0 });
+  const [summary, setSummary] = useState({ created: 0, reused: 0, failed: 0 });
+  const [totalRows, setTotalRows] = useState(0);
+  const [importMethod, setImportMethod] = useState("google"); // "google" | "file"
+  const [parsedRows, setParsedRows] = useState([]);
 
   // STATE FOR EXPORT (NEW FEATURE)
   const [exportType, setExportType] = useState("clients"); // "clients" | "inventory" | "appointments" | "expenses"
@@ -193,7 +231,7 @@ export default function GoogleSheetsSyncView() {
 
     const cols = Object.keys(selectedColumns[exportType]).filter(k => selectedColumns[exportType][k]);
     if (cols.length === 0) {
-      alert("Por favor selecciona al menos una columna para exportar.");
+      alert(t("sheetsSync.errors.selectColumn"));
       return;
     }
 
@@ -229,6 +267,9 @@ export default function GoogleSheetsSyncView() {
         return `<tr>${cells}</tr>`;
       }).join("\n");
 
+      const title = t("sheetsSync.outputConfigTitle");
+      const desc = t("sheetsSync.outputConfigDesc");
+
       fileContent = `
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
@@ -236,8 +277,8 @@ export default function GoogleSheetsSyncView() {
           <!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Export Salon Aura</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->
         </head>
         <body>
-          <h2 style="color: #8b5cf6; font-family: sans-serif;">Exportación de Datos - Salon Aura Studio</h2>
-          <p style="font-family: sans-serif; font-size: 12px; color: #555;">Base de datos de ${exportType.toUpperCase()} sincronizada en Neon Cloud PostgreSQL.</p>
+          <h2 style="color: #8b5cf6; font-family: sans-serif;">${title}</h2>
+          <p style="font-family: sans-serif; font-size: 12px; color: #555;">${desc} (${exportType.toUpperCase()})</p>
           <table border="1" style="border-collapse: collapse; font-family: sans-serif; font-size: 13px;">
             <thead>
               <tr>${headersHTML}</tr>
@@ -273,10 +314,10 @@ export default function GoogleSheetsSyncView() {
     setSyncSuccessOut(false);
 
     const steps = [
-      { p: 25, txt: "Estructurando cabeceras y compilando registros relacionales..." },
-      { p: 55, txt: "Abriendo túnel seguro OAuth2 con Google Drive API..." },
-      { p: 80, txt: "Transfiriendo celdas al servidor de Google Sheets..." },
-      { p: 100, txt: "¡Sincronización de salida completada con éxito!" }
+      { p: 25, txt: t("sheetsSync.progressText.step1") },
+      { p: 55, txt: t("sheetsSync.progressText.step2") },
+      { p: 80, txt: t("sheetsSync.progressText.step3") },
+      { p: 100, txt: t("sheetsSync.progressText.step4") }
     ];
 
     steps.forEach((step, index) => {
@@ -293,180 +334,309 @@ export default function GoogleSheetsSyncView() {
     });
   };
 
-  // HANDLERS FOR IMPORT WORKFLOW (EXISTING)
-  const handleAnalyze = (e) => {
+  const autoDetectMappings = (headers, type) => {
+    const fields = ENTITY_FIELDS[type];
+    const newMapping = {};
+    fields.forEach(field => {
+      const lowerKey = field.key.toLowerCase();
+      let match = "";
+      if (lowerKey === "firstname" || lowerKey === "clientname") {
+        match = headers.find(h => {
+          const l = h.toLowerCase();
+          return l.includes("nombre") || l.includes("name") || l.includes("cliente");
+        });
+      } else if (lowerKey === "lastname") {
+        match = headers.find(h => {
+          const l = h.toLowerCase();
+          return l.includes("apellido") || l.includes("last");
+        });
+      } else if (lowerKey === "phone") {
+        match = headers.find(h => {
+          const l = h.toLowerCase();
+          return l.includes("tel") || l.includes("cel") || l.includes("wha") || l.includes("phone");
+        });
+      } else if (lowerKey === "email") {
+        match = headers.find(h => {
+          const l = h.toLowerCase();
+          return l.includes("email") || l.includes("mail") || l.includes("correo");
+        });
+      } else if (lowerKey === "servicename" || lowerKey === "name") {
+        match = headers.find(h => {
+          const l = h.toLowerCase();
+          return l.includes("servicio") || l.includes("service") || l.includes("insumo");
+        });
+      } else if (lowerKey === "workername" || lowerKey === "worker") {
+        match = headers.find(h => {
+          const l = h.toLowerCase();
+          return l.includes("profesional") || l.includes("worker") || l.includes("empleado") || l.includes("estilista") || l.includes("colaborador") || l.includes("atendio");
+        });
+      } else if (lowerKey === "startsat" || lowerKey === "date") {
+        match = headers.find(h => {
+          const l = h.toLowerCase();
+          return l.includes("fecha") || l.includes("date") || l.includes("alta") || l.includes("turno");
+        });
+      } else if (lowerKey === "time") {
+        match = headers.find(h => {
+          const l = h.toLowerCase();
+          return l.includes("hora") || l.includes("time");
+        });
+      } else if (lowerKey === "price") {
+        match = headers.find(h => {
+          const l = h.toLowerCase();
+          return l.includes("precio") || l.includes("importe") || l.includes("monto") || l.includes("cost") || l.includes("total") || l.includes("pagos") || l.includes("cobrado");
+        });
+      } else if (lowerKey === "notes") {
+        match = headers.find(h => {
+          const l = h.toLowerCase();
+          return l.includes("nota") || l.includes("origen") || l.includes("comentario");
+        });
+      } else if (lowerKey === "status") {
+        match = headers.find(h => {
+          const l = h.toLowerCase();
+          return l.includes("estado") || l.includes("status");
+        });
+      } else if (lowerKey === "roletitle") {
+        match = headers.find(h => {
+          const l = h.toLowerCase();
+          return l.includes("cargo") || l.includes("rol") || l.includes("puesto");
+        });
+      }
+      newMapping[field.key] = match || "";
+    });
+    setMapping(newMapping);
+  };
+
+  // Helper robust parseCSV inside component
+  const parseCSV = (text) => {
+    const delimiter = text.includes(';') && !text.includes(',') ? ';' : ',';
+    const lines = [];
+    let row = [""];
+    let inQuotes = false;
+
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      const nextChar = text[i + 1];
+
+      if (char === '"') {
+        if (inQuotes && nextChar === '"') {
+          row[row.length - 1] += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === delimiter && !inQuotes) {
+        row.push("");
+      } else if ((char === '\r' || char === '\n') && !inQuotes) {
+        if (char === '\r' && nextChar === '\n') {
+          i++;
+        }
+        lines.push(row);
+        row = [""];
+      } else {
+        row[row.length - 1] += char;
+      }
+    }
+    if (row.length > 1 || row[0] !== "") {
+      lines.push(row);
+    }
+    return lines.filter(r => r.some(cell => cell.trim() !== ""));
+  };
+
+  const handleFileUpload = (file) => {
+    if (!file) return;
+    setError("");
+    setLoading(true);
+
+    const reader = new FileReader();
+    const extension = file.name.split(".").pop().toLowerCase();
+
+    if (extension === "csv") {
+      reader.onload = (e) => {
+        try {
+          const text = e.target.result;
+          const parsed = parseCSV(text);
+          if (parsed.length <= 1) {
+            setError(t("sheetsSync.errors.emptyCsv"));
+            setLoading(false);
+            return;
+          }
+          const headers = parsed[0].map(h => h.trim());
+          const rows = parsed.slice(1).map(row => {
+            const obj = {};
+            headers.forEach((h, idx) => {
+              obj[h] = row[idx] !== undefined ? row[idx].trim() : "";
+            });
+            return obj;
+          });
+          setSheetHeaders(headers);
+          setPreviewRows(rows.slice(0, 10));
+          setTotalRows(rows.length);
+          setParsedRows(rows);
+          autoDetectMappings(headers, entityType);
+          setStep(2);
+        } catch (err) {
+          console.error(err);
+          setError(t("sheetsSync.errors.errorCsv"));
+        } finally {
+          setLoading(false);
+        }
+      };
+      reader.readAsText(file);
+    } else if (extension === "xlsx" || extension === "xls") {
+      reader.onload = (e) => {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: "array" });
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          const parsed = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+          if (parsed.length <= 1) {
+            setError(t("sheetsSync.errors.emptyExcel"));
+            setLoading(false);
+            return;
+          }
+          const headers = parsed[0].map(h => String(h || "").trim());
+          const rows = parsed.slice(1).map(row => {
+            const obj = {};
+            headers.forEach((h, idx) => {
+              obj[h] = row[idx] !== undefined ? String(row[idx]).trim() : "";
+            });
+            return obj;
+          });
+          setSheetHeaders(headers);
+          setPreviewRows(rows.slice(0, 10));
+          setTotalRows(rows.length);
+          setParsedRows(rows);
+          autoDetectMappings(headers, entityType);
+          setStep(2);
+        } catch (err) {
+          console.error(err);
+          setError(t("sheetsSync.errors.errorExcel"));
+        } finally {
+          setLoading(false);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    } else if (extension === "json") {
+      reader.onload = (e) => {
+        try {
+          const text = e.target.result;
+          const json = JSON.parse(text);
+          if (!Array.isArray(json) || json.length === 0) {
+            setError(t("sheetsSync.errors.invalidJson"));
+            setLoading(false);
+            return;
+          }
+          const headers = Array.from(new Set(json.flatMap(obj => Object.keys(obj)))).map(h => String(h).trim());
+          const rows = json.map(row => {
+            const obj = {};
+            headers.forEach(h => {
+              obj[h] = row[h] !== undefined ? String(row[h]).trim() : "";
+            });
+            return obj;
+          });
+          setSheetHeaders(headers);
+          setPreviewRows(rows.slice(0, 10));
+          setTotalRows(rows.length);
+          setParsedRows(rows);
+          autoDetectMappings(headers, entityType);
+          setStep(2);
+        } catch (err) {
+          console.error(err);
+          setError(t("sheetsSync.errors.errorJson"));
+        } finally {
+          setLoading(false);
+        }
+      };
+      reader.readAsText(file);
+    } else {
+      setError(t("sheetsSync.errors.unsupportedFormat"));
+      setLoading(false);
+    }
+  };
+
+  // HANDLERS FOR IMPORT WORKFLOW
+  const handleAnalyze = async (e) => {
     e.preventDefault();
     if (!sheetUrl.trim()) {
-      setError("Por favor, ingresá una URL válida de Google Sheets.");
+      setError(t("sheetsSync.errors.invalidUrl"));
       return;
     }
     if (!sheetUrl.includes("docs.google.com/spreadsheets")) {
-      setError("La URL no parece un enlace de Google Sheets válido. Verificá que tenga el formato correcto.");
+      setError(t("sheetsSync.errors.notGoogleUrl"));
       return;
     }
 
     setLoading(true);
     setError("");
 
-    setTimeout(() => {
-      setPreviewRows([
-        { colA: "Sofía Altieri", colB: "1154329876", colC: "sofia@gmail.com", colD: "Balayage Premium", colE: "2026-05-25", colF: "Andrea", colG: "30000" },
-        { colA: "Javier Rossi", colB: "1198765432", colC: "javier@yahoo.com", colD: "Corte Diseñador", colE: "2026-05-25", colF: "Nicolás", colG: "15000" },
-        { colA: "Martina López", colB: "1134215678", colC: "martina@outlook.com", colD: "Tratamiento Keratina", colE: "2026-05-26", colF: "Florencia", colG: "25000" },
-      ]);
-      setStep(2);
+    try {
+      const res = await api.post("/google/fetch-sheet", { sheetUrl });
+      if (res.data && res.data.success) {
+        setSheetHeaders(res.data.headers);
+        setPreviewRows(res.data.previewRows);
+        setTotalRows(res.data.totalRows);
+        autoDetectMappings(res.data.headers, entityType);
+        setStep(2);
+      } else {
+        setError(t("sheetsSync.errors.failedToFetch"));
+      }
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.error || t("sheetsSync.errors.fetchError"));
+    } finally {
       setLoading(false);
-    }, 1500);
+    }
   };
 
   const executeRealSync = async () => {
+    // Check if required mappings are selected
+    const requiredFields = ENTITY_FIELDS[entityType].filter(f => f.required);
+    const missing = mapping ? requiredFields.filter(f => !mapping[f.key]) : requiredFields;
+    if (missing.length > 0) {
+      const missingLabels = missing.map(f => t("sheetsSync.columns." + f.key, { defaultValue: f.label })).join(", ");
+      setError(t("sheetsSync.errors.missingMapping", { missing: missingLabels }));
+      return;
+    }
+
     setStep(3);
-    setProgress(5);
-    setStatusText("Iniciando conexión segura con tu base de datos de Neon PostgreSQL...");
+    setProgress(10);
+    setStatusText(t("sheetsSync.progressText.import1"));
     setError("");
 
     try {
-      // 1. Crear Servicios Primero para obtener sus IDs relacionales
-      setProgress(15);
-      setStatusText("Configurando catálogo de servicios e importando importes...");
-      const servicesMap = {};
-      
-      for (const item of SAMPLE_SALON_DATA) {
-        try {
-          const sRes = await api.post("/services", {
-            name: item.service,
-            price: item.price,
-            duration: item.duration,
-            isActive: true,
-            availableOnline: true,
-          });
-          servicesMap[item.service] = sRes.data.id;
-        } catch (e) {
-          const listRes = await api.get("/services");
-          const existing = listRes.data.find(s => s.name === item.service);
-          if (existing) {
-            servicesMap[item.service] = existing.id;
-          }
-        }
-      }
-
-      // 2. Crear Profesionales Segundo, vinculándolos con sus respectivos servicios y horarios requeridos por la base de datos
       setProgress(40);
-      setStatusText("Creando perfiles del equipo de profesionales en la base de datos...");
-      const workersMap = {};
-      const defaultSchedules = [
-        { dayOfWeek: 1, startTime: "09:00", endTime: "19:00" },
-        { dayOfWeek: 2, startTime: "09:00", endTime: "19:00" },
-        { dayOfWeek: 3, startTime: "09:00", endTime: "19:00" },
-        { dayOfWeek: 4, startTime: "09:00", endTime: "19:00" },
-        { dayOfWeek: 5, startTime: "09:00", endTime: "19:00" }
-      ];
-      
-      for (const wName of ["Andrea", "Nicolás", "Florencia"]) {
-        // Recopilar servicios correspondientes a este profesional de acuerdo al set de datos
-        const associatedServices = SAMPLE_SALON_DATA
-          .filter(item => item.worker === wName)
-          .map(item => servicesMap[item.service])
-          .filter(Boolean);
+      setStatusText(importMethod === "google" 
+        ? t("sheetsSync.progressText.import2")
+        : t("sheetsSync.progressText.import3"));
 
-        // Fallback en caso de no tener servicios asociados
-        const serviceIds = associatedServices.length > 0 ? associatedServices : [Object.values(servicesMap)[0]].filter(Boolean);
+      const payload = {
+        entityType,
+        mapping
+      };
 
-        try {
-          const wRes = await api.post("/workers", {
-            firstName: wName,
-            lastName: "Aura",
-            email: `${wName.toLowerCase()}@salonaura.com`,
-            phone: "1123456789",
-            roleTitle: wName === "Andrea" ? "Colorista Top" : wName === "Nicolás" ? "Barbero Principal" : "Manicurista Experta",
-            serviceIds,
-            schedules: defaultSchedules
-          });
-          workersMap[wName] = wRes.data.id;
-        } catch (e) {
-          const listRes = await api.get("/workers");
-          const existing = listRes.data.find(w => w.firstName === wName);
-          if (existing) {
-            workersMap[wName] = existing.id;
-          }
-        }
+      if (importMethod === "google") {
+        payload.sheetUrl = sheetUrl;
+      } else {
+        payload.rows = parsedRows;
       }
 
-      // 3. Crear Clientes
-      setProgress(65);
-      setStatusText("Importando base de datos de clientes con notas y teléfonos...");
-      const clientsMap = {};
-      let createdClients = 0;
-      
-      for (const item of SAMPLE_SALON_DATA) {
-        try {
-          const cRes = await api.post("/clients", {
-            firstName: item.firstName,
-            lastName: item.lastName,
-            phone: item.phone,
-            email: item.email,
-            notes: item.notes,
-          });
-          clientsMap[`${item.firstName} ${item.lastName}`] = cRes.data.id;
-          createdClients++;
-        } catch (e) {
-          const listRes = await api.get("/clients");
-          const existing = listRes.data.find(c => c.firstName === item.firstName && c.lastName === item.lastName);
-          if (existing) {
-            clientsMap[`${item.firstName} ${item.lastName}`] = existing.id;
-            createdClients++;
-          }
-        }
-      }
+      const res = await api.post("/google/import", payload);
 
-      // 4. Crear Citas con bypass de disponibilidad activado para admitir migración histórica
       setProgress(85);
-      setStatusText("Creando historial de citas y asignando horas a colaboradores...");
-      let createdAppointments = 0;
-      const baseDate = new Date();
-      
-      for (let i = 0; i < SAMPLE_SALON_DATA.length; i++) {
-        const item = SAMPLE_SALON_DATA[i];
-        const targetDate = new Date(baseDate);
-        targetDate.setDate(baseDate.getDate() + (i % 3) - 1);
-        
-        const hour = 9 + (i * 2);
-        targetDate.setHours(hour, 0, 0, 0);
+      setStatusText(t("sheetsSync.progressText.import4"));
 
-        const clientId = clientsMap[`${item.firstName} ${item.lastName}`];
-        const serviceId = servicesMap[item.service];
-        const workerId = workersMap[item.worker];
-
-        if (clientId && serviceId && workerId) {
-          try {
-            await api.post("/appointments", {
-              clientId,
-              serviceId,
-              workerId,
-              startsAt: targetDate.toISOString(),
-              notes: item.notes,
-              status: i === 0 || i === 3 ? "DONE" : i === 4 ? "CANCELLED" : "CONFIRMED",
-              bypassAvailability: true
-            });
-            createdAppointments++;
-          } catch (e) {
-            console.error("Error creando cita en la migración:", e);
-          }
-        }
+      if (res.data && res.data.success) {
+        setProgress(100);
+        setStatusText(t("sheetsSync.progressCompleted"));
+        setSummary(res.data.summary);
+        setStep(4);
+      } else {
+        throw new Error(t("sheetsSync.errors.syncFailed"));
       }
-
-      setProgress(100);
-      setStatusText("¡Planilla sincronizada con éxito!");
-      setSummary({
-        clients: createdClients,
-        services: Object.keys(servicesMap).length,
-        appointments: createdAppointments,
-      });
-      setStep(4);
-
     } catch (err) {
       console.error(err);
-      setError("Ocurrió un error al cargar los datos en PostgreSQL. Por favor, verificá tu conexión.");
+      setError(err.response?.data?.error || t("sheetsSync.errors.postgreError"));
       setStep(2);
     }
   };
@@ -492,23 +662,23 @@ export default function GoogleSheetsSyncView() {
         <button
           onClick={() => { setActiveDirection("import"); setError(""); }}
           className={`d-flex align-items-center gap-2 px-4 py-2.5 fw-bold rounded-xl border-0 transition-all ${
-            activeDirection === "import" ? "bg-purple-600 text-white shadow-sm" : "bg-light text-muted hover-bg-gray-100"
+            activeDirection === "import" ? "bg-purple-600 text-white shadow-sm btn-purple" : "bg-light text-muted hover-bg-gray-100"
           }`}
           style={{ fontSize: "13px" }}
         >
           <Database size={15} />
-          <span>Importar Planilla (Entrada)</span>
+          <span>{t("sheetsSync.importTab")}</span>
         </button>
 
         <button
           onClick={() => { setActiveDirection("export"); setError(""); }}
           className={`d-flex align-items-center gap-2 px-4 py-2.5 fw-bold rounded-xl border-0 transition-all ${
-            activeDirection === "export" ? "bg-purple-600 text-white shadow-sm" : "bg-light text-muted hover-bg-gray-100"
+            activeDirection === "export" ? "bg-purple-600 text-white shadow-sm btn-purple" : "bg-light text-muted hover-bg-gray-100"
           }`}
           style={{ fontSize: "13px" }}
         >
           <Download size={15} />
-          <span>Exportar y Sincronizar (Salida)</span>
+          <span>{t("sheetsSync.exportTab")}</span>
         </button>
       </div>
 
@@ -520,99 +690,143 @@ export default function GoogleSheetsSyncView() {
               <>
                 <Col lg={7}>
                   <Card className="card-premium border-0 shadow-sm mb-4">
-                    <Card.Body className="p-4">
+                     <Card.Body className="p-4">
+                      {/* Selection of Import Method */}
+                      <div className="d-flex mb-4 gap-2 border-bottom pb-2">
+                        <button
+                          type="button"
+                          onClick={() => { setImportMethod("google"); setError(""); }}
+                          className={`d-flex align-items-center gap-2 px-4 py-2.5 fw-bold rounded-xl border-0 transition-all ${
+                            importMethod === "google" ? "bg-purple-600 text-white shadow btn-purple" : "bg-light text-muted hover-bg-gray-100"
+                          }`}
+                          style={{ fontSize: "12.5px" }}
+                        >
+                          <Link2 size={15} />
+                          <span>{t("sheetsSync.googleTab", { defaultValue: "Google Sheets Link" })}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setImportMethod("file"); setError(""); }}
+                          className={`d-flex align-items-center gap-2 px-4 py-2.5 fw-bold rounded-xl border-0 transition-all ${
+                            importMethod === "file" ? "bg-purple-600 text-white shadow btn-purple" : "bg-light text-muted hover-bg-gray-100"
+                          }`}
+                          style={{ fontSize: "12.5px" }}
+                        >
+                          <FileSpreadsheet size={15} />
+                          <span>{t("sheetsSync.fileTab", { defaultValue: "Subir Archivo Local" })}</span>
+                        </button>
+                      </div>
+
                       <h3 className="h6 fw-bold mb-3 d-flex align-items-center gap-2">
-                        <Link2 size={18} className="text-primary" />
-                        <span>Conectá tu Planilla de Google Drive</span>
+                        {importMethod === "google" ? (
+                          <>
+                            <Link2 size={18} className="text-primary" />
+                            <span>{t("sheetsSync.connectDriveTitle")}</span>
+                          </>
+                        ) : (
+                          <>
+                            <FileSpreadsheet size={18} className="text-primary" />
+                            <span>{t("sheetsSync.connectLocalTitle")}</span>
+                          </>
+                        )}
                       </h3>
                       
-                      <Form onSubmit={handleAnalyze} className="d-grid gap-3">
+                      <div className="d-grid gap-3">
                         <Form.Group>
-                          <Form.Label className="fw-semibold small">URL pública de la planilla de Google Sheets</Form.Label>
-                          <Form.Control
-                            type="url"
-                            placeholder="https://docs.google.com/spreadsheets/d/.../edit?usp=sharing"
-                            value={sheetUrl}
-                            onChange={(e) => setSheetUrl(e.target.value)}
+                          <Form.Label className="fw-semibold small">{t("sheetsSync.syncDataTypeLabel")}</Form.Label>
+                          <Form.Select
+                            value={entityType}
+                            onChange={(e) => {
+                              setEntityType(e.target.value);
+                              setMapping({});
+                            }}
                             className="modern-input"
-                            required
-                          />
+                          >
+                            <option value="appointments">{t("sheetsSync.dataTypeAppointments")}</option>
+                            <option value="clients">{t("sheetsSync.dataTypeClients")}</option>
+                            <option value="services">{t("sheetsSync.dataTypeServices")}</option>
+                            <option value="workers">{t("sheetsSync.dataTypeWorkers")}</option>
+                          </Form.Select>
                           <Form.Text className="text-muted smaller">
-                            Asegurá que la planilla tenga permisos de "Cualquier persona con el enlace puede leer" para permitir la lectura segura de datos.
+                            {t("sheetsSync.dataTypePlaceholder")}
                           </Form.Text>
                         </Form.Group>
 
-                        <h3 className="h6 fw-bold mt-3 mb-1 d-flex align-items-center gap-2">
-                          <Settings size={18} className="text-primary" />
-                          <span>Mapeo Visual de Columnas</span>
-                        </h3>
-                        <p className="text-muted smaller mb-3">Relacioná las columnas identificadas en tu excel con los campos del sistema.</p>
+                        {importMethod === "google" ? (
+                          <Form onSubmit={handleAnalyze} className="d-grid gap-3 p-0 m-0">
+                            <Form.Group>
+                              <Form.Label className="fw-semibold small">{t("sheetsSync.googleUrlLabel")}</Form.Label>
+                              <Form.Control
+                                type="url"
+                                placeholder={t("sheetsSync.googleUrlPlaceholder")}
+                                value={sheetUrl}
+                                onChange={(e) => setSheetUrl(e.target.value)}
+                                className="modern-input"
+                                required
+                              />
+                              <Form.Text className="text-muted smaller">
+                                {t("sheetsSync.googleUrlHint")}
+                              </Form.Text>
+                            </Form.Group>
 
-                        <Row className="g-3">
-                          <Col xs={6}>
+                            <Button type="submit" variant="dark" disabled={loading} className="btn-premium py-2.5 mt-4 justify-content-center">
+                              {loading ? (
+                                <>
+                                  <RefreshCw size={16} className="spin me-2" />
+                                  <span>{t("sheetsSync.analyzeLoading")}</span>
+                                </>
+                              ) : (
+                                <>
+                                  <span>{t("sheetsSync.analyzeBtn")}</span>
+                                  <ArrowRight size={16} className="ms-2" />
+                                </>
+                              )}
+                            </Button>
+                          </Form>
+                        ) : (
+                          <div className="d-grid gap-3">
                             <Form.Group>
-                              <Form.Label className="smaller text-muted fw-bold">Nombre del Cliente</Form.Label>
-                              <Form.Select value={mapping.firstName} onChange={(e) => handleMapChange("firstName", e.target.value)} className="modern-input">
-                                {DEFAULT_COLUMNS.map(col => <option key={col} value={col}>{col}</option>)}
-                              </Form.Select>
+                              <Form.Label className="fw-semibold small">{t("sheetsSync.uploadFileLabel")}</Form.Label>
+                              <div 
+                                className="p-5 text-center border border-dashed border-2 rounded-4 hover-shadow transition-all bg-light bg-opacity-25"
+                                style={{ 
+                                  borderStyle: "dashed", 
+                                  borderWidth: "2px", 
+                                  borderColor: "rgba(139, 92, 246, 0.3)", 
+                                  cursor: "pointer" 
+                                }}
+                              >
+                                <input
+                                  type="file"
+                                  accept=".csv, .xlsx, .xls, .json"
+                                  onChange={(e) => handleFileUpload(e.target.files[0])}
+                                  className="d-none"
+                                  id="local-file-upload"
+                                  disabled={loading}
+                                />
+                                <label htmlFor="local-file-upload" className="w-100 h-100 cursor-pointer d-grid gap-2 mb-0">
+                                  <div className="p-3 bg-purple-500 bg-opacity-10 text-purple-600 rounded-circle justify-self-center">
+                                    <FileSpreadsheet size={28} />
+                                  </div>
+                                  <div>
+                                    <span className="fw-bold text-dark d-block">{t("sheetsSync.uploadFileDrag")}</span>
+                                    <span className="text-muted small">{t("sheetsSync.uploadFileFormats")}</span>
+                                  </div>
+                                  {loading ? (
+                                    <Button as="span" variant="outline-primary" disabled className="rounded-pill px-4 btn-sm justify-self-center mt-2">
+                                      <RefreshCw size={12} className="spin me-1" /> {t("sheetsSync.uploadFileLoading")}
+                                    </Button>
+                                  ) : (
+                                    <Button as="span" variant="outline-primary" className="rounded-pill px-4 btn-sm justify-self-center mt-2">
+                                      {t("sheetsSync.uploadFileBtn")}
+                                    </Button>
+                                  )}
+                                </label>
+                              </div>
                             </Form.Group>
-                          </Col>
-                          <Col xs={6}>
-                            <Form.Group>
-                              <Form.Label className="smaller text-muted fw-bold">WhatsApp / Teléfono</Form.Label>
-                              <Form.Select value={mapping.phone} onChange={(e) => handleMapChange("phone", e.target.value)} className="modern-input">
-                                {DEFAULT_COLUMNS.map(col => <option key={col} value={col}>{col}</option>)}
-                              </Form.Select>
-                            </Form.Group>
-                          </Col>
-                          <Col xs={6}>
-                            <Form.Group>
-                              <Form.Label className="smaller text-muted fw-bold">Nombre del Servicio</Form.Label>
-                              <Form.Select value={mapping.service} onChange={(e) => handleMapChange("service", e.target.value)} className="modern-input">
-                                {DEFAULT_COLUMNS.map(col => <option key={col} value={col}>{col}</option>)}
-                              </Form.Select>
-                            </Form.Group>
-                          </Col>
-                          <Col xs={6}>
-                            <Form.Group>
-                              <Form.Label className="smaller text-muted fw-bold">Importe cobrado</Form.Label>
-                              <Form.Select value={mapping.price} onChange={(e) => handleMapChange("price", e.target.value)} className="modern-input">
-                                {DEFAULT_COLUMNS.map(col => <option key={col} value={col}>{col}</option>)}
-                              </Form.Select>
-                            </Form.Group>
-                          </Col>
-                          <Col xs={6}>
-                            <Form.Group>
-                              <Form.Label className="smaller text-muted fw-bold">Fecha del Turno</Form.Label>
-                              <Form.Select value={mapping.date} onChange={(e) => handleMapChange("date", e.target.value)} className="modern-input">
-                                {DEFAULT_COLUMNS.map(col => <option key={col} value={col}>{col}</option>)}
-                              </Form.Select>
-                            </Form.Group>
-                          </Col>
-                          <Col xs={6}>
-                            <Form.Group>
-                              <Form.Label className="smaller text-muted fw-bold">Estilista que atendió</Form.Label>
-                              <Form.Select value={mapping.worker} onChange={(e) => handleMapChange("worker", e.target.value)} className="modern-input">
-                                {DEFAULT_COLUMNS.map(col => <option key={col} value={col}>{col}</option>)}
-                              </Form.Select>
-                            </Form.Group>
-                          </Col>
-                        </Row>
-
-                        <Button type="submit" variant="dark" disabled={loading} className="btn-premium py-2.5 mt-4 justify-content-center">
-                          {loading ? (
-                            <>
-                              <RefreshCw size={16} className="spin me-2" />
-                              <span>Analizando cabeceras y conectando...</span>
-                            </>
-                          ) : (
-                            <>
-                              <span>Analizar Planilla y Validar</span>
-                              <ArrowRight size={16} className="ms-2" />
-                            </>
-                          )}
-                        </Button>
-                      </Form>
+                          </div>
+                        )}
+                      </div>
                     </Card.Body>
                   </Card>
                 </Col>
@@ -621,9 +835,9 @@ export default function GoogleSheetsSyncView() {
                   <Card className="card-premium border-0 bg-light-soft h-100 p-3">
                     <Card.Body className="d-grid gap-4">
                       <div>
-                        <h4 className="fw-black h6 mb-2 text-dark">¿Cómo funciona la sincronización?</h4>
+                        <h4 className="fw-black h6 mb-2 text-dark">{t("sheetsSync.howItWorksTitle")}</h4>
                         <p className="text-muted small">
-                          Diseñamos esta herramienta para que no tengas que cambiar tu forma de trabajar. Si llevás tus registros en Excel o Google Sheets, podés cargarlos directamente a tu base de datos de la empresa sin perder ningún dato histórico.
+                          {t("sheetsSync.howItWorksDesc")}
                         </p>
                       </div>
 
@@ -632,8 +846,8 @@ export default function GoogleSheetsSyncView() {
                           <CheckCircle2 size={20} />
                         </div>
                         <div>
-                          <h5 className="fw-semibold small text-dark mb-1">Cero pérdida de historial</h5>
-                          <p className="text-muted smaller mb-0">Conserva el historial clínico, notas técnicas de tinturas o esmaltados y el total gastado por tus clientes.</p>
+                          <h5 className="fw-semibold small text-dark mb-1">{t("sheetsSync.noHistoryLossTitle")}</h5>
+                          <p className="text-muted smaller mb-0">{t("sheetsSync.noHistoryLossDesc")}</p>
                         </div>
                       </div>
 
@@ -642,8 +856,8 @@ export default function GoogleSheetsSyncView() {
                           <Sparkles size={20} />
                         </div>
                         <div>
-                          <h5 className="fw-semibold small text-dark mb-1">Métricas instantáneas</h5>
-                          <p className="text-muted smaller mb-0">Al finalizar la sincronización, tus KPI widgets, gráficos financieros de comisiones e IA Insights se poblarán automáticamente.</p>
+                          <h5 className="fw-semibold small text-dark mb-1">{t("sheetsSync.instantMetricsTitle")}</h5>
+                          <p className="text-muted smaller mb-0">{t("sheetsSync.instantMetricsDesc")}</p>
                         </div>
                       </div>
 
@@ -652,8 +866,8 @@ export default function GoogleSheetsSyncView() {
                           <HelpCircle size={20} />
                         </div>
                         <div>
-                          <h5 className="fw-semibold small text-dark mb-1">Mapeo flexible</h5>
-                          <p className="text-muted smaller mb-0">No importa el nombre de tus columnas. Podés mapear libremente campos múltiples al formato de la empresa.</p>
+                          <h5 className="fw-semibold small text-dark mb-1">{t("sheetsSync.flexibleMappingTitle")}</h5>
+                          <p className="text-muted smaller mb-0">{t("sheetsSync.flexibleMappingDesc")}</p>
                         </div>
                       </div>
                     </Card.Body>
@@ -670,52 +884,86 @@ export default function GoogleSheetsSyncView() {
                       <div>
                         <h3 className="h5 fw-black text-dark mb-1 d-flex align-items-center gap-2">
                           <CheckCircle2 className="text-success" size={22} />
-                          <span>Planilla analizada con éxito</span>
+                          <span>{t("sheetsSync.sheetAnalyzedSuccess")}</span>
                         </h3>
-                        <p className="text-muted small mb-0">Detectamos <strong>6 registros válidos</strong> listos para impactar en tu base de datos de Neon PostgreSQL.</p>
+                        <p className="text-muted small mb-0">{t("sheetsSync.sheetAnalyzedDesc")}</p>
                       </div>
                       <div className="d-flex gap-2">
                         <Button variant="outline-dark" onClick={() => setStep(1)} className="rounded-pill px-4 btn-sm">
-                          Atrás (Modificar Mapeo)
+                          {t("sheetsSync.backBtn")}
                         </Button>
                         <Button variant="success" onClick={executeRealSync} className="rounded-pill px-4 btn-sm btn-premium bg-success border-success text-white fw-bold shadow">
-                          Sincronizar y Cargar Datos
+                          {t("sheetsSync.syncImportBtn")}
                         </Button>
                       </div>
                     </div>
 
+                    <h4 className="h6 fw-bold mb-3 d-flex align-items-center gap-2 text-purple-700">
+                      <Settings size={18} />
+                      <span>{t("sheetsSync.configureMappingTitle")}</span>
+                    </h4>
+
+                    <Row className="g-3 mb-4">
+                      {ENTITY_FIELDS[entityType].map(f => (
+                        <Col md={4} key={f.key}>
+                          <Form.Group>
+                            <Form.Label className="smaller text-gray-700 fw-bold">
+                              {t("sheetsSync.columns." + f.key, { defaultValue: f.label })} {f.required && <span className="text-danger">*</span>}
+                            </Form.Label>
+                            <Form.Select
+                              value={mapping[f.key] || ""}
+                              onChange={(e) => handleMapChange(f.key, e.target.value)}
+                              className="modern-input"
+                            >
+                              <option value="">{t("sheetsSync.unassignedOption")}</option>
+                              {sheetHeaders.map(h => (
+                                <option key={h} value={h}>{h}</option>
+                              ))}
+                            </Form.Select>
+                          </Form.Group>
+                        </Col>
+                      ))}
+                    </Row>
+
+                    <h4 className="h6 fw-bold mb-3 text-secondary">{t("sheetsSync.mappedPreviewTitle")}</h4>
                     <div className="table-responsive rounded-3 border">
                       <Table hover striped className="mb-0 align-middle">
                         <thead>
                           <tr className="bg-light table-header-small" style={{ fontSize: "11px" }}>
-                            <th className="ps-3">Fila Excel</th>
-                            <th>Cliente (Mapeado a Nombre)</th>
-                            <th>WhatsApp (Mapeado a Teléfono)</th>
-                            <th>Servicio (Mapeado a Catálogo)</th>
-                            <th>Fecha de Turno</th>
-                            <th>Estilista Asignado</th>
-                            <th className="pe-3 text-end">Importe</th>
+                            <th className="ps-3">{t("sheetsSync.excelRowHeader")}</th>
+                            {ENTITY_FIELDS[entityType].map(f => (
+                              <th key={f.key}>
+                                {t("sheetsSync.columns." + f.key, { defaultValue: f.label })}
+                                <div className="text-muted smaller fw-normal">
+                                  {mapping[f.key] ? `Col: ${mapping[f.key]}` : t("sheetsSync.unmappedLabel", { defaultValue: "(Sin mapear)" })}
+                                </div>
+                              </th>
+                            ))}
                           </tr>
                         </thead>
                         <tbody style={{ fontSize: "13px" }}>
                           {previewRows.map((r, idx) => (
                             <tr key={idx}>
                               <td className="ps-3 text-muted fw-bold">#{idx + 2}</td>
-                              <td className="fw-semibold text-dark">{r.colA}</td>
-                              <td className="text-secondary">{r.colB}</td>
-                              <td>
-                                <Badge bg="primary-soft" className="text-primary rounded-pill px-2.5 py-1 fw-bold">{r.colD}</Badge>
-                              </td>
-                              <td className="text-secondary">{r.colE}</td>
-                              <td className="fw-bold text-dark">{r.colF}</td>
-                              <td className="pe-3 text-end fw-black text-success">${Number(r.colG).toLocaleString()}</td>
+                              {ENTITY_FIELDS[entityType].map(f => {
+                                const colName = mapping[f.key];
+                                const cellVal = colName ? r[colName] : "";
+                                return (
+                                  <td key={f.key} className={f.key === "price" ? "text-success fw-bold" : ""}>
+                                    {f.key === "price" && cellVal ? `$${Number(cellVal).toLocaleString()}` : cellVal || "-"}
+                                  </td>
+                                );
+                              })}
                             </tr>
                           ))}
-                          <tr style={{ background: "#fafafa" }}>
-                            <td className="ps-3 text-muted fw-bold">...</td>
-                            <td colSpan={5} className="text-muted smaller italic">Y otros 3 registros del salón procesados...</td>
-                            <td className="pe-3 text-end fw-black text-dark">$113.000 total</td>
-                          </tr>
+                          {totalRows > 10 && (
+                            <tr style={{ background: "#fafafa" }}>
+                              <td className="ps-3 text-muted fw-bold">...</td>
+                              <td colSpan={ENTITY_FIELDS[entityType].length} className="text-muted smaller italic">
+                                {t("sheetsSync.otherRecordsProcessed", { count: totalRows - 10 })}
+                              </td>
+                            </tr>
+                          )}
                         </tbody>
                       </Table>
                     </div>
@@ -732,17 +980,22 @@ export default function GoogleSheetsSyncView() {
                       <RefreshCw size={32} />
                     </div>
                     <div>
-                      <h3 className="fw-black text-dark h5 mb-1">Cargando base de datos inteligente</h3>
+                      <h3 className="fw-black text-dark h5 mb-1">{t("sheetsSync.importingDataTitle")}</h3>
                       <p className="text-muted small mb-0">{statusText}</p>
                     </div>
 
                     <div className="px-3">
                       <ProgressBar now={progress} animated variant="success" style={{ height: "10px", borderRadius: "10px" }} />
-                      <div className="text-end text-success fw-bold smaller mt-1.5">{progress}% completado</div>
+                      <div className="text-end text-success fw-bold smaller mt-1.5">{progress}% {t("sheetsSync.progressCompleted")}</div>
                     </div>
 
                     <div className="p-3 bg-light rounded-3 text-muted small text-start border-start border-primary border-4">
-                      <strong>Nota del sistema:</strong> Esta operación escribe directamente en las tablas relacionales de PostgreSQL. Se validarán las duraciones de turnos, disponibilidades del equipo y precios de servicios de forma inteligente.
+                      {t("sheetsSync.neonProcessingNotice") && (
+                        <>
+                          <strong>{t("sheetsSync.neonProcessingNotice").split(":")[0]}:</strong>
+                          {t("sheetsSync.neonProcessingNotice").split(":")[1]}
+                        </>
+                      )}
                     </div>
                   </Card.Body>
                 </Card>
@@ -758,37 +1011,37 @@ export default function GoogleSheetsSyncView() {
                     </div>
                     
                     <div>
-                      <h3 className="fw-black text-dark h4 mb-1">¡Planilla importada con éxito!</h3>
-                      <p className="text-muted small mb-0">La base de datos de tu empresa ha sido actualizada con los datos históricos de tu Google Sheets.</p>
+                      <h3 className="fw-black text-dark h4 mb-1">{t("sheetsSync.importSuccessTitle")}</h3>
+                      <p className="text-muted small mb-0">{t("sheetsSync.importSuccessDesc")}</p>
                     </div>
 
                     <Row className="g-3 my-2">
                       <Col xs={4}>
                         <div className="p-3 bg-light rounded-3 border">
-                          <div className="h3 fw-black text-dark m-0">{summary.clients}</div>
-                          <div className="text-muted smaller">Clientes Creados</div>
+                          <div className="h3 fw-black text-success m-0">{summary.created || 0}</div>
+                          <div className="text-muted smaller">{t("sheetsSync.summaryCreated")}</div>
                         </div>
                       </Col>
                       <Col xs={4}>
                         <div className="p-3 bg-light rounded-3 border">
-                          <div className="h3 fw-black text-primary m-0">{summary.services}</div>
-                          <div className="text-muted smaller">Servicios Nuevos</div>
+                          <div className="h3 fw-black text-primary m-0">{summary.reused || 0}</div>
+                          <div className="text-muted smaller">{t("sheetsSync.summaryReused")}</div>
                         </div>
                       </Col>
                       <Col xs={4}>
                         <div className="p-3 bg-light rounded-3 border">
-                          <div className="h3 fw-black text-success m-0">{summary.appointments}</div>
-                          <div className="text-muted smaller">Turnos Agendados</div>
+                          <div className="h3 fw-black text-danger m-0">{summary.failed || 0}</div>
+                          <div className="text-muted smaller">{t("sheetsSync.summaryFailed")}</div>
                         </div>
                       </Col>
                     </Row>
 
                     <div className="d-flex gap-2.5 justify-content-center">
                       <Button variant="outline-dark" onClick={() => setStep(1)} className="rounded-pill px-4">
-                        Sincronizar otra Planilla
+                        {t("sheetsSync.syncAnotherBtn")}
                       </Button>
                       <Button variant="dark" href="/app" className="rounded-pill px-4 btn-premium">
-                        Ir al Dashboard Principal
+                        {t("sheetsSync.goDashboardBtn")}
                       </Button>
                     </div>
                   </Card.Body>
@@ -806,31 +1059,31 @@ export default function GoogleSheetsSyncView() {
               <Card className="card-premium border-0 shadow-sm p-4 rounded-2xl mb-4">
                 <h3 className="h6 fw-bold mb-3 d-flex align-items-center gap-2">
                   <Settings size={18} className="text-purple-600 animate-pulse" />
-                  <span>Configuración del Archivo de Salida</span>
+                  <span>{t("sheetsSync.outputConfigTitle")}</span>
                 </h3>
                 <p className="text-muted smaller mb-4">
-                  Selecciona qué base de datos de Neon PostgreSQL necesitas sincronizar o descargar en tu dispositivo.
+                  {t("sheetsSync.outputConfigDesc")}
                 </p>
 
                 <Form className="d-grid gap-3.5">
                   {/* Select Table to Export */}
                   <Form.Group>
-                    <Form.Label className="small fw-bold text-gray-700">1. Seleccionar Módulo de Datos</Form.Label>
+                    <Form.Label className="small fw-bold text-gray-700">{t("sheetsSync.selectDataModule")}</Form.Label>
                     <Form.Select 
                       value={exportType}
                       onChange={(e) => setExportType(e.target.value)}
                       className="modern-input"
                     >
-                      <option value="clients">👥 Clientes & Fichas CRM</option>
-                      <option value="inventory">📦 Catálogo de Stock & Insumos</option>
-                      <option value="appointments">📅 Historial de Turnos & Reservas</option>
-                      <option value="expenses">💸 Finanzas - Gastos Operativos</option>
+                      <option value="clients">{t("sheetsSync.moduleClients")}</option>
+                      <option value="inventory">{t("sheetsSync.moduleInventory")}</option>
+                      <option value="appointments">{t("sheetsSync.moduleAppointments")}</option>
+                      <option value="expenses">{t("sheetsSync.moduleExpenses")}</option>
                     </Form.Select>
                   </Form.Group>
 
                   {/* Select Columns */}
                   <Form.Group>
-                    <Form.Label className="small fw-bold text-gray-700 mb-2">2. Seleccionar Columnas a Incluir</Form.Label>
+                    <Form.Label className="small fw-bold text-gray-700 mb-2">{t("sheetsSync.selectColumnsToInclude")}</Form.Label>
                     <Card className="p-3 bg-light border-0 rounded-xl">
                       <div className="d-flex flex-column gap-2">
                         {Object.keys(selectedColumns[exportType]).map((colKey) => (
@@ -838,7 +1091,7 @@ export default function GoogleSheetsSyncView() {
                             key={colKey}
                             type="checkbox"
                             id={`col-${colKey}`}
-                            label={colKey === "firstName" ? "Nombre" : colKey === "lastName" ? "Apellido" : colKey === "phone" ? "WhatsApp" : colKey === "email" ? "Email" : colKey === "status" ? "Estado" : colKey === "name" ? "Nombre Insumo" : colKey === "category" ? "Categoría" : colKey === "stock" ? "Stock Disponible" : colKey === "costPrice" ? "Costo Compra" : colKey === "salePrice" ? "Precio Venta" : colKey === "startsAt" ? "Fecha y Hora" : colKey === "clientName" ? "Cliente" : colKey === "serviceName" ? "Servicio" : colKey === "workerName" ? "Estilista" : colKey === "concept" ? "Concepto Gasto" : colKey === "amount" ? "Importe" : colKey === "date" ? "Fecha" : colKey}
+                            label={t("sheetsSync.columns." + colKey, { defaultValue: colKey })}
                             checked={selectedColumns[exportType][colKey]}
                             onChange={() => handleColumnToggle(colKey)}
                             className="small text-gray-700 fw-medium"
@@ -850,13 +1103,13 @@ export default function GoogleSheetsSyncView() {
 
                   {/* Select Format */}
                   <Form.Group>
-                    <Form.Label className="small fw-bold text-gray-700">3. Formato del Archivo</Form.Label>
+                    <Form.Label className="small fw-bold text-gray-700">{t("sheetsSync.outputFileFormat")}</Form.Label>
                     <div className="d-flex gap-3">
                       <Form.Check 
                         type="radio"
                         id="format-xls"
                         name="format"
-                        label="Microsoft Excel (.xlsx / .xls)"
+                        label={t("sheetsSync.formatExcel")}
                         checked={exportFormat === "xls"}
                         onChange={() => setExportFormat("xls")}
                         className="small text-gray-800 fw-bold"
@@ -865,7 +1118,7 @@ export default function GoogleSheetsSyncView() {
                         type="radio"
                         id="format-csv"
                         name="format"
-                        label="Valores CSV (.csv)"
+                        label={t("sheetsSync.formatCsv")}
                         checked={exportFormat === "csv"}
                         onChange={() => setExportFormat("csv")}
                         className="small text-gray-800 fw-bold"
@@ -874,7 +1127,7 @@ export default function GoogleSheetsSyncView() {
                         type="radio"
                         id="format-json"
                         name="format"
-                        label="Datos JSON (.json)"
+                        label={t("sheetsSync.formatJson")}
                         checked={exportFormat === "json"}
                         onChange={() => setExportFormat("json")}
                         className="small text-gray-800 fw-bold"
@@ -890,7 +1143,7 @@ export default function GoogleSheetsSyncView() {
                       className="rounded-xl py-2.5 fw-bold text-white bg-purple-600 hover-bg-purple-700 d-flex align-items-center justify-content-center gap-2 border-0 shadow-sm"
                     >
                       <Download size={16} />
-                      <span>Descargar Archivo de Datos</span>
+                      <span>{t("sheetsSync.downloadDataBtn")}</span>
                     </Button>
 
                     <Button 
@@ -899,7 +1152,7 @@ export default function GoogleSheetsSyncView() {
                       className="rounded-xl py-2.5 fw-bold text-purple-700 border-purple-300 hover-bg-purple-50 d-flex align-items-center justify-content-center gap-2"
                     >
                       <RefreshCw size={16} className={isSyncingOut ? "spin" : ""} />
-                      <span>Sincronizar con Google Sheets (Salida)</span>
+                      <span>{t("sheetsSync.syncOutBtn")}</span>
                     </Button>
                   </div>
                 </Form>
@@ -914,10 +1167,10 @@ export default function GoogleSheetsSyncView() {
                   <div className="p-3 bg-purple bg-opacity-10 text-purple-600 rounded-circle justify-self-center spin mb-4" style={{ width: "64px", height: "64px", margin: "0 auto" }}>
                     <RefreshCw size={32} />
                   </div>
-                  <h4 className="fw-black text-gray-900 mb-2">Sincronizando de Salida...</h4>
-                  <p className="text-muted small mb-4">Exportando datos seleccionados al almacenamiento en nube de Google Drive.</p>
+                  <h4 className="fw-black text-gray-900 mb-2">{t("sheetsSync.syncingOutTitle")}</h4>
+                  <p className="text-muted small mb-4">{t("sheetsSync.syncingOutDesc")}</p>
                   <ProgressBar now={syncProgressOut} variant="purple" className="mb-2 rounded-pill mx-auto" style={{ width: "80%", height: "8px" }} />
-                  <span className="smaller text-purple-600 fw-bold">{syncProgressOut}% procesado</span>
+                  <span className="smaller text-purple-600 fw-bold">{syncProgressOut}% {t("sheetsSync.progressCompleted")}</span>
                 </Card>
               )}
 
@@ -926,9 +1179,9 @@ export default function GoogleSheetsSyncView() {
                   <div className="p-3 bg-success bg-opacity-10 text-success rounded-circle justify-self-center mb-3" style={{ width: "64px", height: "64px", margin: "0 auto" }}>
                     <CheckCircle2 size={32} />
                   </div>
-                  <h4 className="fw-black text-gray-900 mb-1">¡Sincronización Exitosa!</h4>
-                  <p className="text-muted small mb-2">Se ha descargado automáticamente el archivo de datos con todos los detalles de <strong>{exportType.toUpperCase()}</strong>.</p>
-                  <p className="text-muted smaller mb-4">Puedes abrir una planilla limpia en Google Sheets con el botón inferior e importar el archivo descargado.</p>
+                  <h4 className="fw-black text-gray-900 mb-1">{t("sheetsSync.syncOutSuccessTitle")}</h4>
+                  <p className="text-muted small mb-2">{t("sheetsSync.syncOutSuccessDesc", { type: exportType.toUpperCase() })}</p>
+                  <p className="text-muted smaller mb-4">{t("sheetsSync.syncOutSuccessActionHint")}</p>
                   
                   <div className="d-grid gap-2 mx-auto" style={{ maxWidth: "340px" }}>
                     <Button 
@@ -938,14 +1191,14 @@ export default function GoogleSheetsSyncView() {
                       className="rounded-xl py-2 fw-bold text-white bg-success hover-bg-success-dark border-0 shadow-sm d-flex align-items-center justify-content-center gap-2"
                     >
                       <Sparkles size={15} />
-                      <span>Ver Planilla de Google Sheets</span>
+                      <span>{t("sheetsSync.viewGoogleSheetsBtn")}</span>
                     </Button>
                     <Button 
                       variant="light" 
                       onClick={() => setSyncSuccessOut(false)}
                       className="rounded-xl py-2 small text-muted border"
                     >
-                      Atrás
+                      {t("sheetsSync.backOutBtn")}
                     </Button>
                   </div>
                 </Card>
@@ -957,7 +1210,7 @@ export default function GoogleSheetsSyncView() {
                   <div>
                     <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                       <div>
-                        <h3 className="h6 fw-black text-gray-900 mb-0.5">Vista Previa de Fichas a Mandar/Descargar</h3>
+                        <h3 className="h6 fw-black text-gray-900 mb-0.5">{t("sheetsSync.previewOutTitle")}</h3>
                         <span className="smaller text-muted d-flex align-items-center gap-1">
                           <Check size={12} className="text-success" /> Live Connection: Neon Cloud DB
                         </span>
@@ -970,11 +1223,11 @@ export default function GoogleSheetsSyncView() {
                     {previewLoading ? (
                       <div className="text-center py-5 my-4">
                         <RefreshCw className="spin text-purple-600 mb-2" size={24} />
-                        <div className="smaller text-muted">Consultando Neon Cloud PostgreSQL...</div>
+                        <div className="smaller text-muted">{t("sheetsSync.previewLoadingText", { defaultValue: "Consultando Neon Cloud PostgreSQL..." })}</div>
                       </div>
                     ) : livePreview.length === 0 ? (
                       <div className="text-center py-5 my-4 bg-light rounded-2xl border text-muted smaller">
-                        No hay datos cargados en esta tabla para previsualizar.
+                        {t("sheetsSync.noDataPreview", { defaultValue: "No hay datos cargados en esta tabla para previsualizar." })}
                       </div>
                     ) : (
                       <div className="table-responsive rounded-2xl border">
@@ -982,7 +1235,7 @@ export default function GoogleSheetsSyncView() {
                           <thead>
                             <tr className="bg-light table-header-small" style={{ fontSize: "11px" }}>
                               {Object.keys(selectedColumns[exportType]).filter(k => selectedColumns[exportType][k]).map((c) => (
-                                <th key={c} className="py-2.5 ps-3">{c.toUpperCase()}</th>
+                                <th key={c} className="py-2.5 ps-3">{t("sheetsSync.columns." + c, { defaultValue: c }).toUpperCase()}</th>
                               ))}
                             </tr>
                           </thead>
@@ -992,7 +1245,7 @@ export default function GoogleSheetsSyncView() {
                                 {Object.keys(selectedColumns[exportType]).filter(k => selectedColumns[exportType][k]).map((c) => (
                                   <td key={c} className="py-2.5 ps-3 fw-medium text-gray-800">
                                     {c === "startsAt" || c === "date" 
-                                      ? new Date(row[c]).toLocaleDateString("es-AR") 
+                                      ? new Date(row[c]).toLocaleDateString(i18n.language === "es" ? "es-AR" : "en-US") 
                                       : c === "amount" || c === "costPrice" || c === "salePrice"
                                         ? currency(row[c])
                                         : String(row[c])
@@ -1008,7 +1261,7 @@ export default function GoogleSheetsSyncView() {
                   </div>
 
                   <div className="p-3 bg-light rounded-2xl border text-muted smaller mt-4 mb-0" style={{ lineHeight: "1.4" }}>
-                    <strong>Exportador Contable:</strong> Los archivos generados son compatibles de forma nativa con Microsoft Excel, Google Sheets, LibreOffice y Numbers. La estructura cumple las directrices contables de Salon Aura Studio.
+                    <strong>{t("sheetsSync.exporterContableTitle")}</strong> {t("sheetsSync.exporterContableDesc")}
                   </div>
                 </Card>
               )}
@@ -1018,12 +1271,4 @@ export default function GoogleSheetsSyncView() {
       </Row>
     </Container>
   );
-}
-
-function currency(n) {
-  return new Intl.NumberFormat("es-AR", {
-    style: "currency",
-    currency: "ARS",
-    maximumFractionDigits: 0,
-  }).format(n || 0);
 }

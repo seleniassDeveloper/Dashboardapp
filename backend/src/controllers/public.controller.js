@@ -15,6 +15,28 @@ function minutesToTime(mins) {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
+// Helper para obtener fecha actual y minutos del día actual en la zona de Argentina
+function getArgentinaTimeParts() {
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false
+  });
+  const parts = formatter.formatToParts(new Date());
+  const partMap = {};
+  for (const p of parts) {
+    partMap[p.type] = p.value;
+  }
+  // YYYY-MM-DD
+  const todayStr = `${partMap.year}-${partMap.month}-${partMap.day}`;
+  const currentMins = Number(partMap.hour) * 60 + Number(partMap.minute);
+  return { todayStr, currentMins };
+}
+
 // Obtener info pública del negocio
 export async function getPublicBusiness(req, res) {
   try {
@@ -104,118 +126,150 @@ export async function getPublicProfessionals(req, res) {
 // Lógica de cálculo de disponibilidad horaria real
 export async function getPublicAvailability(req, res) {
   try {
-    const { serviceId, professionalId, date } = req.query; // date: YYYY-MM-DD
+    const { slug } = req.params;
+    const { serviceId, professionalId, workerId, date } = req.query; // date: YYYY-MM-DD
 
-    if (!serviceId || !professionalId || !date) {
-      return res.status(400).json({ error: "Parámetros requeridos: serviceId, professionalId, date." });
+    const effectiveProfessionalId = professionalId || workerId;
+
+    if (!serviceId || !date) {
+      return res.status(400).json({ error: "Parámetros requeridos: serviceId, date." });
+    }
+
+    // Validar negocio
+    const biz = await prisma.business.findUnique({ where: { slug } });
+    if (!biz || !biz.bookingEnabled) {
+      return res.status(404).json({ error: "Negocio no encontrado o reservas desactivadas." });
     }
 
     // 1. Obtener servicio y validar duración
-    const service = await prisma.service.findUnique({
-      where: { id: serviceId, isActive: true, availableOnline: true },
+    const service = await prisma.service.findFirst({
+      where: { id: serviceId, businessId: biz.id, isActive: true, availableOnline: true },
     });
-    if (!service) return res.status(404).json({ error: "Servicio no disponible." });
+    if (!service) return res.status(404).json({ error: "Servicio no disponible para este negocio." });
 
-    // 2. Obtener profesional y verificar que puede hacer el servicio
-    const worker = await prisma.worker.findUnique({
-      where: { id: professionalId, availableOnline: true },
-      include: {
-        services: { where: { serviceId } },
-      },
-    });
-    if (!worker || worker.services.length === 0) {
-      return res.status(404).json({ error: "El profesional no realiza este servicio o no está disponible online." });
+    // 2. Obtener profesional(es) a validar
+    let workers = [];
+    if (effectiveProfessionalId && effectiveProfessionalId !== "any" && effectiveProfessionalId !== "null" && effectiveProfessionalId !== "undefined") {
+      const worker = await prisma.worker.findFirst({
+        where: { id: effectiveProfessionalId, businessId: biz.id, availableOnline: true },
+        include: {
+          services: { where: { serviceId } },
+        },
+      });
+      if (worker && worker.services.length > 0) {
+        workers = [worker];
+      }
+    } else {
+      // "Cualquiera" - buscar todos los profesionales del negocio que realizan este servicio
+      workers = await prisma.worker.findMany({
+        where: {
+          businessId: biz.id,
+          availableOnline: true,
+          services: { some: { serviceId } }
+        }
+      });
+    }
+
+    if (workers.length === 0) {
+      return res.json([]);
     }
 
     // 3. Obtener el día de la semana (0: Domingo, 1: Lunes, etc.)
-    // Forzamos zona local para parsear la fecha de forma segura
     const [year, month, day] = date.split("-").map(Number);
     const dayOfWeek = new Date(year, month - 1, day).getDay();
 
-    // 4. Buscar jornada laboral del profesional para ese día de la semana
-    const schedule = await prisma.workerSchedule.findFirst({
-      where: { workerId: professionalId, dayOfWeek },
-    });
-    if (!schedule) return res.json([]); // No trabaja este día
+    const allAvailableSlots = new Set();
 
-    // 5. Cargar citas existentes del profesional para ese día
-    // Las fechas guardadas son UTC (ISO). Filtramos las citas de ese día calendarizado.
-    const startOfDay = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
-    const endOfDay = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999));
+    // Verificación de hoy en tiempo real (evitar reservar en el pasado) usando la zona de Argentina
+    const { todayStr, currentMins } = getArgentinaTimeParts();
 
-    const appts = await prisma.appointment.findMany({
-      where: {
-        workerId: professionalId,
-        startsAt: {
-          gte: startOfDay,
-          lte: endOfDay,
-        },
-        status: { not: "CANCELLED" },
-      },
-      include: { service: true },
-    });
-
-    // 6. Cargar bloqueos de agenda (ScheduleBlock)
-    const blocks = await prisma.scheduleBlock.findMany({
-      where: {
-        workerId: professionalId,
-        date,
-      },
-    });
-
-    // 7. Generar slots libres
-    const startMins = timeToMinutes(schedule.startTime);
-    const endMins = timeToMinutes(schedule.endTime);
     const svcDuration = service.duration || 30;
     const slotInterval = 30; // Slots cada 30 minutos
-    const availableSlots = [];
 
-    // Verificación de hoy en tiempo real (evitar reservar en el pasado)
-    const todayStr = new Date().toISOString().slice(0, 10);
-    const now = new Date();
-    const currentMins = now.getHours() * 60 + now.getMinutes();
+    // Recorrer cada profesional para calcular su disponibilidad
+    for (const w of workers) {
+      // Buscar jornada laboral del profesional para ese día de la semana
+      const schedule = await prisma.workerSchedule.findFirst({
+        where: { workerId: w.id, dayOfWeek },
+      });
+      if (!schedule) continue;
 
-    for (let m = startMins; m + svcDuration <= endMins; m += slotInterval) {
-      const slotStartStr = minutesToTime(m);
-      const slotEndStr = minutesToTime(m + svcDuration);
+      // Cargar citas existentes del profesional para ese día (en la zona horaria de Argentina)
+      const startOfDay = new Date(`${date}T00:00:00-03:00`);
+      const endOfDay = new Date(`${date}T23:59:59.999-03:00`);
 
-      // Si es hoy, validar que el slot ocurra en el futuro + 60 min de anticipación
-      if (date === todayStr) {
-        if (m < currentMins + 60) continue;
-      }
+      const appts = await prisma.appointment.findMany({
+        where: {
+          workerId: w.id,
+          startsAt: {
+            gte: startOfDay,
+            lte: endOfDay,
+          },
+          status: { not: "CANCELLED" },
+        },
+        include: { service: true },
+      });
 
-      // Validar overlap con citas de la base de datos
-      let overlaps = false;
-      for (const appt of appts) {
-        const apptDate = new Date(appt.startsAt);
-        // Convertir startsAt a minutos en el día en UTC
-        const apptStartM = apptDate.getUTCHours() * 60 + apptDate.getUTCMinutes();
-        const apptEndM = apptStartM + (appt.service?.duration || 30);
+      // Cargar bloqueos de agenda (ScheduleBlock)
+      const blocks = await prisma.scheduleBlock.findMany({
+        where: {
+          workerId: w.id,
+          date,
+        },
+      });
 
-        if (m < apptEndM && m + svcDuration > apptStartM) {
-          overlaps = true;
-          break;
+      const startMins = timeToMinutes(schedule.startTime);
+      const endMins = timeToMinutes(schedule.endTime);
+
+      for (let m = startMins; m + svcDuration <= endMins; m += slotInterval) {
+        const slotStartStr = minutesToTime(m);
+
+        // Si es hoy, validar que el slot ocurra en el futuro + 60 min de anticipación
+        if (date === todayStr) {
+          if (m < currentMins + 60) continue;
         }
-      }
 
-      if (overlaps) continue;
+        // Validar overlap con citas de la base de datos (en la zona horaria de Argentina)
+        let overlaps = false;
+        for (const appt of appts) {
+          const apptDate = new Date(appt.startsAt);
+          const timeString = apptDate.toLocaleTimeString("es-AR", {
+            timeZone: "America/Argentina/Buenos_Aires",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false
+          });
+          const [apptH, apptM] = timeString.split(":").map(Number);
+          const apptStartM = apptH * 60 + apptM;
+          const apptEndM = apptStartM + (appt.service?.duration || 30);
 
-      // Validar overlap con bloqueos de agenda
-      for (const block of blocks) {
-        const blockStartM = timeToMinutes(block.startTime);
-        const blockEndM = timeToMinutes(block.endTime);
-        if (m < blockEndM && m + svcDuration > blockStartM) {
-          overlaps = true;
-          break;
+          if (m < apptEndM && m + svcDuration > apptStartM) {
+            overlaps = true;
+            break;
+          }
         }
-      }
 
-      if (!overlaps) {
-        availableSlots.push(slotStartStr);
+        if (overlaps) continue;
+
+        // Validar overlap con bloqueos de agenda
+        for (const block of blocks) {
+          const blockStartM = timeToMinutes(block.startTime);
+          const blockEndM = timeToMinutes(block.endTime);
+          if (m < blockEndM && m + svcDuration > blockStartM) {
+            overlaps = true;
+            break;
+          }
+        }
+
+        if (!overlaps) {
+          allAvailableSlots.add(slotStartStr);
+        }
       }
     }
 
-    return res.json(availableSlots);
+    // Retornar listado de slots ordenados cronológicamente
+    const sortedSlots = Array.from(allAvailableSlots).sort();
+    return res.json(sortedSlots);
   } catch (error) {
     console.error("Error calculando disponibilidad:", error);
     return res.status(500).json({ error: "Error al calcular slots disponibles." });
@@ -241,7 +295,7 @@ export async function createPublicBooking(req, res) {
       downpaymentTransactionId,
     } = req.body;
 
-    if (!firstName || !lastName || !serviceId || !professionalId || !date || !time) {
+    if (!firstName || !lastName || !serviceId || !date || !time) {
       return res.status(400).json({ error: "Faltan campos obligatorios para completar la reserva." });
     }
 
@@ -251,16 +305,132 @@ export async function createPublicBooking(req, res) {
       return res.status(403).json({ error: "Las reservas no están permitidas en este momento." });
     }
 
-    // 2. Buscar o crear cliente
+    // Validar que el servicio pertenece al negocio
+    const service = await prisma.service.findFirst({
+      where: { id: serviceId, businessId: biz.id, isActive: true, availableOnline: true }
+    });
+    if (!service) {
+      return res.status(400).json({ error: "El servicio seleccionado no está disponible para este negocio." });
+    }
+
+    // 2. Determinar profesional asignado
+    let workerIdToAssign = professionalId;
+
+    if (!professionalId || professionalId === "any" || professionalId === "null" || professionalId === "undefined") {
+      // Buscar todos los profesionales que realizan este servicio y están online
+      const workers = await prisma.worker.findMany({
+        where: {
+          businessId: biz.id,
+          availableOnline: true,
+          services: { some: { serviceId } }
+        }
+      });
+
+      // Encontrar uno que esté libre en la fecha y hora seleccionada (en hora local del servidor)
+      const [year, month, day] = date.split("-").map(Number);
+      const dayOfWeek = new Date(year, month - 1, day).getDay();
+      const [h, m] = time.split(":").map(Number);
+      
+      const targetStartMins = h * 60 + m;
+      const targetEndMins = targetStartMins + (service.duration || 30);
+
+      const startsAt = new Date(`${date}T${time}:00-03:00`);
+
+      let foundWorker = null;
+      for (const w of workers) {
+        // Verificar jornada laboral
+        const schedule = await prisma.workerSchedule.findFirst({
+          where: { workerId: w.id, dayOfWeek }
+        });
+        if (!schedule) continue;
+
+        const schedStartMins = timeToMinutes(schedule.startTime);
+        const schedEndMins = timeToMinutes(schedule.endTime);
+        if (targetStartMins < schedStartMins || targetEndMins > schedEndMins) continue;
+
+        // Verificar citas existentes (overlap en la zona horaria de Argentina)
+        const startOfDay = new Date(`${date}T00:00:00-03:00`);
+        const endOfDay = new Date(`${date}T23:59:59.999-03:00`);
+
+        const appts = await prisma.appointment.findMany({
+          where: {
+            workerId: w.id,
+            startsAt: {
+              gte: startOfDay,
+              lte: endOfDay,
+            },
+            status: { not: "CANCELLED" },
+          },
+          include: { service: true }
+        });
+
+        let overlaps = false;
+        for (const appt of appts) {
+          const apptDate = new Date(appt.startsAt);
+          const timeString = apptDate.toLocaleTimeString("es-AR", {
+            timeZone: "America/Argentina/Buenos_Aires",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false
+          });
+          const [apptH, apptM] = timeString.split(":").map(Number);
+          const apptStartM = apptH * 60 + apptM;
+          const apptEndM = apptStartM + (appt.service?.duration || 30);
+
+          if (targetStartMins < apptEndM && targetEndMins > apptStartM) {
+            overlaps = true;
+            break;
+          }
+        }
+        if (overlaps) continue;
+
+        // Verificar bloqueos
+        const blocks = await prisma.scheduleBlock.findMany({
+          where: {
+            workerId: w.id,
+            date,
+          }
+        });
+
+        for (const block of blocks) {
+          const blockStartM = timeToMinutes(block.startTime);
+          const blockEndM = timeToMinutes(block.endTime);
+          if (targetStartMins < blockEndM && targetEndMins > blockStartM) {
+            overlaps = true;
+            break;
+          }
+        }
+        if (overlaps) continue;
+
+        foundWorker = w;
+        break; // Asignamos el primero disponible
+      }
+
+      if (!foundWorker) {
+        return res.status(400).json({ error: "No hay profesionales disponibles para el horario seleccionado." });
+      }
+
+      workerIdToAssign = foundWorker.id;
+    } else {
+      // Validar profesional seleccionado
+      const worker = await prisma.worker.findFirst({
+        where: { id: professionalId, businessId: biz.id, availableOnline: true }
+      });
+      if (!worker) {
+        return res.status(400).json({ error: "El profesional seleccionado no está disponible para este negocio." });
+      }
+    }
+
+    // 3. Buscar o crear cliente en el contexto del negocio
     let client = null;
     if (email?.trim()) {
       client = await prisma.client.findFirst({
-        where: { email: email.trim() },
+        where: { email: email.trim(), businessId: biz.id },
       });
     }
     if (!client && phone?.trim()) {
       client = await prisma.client.findFirst({
-        where: { phone: phone.trim() },
+        where: { phone: phone.trim(), businessId: biz.id },
       });
     }
 
@@ -277,17 +447,15 @@ export async function createPublicBooking(req, res) {
       });
     }
 
-    // 3. Calcular fecha/hora de inicio en UTC
-    const [year, month, day] = date.split("-").map(Number);
-    const [h, m] = time.split(":").map(Number);
-    const startsAt = new Date(Date.UTC(year, month - 1, day, h, m, 0));
+    // 4. Calcular fecha/hora de inicio en la zona horaria de Argentina
+    const startsAt = new Date(`${date}T${time}:00-03:00`);
 
-    // 4. Crear la cita (Appointment)
+    // 5. Crear la cita (Appointment)
     const appointment = await prisma.appointment.create({
       data: {
         clientId: client.id,
         serviceId,
-        workerId: professionalId,
+        workerId: workerIdToAssign,
         startsAt,
         notes: notes || null,
         status: "PENDING", // Por defecto se crea en PENDING
@@ -303,6 +471,13 @@ export async function createPublicBooking(req, res) {
         worker: true,
       },
     });
+
+    // Sincronizar con Google Calendar en segundo plano
+    import("../services/googleService.js")
+      .then(({ syncAppointmentToGoogleCalendar }) => {
+        syncAppointmentToGoogleCalendar(appointment.id);
+      })
+      .catch((err) => console.error("Error importando googleService:", err));
 
     // Enviar email de confirmación
     if (appointment.client?.email) {
@@ -382,3 +557,51 @@ export async function createPublicBooking(req, res) {
     return res.status(500).json({ error: "Error interno al guardar tu reserva." });
   }
 }
+
+// Callback de OAuth de Google
+export async function googleOAuthCallback(req, res) {
+  const { slug } = req.params;
+  const { code, state } = req.query; // state es el businessId
+  
+  if (!code) {
+    return res.status(400).send("Falta código de autorización de Google.");
+  }
+
+  try {
+    const { getTokensFromCode } = await import("../services/googleService.js");
+    
+    // Obtenemos los tokens usando el redirect URI con el slug del negocio
+    const tokens = await getTokensFromCode(code, slug);
+
+    // Buscar el negocio usando el ID (state) o el slug de la ruta para máxima seguridad
+    const businessId = state;
+    const biz = await prisma.business.findFirst({
+      where: {
+        OR: [
+          { id: businessId || undefined },
+          { slug: slug || undefined }
+        ]
+      }
+    });
+
+    if (!biz) {
+      return res.status(404).send(`Negocio con slug/ID '${slug || businessId}' no encontrado.`);
+    }
+
+    await prisma.business.update({
+      where: { id: biz.id },
+      data: {
+        googleAccessToken: tokens.access_token,
+        googleRefreshToken: tokens.refresh_token, // refresh token offline
+        updatedAt: new Date()
+      }
+    });
+
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    return res.redirect(`${frontendUrl}/settings?google_sync=success`);
+  } catch (error) {
+    console.error("Error en googleOAuthCallback:", error);
+    return res.status(500).send(`Error al conectar con Google: ${error.message}`);
+  }
+}
+

@@ -160,6 +160,13 @@ export async function createAppointment(req, res) {
       },
     });
 
+    // Sincronizar con Google Calendar en segundo plano
+    import("../services/googleService.js")
+      .then(({ syncAppointmentToGoogleCalendar }) => {
+        syncAppointmentToGoogleCalendar(appt.id);
+      })
+      .catch((err) => console.error("Error importando googleService:", err));
+
     return res.status(201).json(appt);
   } catch (e) {
     console.error("Error creando la cita:", e);
@@ -248,6 +255,13 @@ export async function updateAppointment(req, res) {
       },
     });
 
+    // Sincronizar con Google Calendar en segundo plano
+    import("../services/googleService.js")
+      .then(({ syncAppointmentToGoogleCalendar }) => {
+        syncAppointmentToGoogleCalendar(appt.id);
+      })
+      .catch((err) => console.error("Error importando googleService:", err));
+
     return res.status(200).json(appt);
   } catch (e) {
     console.error("Error actualizando la cita:", e);
@@ -284,6 +298,14 @@ export async function deleteAppointment(req, res) {
       if (!worker || existing.workerId !== worker.id) {
         return res.status(403).json({ error: "No tienes permisos para cancelar citas de otros profesionales." });
       }
+    }
+
+    if (existing.googleEventId) {
+      import("../services/googleService.js")
+        .then(({ deleteGoogleCalendarEvent }) => {
+          deleteGoogleCalendarEvent(existing.businessId, existing.googleEventId);
+        })
+        .catch((err) => console.error("Error importando googleService:", err));
     }
 
     await prisma.appointment.delete({
@@ -412,7 +434,7 @@ export async function sendManualConfirmationEmail(req, res) {
     }
 
     // Obtener información del negocio para personalizar el mail
-    const biz = (await prisma.business.findFirst()) || { name: "Aura Studio" };
+    const biz = await prisma.business.findUnique({ where: { id: appointment.businessId } }) || { name: "Aura Studio" };
 
     // Formatear fecha y hora
     const formattedDate = new Date(appointment.startsAt).toLocaleDateString("es-AR", {
