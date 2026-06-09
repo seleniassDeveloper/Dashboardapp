@@ -36,6 +36,23 @@ export const api = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
+let errorListener = null;
+
+export function setErrorListener(listener) {
+  errorListener = listener;
+}
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // Excluir código 401 para permitir manejo de redirecciones de login normales
+    if (error.response?.status !== 401 && errorListener) {
+      errorListener(error);
+    }
+    return Promise.reject(error);
+  }
+);
+
 /** Indica si la petición va al backend de la app (para interceptores de auth). */
 export function isApiRequest(url) {
   if (!url) return false;

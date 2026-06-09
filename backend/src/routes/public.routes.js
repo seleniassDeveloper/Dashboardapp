@@ -6,6 +6,7 @@ import {
   getPublicAvailability,
   createPublicBooking,
   googleOAuthCallback,
+  reportPublicError,
 } from "../controllers/public.controller.js";
 
 const router = Router();
@@ -17,5 +18,6 @@ router.get("/business/:slug/availability", getPublicAvailability);
 router.get("/business/:slug/slots", getPublicAvailability);
 router.post("/business/:slug/bookings", createPublicBooking);
 router.get("/google/oauth-callback/:slug", googleOAuthCallback);
+router.post("/support/report-error", reportPublicError);
 
 export default router;

@@ -24,6 +24,7 @@ import PublicBookingPage from "./views/booking/PublicBookingPage.jsx";
 import BookingSuccess from "./views/booking/BookingSuccess.jsx";
 import QuickAddBookingPage from "./views/booking/QuickAddBookingPage.jsx";
 import AcceptInviteView from "./views/AcceptInviteView.jsx";
+import GlobalErrorModal from "./components/layout/GlobalErrorModal.jsx";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <BrowserRouter>
@@ -55,6 +56,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <GlobalErrorModal />
     </AuthProvider>
   </BrowserRouter>
 );

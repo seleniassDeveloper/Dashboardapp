@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Container, Row, Col, Badge, Nav, Navbar } from "react-bootstrap";
+import { Container, Row, Col, Badge, Nav, Navbar, Form } from "react-bootstrap";
 import { useAuth } from "../auth/AuthProvider.jsx";
+import api from "../lib/api.js";
 import {
   Users,
   Calendar,
@@ -185,6 +186,153 @@ function MainNavbar({ onHowItWorks, onFreeTrial }) {
         </Navbar.Collapse>
       </Container>
     </Navbar>
+  );
+}
+
+function ReportBugSection() {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [description, setDescription] = useState("");
+  const [path, setPath] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [errorText, setErrorText] = useState("");
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!description.trim()) {
+      setErrorText("Por favor, describe el error.");
+      return;
+    }
+    setSubmitting(true);
+    setErrorText("");
+    setSuccess(false);
+    try {
+      await api.post("/public/support/report-error", {
+        name,
+        email,
+        description,
+        path: path || "Reporte desde sección pública de contacto"
+      });
+      setSuccess(true);
+      setName("");
+      setEmail("");
+      setDescription("");
+      setPath("");
+    } catch (err) {
+      console.error(err);
+      setErrorText("No se pudo enviar el reporte. Por favor, intenta de nuevo más tarde.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <section id="reportar-error" className="py-5 bg-light border-top">
+      <Container>
+        <Row className="justify-content-center">
+          <Col lg={7} md={9}>
+            <div className="text-center mb-4">
+              <span className="text-uppercase fw-bold text-purple-600 small" style={{ color: "var(--lp-accent)", letterSpacing: "0.1em" }}>
+                Soporte de AuraDash
+              </span>
+              <h2 className="fw-black h3 mt-1 mb-2" style={{ letterSpacing: "-0.02em", color: "#1e293b" }}>
+                ¿Encontraste algún problema técnico?
+              </h2>
+              <p className="text-muted small">
+                Envíanos los detalles del error y lo solucionaremos a la brevedad. El reporte se enviará directo a soporte técnico.
+              </p>
+            </div>
+
+            <div className="bg-white p-4 rounded-4 shadow-sm border" style={{ borderColor: "rgba(15, 23, 42, 0.06)" }}>
+              {success && (
+                <div className="alert alert-success rounded-3 mb-3 py-2 border-0 small" style={{ backgroundColor: "rgba(16, 185, 129, 0.1)", color: "#10b981", fontWeight: 600 }}>
+                  ✓ ¡Reporte enviado con éxito! Agradecemos tu ayuda para mejorar el sistema.
+                </div>
+              )}
+              {errorText && (
+                <div className="alert alert-danger rounded-3 mb-3 py-2 border-0 small" style={{ backgroundColor: "rgba(239, 68, 68, 0.1)", color: "#ef4444", fontWeight: 600 }}>
+                  ✗ {errorText}
+                </div>
+              )}
+
+              <Form onSubmit={handleSubmit}>
+                <Row className="g-3">
+                  <Col sm={6}>
+                    <Form.Group>
+                      <Form.Label className="smaller fw-bold text-dark mb-1">Nombre (Opcional)</Form.Label>
+                      <Form.Control
+                        type="text"
+                        placeholder="Ej. Carlos"
+                        className="rounded-3 border-light bg-light small py-2"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        disabled={submitting}
+                        style={{ fontSize: "13px" }}
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col sm={6}>
+                    <Form.Group>
+                      <Form.Label className="smaller fw-bold text-dark mb-1">Email de contacto (Opcional)</Form.Label>
+                      <Form.Control
+                        type="email"
+                        placeholder="ejemplo@correo.com"
+                        className="rounded-3 border-light bg-light small py-2"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        disabled={submitting}
+                        style={{ fontSize: "13px" }}
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col xs={12}>
+                    <Form.Group>
+                      <Form.Label className="smaller fw-bold text-dark mb-1">¿Dónde ocurrió el error? (Opcional)</Form.Label>
+                      <Form.Control
+                        type="text"
+                        placeholder="Ej. Al agendar una cita / En la sección de finanzas"
+                        className="rounded-3 border-light bg-light small py-2"
+                        value={path}
+                        onChange={(e) => setPath(e.target.value)}
+                        disabled={submitting}
+                        style={{ fontSize: "13px" }}
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col xs={12}>
+                    <Form.Group>
+                      <Form.Label className="smaller fw-bold text-dark mb-1">Descripción del problema (Requerido)</Form.Label>
+                      <Form.Control
+                        as="textarea"
+                        rows={3}
+                        placeholder="Describe detalladamente qué estabas haciendo y qué error apareció..."
+                        className="rounded-3 border-light bg-light small py-2"
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        disabled={submitting}
+                        required
+                        style={{ fontSize: "13px" }}
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col xs={12} className="text-end">
+                    <button
+                      type="submit"
+                      className="btn-premium px-4 py-2.5 border-0 text-white bg-purple-600 hover-bg-purple-700 small"
+                      style={{ borderRadius: "10px", background: "var(--lp-accent)", fontWeight: 600, fontSize: "13px" }}
+                      disabled={submitting}
+                    >
+                      {submitting ? "Enviando..." : "Enviar a Soporte"}
+                    </button>
+                  </Col>
+                </Row>
+              </Form>
+            </div>
+          </Col>
+        </Row>
+      </Container>
+    </section>
   );
 }
 
@@ -1080,6 +1228,8 @@ export default function LandingPage() {
           </Container>
         </section>
       </main>
+
+      <ReportBugSection />
 
       <HowItWorksModal show={showManual} onHide={() => setShowManual(false)} />
 

@@ -605,3 +605,50 @@ export async function googleOAuthCallback(req, res) {
   }
 }
 
+// Envío público de reportes de error por correo electrónico
+export async function reportPublicError(req, res) {
+  try {
+    const { name, email, description, path, stack, context } = req.body;
+    
+    await sendReminderEmail({
+      to: "auradash.digital@gmail.com",
+      subject: `🚨 Reporte de Error - AuraDash: ${description ? description.substring(0, 40) : "Sin descripción"}`,
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: auto; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
+          <div style="background: #ef4444; color: white; padding: 20px; text-align: center;">
+            <h1 style="margin: 0; font-size: 20px;">🚨 Reporte de Error Recibido</h1>
+          </div>
+          <div style="padding: 24px; color: #1e293b; line-height: 1.6;">
+            <p><strong>Remitente:</strong> ${name || "Anónimo"} (${email || "No especificado"})</p>
+            <p><strong>Ubicación/Módulo:</strong> <code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 14px;">${path || "No especificada"}</code></p>
+            
+            <p style="margin-top: 20px; font-weight: bold;">Descripción del problema:</p>
+            <blockquote style="background: #f8fafc; padding: 16px; border-left: 4px solid #ef4444; border-radius: 4px; margin: 0; font-style: italic;">
+              ${description || "Sin descripción adicional"}
+            </blockquote>
+
+            ${stack ? `
+              <p style="margin-top: 20px; font-weight: bold;">Detalles técnicos / Stack Trace:</p>
+              <pre style="background: #0f172a; color: #f8fafc; padding: 16px; border-radius: 6px; font-size: 12px; overflow-x: auto; font-family: monospace;">${stack}</pre>
+            ` : ""}
+
+            ${context ? `
+              <p style="margin-top: 20px; font-weight: bold;">Contexto Adicional:</p>
+              <pre style="background: #f8fafc; padding: 12px; border-radius: 6px; font-size: 12px; overflow-x: auto; font-family: monospace; border: 1px solid #e2e8f0;">${JSON.stringify(context, null, 2)}</pre>
+            ` : ""}
+          </div>
+          <div style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 16px; text-align: center; font-size: 11px; color: #64748b;">
+            Este es un correo automático enviado desde el sistema de reporte de errores de AuraDash.
+          </div>
+        </div>
+      `
+    });
+
+    return res.status(200).json({ ok: true, message: "Reporte enviado con éxito." });
+  } catch (error) {
+    console.error("Error al enviar reporte de soporte:", error);
+    return res.status(500).json({ error: "No se pudo enviar el reporte por correo. Inténtalo más tarde." });
+  }
+}
+
+
