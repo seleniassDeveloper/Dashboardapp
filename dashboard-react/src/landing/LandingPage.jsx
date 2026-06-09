@@ -161,7 +161,17 @@ function MainNavbar({ onHowItWorks, onFreeTrial }) {
   return (
     <Navbar expanded={expanded} onToggle={setExpanded} bg="transparent" expand="lg" className="py-4">
       <Container>
-        <Navbar.Brand href="/" className="fw-black d-flex align-items-center gap-2">
+        <Navbar.Brand
+          href="/"
+          className="fw-black d-flex align-items-center gap-2"
+          style={{
+            backgroundColor: "#ffffff",
+            padding: "6px 16px",
+            borderRadius: "12px",
+            boxShadow: "0 4px 12px rgba(15, 23, 42, 0.03)",
+            border: "1px solid rgba(15, 23, 42, 0.05)"
+          }}
+        >
           <img src={logoCircular} alt="AuraDash Logo" style={{ height: "40px", objectFit: "contain" }} />
           <span style={{ letterSpacing: '-0.02em', fontSize: '1.6rem', fontWeight: 900, color: '#1e293b' }}>
             Aura<span style={{ color: '#0ea5e9' }}>Dash</span>
