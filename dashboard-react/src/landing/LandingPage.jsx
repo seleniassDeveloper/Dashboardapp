@@ -161,18 +161,8 @@ function MainNavbar({ onHowItWorks, onFreeTrial }) {
   return (
     <Navbar expanded={expanded} onToggle={setExpanded} bg="transparent" expand="lg" className="py-4">
       <Container>
-        <Navbar.Brand
-          href="/"
-          className="fw-black d-flex align-items-center gap-2"
-          style={{
-            backgroundColor: "#ffffff",
-            padding: "6px 16px",
-            borderRadius: "12px",
-            boxShadow: "0 4px 12px rgba(15, 23, 42, 0.03)",
-            border: "1px solid rgba(15, 23, 42, 0.05)"
-          }}
-        >
-          <img src={logoCircular} alt="AuraDash Logo" style={{ height: "40px", objectFit: "contain" }} />
+        <Navbar.Brand href="/" className="d-flex align-items-center">
+          <img src={logoCircular} alt="AuraDash Logo" style={{ height: "55px", objectFit: "contain" }} />
         </Navbar.Brand>
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
         <Navbar.Collapse id="basic-navbar-nav">
@@ -1186,7 +1176,7 @@ export default function LandingPage() {
           <div className="d-flex flex-column flex-md-row justify-content-between align-items-center gap-4 text-muted small">
             <div className="fw-bold text-dark d-flex flex-column align-items-start gap-2">
               <div className="d-flex align-items-center gap-2">
-                <img src={logoCircular} alt="AuraDash Logo" style={{ height: "32px", objectFit: "contain" }} />
+                <img src={logoCircular} alt="AuraDash Logo" style={{ height: "42px", objectFit: "contain" }} />
               </div>
               <span>{t("footer.copyright")}</span>
             </div>
