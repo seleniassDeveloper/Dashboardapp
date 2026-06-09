@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { Button, Container, Row, Col, Spinner, Alert, Form, InputGroup, Placeholder, Dropdown } from "react-bootstrap";
+import { Button, Container, Row, Col, Spinner, Alert, Form, InputGroup } from "react-bootstrap";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
 import {
   Calendar,
   CreditCard,
@@ -42,7 +41,6 @@ export default function DashboardView() {
   const { brand } = useBrand();
   const { t, i18n } = useTranslation(["dashboard", "common"]);
   const isEs = i18n && i18n.language ? i18n.language === "es" : true;
-  const navigate = useNavigate();
 
   const currency = (n) => new Intl.NumberFormat(isEs ? "es-AR" : "en-US", {
     style: "currency",
@@ -68,7 +66,6 @@ export default function DashboardView() {
   // Modales de creación
   const [showAppointmentModal, setShowAppointmentModal] = useState(false);
   const [showClientModal, setShowClientModal] = useState(false);
-  const [selectedAppointmentForModal, setSelectedAppointmentForModal] = useState(null);
 
   // --- Carga unificada de datos del negocio y widgets ---
   const fetchData = useCallback(async () => {
@@ -215,46 +212,6 @@ export default function DashboardView() {
       topWorkerCount,
     };
   }, [appointments, clients, t]);
-
-  const nextAppointment = useMemo(() => {
-    if (!appointments || appointments.length === 0) return null;
-    const now = new Date();
-    const getLocalDateStr = (d) => {
-      const dateObj = new Date(d);
-      const year = dateObj.getFullYear();
-      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
-      const day = String(dateObj.getDate()).padStart(2, "0");
-      return `${year}-${month}-${day}`;
-    };
-    const todayStr = getLocalDateStr(new Date());
-
-    const candidates = appointments.filter((a) => {
-      if (a.status === "CANCELLED" || a.status === "DONE") return false;
-      const apptDate = new Date(a.startsAt);
-      const apptDateStr = getLocalDateStr(apptDate);
-      if (apptDateStr !== todayStr) return false;
-      return apptDate > now;
-    });
-
-    candidates.sort((a, b) => new Date(a.startsAt) - new Date(b.startsAt));
-    return candidates[0] || null;
-  }, [appointments]);
-
-  const aiSuggestion = useMemo(() => {
-    if (stats.apptsTodayCount === 0) {
-      return isEs
-        ? "Agenda libre hoy. Buen día para enviar recordatorios de reserva a clientes inactivos ✉️."
-        : "Free schedule today. Good day to send booking reminders to inactive clients ✉️.";
-    }
-    if (stats.occupancyRate > 75) {
-      return isEs
-        ? "¡Ocupación alta hoy! Excelente productividad. Asegúrate de tener insumos listos ⚡."
-        : "High occupancy today! Great productivity. Make sure you have supplies ready ⚡.";
-    }
-    return isEs
-      ? "Hay espacio por la tarde. Ofrece un descuento express en Instagram para llenarlo 📸."
-      : "There's space in the afternoon. Offer an express discount on Instagram to fill it 📸.";
-  }, [stats, isEs]);
 
   // --- Filtrado Reactivo de Citas y Clientes por Búsqueda ---
   const filteredAppointments = useMemo(() => {
@@ -510,358 +467,151 @@ export default function DashboardView() {
     }
   };
 
-  const renderWelcomeSkeleton = () => (
-    <header
-      className="mb-4 bg-white rounded-4 p-4 border shadow-sm"
-      style={{
-        borderLeft: `4px solid ${brand.accentColor || "#10b981"}`,
-        background: "linear-gradient(135deg, #ffffff 0%, #fafbfc 100%)"
-      }}
-    >
-      <Row className="g-3">
-        {/* Left Col */}
-        <Col xs={12} md={4} lg={3} className="header-col-left pe-md-4">
-          <Placeholder as="div" animation="glow" className="mb-2">
-            <Placeholder xs={6} className="bg-secondary opacity-25" style={{ height: "12px" }} />
-          </Placeholder>
-          <Placeholder as="div" animation="glow" className="mb-3">
-            <Placeholder xs={10} className="bg-dark opacity-50" style={{ height: "28px" }} />
-          </Placeholder>
-          <Placeholder as="div" animation="glow">
-            <Placeholder xs={8} className="bg-secondary opacity-25" style={{ height: "16px" }} />
-          </Placeholder>
-        </Col>
-        
-        {/* Middle Col */}
-        <Col xs={12} md={8} lg={6} className="px-md-4">
-          <Placeholder as="div" animation="glow" className="mb-3">
-            <Placeholder xs={12} className="bg-secondary opacity-25" style={{ height: "18px" }} />
-          </Placeholder>
-          <div className="p-3 border rounded-3 bg-light opacity-75">
-            <Placeholder as="div" animation="glow">
-              <Placeholder xs={4} className="bg-secondary opacity-50 mb-2" style={{ height: "10px" }} />
-              <Placeholder xs={10} className="bg-secondary opacity-25" style={{ height: "16px" }} />
-            </Placeholder>
-          </div>
-        </Col>
-
-        {/* Right Col */}
-        <Col xs={12} lg={3} className="d-flex flex-column justify-content-center gap-2 ps-md-4">
-          <Placeholder as="div" animation="glow" className="w-100">
-            <Placeholder.Button xs={12} variant="secondary" className="opacity-25" style={{ height: "38px", borderRadius: "9999px" }} />
-          </Placeholder>
-          <Placeholder as="div" animation="glow" className="w-100">
-            <Placeholder.Button xs={12} variant="secondary" className="opacity-10" style={{ height: "38px", borderRadius: "9999px" }} />
-          </Placeholder>
-        </Col>
-      </Row>
-    </header>
-  );
-
-  const renderWelcomeHeader = () => {
-    if (error) {
-      return (
-        <header
-          className="mb-4 bg-white rounded-4 p-4 border shadow-sm"
-          style={{
-            borderLeft: `4px solid ${brand.accentColor || "#10b981"}`,
-            background: "linear-gradient(135deg, #ffffff 0%, #fafbfc 100%)"
-          }}
-        >
-          <Row className="g-3 align-items-center">
-            <Col xs={12} md={8}>
-              <div className="d-flex align-items-center gap-2 mb-1.5">
-                <span className="fw-black text-muted uppercase smaller" style={{ letterSpacing: "0.1em" }}>
-                  {brand.companyName || "Aura Studio"}
-                </span>
-              </div>
-              <h1 className="fw-black text-dark h3 mb-1" style={{ letterSpacing: "-0.03em" }}>
-                {getGreeting()}, {brand.userName || t("header.defaultUserName")}
-              </h1>
-              <p className="text-danger small mb-0 d-flex align-items-center gap-1.5">
-                <XCircle size={14} />
-                No se pudieron cargar las métricas de hoy.
-              </p>
-            </Col>
-            <Col xs={12} md={4} className="d-flex justify-content-md-end">
-              <Button variant="outline-primary" size="sm" onClick={fetchData} className="rounded-pill px-3">
-                Reintentar
-              </Button>
-            </Col>
-          </Row>
-        </header>
-      );
-    }
-
+  if (loading) {
     return (
-      <header
-        className="mb-4 bg-white rounded-4 p-4 border shadow-sm welcome-header-card"
-        style={{
-          borderLeft: `4px solid ${brand.accentColor || "#10b981"}`,
-          background: "linear-gradient(135deg, #ffffff 0%, #fafbfc 100%)"
-        }}
-      >
-        <style>{`
-          @media (min-width: 768px) {
-            .header-col-left {
-              border-right: 1px solid #e2e8f0;
-            }
-          }
-          .welcome-header-card .dropdown-toggle::after {
-            display: none !important;
-          }
-          .welcome-header-card .btn-premium {
-            transition: all 0.2s ease;
-          }
-          .welcome-header-card .btn-premium:hover {
-            filter: brightness(0.95);
-            transform: translateY(-1px);
-          }
-        `}</style>
-        
-        <Row className="g-3">
-          {/* Zone 1: Saludo */}
-          <Col xs={12} md={4} lg={3} className="header-col-left pe-md-4 d-flex flex-column justify-content-between">
-            <div>
-              <div className="d-flex align-items-center gap-2 mb-1.5">
-                <span className="fw-black text-muted uppercase smaller" style={{ letterSpacing: "0.1em" }}>
-                  {brand.companyName || "Aura Studio"}
-                </span>
-                <div className="rounded-circle bg-success" style={{ width: "6px", height: "6px" }} />
-                <span className="text-success small" style={{ fontSize: "11px", fontWeight: "600" }}>
-                  {isEs ? "Operativo" : "Operational"}
-                </span>
-              </div>
-              <h1 className="fw-black text-dark h2 mb-1" style={{ letterSpacing: "-0.03em" }}>
-                {getGreeting()}, {brand.userName || t("header.defaultUserName")}
-              </h1>
-            </div>
-            <p className="text-muted small mb-0 text-capitalize">
-              {getFormattedDate()}
-            </p>
-          </Col>
-          
-          {/* Zone 2: Resumen del Día */}
-          <Col xs={12} md={8} lg={6} className="px-md-4 d-flex flex-column justify-content-between">
-            {/* Resumen numérico */}
-            <div className="mb-2">
-              <p className="text-muted mb-2" style={{ fontSize: "14px", lineHeight: "1.5" }}>
-                Hoy tienes{" "}
-                <strong className="text-dark fw-bold">
-                  {stats.apptsTodayCount} {stats.apptsTodayCount === 1 ? "cita" : "citas"}
-                </strong>
-                ,{" "}
-                <strong className="text-dark fw-bold">
-                  {currency(stats.revenueToday)}
-                </strong>{" "}
-                estimados y{" "}
-                <strong className="text-dark fw-bold">
-                  {stats.cancellationsToday} {stats.cancellationsToday === 1 ? "cancelación" : "cancelaciones"}
-                </strong>
-                .
-              </p>
-            </div>
-            
-            {/* Próxima Cita Destacada */}
-            <div className="mb-2">
-              {nextAppointment ? (
-                <div 
-                  className="p-3 border rounded-3 d-flex align-items-center justify-content-between bg-white shadow-sm"
-                  style={{ borderLeft: `3px solid ${brand.accentColor || "#10b981"}` }}
-                >
-                  <div className="d-flex align-items-center gap-3">
-                    <div 
-                      className="rounded-circle d-flex align-items-center justify-content-center text-white"
-                      style={{ 
-                        width: "36px", 
-                        height: "36px", 
-                        background: brand.accentColor || "#10b981" 
-                      }}
-                    >
-                      <Calendar size={16} />
-                    </div>
-                    <div>
-                      <div className="text-muted uppercase fw-bold" style={{ fontSize: "10px", letterSpacing: "0.05em" }}>
-                        PRÓXIMA CITA
-                      </div>
-                      <div className="text-dark fw-bold" style={{ fontSize: "13px" }}>
-                        {new Date(nextAppointment.startsAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })} · {nextAppointment.client ? `${nextAppointment.client.firstName} ${nextAppointment.client.lastName}` : "Cliente"}
-                      </div>
-                      <div className="text-muted" style={{ fontSize: "11px" }}>
-                        {nextAppointment.service?.name || "Servicio"} · {nextAppointment.worker ? `${nextAppointment.worker.firstName} ${nextAppointment.worker.lastName}` : "Profesional"}
-                      </div>
-                    </div>
-                  </div>
-                  <Button 
-                    variant="outline-dark" 
-                    size="sm" 
-                    className="rounded-pill px-3"
-                    style={{ fontSize: "11px", fontWeight: "600" }}
-                    onClick={() => {
-                      setSelectedAppointmentForModal(nextAppointment);
-                      setShowAppointmentModal(true);
-                    }}
-                  >
-                    Ver
-                  </Button>
-                </div>
-              ) : (
-                <div className="p-3 border border-dashed rounded-3 bg-light text-center py-3">
-                  <span className="text-muted small fw-medium">
-                    No tienes más citas hoy 🎉
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* AI Suggestion */}
-            <div 
-              className="d-flex align-items-center gap-2 p-2 rounded-3" 
-              style={{ background: "rgba(139, 92, 246, 0.06)", border: "1px solid rgba(139, 92, 246, 0.12)" }}
-            >
-              <Sparkles size={13} className="text-purple-600 flex-shrink-0" />
-              <span className="text-purple-800" style={{ fontSize: "11.5px", fontWeight: "500" }}>
-                {aiSuggestion}
-              </span>
-            </div>
-          </Col>
-
-          {/* Zone 3: Acciones Rápidas */}
-          <Col xs={12} lg={3} className="ps-md-4 d-flex flex-row flex-lg-column justify-content-center align-items-stretch gap-2">
-            <Button
-              variant="dark"
-              onClick={() => {
-                setSelectedAppointmentForModal(null);
-                setShowAppointmentModal(true);
-              }}
-              className="rounded-pill px-3 py-2 small fw-bold d-flex align-items-center justify-content-center gap-1.5 btn-premium w-100"
-              style={{ 
-                fontSize: "13px", 
-                background: brand.accentColor || "#10b981", 
-                borderColor: brand.accentColor || "#10b981" 
-              }}
-            >
-              <Plus size={15} />
-              <span>{t("header.quickActions.appointment")}</span>
-            </Button>
-
-            <div className="d-flex gap-2 w-100">
-              <Button
-                variant="outline-dark"
-                onClick={() => setShowClientModal(true)}
-                className="rounded-pill px-3 py-2 small fw-bold d-flex align-items-center justify-content-center gap-1.5 hover-scale border flex-grow-1"
-                style={{ fontSize: "12px" }}
-              >
-                <Plus size={14} />
-                <span>{t("header.quickActions.client")}</span>
-              </Button>
-
-              <Dropdown align="end" className="flex-shrink-0 d-inline-block">
-                <Dropdown.Toggle 
-                  variant="outline-dark" 
-                  className="rounded-circle px-0 d-flex align-items-center justify-content-center border"
-                  style={{ width: "36px", height: "36px" }}
-                >
-                  <span className="fw-bold" style={{ fontSize: "16px", lineHeight: "1", transform: "translateY(-2px)" }}>···</span>
-                </Dropdown.Toggle>
-                
-                <Dropdown.Menu className="shadow border-0 rounded-3 mt-2">
-                  <Dropdown.Item 
-                    onClick={() => {
-                      setSelectedWidget(null);
-                      setShowConfigModal(true);
-                    }}
-                    className="small py-2 px-3 d-flex align-items-center gap-2"
-                  >
-                    <LayoutGrid size={14} />
-                    Agregar Widget
-                  </Dropdown.Item>
-                  <Dropdown.Item 
-                    onClick={() => navigate("/calendar")}
-                    className="small py-2 px-3 d-flex align-items-center gap-2"
-                  >
-                    <Calendar size={14} />
-                    Ver Agenda
-                  </Dropdown.Item>
-                  <Dropdown.Item 
-                    onClick={() => navigate("/clients")}
-                    className="small py-2 px-3 d-flex align-items-center gap-2"
-                  >
-                    <Users size={14} />
-                    Ver Clientes
-                  </Dropdown.Item>
-                </Dropdown.Menu>
-              </Dropdown>
-            </div>
-          </Col>
-        </Row>
-      </header>
+      <div className="d-flex flex-column align-items-center justify-content-center py-5" style={{ minHeight: "80vh" }}>
+        <Spinner animation="border" className="text-primary mb-3" />
+        <p className="text-muted small">{t("loading")}</p>
+      </div>
     );
-  };
+  }
 
   return (
     <div className="dashboard-view pb-5">
       {/* 1. HEADER PRINCIPAL */}
-      {loading ? renderWelcomeSkeleton() : renderWelcomeHeader()}
+      <header
+        className="mb-4 bg-white rounded-4 p-4 border shadow-sm d-flex flex-column gap-3 flex-md-row justify-content-md-between align-items-md-center flex-wrap"
+        style={{ 
+          borderLeft: `4px solid ${brand.accentColor || "#10b981"}`,
+          background: "linear-gradient(135deg, #ffffff 0%, #fafbfc 100%)"
+        }}
+      >
+        <div className="flex-shrink-0 mb-2 mb-md-0">
+          <div className="d-flex align-items-center gap-2 mb-1.5">
+            <span className="fw-black text-muted uppercase smaller" style={{ letterSpacing: "0.1em" }}>
+              {brand.companyName || "Aura Studio"}
+            </span>
+            <div className="rounded-circle bg-success" style={{ width: "6px", height: "6px" }} />
+            <span className="text-success small" style={{ fontSize: "11px", fontWeight: "600" }}>{t("header.operational")}</span>
+          </div>
+          <h1 className="fw-black text-dark h3 mb-1" style={{ letterSpacing: "-0.03em" }}>
+            {getGreeting()}, {brand.userName || t("header.defaultUserName")}
+          </h1>
+          <p className="text-muted small mb-0 text-capitalize">
+            {getFormattedDate()}
+          </p>
+        </div>
 
-      {/* RENDER REST OF DASHBOARD ONCE DATA IS LOADED AND NO ERRORS */}
-      {!loading && !error && (
-        <>
-          {/* 2. KPIs SUPERIORES */}
-          <SaaSMetricsGrid
-            stats={stats}
-            brand={brand}
-            appointments={appointments}
-            clients={clients}
-            workers={workers}
-          />
+        <div className="d-flex flex-column align-items-end gap-2 d-md-flex flex-md-row align-items-md-center justify-content-md-end gap-md-3 flex-md-nowrap w-100 w-md-auto ms-md-auto">
+          {/* Búsqueda Global */}
+          <InputGroup style={{ maxWidth: "240px" }} className="modern-input-group shadow-sm">
+            <InputGroup.Text className="bg-transparent border-0 pe-0 text-muted">
+              <Search size={15} />
+            </InputGroup.Text>
+            <Form.Control
+              type="text"
+              placeholder={t("header.searchPlaceholder")}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="bg-transparent border-0 py-1.5 shadow-none small"
+              style={{ fontSize: "12.5px" }}
+            />
+          </InputGroup>
 
-          {/* 3-7. GRID DE WIDGETS CONFIGURABLES */}
-          <Container fluid className="px-0">
-            <DashboardGrid
-              widgets={filteredWidgets}
-              searchQuery={searchQuery}
-              onClearSearch={() => setSearchQuery("")}
-              appointments={filteredAppointments}
-              clients={filteredClients}
-              workers={workers}
-              services={services}
-              onUpdateLayouts={handleUpdateLayouts}
-              onEditWidget={(w) => {
-                setSelectedWidget(w);
-                setShowConfigModal(true);
-              }}
-              onDeleteWidget={handleDeleteWidget}
-              onOpenAddModal={() => {
+          {/* Acciones Rápidas */}
+          <div className="d-flex align-items-center gap-2">
+            <Button
+              variant="outline-dark"
+              onClick={() => setShowClientModal(true)}
+              className="rounded-pill px-3 py-2 small fw-bold d-flex align-items-center gap-1.5 hover-scale border"
+              style={{ fontSize: "12px" }}
+            >
+              <Plus size={14} />
+              <span>{t("header.quickActions.client")}</span>
+            </Button>
+
+            <Button
+              variant="outline-dark"
+              onClick={() => {
                 setSelectedWidget(null);
                 setShowConfigModal(true);
               }}
-              onUpdateAppointmentStatus={handleUpdateAppointmentStatus}
-              onConfirmAppointment={(id) => handleUpdateAppointmentStatus(id, "CONFIRMED")}
-              onViewCalendar={() => {
-                const calendarWidgetEl = document.querySelector(".custom-table");
-                if (calendarWidgetEl) {
-                  calendarWidgetEl.scrollIntoView({ behavior: "smooth" });
-                }
-              }}
-              onEditWorker={(id) => {
-                alert(t("errors.configureScheduleHint"));
-              }}
-            />
-          </Container>
+              className="rounded-pill px-3 py-2 small fw-bold d-flex align-items-center gap-1.5 hover-scale border"
+              style={{ fontSize: "12px" }}
+            >
+              <Plus size={14} />
+              <span>{t("header.quickActions.widget")}</span>
+            </Button>
 
-          {/* SECCIÓN DE INFORMES INTELIGENTES Y COPILOT IA AL FINAL */}
-          <Container fluid className="px-0">
-            <SmartReports
-              appointments={appointments}
-              clients={clients}
-              workers={workers}
-              services={services}
-              brand={brand}
-            />
-          </Container>
-        </>
-      )}
+            <Button
+              variant="dark"
+              onClick={() => setShowAppointmentModal(true)}
+              className="rounded-pill px-3 py-2 small fw-bold d-flex align-items-center gap-1.5 hover-scale btn-premium"
+              style={{ fontSize: "12px", background: brand.accentColor || "#10b981", borderColor: brand.accentColor || "#10b981" }}
+            >
+              <Plus size={14} />
+              <span>{t("header.quickActions.appointment")}</span>
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      {error && <Alert variant="danger" className="mb-4">{error}</Alert>}
+
+      {/* 2. KPIs SUPERIORES (SaaSMetricsGrid con diseño oscuro premium) */}
+      <SaaSMetricsGrid
+        stats={stats}
+        brand={brand}
+        appointments={appointments}
+        clients={clients}
+        workers={workers}
+      />
+
+      {/* 3-7. GRID DE WIDGETS CONFIGURABLES (MÉTRICAS Y GADGETS ARRIBA) */}
+      <Container fluid className="px-0">
+        <DashboardGrid
+          widgets={filteredWidgets}
+          searchQuery={searchQuery}
+          onClearSearch={() => setSearchQuery("")}
+          appointments={filteredAppointments}
+          clients={filteredClients}
+          workers={workers}
+          services={services}
+          onUpdateLayouts={handleUpdateLayouts}
+          onEditWidget={(w) => {
+            setSelectedWidget(w);
+            setShowConfigModal(true);
+          }}
+          onDeleteWidget={handleDeleteWidget}
+          onOpenAddModal={() => {
+            setSelectedWidget(null);
+            setShowConfigModal(true);
+          }}
+          onUpdateAppointmentStatus={handleUpdateAppointmentStatus}
+          onConfirmAppointment={(id) => handleUpdateAppointmentStatus(id, "CONFIRMED")}
+          onViewCalendar={() => {
+            // Desplazar a la agenda o similar
+            const calendarWidgetEl = document.querySelector(".custom-table");
+            if (calendarWidgetEl) {
+              calendarWidgetEl.scrollIntoView({ behavior: "smooth" });
+            }
+          }}
+          onEditWorker={(id) => {
+            alert(t("errors.configureScheduleHint"));
+          }}
+        />
+      </Container>
+
+      {/* SECCIÓN DE INFORMES INTELIGENTES Y COPILOT IA AL FINAL */}
+      <Container fluid className="px-0">
+        <SmartReports
+          appointments={appointments}
+          clients={clients}
+          workers={workers}
+          services={services}
+          brand={brand}
+        />
+      </Container>
 
       {/* MODAL DE AJUSTES DE WIDGET */}
       <WidgetSettingsModal
@@ -874,11 +624,7 @@ export default function DashboardView() {
       {/* MODALES DE ACCIÓN RÁPIDA (CREACIÓN) */}
       <AppointmentModal
         show={showAppointmentModal}
-        onHide={() => {
-          setShowAppointmentModal(false);
-          setSelectedAppointmentForModal(null);
-        }}
-        initialData={selectedAppointmentForModal}
+        onHide={() => setShowAppointmentModal(false)}
         onSaved={fetchData}
       />
 
