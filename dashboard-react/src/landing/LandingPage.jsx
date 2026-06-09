@@ -846,18 +846,6 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Live Demo Banner */}
-            <div className="live-demo-card mt-5">
-              <div className="live-demo-badge">
-                <span className="pulse-dot me-2"></span> {t("liveDemo.badge", "LIVE DEMO")}
-              </div>
-              <h3 className="fw-black h3 mb-2 text-dark">{t("liveDemo.title", "Ver AuraDash en acción")}</h3>
-              <p className="text-muted small mb-4">{t("liveDemo.desc", "Descubre cómo funciona cada módulo en un tour interactivo guiado.")}</p>
-              <button onClick={() => setShowManual(true)} className="btn-outline-premium px-4 py-2 d-inline-flex align-items-center gap-2" style={{ borderRadius: '12px', background: '#ffffff' }}>
-                <Play size={14} />
-                {t("liveDemo.cta", "Ver Tour Interactivo")}
-              </button>
-            </div>
           </Container>
         </section>
 
@@ -969,82 +957,6 @@ export default function LandingPage() {
               <span className="text-muted small">{t("pricing.footnote")}</span>
             </div>
 
-            {/* Stats & Testimonial Section (Mockup Screen 3) */}
-            <div className="mt-5 pt-4">
-              <Row className="g-4 align-items-stretch justify-content-center">
-                <Col md={6} lg={5}>
-                  <div className="stats-purple-card h-100">
-                    <div className="stats-purple-item">
-                      <div className="stats-purple-icon">
-                        <Users size={20} />
-                      </div>
-                      <div>
-                        <div className="stats-purple-val">1,200+</div>
-                        <div className="stats-purple-label">{t("stats.activeBusinesses", "Negocios activos")}</div>
-                      </div>
-                    </div>
-                    
-                    <div className="stats-purple-item">
-                      <div className="stats-purple-icon">
-                        <Users size={20} />
-                      </div>
-                      <div>
-                        <div className="stats-purple-val">50,000+</div>
-                        <div className="stats-purple-label">{t("stats.users", "Usuarios")}</div>
-                      </div>
-                    </div>
-                    
-                    <div className="stats-purple-item">
-                      <div className="stats-purple-icon">
-                        <Calendar size={20} />
-                      </div>
-                      <div>
-                        <div className="stats-purple-val">2M+</div>
-                        <div className="stats-purple-label">{t("stats.appointments", "Citas gestionadas")}</div>
-                      </div>
-                    </div>
-                    
-                    <div className="stats-purple-item">
-                      <div className="stats-purple-icon">
-                        <Zap size={20} />
-                      </div>
-                      <div>
-                        <div className="stats-purple-val">99.9%</div>
-                        <div className="stats-purple-label">{t("stats.uptime", "Uptime")}</div>
-                      </div>
-                    </div>
-                  </div>
-                </Col>
-                
-                <Col md={6} lg={5}>
-                  <div className="mobile-testimonial-card h-100 d-flex flex-column justify-content-between">
-                    <div>
-                      <div className="text-warning mb-3">
-                        {[...Array(5)].map((_, i) => (
-                          <Star key={i} size={18} fill="#f59e0b" color="#f59e0b" className="me-1" />
-                        ))}
-                      </div>
-                      <p className="text-dark fw-medium mb-4" style={{ fontSize: '1rem', lineHeight: '1.6', fontStyle: 'italic' }}>
-                        "{t("testimonial.quote", "AuraDash cambió por completo la forma en que gestionamos nuestro salón. Ahora tenemos más clientes y menos ausencias.")}"
-                      </p>
-                    </div>
-                    
-                    <div className="d-flex align-items-center gap-3 mt-auto">
-                      <img 
-                        src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=80&h=80&q=80" 
-                        alt="Mariana López" 
-                        className="rounded-circle" 
-                        style={{ width: '44px', height: '44px', objectFit: 'cover' }}
-                      />
-                      <div>
-                        <div className="fw-bold text-dark small">Mariana López</div>
-                        <div className="text-muted smaller">{t("testimonial.role", "Dueña de Salón Studio")}</div>
-                      </div>
-                    </div>
-                  </div>
-                </Col>
-              </Row>
-            </div>
           </Container>
         </section>
 
