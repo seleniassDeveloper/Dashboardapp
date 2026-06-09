@@ -480,7 +480,7 @@ export default function DashboardView() {
     <div className="dashboard-view pb-5">
       {/* 1. HEADER PRINCIPAL */}
       <header
-        className="mb-4 bg-white rounded-4 p-4 border shadow-sm d-flex flex-column gap-3 d-md-flex flex-md-row justify-content-md-between align-items-md-center"
+        className="mb-4 bg-white rounded-4 p-4 border shadow-sm d-flex flex-column gap-3"
         style={{ borderLeft: `4px solid ${brand.accentColor || "#10b981"}` }}
       >
         <div>
@@ -499,7 +499,7 @@ export default function DashboardView() {
           </p>
         </div>
 
-        <div className="d-flex align-items-center gap-3 flex-wrap">
+        <div className="d-flex align-items-center justify-content-between gap-3 flex-wrap border-top pt-3 w-100 mt-1">
           {/* Búsqueda Global */}
           <InputGroup style={{ maxWidth: "240px" }} className="modern-input-group shadow-sm">
             <InputGroup.Text className="bg-transparent border-0 pe-0 text-muted">
