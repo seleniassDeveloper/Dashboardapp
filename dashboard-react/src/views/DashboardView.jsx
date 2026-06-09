@@ -480,31 +480,29 @@ export default function DashboardView() {
     <div className="dashboard-view pb-5">
       {/* 1. HEADER PRINCIPAL */}
       <header
-        className="mb-4 bg-white rounded-4 p-4 border shadow-sm d-flex flex-column gap-3 flex-md-row justify-content-md-between align-items-md-center flex-wrap"
+        className="mb-4 bg-white rounded-4 py-3 px-4 border shadow-sm d-flex align-items-center justify-content-between flex-wrap gap-3"
         style={{ 
           borderLeft: `4px solid ${brand.accentColor || "#10b981"}`,
           background: "linear-gradient(135deg, #ffffff 0%, #fafbfc 100%)"
         }}
       >
-        <div className="flex-shrink-0 mb-2 mb-md-0">
-          <div className="d-flex align-items-center gap-2 mb-1.5">
-            <span className="fw-black text-muted uppercase smaller" style={{ letterSpacing: "0.1em" }}>
-              {brand.companyName || "Aura Studio"}
-            </span>
-            <div className="rounded-circle bg-success" style={{ width: "6px", height: "6px" }} />
-            <span className="text-success small" style={{ fontSize: "11px", fontWeight: "600" }}>{t("header.operational")}</span>
-          </div>
-          <h1 className="fw-black text-dark h3 mb-1" style={{ letterSpacing: "-0.03em" }}>
+        <div className="d-flex align-items-center gap-3 flex-wrap">
+          <h1 className="fw-black text-dark h4 mb-0" style={{ letterSpacing: "-0.03em" }}>
             {getGreeting()}, {brand.userName || t("header.defaultUserName")}
           </h1>
-          <p className="text-muted small mb-0 text-capitalize">
+          <span className="text-muted small d-none d-md-inline-block">|</span>
+          <span className="text-muted small text-capitalize d-none d-md-inline-block">
             {getFormattedDate()}
-          </p>
+          </span>
+          <div className="rounded-circle bg-success d-none d-md-inline-block" style={{ width: "6px", height: "6px" }} />
+          <span className="text-success small d-none d-md-inline-block" style={{ fontSize: "11px", fontWeight: "600" }}>
+            {t("header.operational")}
+          </span>
         </div>
 
-        <div className="d-flex flex-column align-items-end gap-2 d-md-flex flex-md-row align-items-md-center justify-content-md-end gap-md-3 flex-md-nowrap w-100 w-md-auto ms-md-auto">
+        <div className="d-flex align-items-center justify-content-end gap-3 flex-wrap ms-auto">
           {/* Búsqueda Global */}
-          <InputGroup style={{ maxWidth: "240px" }} className="modern-input-group shadow-sm">
+          <InputGroup style={{ maxWidth: "220px" }} className="modern-input-group shadow-sm">
             <InputGroup.Text className="bg-transparent border-0 pe-0 text-muted">
               <Search size={15} />
             </InputGroup.Text>
