@@ -480,12 +480,15 @@ export default function DashboardView() {
     <div className="dashboard-view pb-5">
       {/* 1. HEADER PRINCIPAL */}
       <header
-        className="mb-4 bg-white rounded-4 p-4 border shadow-sm d-flex flex-column gap-3 d-md-flex flex-md-row justify-content-md-between align-items-md-center"
-        style={{ borderLeft: `4px solid ${brand.accentColor || "#10b981"}` }}
+        className="mb-4 bg-white rounded-4 p-4 border shadow-sm d-flex flex-column gap-3 flex-md-row justify-content-md-between align-items-md-center flex-wrap"
+        style={{ 
+          borderLeft: `4px solid ${brand.accentColor || "#10b981"}`,
+          background: "linear-gradient(135deg, #ffffff 0%, #fafbfc 100%)"
+        }}
       >
-        <div>
+        <div className="flex-shrink-0 mb-2 mb-md-0">
           <div className="d-flex align-items-center gap-2 mb-1.5">
-            <span className="fw-black text-muted uppercase smaller" style={{ tracking: "0.1em" }}>
+            <span className="fw-black text-muted uppercase smaller" style={{ letterSpacing: "0.1em" }}>
               {brand.companyName || "Aura Studio"}
             </span>
             <div className="rounded-circle bg-success" style={{ width: "6px", height: "6px" }} />
@@ -499,7 +502,7 @@ export default function DashboardView() {
           </p>
         </div>
 
-        <div className="d-flex flex-column align-items-end gap-2 d-md-flex flex-md-row align-items-md-center justify-content-md-end gap-md-3 flex-md-wrap w-100 w-md-auto ms-md-auto">
+        <div className="d-flex flex-column align-items-end gap-2 d-md-flex flex-md-row align-items-md-center justify-content-md-end gap-md-3 flex-md-nowrap w-100 w-md-auto ms-md-auto">
           {/* Búsqueda Global */}
           <InputGroup style={{ maxWidth: "240px" }} className="modern-input-group shadow-sm">
             <InputGroup.Text className="bg-transparent border-0 pe-0 text-muted">
