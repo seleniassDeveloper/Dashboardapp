@@ -173,9 +173,6 @@ function MainNavbar({ onHowItWorks, onFreeTrial }) {
           }}
         >
           <img src={logoCircular} alt="AuraDash Logo" style={{ height: "40px", objectFit: "contain" }} />
-          <span style={{ letterSpacing: '-0.02em', fontSize: '1.6rem', fontWeight: 900, color: '#1e293b' }}>
-            Aura<span style={{ color: '#0ea5e9' }}>Dash</span>
-          </span>
         </Navbar.Brand>
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
         <Navbar.Collapse id="basic-navbar-nav">
@@ -1190,9 +1187,6 @@ export default function LandingPage() {
             <div className="fw-bold text-dark d-flex flex-column align-items-start gap-2">
               <div className="d-flex align-items-center gap-2">
                 <img src={logoCircular} alt="AuraDash Logo" style={{ height: "32px", objectFit: "contain" }} />
-                <span style={{ letterSpacing: '-0.02em', fontSize: '1.25rem', fontWeight: 900, color: '#1e293b' }}>
-                  Aura<span style={{ color: '#0ea5e9' }}>Dash</span>
-                </span>
               </div>
               <span>{t("footer.copyright")}</span>
             </div>
