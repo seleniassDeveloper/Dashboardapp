@@ -499,7 +499,7 @@ export default function DashboardView() {
           </p>
         </div>
 
-        <div className="d-flex align-items-center gap-3 flex-wrap">
+        <div className="d-flex flex-column align-items-end gap-2 d-md-flex flex-md-row align-items-md-center justify-content-md-end gap-md-3 flex-md-wrap w-100 w-md-auto ms-md-auto">
           {/* Búsqueda Global */}
           <InputGroup style={{ maxWidth: "240px" }} className="modern-input-group shadow-sm">
             <InputGroup.Text className="bg-transparent border-0 pe-0 text-muted">
