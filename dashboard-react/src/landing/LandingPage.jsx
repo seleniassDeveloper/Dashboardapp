@@ -162,7 +162,10 @@ function MainNavbar({ onHowItWorks, onFreeTrial }) {
     <Navbar expanded={expanded} onToggle={setExpanded} bg="transparent" expand="lg" className="py-4">
       <Container>
         <Navbar.Brand href="/" className="fw-black d-flex align-items-center gap-2">
-          <img src={logoHorizontal} alt="AuraDash Logo" style={{ height: "45px", objectFit: "contain" }} />
+          <img src={logoCircular} alt="AuraDash Logo" style={{ height: "40px", objectFit: "contain" }} />
+          <span style={{ letterSpacing: '-0.02em', fontSize: '1.6rem', fontWeight: 900, color: '#1e293b' }}>
+            Aura<span style={{ color: '#0ea5e9' }}>Dash</span>
+          </span>
         </Navbar.Brand>
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
         <Navbar.Collapse id="basic-navbar-nav">
@@ -1174,8 +1177,13 @@ export default function LandingPage() {
       <footer className="py-5 border-top bg-white">
         <Container>
           <div className="d-flex flex-column flex-md-row justify-content-between align-items-center gap-4 text-muted small">
-            <div className="fw-bold text-dark d-flex flex-column align-items-start gap-1">
-              <img src={logoHorizontal} alt="AuraDash Logo" style={{ height: "32px", objectFit: "contain" }} className="mb-2" />
+            <div className="fw-bold text-dark d-flex flex-column align-items-start gap-2">
+              <div className="d-flex align-items-center gap-2">
+                <img src={logoCircular} alt="AuraDash Logo" style={{ height: "32px", objectFit: "contain" }} />
+                <span style={{ letterSpacing: '-0.02em', fontSize: '1.25rem', fontWeight: 900, color: '#1e293b' }}>
+                  Aura<span style={{ color: '#0ea5e9' }}>Dash</span>
+                </span>
+              </div>
               <span>{t("footer.copyright")}</span>
             </div>
             <div className="d-flex gap-4">
