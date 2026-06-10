@@ -253,6 +253,7 @@ export async function getClientCRMProfile(req, res) {
         email: client.email,
         phone: client.phone,
         notes: client.notes,
+        photoUrl: client.photoUrl,
         allergies: decryptData(client.allergies),
         medicalNotes: decryptData(client.medicalNotes),
         createdAt: client.createdAt,

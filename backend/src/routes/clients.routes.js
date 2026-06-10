@@ -9,6 +9,7 @@ import {
   createClientClinicalHistory,
   updateClientClinicalHistory,
   deleteClientClinicalHistory,
+  uploadClientPhoto,
 } from "../controllers/clients.controller.js";
 import { requirePermission } from "../middleware/rbac.middleware.js";
 
@@ -18,6 +19,7 @@ router.get("/", requirePermission(["clients.view.all", "clients.view.assigned"])
 router.get("/:id/appointments", requirePermission(["clients.view.all", "clients.view.assigned"]), getClientAppointments);
 router.post("/", requirePermission("clients.create"), createClient);
 router.put("/:id", requirePermission("clients.edit"), updateClient);
+router.put("/:id/photo", requirePermission("clients.edit"), uploadClientPhoto);
 router.delete("/:id", requirePermission("clients.delete"), deleteClient);
 
 // Historial Clínico y Ficha Técnica

@@ -4,7 +4,7 @@ import {
   Calendar, CreditCard, Clock, MessageCircle, Cake, Sparkles, 
   AlertTriangle, ArrowRight, BookOpen, Activity, Award, User, 
   Heart, ShoppingBag, ShieldCheck, Save, FileText, CheckCircle,
-  Plus, Printer
+  Plus, Printer, Camera, Upload, X, RotateCw
 } from "lucide-react";
 import { API_BASE_URL } from "../../lib/api.js";
 import api from "../../lib/api.js";
@@ -28,7 +28,7 @@ const getImageUrl = (url) => {
   return `${host}${url}`;
 };
 
-export default function ClientDetailModal({ show, onHide, client, appointments = [] }) {
+export default function ClientDetailModal({ show, onHide, client, appointments = [], onPhotoUpdated }) {
   const { hasPermission } = usePermissions();
   const { business } = useBusiness();
   
@@ -46,6 +46,131 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
   const [loadingCrm, setLoadingCrm] = useState(false);
   const [errorCrm, setErrorCrm] = useState("");
   const [activeTab, setActiveTab] = useState("resumen");
+
+  // Estados y efectos para foto de perfil / cámara
+  const [currentPhotoUrl, setCurrentPhotoUrl] = useState("");
+  const [avatarHover, setAvatarHover] = useState(false);
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
+  const [videoStream, setVideoStream] = useState(null);
+  const [cameraActive, setCameraActive] = useState(false);
+  const [capturedImage, setCapturedImage] = useState(null); // base64
+  const [uploadError, setUploadError] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const videoRef = React.useRef(null);
+
+  useEffect(() => {
+    if (client) {
+      setCurrentPhotoUrl(client.photoUrl || "");
+    }
+  }, [client]);
+
+  useEffect(() => {
+    if (crmData?.client) {
+      setCurrentPhotoUrl(crmData.client.photoUrl || "");
+    }
+  }, [crmData]);
+
+  const startCamera = async () => {
+    try {
+      setUploadError("");
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 640 } } 
+      });
+      setVideoStream(stream);
+      setCameraActive(true);
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+    } catch (err) {
+      console.error("Error accessing camera:", err);
+      setUploadError("No se pudo acceder a la cámara. Asegúrate de dar los permisos necesarios.");
+    }
+  };
+
+  const stopCamera = () => {
+    if (videoStream) {
+      videoStream.getTracks().forEach(track => track.stop());
+      setVideoStream(null);
+    }
+    setCameraActive(false);
+  };
+
+  const capturePhoto = () => {
+    if (videoRef.current) {
+      const video = videoRef.current;
+      const canvas = document.createElement("canvas");
+      const size = Math.min(video.videoWidth, video.videoHeight) || 480;
+      canvas.width = size;
+      canvas.height = size;
+      
+      const ctx = canvas.getContext("2d");
+      const sx = (video.videoWidth - size) / 2;
+      const sy = (video.videoHeight - size) / 2;
+      ctx.drawImage(video, sx, sy, size, size, 0, 0, size, size);
+      
+      const base64 = canvas.toDataURL("image/jpeg", 0.85);
+      setCapturedImage(base64);
+      stopCamera();
+    }
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCapturedImage(reader.result);
+        stopCamera();
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleUploadPhoto = async () => {
+    if (!capturedImage) return;
+    try {
+      setUploading(true);
+      setUploadError("");
+      const res = await api.put(`/clients/${client.id}/photo`, { photo: capturedImage });
+      
+      const newPhotoUrl = res.data.photoUrl;
+      setCurrentPhotoUrl(newPhotoUrl);
+      
+      if (crmData?.client) {
+        setCrmData(prev => ({
+          ...prev,
+          client: {
+            ...prev.client,
+            photoUrl: newPhotoUrl
+          }
+        }));
+      }
+
+      if (onPhotoUpdated) {
+        onPhotoUpdated(client.id, newPhotoUrl);
+      }
+
+      setShowPhotoModal(false);
+      setCapturedImage(null);
+    } catch (err) {
+      console.error("Error uploading photo:", err);
+      setUploadError(err?.response?.data?.error || "Error al subir la foto de perfil.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const closePhotoModal = () => {
+    stopCamera();
+    setCapturedImage(null);
+    setUploadError("");
+    setShowPhotoModal(false);
+  };
+
+  const handleCloseDetailModal = () => {
+    stopCamera();
+    onHide();
+  };
   // Edición de Notas Generales / Fórmulas
   const [notesText, setNotesText] = useState("");
   const [savingNotes, setSavingNotes] = useState(false);
@@ -544,7 +669,7 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
   };
 
   return (
-    <Modal show={show} onHide={onHide} size="xl" centered className="hegemonic-modal border-0">
+    <Modal show={show} onHide={handleCloseDetailModal} size="xl" centered className="hegemonic-modal border-0">
       <Modal.Header closeButton className="border-0 pb-0 bg-light py-3 px-4">
         <Modal.Title className="fw-black text-dark d-flex align-items-center gap-2">
           <Sparkles className="text-purple-600" size={24} />
@@ -556,8 +681,32 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
         {/* SECCIÓN 1: Perfil Básicos */}
         <div className="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3 pb-3 border-bottom">
           <div className="d-flex align-items-center gap-3">
-            <div className="rounded-circle bg-purple-100 text-purple-700 d-flex align-items-center justify-content-center fw-bold shadow-sm" style={{ width: 64, height: 64, fontSize: 22, border: "2px solid #e9d5ff" }}>
-              {initialFirst}{initialLast || "C"}
+            <div 
+              className="position-relative overflow-hidden rounded-circle bg-purple-100 text-purple-700 d-flex align-items-center justify-content-center fw-bold shadow-sm" 
+              style={{ width: 64, height: 64, fontSize: 22, border: "2px solid #e9d5ff", cursor: "pointer" }}
+              onClick={() => setShowPhotoModal(true)}
+              onMouseEnter={() => setAvatarHover(true)}
+              onMouseLeave={() => setAvatarHover(false)}
+            >
+              {currentPhotoUrl ? (
+                <img 
+                  src={getImageUrl(currentPhotoUrl)} 
+                  alt="Avatar" 
+                  className="w-100 h-100 object-fit-cover position-absolute"
+                />
+              ) : (
+                <span>{initialFirst}{initialLast || "C"}</span>
+              )}
+              <div 
+                className="position-absolute w-100 h-100 top-0 start-0 d-flex align-items-center justify-content-center bg-black bg-opacity-50 text-white transition-all"
+                style={{ 
+                  opacity: avatarHover ? 1 : 0, 
+                  transition: "opacity 0.2s ease-in-out",
+                  pointerEvents: "none"
+                }}
+              >
+                <Camera size={20} />
+              </div>
             </div>
             <div>
               <h2 className="h4 fw-bold text-gray-900 m-0">{client.firstName || ""} {client.lastName || ""}</h2>
@@ -2297,6 +2446,145 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
             <div className="text-center py-4 text-muted">No se pudieron cargar los detalles del registro.</div>
           )}
         </Modal.Body>
+      </Modal>
+
+      {/* Modal para Tomar/Cargar Foto */}
+      <Modal show={showPhotoModal} onHide={closePhotoModal} centered size="md" className="hegemonic-modal">
+        <Modal.Header closeButton className="border-0 pb-0 bg-light py-3 px-4">
+          <Modal.Title className="fw-bold text-dark d-flex align-items-center gap-2">
+            <Camera className="text-purple-600" size={20} />
+            <span>Actualizar Foto de Perfil</span>
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="p-4 text-center">
+          {uploadError && (
+            <Alert variant="danger" className="rounded-xl border-0 mb-3 small">
+              {uploadError}
+            </Alert>
+          )}
+
+          {/* Área de Visualización principal */}
+          <div className="d-flex flex-column align-items-center justify-content-center mb-4">
+            {capturedImage ? (
+              // Vista previa de foto capturada o cargada
+              <div className="position-relative" style={{ width: "240px", height: "240px" }}>
+                <img 
+                  src={capturedImage} 
+                  alt="Vista previa" 
+                  className="rounded-3 shadow-md border object-fit-cover w-100 h-100"
+                  style={{ border: "4px solid #fff", boxShadow: "0 8px 30px rgba(0,0,0,0.12)" }}
+                />
+                <Button 
+                  variant="danger" 
+                  size="sm" 
+                  className="position-absolute top-0 end-0 m-2 rounded-circle p-1 d-flex align-items-center justify-content-center border-0 shadow"
+                  onClick={() => setCapturedImage(null)}
+                  style={{ width: "30px", height: "30px" }}
+                >
+                  <X size={16} />
+                </Button>
+              </div>
+            ) : cameraActive ? (
+              // Previsualización de cámara en vivo
+              <div className="position-relative" style={{ width: "280px", height: "280px" }}>
+                <video 
+                  ref={videoRef} 
+                  autoPlay 
+                  playsInline 
+                  className="rounded-3 shadow-md border w-100 h-100 object-fit-cover"
+                  style={{ transform: "scaleX(-1)", border: "4px solid #fff", boxShadow: "0 8px 30px rgba(0,0,0,0.12)" }}
+                />
+                <div className="position-absolute bottom-0 start-50 translate-middle-x mb-3">
+                  <Button 
+                    variant="purple" 
+                    className="rounded-pill px-4 py-2 shadow fw-bold d-flex align-items-center gap-2 text-white border-0"
+                    onClick={capturePhoto}
+                    style={{ background: "linear-gradient(135deg, #a855f7 0%, #7e22ce 100%)" }}
+                  >
+                    <Camera size={16} />
+                    <span>Tomar Foto</span>
+                  </Button>
+                </div>
+                <Button 
+                  variant="secondary" 
+                  size="sm" 
+                  className="position-absolute top-0 end-0 m-2 rounded-circle p-1 d-flex align-items-center justify-content-center border-0 shadow"
+                  onClick={stopCamera}
+                  style={{ width: "30px", height: "30px", backgroundColor: "rgba(0,0,0,0.5)" }}
+                >
+                  <X size={16} className="text-white" />
+                </Button>
+              </div>
+            ) : (
+              // Opciones para empezar (Cámara o Archivo)
+              <div 
+                className="border-dashed rounded-3 p-5 d-flex flex-column align-items-center justify-content-center cursor-pointer hover-bg-gray-50 transition-all w-100"
+                style={{ 
+                  border: "2px dashed #d8b4fe", 
+                  backgroundColor: "#faf5ff", 
+                  minHeight: "240px",
+                  borderRadius: "16px"
+                }}
+              >
+                <Upload className="text-purple-400 mb-3" size={48} />
+                <p className="fw-semibold text-gray-700 mb-2">Selecciona una opción para tu avatar</p>
+                <p className="text-muted small mb-4">Usa la cámara en vivo o sube una imagen de tu dispositivo</p>
+                
+                <div className="d-flex gap-2.5 flex-wrap justify-content-center">
+                  <Button 
+                    variant="purple" 
+                    className="rounded-xl px-4 py-2.5 fw-bold text-white border-0 shadow-sm"
+                    style={{ background: "linear-gradient(135deg, #a855f7 0%, #7e22ce 100%)" }}
+                    onClick={startCamera}
+                  >
+                    <Camera size={16} className="me-2" />
+                    Usar Cámara
+                  </Button>
+                  <label 
+                    className="btn btn-outline-secondary rounded-xl px-4 py-2.5 fw-bold d-flex align-items-center justify-content-center m-0 cursor-pointer shadow-sm bg-white"
+                  >
+                    <Upload size={16} className="me-2" />
+                    Subir Archivo
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handleFileChange} 
+                      className="d-none" 
+                    />
+                  </label>
+                </div>
+              </div>
+            )}
+          </div>
+        </Modal.Body>
+        <Modal.Footer className="border-0 pt-0 bg-light p-3 rounded-bottom d-flex justify-content-end gap-2">
+          <Button 
+            variant="light" 
+            className="rounded-xl px-4 py-2 fw-semibold border"
+            onClick={closePhotoModal}
+            disabled={uploading}
+          >
+            Cancelar
+          </Button>
+          {capturedImage && (
+            <Button 
+              variant="purple" 
+              className="rounded-xl px-4 py-2 fw-bold text-white border-0 shadow-sm"
+              style={{ background: "linear-gradient(135deg, #a855f7 0%, #7e22ce 100%)" }}
+              onClick={handleUploadPhoto}
+              disabled={uploading}
+            >
+              {uploading ? (
+                <>
+                  <Spinner size="sm" animation="border" className="me-2" />
+                  Guardando...
+                </>
+              ) : (
+                "Guardar Foto"
+              )}
+            </Button>
+          )}
+        </Modal.Footer>
       </Modal>
     </Modal>
   );

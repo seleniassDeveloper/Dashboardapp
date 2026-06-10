@@ -728,7 +728,7 @@ export async function finalizeAppointment(req, res) {
 }
 
 // Helper to save base64 image
-function saveBase64Image(base64Data, filenamePrefix, clientId) {
+export function saveBase64Image(base64Data, filenamePrefix, clientId) {
   if (!base64Data || typeof base64Data !== "string") return null;
   
   const matches = base64Data.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);

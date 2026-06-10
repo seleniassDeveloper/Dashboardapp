@@ -4,8 +4,17 @@ import { Search, UserPlus, RefreshCw, Edit2, Trash2, BookOpen } from "lucide-rea
 import { useTranslation } from "react-i18next";
 import ClientModal from "../header/clients/ClientModal.jsx";
 import ClientDetailModal from "../components/clients/ClientDetailModal.jsx";
-import api from "../lib/api.js";
+import api, { API_BASE_URL } from "../lib/api.js";
 import { usePermissions } from "../auth/PermissionProvider.jsx";
+
+const getImageUrl = (url) => {
+  if (!url) return "";
+  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) {
+    return url;
+  }
+  const host = API_BASE_URL.replace(/\/api$/, "");
+  return `${host}${url}`;
+};
 
 const safeArray = (x) => (Array.isArray(x) ? x : []);
 
@@ -208,8 +217,16 @@ export default function ClientsView() {
                   <tr key={c.id}>
                     <td className="ps-4 py-3">
                       <div className="d-flex align-items-center gap-3">
-                        <div className="rounded-circle bg-primary-soft text-primary d-flex align-items-center justify-content-center fw-bold" style={{ width: 36, height: 36, fontSize: 13 }}>
-                          {displayName(c).charAt(0).toUpperCase()}
+                        <div className="rounded-circle bg-primary-soft text-primary d-flex align-items-center justify-content-center fw-bold overflow-hidden position-relative" style={{ width: 36, height: 36, fontSize: 13 }}>
+                          {c.photoUrl ? (
+                            <img 
+                              src={getImageUrl(c.photoUrl)} 
+                              alt={displayName(c)} 
+                              className="w-100 h-100 object-fit-cover position-absolute"
+                            />
+                          ) : (
+                            displayName(c).charAt(0).toUpperCase()
+                          )}
                         </div>
                         <span className="fw-semibold">{displayName(c)}</span>
                       </div>
@@ -363,6 +380,9 @@ export default function ClientsView() {
         onHide={() => { setShowDetailModal(false); setSelectedDetailClient(null); }}
         client={selectedDetailClient}
         appointments={appointments}
+        onPhotoUpdated={(clientId, photoUrl) => {
+          setClients(prev => prev.map(c => c.id === clientId ? { ...c, photoUrl } : c));
+        }}
       />
     </div>
   );

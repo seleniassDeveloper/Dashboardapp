@@ -1,5 +1,6 @@
 import prisma from "../prisma.js";
 import { encryptData, decryptData } from "../utils/consentCrypto.js";
+import { saveBase64Image } from "./appointments.controller.js";
 
 /* =========================
    VALIDADORES DE FORMATO
@@ -24,7 +25,7 @@ function isValidPhone(phone) {
 ========================= */
 export async function createClient(req, res) {
   try {
-    const { firstName, lastName, phone, email, notes, allergies, medicalNotes } = req.body;
+    const { firstName, lastName, phone, email, notes, allergies, medicalNotes, photoUrl } = req.body;
     const businessId = req.businessId;
 
     if (!firstName?.trim() || !lastName?.trim()) {
@@ -52,6 +53,7 @@ export async function createClient(req, res) {
         phone: phoneVal,
         email: emailVal,
         notes: notesVal,
+        photoUrl: photoUrl || null,
         allergies: allergies ? encryptData(allergies) : null,
         medicalNotes: medicalNotes ? encryptData(medicalNotes) : null,
         businessId: businessId || null,
@@ -74,7 +76,7 @@ export async function createClient(req, res) {
 export async function updateClient(req, res) {
   try {
     const { id } = req.params;
-    const { firstName, lastName, phone, email, notes, allergies, medicalNotes } = req.body;
+    const { firstName, lastName, phone, email, notes, allergies, medicalNotes, photoUrl } = req.body;
 
     if (!firstName?.trim() || !lastName?.trim()) {
       return res
@@ -102,6 +104,7 @@ export async function updateClient(req, res) {
         phone: phoneVal,
         email: emailVal,
         notes: notesVal,
+        photoUrl: photoUrl !== undefined ? photoUrl : undefined,
         allergies: allergies ? encryptData(allergies) : null,
         medicalNotes: medicalNotes ? encryptData(medicalNotes) : null,
       },
@@ -439,5 +442,51 @@ export async function deleteClientClinicalHistory(req, res) {
   } catch (e) {
     console.error("DELETE CLINICAL HISTORY ERROR:", e);
     return res.status(500).json({ error: "Error eliminando la entrada del historial clínico." });
+  }
+}
+
+/* =========================
+   UPLOAD CLIENT PHOTO
+========================= */
+export async function uploadClientPhoto(req, res) {
+  try {
+    const { id } = req.params;
+    const { photo } = req.body; // base64 string
+    const businessId = req.businessId;
+
+    if (!photo) {
+      return res.status(400).json({ error: "La foto en base64 es obligatoria." });
+    }
+
+    const client = await prisma.client.findFirst({
+      where: {
+        id,
+        OR: [
+          { businessId },
+          { businessId: null }
+        ]
+      }
+    });
+
+    if (!client) {
+      return res.status(404).json({ error: "Cliente no encontrado o no pertenece a este negocio." });
+    }
+
+    // Guardar imagen base64 localmente
+    const savedPath = saveBase64Image(photo, "client_avatar", id);
+    if (!savedPath) {
+      return res.status(400).json({ error: "El formato de la imagen no es válido." });
+    }
+
+    // Actualizar DB
+    const updated = await prisma.client.update({
+      where: { id },
+      data: { photoUrl: savedPath }
+    });
+
+    return res.json({ photoUrl: savedPath, client: updated });
+  } catch (e) {
+    console.error("UPLOAD CLIENT PHOTO ERROR:", e);
+    return res.status(500).json({ error: "Error subiendo la foto de perfil del cliente." });
   }
 }
