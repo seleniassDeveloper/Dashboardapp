@@ -272,21 +272,9 @@ export default function ComponentAssignmentEditor() {
                       return (
                         <div
                           key={ref.id}
-                          draggable
-                          onDragStart={(e) => handleDragStart(e, idx)}
-                          onDragOver={(e) => handleDragOver(e, idx)}
-                          onDragEnd={handleDragEnd}
-                          className={`p-2.5 border border-purple-500 bg-purple-50 bg-opacity-30 rounded-2xl shadow-sm d-flex align-items-center justify-content-between hover-bg-light transition-all animate-fade-in ${
-                            draggedIndex === idx ? "opacity-40 border-dashed" : ""
-                          }`}
-                          style={{ cursor: "grab" }}
+                          className="p-2.5 border border-purple-500 bg-purple-50 bg-opacity-30 rounded-2xl shadow-sm d-flex align-items-center justify-content-between hover-bg-light transition-all animate-fade-in"
                         >
                           <div className="d-flex align-items-center gap-2.5" style={{ flex: 1, minWidth: 0 }}>
-                            <GripVertical
-                              size={14}
-                              className="text-purple-400 cursor-grab active:cursor-grabbing"
-                              style={{ flexShrink: 0 }}
-                            />
                             <span
                               className="badge bg-purple bg-opacity-10 text-purple-700 fw-bold rounded-lg d-flex align-items-center justify-content-center font-mono"
                               style={{ width: "22px", height: "22px", fontSize: "10px", flexShrink: 0 }}
@@ -436,7 +424,7 @@ export default function ComponentAssignmentEditor() {
                     <span>{selectedTarget?.label || "Vista de Formulario"}</span>
                   </h3>
                   <Row className="g-3">
-                    {previewFields.map((f) => {
+                    {previewFields.map((f, idx) => {
                       let inputMock;
                       if (f.type === "textarea") {
                         inputMock = (
@@ -521,7 +509,20 @@ export default function ComponentAssignmentEditor() {
                         f.type === "textarea";
 
                       return (
-                        <Col md={isWide ? 12 : 6} key={f.id}>
+                        <Col
+                          md={isWide ? 12 : 6}
+                          key={f.id}
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, idx)}
+                          onDragOver={(e) => handleDragOver(e, idx)}
+                          onDragEnd={handleDragEnd}
+                          className={`draggable-input-col p-2.5 rounded-2xl transition-all ${
+                            draggedIndex === idx
+                              ? "opacity-35 border border-dashed border-purple-500 bg-purple-100 bg-opacity-50"
+                              : "border border-transparent"
+                          }`}
+                          style={{ cursor: "grab", border: "1px solid transparent" }}
+                        >
                           <Form.Group>
                             <Form.Label className="fw-semibold text-xs text-gray-700 d-flex justify-content-between align-items-center mb-1">
                               <span>
@@ -540,6 +541,15 @@ export default function ComponentAssignmentEditor() {
             </div>
           </Col>
         </Row>
+        <style>{`
+          .draggable-input-col:hover {
+            border-color: #d8b4fe !important; /* purple-300 */
+            background-color: #faf5ff; /* purple-50 */
+          }
+          .draggable-input-col:active {
+            cursor: grabbing !important;
+          }
+        `}</style>
       </Card.Body>
     </Card>
   );
