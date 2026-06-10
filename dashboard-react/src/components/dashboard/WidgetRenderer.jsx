@@ -31,6 +31,7 @@ export default function WidgetRenderer({
   services = [],
   onUpdateAppointmentStatus,
   onConfirmAppointment,
+  onFinalizeAppointment,
   onViewCalendar,
   onEditWorker,
   isPreview = false,
@@ -262,6 +263,8 @@ export default function WidgetRenderer({
           appointments={appointments}
           workers={workers}
           onConfirmAppointment={onConfirmAppointment}
+          onUpdateAppointmentStatus={onUpdateAppointmentStatus}
+          onFinalizeAppointment={onFinalizeAppointment}
           onViewCalendar={onViewCalendar}
           onEditWorker={onEditWorker}
         />

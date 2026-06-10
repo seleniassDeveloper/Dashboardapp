@@ -1,5 +1,5 @@
 import React from "react";
-import { AlertCircle, Clock, UserCheck, CalendarDays, ArrowRight } from "lucide-react";
+import { AlertCircle, Clock, UserCheck, CalendarDays, ArrowRight, Sparkles, CreditCard } from "lucide-react";
 import { Badge, Button } from "react-bootstrap";
 import { useTranslation } from "react-i18next";
 
@@ -7,6 +7,8 @@ export default function AttentionWidget({
   appointments = [],
   workers = [],
   onConfirmAppointment,
+  onUpdateAppointmentStatus,
+  onFinalizeAppointment,
   onViewCalendar,
   onEditWorker,
 }) {
@@ -17,30 +19,49 @@ export default function AttentionWidget({
   const pendingAppointments = appointments.filter((a) => a.status === "PENDING");
 
   // 2. Colaboradores sin horarios (WorkerSchedule)
-  // En base a workers, verificamos si tienen schedules vacíos
   const workersWithoutSchedule = workers.filter((w) => !w.schedules || w.schedules.length === 0);
 
-  // 3. Citas de hoy a punto de empezar o atrasadas (ej: estado CONFIRMED y hora de inicio < ahora)
   const now = new Date();
-  const needingFollowUp = appointments.filter((a) => {
-    if (a.status !== "CONFIRMED") return false;
-    const start = new Date(a.startsAt);
-    // Citas que empezaron hace menos de 2 horas o empiezan en los próximos 30 minutos
-    const diff = start.getTime() - now.getTime();
-    return diff > -7200000 && diff < 1800000;
-  });
+
+  const isToday = (dateStr) => {
+    const d = new Date(dateStr);
+    const today = new Date();
+    return d.getUTCDate() === today.getUTCDate() &&
+      d.getUTCMonth() === today.getUTCMonth() &&
+      d.getUTCFullYear() === today.getUTCFullYear();
+  };
+
+  const isPastDay = (dateStr) => {
+    const d = new Date(dateStr);
+    const today = new Date();
+    const dDate = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+    const todayDate = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+    return dDate.getTime() < todayDate.getTime();
+  };
+
+  const formatTime = (dateStr) => {
+    try {
+      return new Date(dateStr).toLocaleTimeString(isEs ? "es-AR" : "en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: "UTC"
+      });
+    } catch (e) {
+      return "";
+    }
+  };
 
   const alerts = [];
 
-  // Agregar alertas reales
+  // 1. Alertas de citas PENDING
   pendingAppointments.forEach((a) => {
     alerts.push({
       id: `pending-${a.id}`,
       type: "pending_appt",
       title: isEs ? `Cita pendiente de ${a.client?.firstName} ${a.client?.lastName || ""}` : `Pending appointment for ${a.client?.firstName} ${a.client?.lastName || ""}`,
       subtitle: isEs 
-        ? `${a.service?.name} · ${new Date(a.startsAt).toLocaleDateString()} a las ${new Date(a.startsAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" })} hs`
-        : `${a.service?.name} · ${new Date(a.startsAt).toLocaleDateString()} at ${new Date(a.startsAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" })}`,
+        ? `${a.service?.name} · ${new Date(a.startsAt).toLocaleDateString()} a las ${formatTime(a.startsAt)} hs`
+        : `${a.service?.name} · ${new Date(a.startsAt).toLocaleDateString()} at ${formatTime(a.startsAt)}`,
       icon: Clock,
       badgeText: isEs ? "Pendiente" : "Pending",
       badgeBg: "warning",
@@ -49,6 +70,7 @@ export default function AttentionWidget({
     });
   });
 
+  // 2. Alertas de profesionales sin horario
   workersWithoutSchedule.forEach((w) => {
     alerts.push({
       id: `worker-schedule-${w.id}`,
@@ -63,37 +85,123 @@ export default function AttentionWidget({
     });
   });
 
-  needingFollowUp.forEach((a) => {
-    alerts.push({
-      id: `followup-${a.id}`,
-      type: "followup",
-      title: isEs ? `Turno próximo/en curso: ${a.client?.firstName}` : `Upcoming/current appointment: ${a.client?.firstName}`,
-      subtitle: isEs ? `Con ${a.worker?.firstName} · ${a.service?.name}` : `With ${a.worker?.firstName} · ${a.service?.name}`,
-      icon: UserCheck,
-      badgeText: isEs ? "Operativo" : "Active",
-      badgeBg: "info",
-      actionText: isEs ? "Ver Agenda" : "View Agenda",
-      onClick: () => onViewCalendar?.(),
-    });
+  // 3. Alertas de ciclo de vida del servicio (today o vencidos)
+  appointments.forEach((a) => {
+    if (["CANCELLED", "DONE"].includes(a.status)) return;
+
+    const start = new Date(a.startsAt);
+    const duration = a.service?.duration || 60; // en minutos
+    const end = new Date(start.getTime() + duration * 60000);
+
+    const isOverdue = end.getTime() <= now.getTime();
+    const isNearStart = start.getTime() - now.getTime() <= 1800000; // empieza en <= 30 mins o ya empezó
+    const startsToday = isToday(a.startsAt);
+    const startsInPast = isPastDay(a.startsAt);
+
+    if (a.status === "CONFIRMED") {
+      if (startsInPast || (startsToday && isOverdue)) {
+        alerts.push({
+          id: `overdue-confirmed-${a.id}`,
+          type: "overdue_confirmed",
+          title: isEs 
+            ? `Turno sin iniciar (vencido): ${a.client?.firstName} ${a.client?.lastName || ""}` 
+            : `Overdue confirmed: ${a.client?.firstName} ${a.client?.lastName || ""}`,
+          subtitle: isEs
+            ? `${a.service?.name || "Servicio"} con ${a.worker?.firstName || ""} · Horario: ${formatTime(a.startsAt)} hs`
+            : `${a.service?.name || "Service"} with ${a.worker?.firstName || ""} · Scheduled: ${formatTime(a.startsAt)}`,
+          icon: Clock,
+          badgeText: isEs ? "Vencido" : "Overdue",
+          badgeBg: "danger",
+          actionText: isEs ? "Iniciar Servicio" : "Start Service",
+          onClick: () => onUpdateAppointmentStatus?.(a.id, "IN_PROGRESS"),
+          secondaryActionText: isEs ? "Cobrar y Cerrar" : "Checkout",
+          secondaryOnClick: () => onFinalizeAppointment?.(a),
+        });
+      } else if (startsToday && isNearStart) {
+        alerts.push({
+          id: `start-service-${a.id}`,
+          type: "start_service",
+          title: isEs 
+            ? `Iniciar servicio de ${a.client?.firstName} ${a.client?.lastName || ""}` 
+            : `Start service for ${a.client?.firstName} ${a.client?.lastName || ""}`,
+          subtitle: isEs
+            ? `${a.service?.name || "Servicio"} con ${a.worker?.firstName || ""} a las ${formatTime(a.startsAt)} hs`
+            : `${a.service?.name || "Service"} with ${a.worker?.firstName || ""} at ${formatTime(a.startsAt)}`,
+          icon: UserCheck,
+          badgeText: isEs ? "Por Iniciar" : "Starts Soon",
+          badgeBg: "success",
+          actionText: isEs ? "Iniciar Servicio" : "Start Service",
+          onClick: () => onUpdateAppointmentStatus?.(a.id, "IN_PROGRESS"),
+        });
+      }
+    } else if (a.status === "IN_PROGRESS") {
+      if (startsInPast || isOverdue) {
+        alerts.push({
+          id: `finalize-service-${a.id}`,
+          type: "finalize_service",
+          title: isEs 
+            ? `¿Terminó el servicio de ${a.client?.firstName}?` 
+            : `Has ${a.client?.firstName}'s service finished?`,
+          subtitle: isEs
+            ? `${a.service?.name || "Servicio"} con ${a.worker?.firstName || ""} finalizó a las ${formatTime(end)} hs`
+            : `${a.service?.name || "Service"} with ${a.worker?.firstName || ""} ended at ${formatTime(end)}`,
+          icon: Sparkles,
+          badgeText: isEs ? "Terminar" : "End Service",
+          badgeBg: "primary",
+          actionText: isEs ? "Cobrar y Cerrar" : "Checkout",
+          onClick: () => onFinalizeAppointment?.(a),
+        });
+      } else {
+        alerts.push({
+          id: `in-progress-${a.id}`,
+          type: "in_progress",
+          title: isEs 
+            ? `Servicio en curso: ${a.client?.firstName} ${a.client?.lastName || ""}` 
+            : `Service in progress: ${a.client?.firstName} ${a.client?.lastName || ""}`,
+          subtitle: isEs
+            ? `${a.service?.name || "Servicio"} · Finaliza a las ${formatTime(end)} hs`
+            : `${a.service?.name || "Service"} · Ends at ${formatTime(end)}`,
+          icon: Clock,
+          badgeText: isEs ? "En Curso" : "In Progress",
+          badgeBg: "info",
+          actionText: isEs ? "Cobrar y Cerrar" : "Checkout",
+          onClick: () => onFinalizeAppointment?.(a),
+        });
+      }
+    } else if (a.status === "PENDING_PAYMENT") {
+      alerts.push({
+        id: `pending-payment-${a.id}`,
+        type: "pending_payment",
+        title: isEs 
+          ? `Cobro pendiente: ${a.client?.firstName} ${a.client?.lastName || ""}` 
+          : `Pending payment: ${a.client?.firstName} ${a.client?.lastName || ""}`,
+        subtitle: isEs
+          ? `${a.service?.name || "Servicio"} con ${a.worker?.firstName || ""}`
+          : `${a.service?.name || "Service"} with ${a.worker?.firstName || ""}`,
+        icon: CreditCard,
+        badgeText: isEs ? "Por Cobrar" : "Pending Payment",
+        badgeBg: "warning",
+        actionText: isEs ? "Cobrar y Cerrar" : "Checkout",
+        onClick: () => onFinalizeAppointment?.(a),
+      });
+    }
   });
 
   // Si no hay alertas reales, agregamos unas simuladas de negocio recomendadas
   if (alerts.length === 0) {
-    alerts.push(
-      {
-        id: "simulated-1",
-        type: "tip",
-        title: isEs ? "Optimización de horarios" : "Schedule optimization",
-        subtitle: isEs 
-          ? "Sábado en la tarde registra 95% de ocupación. Considerá agregar bloqueos de descanso."
-          : "Saturday afternoon has 95% occupancy. Consider adding rest blocks.",
-        icon: CalendarDays,
-        badgeText: isEs ? "Tip de IA" : "AI Tip",
-        badgeBg: "success",
-        actionText: isEs ? "Ver Horarios" : "View Schedules",
-        onClick: () => onViewCalendar?.(),
-      }
-    );
+    alerts.push({
+      id: "simulated-1",
+      type: "tip",
+      title: isEs ? "Optimización de horarios" : "Schedule optimization",
+      subtitle: isEs 
+        ? "Sábado en la tarde registra 95% de ocupación. Considerá agregar bloqueos de descanso."
+        : "Saturday afternoon has 95% occupancy. Consider adding rest blocks.",
+      icon: CalendarDays,
+      badgeText: isEs ? "Tip de IA" : "AI Tip",
+      badgeBg: "success",
+      actionText: isEs ? "Ver Horarios" : "View Schedules",
+      onClick: () => onViewCalendar?.(),
+    });
   }
 
   return (
@@ -122,16 +230,30 @@ export default function AttentionWidget({
                 </div>
               </div>
 
-              <Button
-                variant="outline-dark"
-                size="sm"
-                onClick={item.onClick}
-                className="rounded-pill px-3 py-1 font-semibold small d-flex align-items-center gap-1"
-                style={{ fontSize: "11px", borderColor: "#e5e7eb" }}
-              >
-                <span>{item.actionText}</span>
-                <ArrowRight size={12} />
-              </Button>
+              <div className="d-flex flex-column gap-1 flex-shrink-0 align-items-end">
+                <Button
+                  variant="outline-dark"
+                  size="sm"
+                  onClick={item.onClick}
+                  className="rounded-pill px-3 py-1 font-semibold small d-flex align-items-center justify-content-center gap-1"
+                  style={{ fontSize: "11px", borderColor: "#e5e7eb" }}
+                >
+                  <span>{item.actionText}</span>
+                  <ArrowRight size={12} />
+                </Button>
+                {item.secondaryActionText && (
+                  <Button
+                    variant="outline-primary"
+                    size="sm"
+                    onClick={item.secondaryOnClick}
+                    className="rounded-pill px-3 py-1 font-semibold small d-flex align-items-center justify-content-center gap-1 text-purple-600 border-purple-200 hover-bg-purple-50"
+                    style={{ fontSize: "11px" }}
+                  >
+                    <span>{item.secondaryActionText}</span>
+                    <ArrowRight size={12} />
+                  </Button>
+                )}
+              </div>
             </div>
           );
         })}

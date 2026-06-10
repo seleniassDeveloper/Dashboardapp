@@ -3,6 +3,7 @@ import React, { useEffect, useCallback, useMemo, useRef, useState } from "react"
 import { Modal, Button, Form, Row, Col, Alert, Spinner, InputGroup } from "react-bootstrap";
 import api from "../../lib/api.js";
 import { useFormSchema } from "../../hooks/useFormSchema.js";
+import { useAppointmentsStore } from "./AppointmentsProvider.jsx";
 const emptyForm = {
   clientFirstName: "",
   clientLastName: "",
@@ -17,6 +18,7 @@ const emptyForm = {
   appointmentTime: "",
   notes: "",
   price: "",
+  status: "PENDING",
 };
 
 const safeArray = (x) => (Array.isArray(x) ? x : []);
@@ -140,6 +142,7 @@ function formatDateTimeLocalLabel(dtLocal) {
 
 export default function AppointmentModal({ show, onHide, onSaved, initialData = null }) {
   const isEdit = Boolean(initialData?.id);
+  const { appointmentStatuses } = useAppointmentsStore();
 
   const { enabledFields, loading: schemaLoading, error: schemaError } = useFormSchema(
     "assign.appointment.form.modal",
@@ -444,6 +447,7 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
           workerId: targetWorkerId,
           appointmentDate: appointmentDate || "",
           appointmentTime: finalTime,
+          status: "PENDING",
         });
       } else {
         setForm({
@@ -492,6 +496,7 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
       appointmentTime,
       notes,
       price,
+      status: appt?.status || "PENDING",
     });
   }, [show, isEdit, initialData, workers]);
 
@@ -605,6 +610,7 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
         serviceId: form.serviceId,
         startsAt: toISO(startsAtLocal),
         notes: notesField ? (form.notes.trim() || null) : null,
+        status: form.status,
       };
 
       const url = isEdit ? `/appointments/${initialData.id}` : `/appointments`;
@@ -653,6 +659,36 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
     onSaved,
     onHide,
   ]);
+  const handleCancelAppointment = async () => {
+    if (!window.confirm("¿Estás seguro de que deseas cancelar esta cita?")) return;
+    try {
+      setSaving(true);
+      setError("");
+      
+      const payload = {
+        clientId: form.clientId,
+        workerId: form.workerId,
+        workerFirstName: form.workerFirstName?.trim() ? form.workerFirstName.trim() : null,
+        workerLastName: form.workerLastName?.trim() ? form.workerLastName.trim() : null,
+        serviceId: form.serviceId,
+        startsAt: toISO(startsAtLocal),
+        notes: notesField ? (form.notes.trim() || null) : null,
+        status: "CANCELLED",
+      };
+
+      const url = `/appointments/${initialData.id}`;
+      const res = await api.put(url, payload);
+
+      onSaved?.({ mode: "edit", appointment: res.data });
+      onHide?.();
+    } catch (e) {
+      console.error("Error al cancelar la cita:", e?.response?.data || e);
+      setError(e?.response?.data?.error || "Error al cancelar la cita.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const attendingLabel = selectedWorker?.name || "Sin asignar";
   const serviceLabel = selectedService?.name || "—";
   const whenLabel = formatDateTimeLocalLabel(startsAtLocal);
@@ -988,15 +1024,50 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
 
                 return null;
               })}
+
+              {isEdit && (
+                <Col md={12}>
+                  <hr className="my-4" />
+                  <Form.Group className="mb-3">
+                    <Form.Label className="small-label fw-bold" htmlFor="appt-status">
+                      Estado de la Cita
+                    </Form.Label>
+                    <Form.Select
+                      id="appt-status"
+                      className="modern-input"
+                      value={form.status}
+                      onChange={(e) => setField("status", e.target.value)}
+                    >
+                      {appointmentStatuses.map((s) => (
+                        <option key={s.key} value={s.key}>
+                          {s.label}
+                        </option>
+                      ))}
+                    </Form.Select>
+                  </Form.Group>
+                </Col>
+              )}
             </Row>
           </Form>
         )}
       </Modal.Body>
 
-      <Modal.Footer className="border-0 pt-0 pb-4 pe-4">
-        <Button variant="link" className="text-muted text-decoration-none me-auto ps-4" onClick={onHide} disabled={saving}>
-          Cancelar
-        </Button>
+      <Modal.Footer className="border-0 pt-0 pb-4 pe-4 d-flex justify-content-between align-items-center w-100">
+        <div className="d-flex align-items-center gap-2">
+          <Button variant="link" className="text-muted text-decoration-none" onClick={onHide} disabled={saving}>
+            Cerrar
+          </Button>
+          {isEdit && (
+            <Button
+              variant="outline-danger"
+              className="rounded-xl px-3 py-2 fw-semibold small"
+              onClick={handleCancelAppointment}
+              disabled={saving}
+            >
+              Cancelar Turno
+            </Button>
+          )}
+        </div>
 
         <Button 
           variant="dark" 

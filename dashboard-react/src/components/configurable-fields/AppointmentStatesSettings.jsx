@@ -7,6 +7,8 @@ import api from "../../lib/api.js";
 const DEFAULT_STATUSES = [
   { key: "PENDING", label: "Pendiente", color: "#d97706" },
   { key: "CONFIRMED", label: "Confirmada", color: "#10b981" },
+  { key: "IN_PROGRESS", label: "En Curso", color: "#3b82f6" },
+  { key: "PENDING_PAYMENT", label: "Por Cobrar", color: "#ec4899" },
   { key: "CANCELLED", label: "Cancelada", color: "#ef4444" },
   { key: "DONE", label: "Finalizada", color: "#6b7280" }
 ];
@@ -82,8 +84,8 @@ export default function AppointmentStatesSettings() {
 
   const handleDeleteStatus = (keyToDelete) => {
     // Prevent deleting core statuses
-    if (["CANCELLED", "DONE"].includes(keyToDelete)) {
-      setError(isEs ? "No puedes eliminar los estados nucleares del sistema (Cancelada, Finalizada)." : "You cannot delete system core statuses.");
+    if (["CANCELLED", "DONE", "IN_PROGRESS", "PENDING_PAYMENT"].includes(keyToDelete)) {
+      setError(isEs ? "No puedes eliminar los estados nucleares del sistema (Cancelada, Finalizada, En Curso, Por Cobrar)." : "You cannot delete system core statuses.");
       return;
     }
     setStatuses(statuses.filter(s => s.key !== keyToDelete));

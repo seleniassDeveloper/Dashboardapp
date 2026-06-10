@@ -25,6 +25,7 @@ import KPIWidget from "../components/dashboard/KPIWidget";
 import SaaSMetricsGrid from "../components/dashboard/SaaSMetricsGrid";
 import AppointmentModal from "../gadgets/appointments/AppointmentModal";
 import ClientModal from "../header/clients/ClientModal";
+import FinalizeServiceModal from "../components/clients/FinalizeServiceModal";
 import SmartReports from "../components/dashboard/SmartReports";
 import { getWidgetTypes, getMetricOptions } from "../components/dashboard/WidgetRegistry";
 
@@ -66,6 +67,8 @@ export default function DashboardView() {
   // Modales de creación
   const [showAppointmentModal, setShowAppointmentModal] = useState(false);
   const [showClientModal, setShowClientModal] = useState(false);
+  const [showFinalizeModal, setShowFinalizeModal] = useState(false);
+  const [selectedAppointmentForFinalize, setSelectedAppointmentForFinalize] = useState(null);
 
   // --- Carga unificada de datos del negocio y widgets ---
   const fetchData = useCallback(async () => {
@@ -467,6 +470,15 @@ export default function DashboardView() {
     }
   };
 
+  const handleFinalizeAppointment = (appt) => {
+    setSelectedAppointmentForFinalize(appt);
+    setShowFinalizeModal(true);
+  };
+
+  const handleFinalizeCompleted = () => {
+    fetchData();
+  };
+
   if (loading) {
     return (
       <div className="d-flex flex-column align-items-center justify-content-center py-5" style={{ minHeight: "80vh" }}>
@@ -587,6 +599,7 @@ export default function DashboardView() {
           }}
           onUpdateAppointmentStatus={handleUpdateAppointmentStatus}
           onConfirmAppointment={(id) => handleUpdateAppointmentStatus(id, "CONFIRMED")}
+          onFinalizeAppointment={handleFinalizeAppointment}
           onViewCalendar={() => {
             // Desplazar a la agenda o similar
             const calendarWidgetEl = document.querySelector(".custom-table");
@@ -630,6 +643,16 @@ export default function DashboardView() {
         show={showClientModal}
         onHide={() => setShowClientModal(false)}
         onSaved={fetchData}
+      />
+
+      <FinalizeServiceModal
+        show={showFinalizeModal}
+        onHide={() => {
+          setShowFinalizeModal(false);
+          setSelectedAppointmentForFinalize(null);
+        }}
+        appointment={selectedAppointmentForFinalize}
+        onCompleted={handleFinalizeCompleted}
       />
 
       {/* PANEL IA COPILOT FLOTANTE */}

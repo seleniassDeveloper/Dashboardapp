@@ -2,6 +2,7 @@
 import React, { useMemo, useState } from "react";
 import { ListGroup, Button, Form, Modal, Badge, Alert } from "react-bootstrap";
 import { Edit2, Trash2 } from "lucide-react";
+import { useAppointmentsStore } from "./AppointmentsProvider.jsx";
 
 function statusLabel(status) {
   const map = {
@@ -65,6 +66,7 @@ function toWhatsAppPhone(rawPhone) {
 }
 
 export default function AppointmentItem({ appt, onEdit, onDelete, onChangeStatus }) {
+  const { appointmentStatuses } = useAppointmentsStore();
   const [showPay, setShowPay] = useState(false);
   const [pendingStatus, setPendingStatus] = useState(null);
   const [payMethod, setPayMethod] = useState("TRANSFER");
@@ -119,7 +121,8 @@ export default function AppointmentItem({ appt, onEdit, onDelete, onChangeStatus
   const serviceName = (appt?.service?.name || appt?.serviceName || "Servicio").trim();
   const when = formatDateTime(appt?.startsAt);
   const notes = appt?.notes?.trim();
-  const border = statusColor(appt?.status);
+  const currentStatusConfig = appointmentStatuses.find(s => s.key === appt.status) || {};
+  const border = currentStatusConfig.color || statusColor(appt?.status);
 
   // Precio
   const price = useMemo(() => appt?.service?.price ?? appt?.price ?? null, [appt]);
@@ -226,9 +229,11 @@ export default function AppointmentItem({ appt, onEdit, onDelete, onChangeStatus
                 className="appt-status-select-transparent"
                 style={{ color: border }}
               >
-                <option value="CONFIRMED">Confirmada</option>
-                <option value="DONE">Finalizada</option>
-                <option value="CANCELLED">Cancelada</option>
+                {appointmentStatuses.map((s) => (
+                  <option key={s.key} value={s.key}>
+                    {s.label}
+                  </option>
+                ))}
               </Form.Select>
             </div>
 

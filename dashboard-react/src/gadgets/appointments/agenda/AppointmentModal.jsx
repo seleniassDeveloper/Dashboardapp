@@ -342,6 +342,53 @@ export default function AppointmentModal({
     onHide();
   };
 
+  const handleCancelAppointment = () => {
+    if (!window.confirm("¿Estás seguro de que deseas cancelar esta cita?")) return;
+    
+    const parsedDate = new Date(`${appointmentDate}T${appointmentTime}`);
+    if (isNaN(parsedDate.getTime())) return;
+    const startsAt = parsedDate.toISOString();
+    const serviceId = selectedServiceIds[0] || "";
+
+    const mainService = services.find(s => s.id === serviceId);
+    const otherServices = selectedServiceIds.slice(1).map(id => services.find(s => s.id === id)?.name).filter(Boolean);
+    let finalNotes = notes;
+    if (otherServices.length > 0) {
+      const prefix = `[Servicios: ${mainService?.name || "Servicio"} + ${otherServices.join(" + ")}]`;
+      if (!notes.includes(prefix)) {
+        finalNotes = `${prefix}\n${notes}`.trim();
+      }
+    }
+
+    const savedAppt = {
+      id: appointment.id,
+      startsAt,
+      status: "CANCELLED",
+      notes: finalNotes,
+      workerId,
+      serviceId,
+      senaStatus,
+      señaAmount: Number(señaAmount),
+      client: {
+        firstName: clientFirstName,
+        lastName: clientLastName,
+        phone: clientPhone,
+        email: clientEmail
+      },
+      service: {
+        id: serviceId,
+        name: selectedServiceIds.length > 1
+          ? selectedServiceIds.map(id => services.find(s => s.id === id)?.name).filter(Boolean).join(" + ")
+          : (services.find(s => s.id === serviceId)?.name || "Servicio"),
+        price: totals.price,
+        duration: totals.duration
+      }
+    };
+
+    onSave(savedAppt, true);
+    onHide();
+  };
+
   // --- RECORDATORIOS DE CONFIRMACIÓN DIRECTOS ---
   const handleSendWhatsApp = () => {
     const worker = workers.find(w => w.id === workerId);
@@ -780,6 +827,11 @@ export default function AppointmentModal({
           </div>
 
           <div className="d-flex gap-2">
+            {isEdit && (
+              <Button variant="outline-danger" onClick={handleCancelAppointment} className="rounded-pill px-3">
+                Cancelar Turno
+              </Button>
+            )}
             <Button variant="outline-secondary" onClick={onHide} className="rounded-pill px-4">
               Cancelar
             </Button>

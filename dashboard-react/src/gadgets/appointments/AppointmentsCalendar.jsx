@@ -7,6 +7,7 @@ import {
   Spinner,
   Alert,
   ButtonGroup,
+  Form,
 } from "react-bootstrap";
 
 import FullCalendar from "@fullcalendar/react";
@@ -21,6 +22,7 @@ import Agenda from "./agenda/Agenda";
 import AgendaSummary from "./agenda/AgendaSummary";
 import AgendaSummaryDetailModal from "./agenda/AgendaSummaryDetailModal";
 import axiosApi from "../../lib/api.js";
+import { User, Calendar } from "lucide-react";
 
 import "./styles/fullcalendar-fix.css";
 
@@ -28,6 +30,14 @@ import "./styles/fullcalendar-fix.css";
 function addMinutes(dateLike, minutes) {
   const d = new Date(dateLike);
   return new Date(d.getTime() + (Number(minutes) || 0) * 60000);
+}
+
+function currency(n) {
+  return new Intl.NumberFormat("es-AR", {
+    style: "currency",
+    currency: "ARS",
+    maximumFractionDigits: 0,
+  }).format(n || 0);
 }
 
 function statusLabel(status) {
@@ -143,6 +153,28 @@ export default function AppointmentsCalendar() {
     setSelected(appt);
     setShowDetail(true);
     setSummaryDetail(null);
+  };
+
+  const handleStatusChange = async (newStatus) => {
+    if (!selected) return;
+    try {
+      const payload = {
+        clientId: selected.clientId || selected.client?.id,
+        workerId: selected.workerId || selected.worker?.id,
+        serviceId: selected.serviceId || selected.service?.id,
+        startsAt: selected.startsAt,
+        notes: selected.notes ?? null,
+        status: newStatus,
+      };
+
+      const res = await axiosApi.put(`/appointments/${selected.id}`, payload);
+      upsertAppointment(res.data);
+      setSelected(res.data);
+      fetchAppointments();
+    } catch (e) {
+      console.error("Error updating status:", e);
+      alert("No se pudo actualizar el estado de la cita.");
+    }
   };
 
   const handleSendWhatsApp = (appt) => {
@@ -446,87 +478,96 @@ export default function AppointmentsCalendar() {
           <Modal.Title>Detalle de cita</Modal.Title>
         </Modal.Header>
 
-        <Modal.Body>
+        <Modal.Body className="p-4">
           {!selected ? (
             <div className="text-muted">Sin selección</div>
           ) : (
-            <div className="d-grid gap-2">
+            <div className="d-grid gap-4">
               <div>
-                <div className="text-muted" style={{ fontSize: 12 }}>
-                  Cliente
+                <span className="text-muted smaller uppercase d-block mb-1">Cliente</span>
+                <h4 className="fw-bold text-dark mb-0">
+                  {selected.client?.firstName} {selected.client?.lastName || ""}
+                </h4>
+                <div className="text-muted small mt-1">
+                  {selected.client?.email || "Sin correo"} · {selected.client?.phone || "Sin teléfono"}
                 </div>
-                <div className="fw-semibold">
-                  {[selected?.client?.firstName, selected?.client?.lastName]
-                    .filter(Boolean)
-                    .join(" ") || "—"}
+              </div>
+
+              <div className="p-3 bg-light rounded-4 border">
+                <div className="d-flex justify-content-between align-items-start mb-2">
+                  <div>
+                    <span className="text-muted smaller uppercase">Servicio</span>
+                    <div className="fw-bold text-dark">{selected.service?.name || "Servicio"}</div>
+                  </div>
+                  <Badge bg="dark" className="fs-6 py-1 px-2.5">
+                    {currency(selected.service?.price)}
+                  </Badge>
+                </div>
+                <div className="text-muted small">
+                  Duración del servicio: {selected.service?.duration || 60} minutos
                 </div>
               </div>
 
               <div>
-                <div className="text-muted" style={{ fontSize: 12 }}>
-                  Servicio
-                </div>
-                <div className="fw-semibold">
-                  {selected?.service?.name || "—"}
+                <span className="text-muted smaller uppercase d-block mb-2">Colaborador</span>
+                <div className="d-flex align-items-center gap-2 bg-light p-2.5 rounded-3">
+                  <User size={16} className="text-muted" />
+                  <span className="fw-semibold text-dark">
+                    {selected.worker ? `${selected.worker.firstName} ${selected.worker.lastName}` : "Profesional no asignado"}
+                  </span>
                 </div>
               </div>
 
               <div>
-                <div className="text-muted" style={{ fontSize: 12 }}>
-                  Profesional que atiende
-                </div>
-                <div className="fw-semibold">
-                  {selected?.worker
-                    ? `${selected.worker.firstName || ""} ${selected.worker.lastName || ""}`.trim()
-                    : "—"}
+                <span className="text-muted smaller uppercase d-block mb-2">Fecha y Horario</span>
+                <div className="d-flex align-items-center gap-2 bg-light p-2.5 rounded-3">
+                  <Calendar size={16} className="text-muted" />
+                  <span className="fw-semibold text-dark">
+                    {new Date(selected.startsAt).toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+                    {" a las "}
+                    {new Date(selected.startsAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" })} {"hs"}
+                  </span>
                 </div>
               </div>
 
-              <div className="d-flex gap-3">
+              {selected.notes && (
                 <div>
-                  <div className="text-muted" style={{ fontSize: 12 }}>
-                    Inicio
-                  </div>
-                  <div className="fw-semibold">
-                    {selected?.startsAt && !isNaN(new Date(selected.startsAt).getTime())
-                      ? new Date(selected.startsAt).toLocaleString()
-                      : "—"}
-                  </div>
+                  <span className="text-muted smaller uppercase d-block mb-1">Notas del Turno</span>
+                  <div className="p-2 border bg-light rounded-3 text-muted small">{selected.notes}</div>
                 </div>
-
-                <div>
-                  <div className="text-muted" style={{ fontSize: 12 }}>
-                    Duración
-                  </div>
-                  <div className="fw-semibold">
-                    {selected?.service?.duration
-                      ? `${selected.service.duration} min`
-                      : "—"}
-                  </div>
-                </div>
-              </div>
+              )}
 
               <div>
-                <div className="text-muted" style={{ fontSize: 12 }}>
-                  Estado
-                </div>
-                <Badge style={{ backgroundColor: appointmentStatuses.find(s => s.key === selected?.status)?.color || "#d97706" }}>
-                  {appointmentStatuses.find(s => s.key === selected?.status)?.label || selected?.status || "—"}
-                </Badge>
-              </div>
-
-              <div>
-                <div className="text-muted" style={{ fontSize: 12 }}>
-                  Notas
-                </div>
-                <div>{selected?.notes || "—"}</div>
+                <span className="text-muted smaller uppercase d-block mb-2">Cambiar Estado</span>
+                <Form.Select
+                  value={selected.status || "PENDING"}
+                  onChange={(e) => handleStatusChange(e.target.value)}
+                  className="modern-input"
+                >
+                  {appointmentStatuses.map((s) => (
+                    <option key={s.key} value={s.key}>
+                      {s.label}
+                    </option>
+                  ))}
+                </Form.Select>
               </div>
             </div>
           )}
         </Modal.Body>
 
-        <Modal.Footer>
-          <Button variant="dark" onClick={() => setShowDetail(false)}>
+        <Modal.Footer className="border-0 pt-0 pb-3 d-flex justify-content-between">
+          <Button
+            variant="outline-primary"
+            className="rounded-pill px-4"
+            onClick={() => {
+              setShowDetail(false);
+              setInitialAddData(selected);
+              setShowAddModal(true);
+            }}
+          >
+            Editar Cita
+          </Button>
+          <Button variant="dark" className="rounded-pill px-4" onClick={() => setShowDetail(false)}>
             Cerrar
           </Button>
         </Modal.Footer>

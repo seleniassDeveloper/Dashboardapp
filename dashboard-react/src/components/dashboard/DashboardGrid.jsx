@@ -20,6 +20,7 @@ export default function DashboardGrid({
   onOpenAddModal,
   onUpdateAppointmentStatus,
   onConfirmAppointment,
+  onFinalizeAppointment,
   onViewCalendar,
   onEditWorker,
 }) {
@@ -237,6 +238,7 @@ export default function DashboardGrid({
                   services={services}
                   onUpdateAppointmentStatus={onUpdateAppointmentStatus}
                   onConfirmAppointment={onConfirmAppointment}
+                  onFinalizeAppointment={onFinalizeAppointment}
                   onViewCalendar={onViewCalendar}
                   onEditWorker={onEditWorker}
                 />
