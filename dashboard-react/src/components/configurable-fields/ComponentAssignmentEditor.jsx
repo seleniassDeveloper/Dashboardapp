@@ -260,7 +260,7 @@ export default function ComponentAssignmentEditor() {
                 
                 <div
                   className="d-flex flex-column gap-2 overflow-auto scrollbar-none mb-3"
-                  style={{ maxHeight: 280, paddingRight: "4px" }}
+                  style={{ maxHeight: 280, padding: "8px 4px 8px 0px" }}
                 >
                   {fieldRefs.length === 0 ? (
                     <div className="text-center py-4 border border-dashed rounded-2xl bg-light text-muted small">
@@ -272,7 +272,7 @@ export default function ComponentAssignmentEditor() {
                       return (
                         <div
                           key={ref.id}
-                          className="p-2.5 border border-purple-500 bg-purple-50 bg-opacity-30 rounded-2xl shadow-sm d-flex align-items-center justify-content-between hover-bg-light transition-all animate-fade-in"
+                          className="py-2.5 px-3 border border-purple-200 bg-purple-50 bg-opacity-35 rounded-2xl shadow-sm d-flex align-items-center justify-content-between hover-bg-light transition-all animate-fade-in"
                         >
                           <div className="d-flex align-items-center gap-2.5" style={{ flex: 1, minWidth: 0 }}>
                             <span
@@ -286,7 +286,7 @@ export default function ComponentAssignmentEditor() {
                               id={`active-${ref.id}`}
                               checked={true}
                               onChange={() => toggleField(ref.id)}
-                              className="custom-checkbox m-0 fw-semibold"
+                              className="custom-checkbox m-0 fw-semibold animate-none"
                             />
                             <div className="d-flex flex-column text-truncate" style={{ minWidth: 0 }}>
                               <span className="fw-bold text-gray-800 text-xs text-truncate">
@@ -298,7 +298,7 @@ export default function ComponentAssignmentEditor() {
                             </div>
                           </div>
 
-                          <div className="d-flex align-items-center gap-2">
+                          <div className="d-flex align-items-center gap-3">
                             {/* Required Switch */}
                             <Form.Check
                               type="switch"
@@ -317,29 +317,27 @@ export default function ComponentAssignmentEditor() {
                             />
 
                             {/* Position Controls */}
-                            <div className="d-flex gap-1">
-                              <Button
-                                variant="light"
-                                size="sm"
-                                className="p-1 rounded-lg border hover-bg-gray-100 btn-order-control"
+                            <div className="d-flex align-items-center border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm" style={{ height: "28px" }}>
+                              <button
+                                type="button"
                                 disabled={idx === 0}
                                 onClick={() => moveUp(idx)}
                                 title="Mover arriba"
-                                style={{ padding: "2px 4px", fontSize: "10px" }}
+                                className="btn-order-control px-2.5 h-100 border-0 bg-transparent text-gray-600 hover-bg-gray-50 transition-colors d-flex align-items-center justify-content-center"
+                                style={{ borderRight: "1px solid #e5e7eb", opacity: idx === 0 ? 0.35 : 1, transition: "all 0.15s ease" }}
                               >
-                                <ChevronUp size={13} className="text-gray-700" />
-                              </Button>
-                              <Button
-                                variant="light"
-                                size="sm"
-                                className="p-1 rounded-lg border hover-bg-gray-100 btn-order-control"
+                                <ChevronUp size={14} />
+                              </button>
+                              <button
+                                type="button"
                                 disabled={idx === fieldRefs.length - 1}
                                 onClick={() => moveDown(idx)}
                                 title="Mover abajo"
-                                style={{ padding: "2px 4px", fontSize: "10px" }}
+                                className="btn-order-control px-2.5 h-100 border-0 bg-transparent text-gray-600 hover-bg-gray-50 transition-colors d-flex align-items-center justify-content-center"
+                                style={{ opacity: idx === fieldRefs.length - 1 ? 0.35 : 1, transition: "all 0.15s ease" }}
                               >
-                                <ChevronDown size={13} className="text-gray-700" />
-                              </Button>
+                                <ChevronDown size={14} />
+                              </button>
                             </div>
                           </div>
                         </div>
