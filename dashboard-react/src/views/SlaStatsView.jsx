@@ -19,7 +19,7 @@ const formatDuration = (seconds, isEs) => {
 };
 
 export default function SlaStatsView() {
-  const { t, i18n } = useTranslation("views");
+  const { i18n } = useTranslation("views");
   const isEs = i18n.language === "es";
   const { appointmentStatuses } = useAppointmentsStore();
 

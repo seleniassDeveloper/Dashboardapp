@@ -12,7 +12,7 @@ export default function PublicConsentPage() {
   const [signing, setSigning] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
-  const [recordId, setRecordId] = useState("");
+  const [savedSignature, setSavedSignature] = useState("");
   const [consentData, setConsentData] = useState(null);
 
   // Form states
@@ -135,8 +135,8 @@ export default function PublicConsentPage() {
 
     axios
       .post(`${API_BASE_URL}/public/consent/${token}/sign`, payload)
-      .then((res) => {
-        setRecordId(res.data.recordId);
+      .then(() => {
+        setSavedSignature(signatureImage);
         setSuccess(true);
         setSigning(false);
       })
@@ -263,7 +263,7 @@ export default function PublicConsentPage() {
             </div>
             <div style={{ textAlign: "center" }}>
               <p style={{ margin: "0 0 10px 0", fontSize: "12px" }}>Firma del Cliente:</p>
-              <img src={canvasRef.current?.toDataURL("image/png")} alt="Firma digital" style={{ maxWidth: "200px", borderBottom: "1px solid #000" }} />
+              <img src={savedSignature} alt="Firma digital" style={{ maxWidth: "200px", borderBottom: "1px solid #000" }} />
             </div>
           </div>
         </div>

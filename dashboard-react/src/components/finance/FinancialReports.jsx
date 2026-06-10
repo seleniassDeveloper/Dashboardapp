@@ -53,7 +53,6 @@ class LocalErrorBoundary extends React.Component {
 // Componente Interno que procesa los reportes
 function FinancialReportsContent({ 
   recentTransactions = [], 
-  data = {}, 
   loading = false, 
   error = null 
 }) {
@@ -749,12 +748,12 @@ function FinancialReportsContent({
                           </td>
                         </tr>
                       ) : (
-                        filteredTransactions.map(tx => {
+                        filteredTransactions.map((tx, idx) => {
                           if (!tx) return null;
                           const isFacturada = invoicedTxs[tx.id];
 
                           return (
-                            <tr key={tx.id || Math.random()}>
+                            <tr key={tx.id || idx}>
                               <td className="ps-3 py-2.5 fw-bold text-gray-900">{tx.clientName || t("reports.noClientName", { defaultValue: "Sin Nombre" })}</td>
                               <td>
                                 <Badge bg="primary-soft" className="text-primary rounded-pill px-2.5 py-1 fw-bold">{tx.serviceName || t("reports.noServiceName", { defaultValue: "Servicio" })}</Badge>

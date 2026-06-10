@@ -3,6 +3,14 @@ import { Card, Button, Form, Row, Col, Alert, Badge } from "react-bootstrap";
 import { Barcode, Scan, PlusCircle, MinusCircle, CheckCircle } from "lucide-react";
 import api from "../../lib/api.js";
 
+function currency(n) {
+  return new Intl.NumberFormat("es-AR", {
+    style: "currency",
+    currency: "ARS",
+    maximumFractionDigits: 0,
+  }).format(n || 0);
+}
+
 export default function BarcodeScanner({ products = [], onRefresh }) {
   const [scannedProduct, setScannedProduct] = useState(null);
   const [barcodeInput, setBarcodeInput] = useState("");
