@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { Card, Button, Form, Alert, Spinner, Badge, Row, Col, InputGroup } from "react-bootstrap";
-import { Save, HelpCircle, Eye, ChevronUp, ChevronDown } from "lucide-react";
+import { Save, HelpCircle, Eye, ChevronUp, ChevronDown, GripVertical } from "lucide-react";
 import { FORM_TARGET_GROUPS, REGISTRY_SCHEMA_KEY } from "../../config/appFormTargets.js";
 import { resolveFieldsFromRegistry } from "../../utils/resolveFormFields.js";
 import api from "../../lib/api.js";
@@ -14,6 +14,7 @@ export default function ComponentAssignmentEditor() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [draggedIndex, setDraggedIndex] = useState(null);
 
   // Tabs for configuration column: 'select' (choose fields) or 'order' (reorder them)
   const [editorTab, setEditorTab] = useState("select");
@@ -116,6 +117,29 @@ export default function ComponentAssignmentEditor() {
       next[index + 1] = temp;
       return next;
     });
+  };
+
+  const handleDragStart = (e, index) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", index);
+  };
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === index) return;
+    setFieldRefs((prev) => {
+      const next = [...prev];
+      const draggedItem = next[draggedIndex];
+      next.splice(draggedIndex, 1);
+      next.splice(index, 0, draggedItem);
+      return next;
+    });
+    setDraggedIndex(index);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
   };
 
   const save = async () => {
@@ -248,12 +272,24 @@ export default function ComponentAssignmentEditor() {
                       return (
                         <div
                           key={ref.id}
-                          className="p-2.5 border border-purple-500 bg-purple-50 bg-opacity-30 rounded-2xl shadow-sm d-flex align-items-center justify-content-between hover-bg-light transition-all animate-fade-in"
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, idx)}
+                          onDragOver={(e) => handleDragOver(e, idx)}
+                          onDragEnd={handleDragEnd}
+                          className={`p-2.5 border border-purple-500 bg-purple-50 bg-opacity-30 rounded-2xl shadow-sm d-flex align-items-center justify-content-between hover-bg-light transition-all animate-fade-in ${
+                            draggedIndex === idx ? "opacity-40 border-dashed" : ""
+                          }`}
+                          style={{ cursor: "grab" }}
                         >
                           <div className="d-flex align-items-center gap-2.5" style={{ flex: 1, minWidth: 0 }}>
+                            <GripVertical
+                              size={14}
+                              className="text-purple-400 cursor-grab active:cursor-grabbing"
+                              style={{ flexShrink: 0 }}
+                            />
                             <span
                               className="badge bg-purple bg-opacity-10 text-purple-700 fw-bold rounded-lg d-flex align-items-center justify-content-center font-mono"
-                              style={{ width: "22px", height: "22px", fontSize: "10px" }}
+                              style={{ width: "22px", height: "22px", fontSize: "10px", flexShrink: 0 }}
                             >
                               {idx + 1}
                             </span>
@@ -280,7 +316,10 @@ export default function ComponentAssignmentEditor() {
                               type="switch"
                               id={`active-req-${ref.id}`}
                               label={
-                                <span className={`text-xxs fw-bold uppercase ${ref.required ? "text-danger" : "text-muted"}`} style={{ fontSize: "9px" }}>
+                                <span
+                                  className={`text-xxs fw-bold uppercase ${ref.required ? "text-danger" : "text-muted"}`}
+                                  style={{ fontSize: "9px" }}
+                                >
                                   {ref.required ? "Oblig" : "Opc"}
                                 </span>
                               }
