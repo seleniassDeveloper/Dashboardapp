@@ -464,6 +464,37 @@ export default function PublicBookingPage() {
                 <h2 className="h5 fw-black text-gray-900 mb-1">{isEs ? "Selecciona el Servicio" : "Select Service"}</h2>
                 <p className="text-muted smaller mb-4">{isEs ? "Elegí el tratamiento contable o estético que deseas agendar." : "Choose the accounting or aesthetic treatment you want to schedule."}</p>
                 
+                {business?.googleBookingUrl && (
+                  <Card className="border-0 shadow-sm p-3.5 rounded-4 mb-4" style={{ backgroundColor: "#f3e8ff", border: "1px solid #e9d5ff" }}>
+                    <div className="d-flex align-items-start gap-3">
+                      <div className="p-2 bg-white rounded-3 d-flex align-items-center justify-content-center text-primary" style={{ color: "#7c3aed", minWidth: "40px", height: "40px" }}>
+                        <Calendar size={20} style={{ color: "#7c3aed" }} />
+                      </div>
+                      <div className="flex-grow-1">
+                        <h4 className="h6 fw-bold mb-1" style={{ color: "#5b21b6" }}>
+                          {isEs ? "Reserva Directa desde Google Calendar" : "Direct Booking from Google Calendar"}
+                        </h4>
+                        <p className="text-secondary smaller mb-2.5 leading-relaxed">
+                          {isEs 
+                            ? "También puedes agendar tu turno oficial de forma interactiva y segura directamente desde nuestro Google Calendar oficial."
+                            : "You can also schedule your official appointment interactively and securely directly from our official Google Calendar."}
+                        </p>
+                        <Button 
+                          variant="primary" 
+                          size="sm" 
+                          href={business.googleBookingUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="rounded-pill px-4 py-1.5 fw-semibold border-0"
+                          style={{ backgroundColor: "#7c3aed", backgroundImage: "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)", fontSize: "12px" }}
+                        >
+                          {isEs ? "Agendar en Google Calendar ↗" : "Book in Google Calendar ↗"}
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                )}
+
                 {/* Buscador de servicios */}
                 <div className="position-relative mb-4">
                   <Form.Control

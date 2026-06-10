@@ -12,8 +12,9 @@ import api from "../lib/api.js";
 
 export default function CalendarView() {
   const { t } = useTranslation("views");
-  const { appointments, services, fetchAppointments } = useAppointmentsStore();
+  const { appointments, services, fetchAppointments, business } = useAppointmentsStore();
   const [workers, setWorkers] = useState([]);
+  const [showEmbeddedGoogle, setShowEmbeddedGoogle] = useState(false);
 
   // Cargar estilistas del backend
   useEffect(() => {
@@ -216,18 +217,53 @@ export default function CalendarView() {
 
   return (
     <Container fluid className="p-0 pb-4">
-      <header className="mb-4">
+      <header className="mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
         <div>
           <h1 className="fw-bold h3">{t("calendar.title")}</h1>
           <p className="text-muted mb-0">{t("calendar.subtitle")}</p>
         </div>
+
+        {business?.googleCalendarId && business?.googleRefreshToken && (
+          <div className="d-flex bg-light p-1 rounded-3">
+            <Button
+              size="sm"
+              variant={!showEmbeddedGoogle ? "white" : "link"}
+              className={`rounded-2 px-3 py-1.5 text-dark small ${!showEmbeddedGoogle ? "shadow-sm border fw-bold bg-white" : "text-muted border-0"}`}
+              onClick={() => setShowEmbeddedGoogle(false)}
+              style={{ fontSize: "12px" }}
+            >
+              Calendario Local (Sincronizado)
+            </Button>
+            <Button
+              size="sm"
+              variant={showEmbeddedGoogle ? "white" : "link"}
+              className={`rounded-2 px-3 py-1.5 text-dark small ${showEmbeddedGoogle ? "shadow-sm border fw-bold bg-white" : "text-muted border-0"}`}
+              onClick={() => setShowEmbeddedGoogle(true)}
+              style={{ fontSize: "12px" }}
+            >
+              Google Calendar (Embebido)
+            </Button>
+          </div>
+        )}
       </header>
 
       <Row className="g-4">
         {/* Calendario central */}
         <Col lg={8}>
           <div className="card-premium p-0 overflow-hidden shadow-sm" style={{ minHeight: "calc(100vh - 200px)" }}>
-            <AppointmentsCalendar />
+            {showEmbeddedGoogle && business?.googleCalendarId ? (
+              <div className="w-100 h-100" style={{ minHeight: "calc(100vh - 200px)" }}>
+                <iframe 
+                  src={`https://calendar.google.com/calendar/embed?src=${encodeURIComponent(business.googleCalendarId)}&ctz=America%2FArgentina%2FBuenos_Aires`}
+                  style={{ border: 0, width: "100%", height: "calc(100vh - 200px)", minHeight: "560px" }}
+                  frameBorder="0" 
+                  scrolling="no"
+                  title="Google Calendar Embebido"
+                />
+              </div>
+            ) : (
+              <AppointmentsCalendar />
+            )}
           </div>
         </Col>
 

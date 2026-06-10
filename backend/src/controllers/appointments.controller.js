@@ -7,6 +7,7 @@ import {
 } from "../services/appointmentAvailability.js";
 import { sendReminderEmail } from "../services/mailer.js";
 import { triggerWorkflows, recordStatusTransition } from "../services/workflowEngine.js";
+import { syncGoogleCalendarToDb } from "../services/googleService.js";
 
 /**
  * Traduce el motivo por el que un horario no está disponible a un código HTTP:
@@ -32,6 +33,15 @@ function slotErrorStatus(code) {
 
 export async function getAppointments(req, res) {
   try {
+    // Sincronizar Google Calendar a DB en tiempo real antes de listar
+    try {
+      if (req.businessId) {
+        await syncGoogleCalendarToDb(req.businessId);
+      }
+    } catch (syncErr) {
+      console.error("[Google Sync getAppointments Error]:", syncErr);
+    }
+
     const whereClause = { businessId: req.businessId };
 
     // Si el rol es profesional, limitamos a sus propias citas
