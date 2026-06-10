@@ -266,12 +266,12 @@ export default function ServiceModal({ show, onHide, editService = null }) {
       size="xl"
       backdrop="static"
       keyboard={!saving}
-      dialogClassName="service-form-modal border-0 shadow-lg"
+      dialogClassName="hegemonic-modal service-form-modal border-0 shadow-lg"
     >
-      <Modal.Header closeButton={!saving} className="bg-light border-0 py-3.5 px-4 rounded-top">
+      <Modal.Header closeButton={!saving} className="border-0 py-3.5 px-4 rounded-top" style={{ background: "rgba(248, 250, 252, 0.9)", borderTopLeftRadius: "24px", borderTopRightRadius: "24px", borderBottom: "1px solid rgba(226, 232, 240, 0.8)" }}>
         <Modal.Title className="fw-black text-gray-900 d-flex align-items-center gap-2">
           <Sparkles className="text-purple-600 animate-pulse" size={22} />
-          <span>{isEditing ? `Editar Servicio: ${name}` : isDuplicating ? `Duplicar Servicio: ${name}` : "Crear Servicio Comercial SaaS Enterprise"}</span>
+          <span style={{ fontSize: "1.15rem" }}>{isEditing ? `Editar Servicio: ${name}` : isDuplicating ? `Duplicar Servicio: ${name}` : "Crear Servicio Comercial SaaS Enterprise"}</span>
         </Modal.Title>
       </Modal.Header>
 
@@ -281,12 +281,13 @@ export default function ServiceModal({ show, onHide, editService = null }) {
 
         <Row className="g-0">
           {/* Menú lateral izquierdo */}
-          <Col md={3} className="bg-gray-50 border-end p-3 d-flex flex-column gap-1.5" style={{ minHeight: "560px" }}>
+          <Col md={3} className="p-3.5 d-flex flex-column gap-2" style={{ backgroundColor: "#f8fafc", borderRight: "1px solid #e2e8f0", minHeight: "560px", borderBottomLeftRadius: "24px" }}>
             <button
               onClick={() => setActiveTab("general")}
               className={`d-flex align-items-center gap-3 w-100 px-3 py-2.5 rounded-xl border-0 text-start fw-bold transition-all ${
-                activeTab === "general" ? "bg-purple-600 text-white shadow-sm" : "bg-transparent text-muted hover-bg-gray-200"
+                activeTab === "general" ? "text-white" : "bg-transparent text-muted hover-bg-purple-50"
               }`}
+              style={activeTab === "general" ? { background: "linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)", boxShadow: "0 4px 12px rgba(124, 58, 237, 0.2)" } : {}}
             >
               <Info size={18} />
               <span>Info Básica</span>
@@ -295,8 +296,9 @@ export default function ServiceModal({ show, onHide, editService = null }) {
             <button
               onClick={() => setActiveTab("pricing")}
               className={`d-flex align-items-center gap-3 w-100 px-3 py-2.5 rounded-xl border-0 text-start fw-bold transition-all ${
-                activeTab === "pricing" ? "bg-purple-600 text-white shadow-sm" : "bg-transparent text-muted hover-bg-gray-200"
+                activeTab === "pricing" ? "text-white" : "bg-transparent text-muted hover-bg-purple-50"
               }`}
+              style={activeTab === "pricing" ? { background: "linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)", boxShadow: "0 4px 12px rgba(124, 58, 237, 0.2)" } : {}}
             >
               <Clock size={18} />
               <span>Precios y Tiempos</span>
@@ -305,8 +307,9 @@ export default function ServiceModal({ show, onHide, editService = null }) {
             <button
               onClick={() => setActiveTab("professionals")}
               className={`d-flex align-items-center gap-3 w-100 px-3 py-2.5 rounded-xl border-0 text-start fw-bold transition-all ${
-                activeTab === "professionals" ? "bg-purple-600 text-white shadow-sm" : "bg-transparent text-muted hover-bg-gray-200"
+                activeTab === "professionals" ? "text-white" : "bg-transparent text-muted hover-bg-purple-50"
               }`}
+              style={activeTab === "professionals" ? { background: "linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)", boxShadow: "0 4px 12px rgba(124, 58, 237, 0.2)" } : {}}
             >
               <User size={18} />
               <span>Profesionales</span>
@@ -315,8 +318,9 @@ export default function ServiceModal({ show, onHide, editService = null }) {
             <button
               onClick={() => setActiveTab("commissions")}
               className={`d-flex align-items-center gap-3 w-100 px-3 py-2.5 rounded-xl border-0 text-start fw-bold transition-all ${
-                activeTab === "commissions" ? "bg-purple-600 text-white shadow-sm" : "bg-transparent text-muted hover-bg-gray-200"
+                activeTab === "commissions" ? "text-white" : "bg-transparent text-muted hover-bg-purple-50"
               }`}
+              style={activeTab === "commissions" ? { background: "linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)", boxShadow: "0 4px 12px rgba(124, 58, 237, 0.2)" } : {}}
             >
               <DollarSign size={18} />
               <span>Comisiones</span>
@@ -325,8 +329,9 @@ export default function ServiceModal({ show, onHide, editService = null }) {
             <button
               onClick={() => setActiveTab("inventory")}
               className={`d-flex align-items-center gap-3 w-100 px-3 py-2.5 rounded-xl border-0 text-start fw-bold transition-all ${
-                activeTab === "inventory" ? "bg-purple-600 text-white shadow-sm" : "bg-transparent text-muted hover-bg-gray-200"
+                activeTab === "inventory" ? "text-white" : "bg-transparent text-muted hover-bg-purple-50"
               }`}
+              style={activeTab === "inventory" ? { background: "linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)", boxShadow: "0 4px 12px rgba(124, 58, 237, 0.2)" } : {}}
             >
               <Package size={18} />
               <span>Insumos y Fórmulas</span>
@@ -351,7 +356,7 @@ export default function ServiceModal({ show, onHide, editService = null }) {
                           value={name}
                           onChange={(e) => setName(e.target.value)}
                           placeholder="Ej: Balayage Premium, Profilaxis Dental..."
-                          className="rounded-xl border-gray-200"
+                          className="modern-input"
                         />
                       </Form.Group>
                     </Col>
@@ -361,7 +366,7 @@ export default function ServiceModal({ show, onHide, editService = null }) {
                         <Form.Select
                           value={category}
                           onChange={(e) => setCategory(e.target.value)}
-                          className="rounded-xl border-gray-200"
+                          className="modern-input"
                         >
                           {PRESET_CATEGORIES.map(cat => (
                             <option key={cat} value={cat}>{cat}</option>
@@ -375,7 +380,7 @@ export default function ServiceModal({ show, onHide, editService = null }) {
                         <Form.Select
                           value={status}
                           onChange={(e) => setStatus(e.target.value)}
-                          className="rounded-xl border-gray-200"
+                          className="modern-input"
                         >
                           <option value="active">Activo (Disponible en Agenda y Reservas)</option>
                           <option value="hidden_online">Oculto en Reservas Online (Solo interno)</option>
@@ -392,7 +397,7 @@ export default function ServiceModal({ show, onHide, editService = null }) {
                           value={description}
                           onChange={(e) => setDescription(e.target.value)}
                           placeholder="Breve reseña del servicio que verán los clientes al agendar en línea."
-                          className="rounded-xl border-gray-200"
+                          className="modern-input"
                         />
                       </Form.Group>
                     </Col>
@@ -440,7 +445,7 @@ export default function ServiceModal({ show, onHide, editService = null }) {
                             value={price}
                             onChange={(e) => setPrice(e.target.value)}
                             placeholder="Ej: 15000"
-                            className="rounded-xl border-gray-200 font-monospace fw-bold text-purple-900"
+                            className="modern-input font-monospace fw-bold text-purple-950"
                           />
                         </InputGroup>
                       </Form.Group>
@@ -455,7 +460,7 @@ export default function ServiceModal({ show, onHide, editService = null }) {
                             min={1}
                             value={duration}
                             onChange={(e) => setDuration(e.target.value)}
-                            className="rounded-xl border-gray-200 font-monospace fw-bold"
+                            className="modern-input font-monospace fw-bold"
                           />
                           <InputGroup.Text className="bg-light border-gray-200 text-xs font-semibold">minutos</InputGroup.Text>
                         </InputGroup>
@@ -471,7 +476,7 @@ export default function ServiceModal({ show, onHide, editService = null }) {
                             min={0}
                             value={preparationMinutes}
                             onChange={(e) => setPreparationMinutes(e.target.value)}
-                            className="rounded-xl border-gray-200 font-monospace"
+                            className="modern-input font-monospace"
                           />
                           <InputGroup.Text className="bg-light border-gray-200 text-xs">minutos</InputGroup.Text>
                         </InputGroup>
@@ -488,7 +493,7 @@ export default function ServiceModal({ show, onHide, editService = null }) {
                             min={0}
                             value={cleanupMinutes}
                             onChange={(e) => setCleanupMinutes(e.target.value)}
-                            className="rounded-xl border-gray-200 font-monospace"
+                            className="modern-input font-monospace"
                           />
                           <InputGroup.Text className="bg-light border-gray-200 text-xs">minutos</InputGroup.Text>
                         </InputGroup>
@@ -528,7 +533,7 @@ export default function ServiceModal({ show, onHide, editService = null }) {
                                     value={depositAmount}
                                     onChange={(e) => setDepositAmount(e.target.value)}
                                     placeholder="Ej: 4500"
-                                    className="border-purple-200 rounded-xl font-monospace text-purple-800"
+                                    className="modern-input font-monospace text-purple-800"
                                   />
                                 </InputGroup>
                                 <Form.Text className="text-purple-700 smaller">Debe ser menor o igual al precio total.</Form.Text>
@@ -628,7 +633,7 @@ export default function ServiceModal({ show, onHide, editService = null }) {
                                   setCommissionValue("40");
                                 }
                               }}
-                              className="rounded-xl border-gray-200 focus-ring-purple"
+                              className="modern-input"
                             >
                               <option value="porcentaje">Porcentaje de Facturación (%)</option>
                               <option value="fijo">Sueldo Fijo / Comisión Base ($)</option>
@@ -636,7 +641,7 @@ export default function ServiceModal({ show, onHide, editService = null }) {
                             </Form.Select>
                           </Form.Group>
                         </Col>
-
+ 
                         {commissionType !== "ninguno" && (
                           <Col md={8}>
                             <Form.Group className="animate-fade-in">
@@ -647,7 +652,7 @@ export default function ServiceModal({ show, onHide, editService = null }) {
                                   min={0}
                                   value={commissionValue}
                                   onChange={(e) => setCommissionValue(e.target.value)}
-                                  className="rounded-xl border-gray-200 font-monospace fw-bold"
+                                  className="modern-input font-monospace fw-bold"
                                 />
                                 <InputGroup.Text className="bg-light border-gray-200 fw-bold">
                                   {commissionType === "porcentaje" ? "%" : "$"}
