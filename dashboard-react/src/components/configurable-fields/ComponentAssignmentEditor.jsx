@@ -516,22 +516,35 @@ export default function ComponentAssignmentEditor() {
                           onDragStart={(e) => handleDragStart(e, idx)}
                           onDragOver={(e) => handleDragOver(e, idx)}
                           onDragEnd={handleDragEnd}
-                          className={`draggable-input-col p-2.5 rounded-2xl transition-all ${
-                            draggedIndex === idx
-                              ? "opacity-35 border border-dashed border-purple-500 bg-purple-100 bg-opacity-50"
-                              : "border border-transparent"
-                          }`}
-                          style={{ cursor: "grab", border: "1px solid transparent" }}
+                          className="p-1"
                         >
-                          <Form.Group>
-                            <Form.Label className="fw-semibold text-xs text-gray-700 d-flex justify-content-between align-items-center mb-1">
-                              <span>
-                                {f.label} {f.required && <span className="text-danger">*</span>}
-                              </span>
-                              <span className="text-xxs text-muted font-mono">{f.id}</span>
-                            </Form.Label>
-                            {inputMock}
-                          </Form.Group>
+                          <div
+                            className={`draggable-input-card p-3 rounded-2xl border transition-all ${
+                              draggedIndex === idx
+                                ? "opacity-30 border-dashed border-purple-500 bg-purple-50 shadow-inner"
+                                : "border-gray-200 bg-white shadow-sm"
+                            }`}
+                            style={{ cursor: "grab" }}
+                          >
+                            <Form.Group className="mb-0">
+                              <Form.Label className="fw-semibold text-xs text-gray-700 d-flex justify-content-between align-items-center mb-2">
+                                <span className="d-flex align-items-center gap-1.5">
+                                  <GripVertical
+                                    size={14}
+                                    className="text-purple-400 drag-handle"
+                                    style={{ cursor: "grab" }}
+                                  />
+                                  <span>
+                                    {f.label} {f.required && <span className="text-danger">*</span>}
+                                  </span>
+                                </span>
+                                <span className="badge bg-light text-muted border font-mono text-xxs px-1.5 py-0.5">
+                                  {idx + 1}
+                                </span>
+                              </Form.Label>
+                              {inputMock}
+                            </Form.Group>
+                          </div>
                         </Col>
                       );
                     })}
@@ -542,12 +555,19 @@ export default function ComponentAssignmentEditor() {
           </Col>
         </Row>
         <style>{`
-          .draggable-input-col:hover {
-            border-color: #d8b4fe !important; /* purple-300 */
-            background-color: #faf5ff; /* purple-50 */
+          .draggable-input-card {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
           }
-          .draggable-input-col:active {
+          .draggable-input-card:hover {
+            border-color: #a78bfa !important; /* purple-400 */
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.08) !important;
+            background-color: #faf5ff !important;
+          }
+          .draggable-input-card:active {
             cursor: grabbing !important;
+          }
+          .draggable-input-card .drag-handle:hover {
+            color: #8b5cf6 !important;
           }
         `}</style>
       </Card.Body>
