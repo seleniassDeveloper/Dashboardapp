@@ -20,7 +20,8 @@ import {
   FileSpreadsheet,
   Lock,
   Sparkles,
-  Clock
+  Clock,
+  HelpCircle
 } from "lucide-react";
 import { useAuth } from "../../auth/AuthProvider";
 import { useBrand } from "../../header/name/BrandProvider";
@@ -310,6 +311,18 @@ export default function Sidebar({
       )}
 
       <div className="sidebar__footer">
+        <a 
+          href="/guia-uso.html" 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className="sidebar__item"
+          style={{ textDecoration: "none" }}
+        >
+          <div className="sidebar__item-icon">
+            <HelpCircle size={20} />
+          </div>
+          {!isCollapsed && <span className="sidebar__item-label">Guía de Uso</span>}
+        </a>
         <button className="sidebar__item sidebar__item--logout" onClick={handleLogout}>
           <div className="sidebar__item-icon">
             <LogOut size={20} />

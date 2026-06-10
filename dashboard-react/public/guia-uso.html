@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AuraDash — Centro de Guías y Manuales de Uso</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: rgba(30, 41, 59, 0.7);
+      --border: rgba(255, 255, 255, 0.08);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #8b5cf6;
+      --primary-hover: #a78bfa;
+      --emerald: #10b981;
+      --indigo: #6366f1;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: radial-gradient(circle at top right, #1e1b4b, var(--bg));
+      color: var(--text-main);
+      font-family: 'Outfit', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      overflow-x: hidden;
+    }
+
+    /* Background decorative blobs */
+    .blob {
+      position: absolute;
+      width: 500px;
+      height: 500px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, rgba(0,0,0,0) 70%);
+      top: -10%;
+      left: -10%;
+      z-index: -1;
+      filter: blur(80px);
+    }
+    
+    .blob-2 {
+      position: absolute;
+      width: 600px;
+      height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.12) 0%, rgba(0,0,0,0) 70%);
+      bottom: -10%;
+      right: -10%;
+      z-index: -1;
+      filter: blur(80px);
+    }
+
+    .container {
+      max-width: 1100px;
+      width: 100%;
+      text-align: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Header styling */
+    header {
+      margin-bottom: 50px;
+      animation: fadeInDown 0.8s ease-out;
+    }
+
+    .logo-container {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .logo-icon {
+      background: linear-gradient(135deg, var(--primary), var(--indigo));
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 24px;
+      color: white;
+      box-shadow: 0 8px 20px rgba(139, 92, 246, 0.3);
+    }
+
+    .logo-text {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      background: linear-gradient(to right, #ffffff, #c084fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    h1 {
+      font-size: 40px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 12px;
+      line-height: 1.2;
+    }
+
+    .subtitle {
+      font-size: 18px;
+      color: var(--text-muted);
+      max-width: 600px;
+      margin: 0 auto;
+      font-weight: 300;
+    }
+
+    /* Cards Grid */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+      margin-bottom: 50px;
+      animation: fadeInUp 0.8s ease-out 0.2s both;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 35px 30px;
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.05), rgba(99, 102, 241, 0.05));
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      z-index: 0;
+    }
+
+    .card:hover {
+      transform: translateY(-8px);
+      border-color: rgba(139, 92, 246, 0.4);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 0 30px rgba(139, 92, 246, 0.1);
+    }
+
+    .card:hover::before {
+      opacity: 1;
+    }
+
+    .card-content {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .card-icon {
+      font-size: 32px;
+      margin-bottom: 24px;
+      background: rgba(255, 255, 255, 0.03);
+      width: 60px;
+      height: 60px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      color: var(--primary);
+    }
+
+    .card-title {
+      font-size: 22px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: white;
+      letter-spacing: -0.01em;
+    }
+
+    .card-desc {
+      font-size: 15px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin-bottom: 24px;
+      flex-grow: 1;
+    }
+
+    .card-topics {
+      margin-bottom: 30px;
+      list-style: none;
+    }
+
+    .card-topics li {
+      font-size: 13.5px;
+      color: #cbd5e1;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-topics li::before {
+      content: "✦";
+      color: var(--primary-hover);
+      font-size: 11px;
+    }
+
+    .btn {
+      width: 100%;
+      background: linear-gradient(135deg, var(--primary), var(--indigo));
+      color: white;
+      text-decoration: none;
+      padding: 14px 20px;
+      border-radius: 14px;
+      font-weight: 600;
+      font-size: 15px;
+      text-align: center;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(139, 92, 246, 0.2);
+    }
+
+    .card:hover .btn {
+      background: linear-gradient(135deg, #9b6bf7, #7478f7);
+      box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+    }
+
+    /* Footer */
+    footer {
+      margin-top: auto;
+      color: var(--text-muted);
+      font-size: 14px;
+      animation: fadeIn 1s ease-out 0.4s both;
+    }
+
+    footer a {
+      color: var(--primary-hover);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+
+    /* Keyframes */
+    @keyframes fadeInDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @media (max-width: 640px) {
+      h1 { font-size: 32px; }
+      .subtitle { font-size: 16px; }
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="blob"></div>
+  <div class="blob-2"></div>
+
+  <div class="container">
+    <header>
+      <div class="logo-container">
+        <div class="logo-icon">A</div>
+        <span class="logo-text">AuraDash</span>
+      </div>
+      <h1>Centro de Guías y Manuales</h1>
+      <p class="subtitle">Encontrá el paso a paso y la información detallada para configurar y potenciar tu salón con AuraDash Suite.</p>
+    </header>
+
+    <div class="grid">
+      <!-- Card 1 -->
+      <div class="card">
+        <div class="card-content">
+          <div class="card-icon">⚡</div>
+          <h2 class="card-title">Manual de Módulos</h2>
+          <p class="card-desc">Explicación simplificada de las pantallas principales, formularios y botones de la aplicación.</p>
+          <ul class="card-topics">
+            <li>Panel de control y widgets</li>
+            <li>Creación y edición de citas</li>
+            <li>Ficha técnica e historial del CRM</li>
+            <li>Seguridad y matriz de roles RBAC</li>
+          </ul>
+          <a href="manual-modulos.html" class="btn">Abrir Guía</a>
+        </div>
+      </div>
+
+      <!-- Card 2 -->
+      <div class="card">
+        <div class="card-content">
+          <div class="card-icon">📚</div>
+          <h2 class="card-title">Manual Detallado</h2>
+          <p class="card-desc">Guía exhaustiva con los objetivos de cada módulo, la información que se muestra y rutinas operativas recomendadas.</p>
+          <ul class="card-topics">
+            <li>Copilot Aura IA</li>
+            <li>Sincronización de Google Sheets</li>
+            <li>Liquidación de comisiones al equipo</li>
+            <li>Reglas de consumo del inventario</li>
+          </ul>
+          <a href="manual-detallado.html" class="btn">Abrir Guía</a>
+        </div>
+      </div>
+
+      <!-- Card 3 -->
+      <div class="card">
+        <div class="card-content">
+          <div class="card-icon">📦</div>
+          <h2 class="card-title">Inventario y Finanzas</h2>
+          <p class="card-desc">Instrucciones prácticas y rutinas de caja para el manejo del stock FIFO y el arqueo diario de caja física.</p>
+          <ul class="card-topics">
+            <li>Caja chica y arqueo de caja</li>
+            <li>Control de lotes con vencimiento</li>
+            <li>Pedidos y reposición de stock</li>
+            <li>Ingresos y bitácora de movimientos</li>
+          </ul>
+          <a href="manual-uso-inventario-finanzas.html" class="btn">Abrir Guía</a>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <p>¿Tenés alguna duda técnica? Volvé al <a href="/app">Dashboard Administrativo</a> o contactá a soporte.</p>
+    </footer>
+  </div>
+</body>
+</html>
