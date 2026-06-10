@@ -210,7 +210,7 @@ export default function TeamView() {
                     <div>
                       <div className="d-flex justify-content-between align-items-start mb-3">
                         <div className="position-relative">
-                          {member.photo ? (
+                          {member.photo && (member.photo.startsWith("http://") || member.photo.startsWith("https://") || member.photo.startsWith("/") || member.photo.startsWith("data:")) ? (
                             <img
                               src={member.photo}
                               alt={member.name}
