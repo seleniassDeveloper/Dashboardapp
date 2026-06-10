@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { Modal, Button, Form, Row, Col, Alert, Badge } from "react-bootstrap";
 import { Plus, Check, MessageSquare, Mail, Sparkles, AlertTriangle, Calendar } from "lucide-react";
 import api from "../../../lib/api.js";
+import { useAppointmentsStore } from "../AppointmentsProvider.jsx";
 
 // Formato de moneda ARS
 function currency(n) {
@@ -42,6 +43,9 @@ export default function AppointmentModal({
   const [emailStatus, setEmailStatus] = useState(null); // null o { type: 'success'|'danger', message: string }
   const [calendarLoading, setCalendarLoading] = useState(false);
   const [calendarStatus, setCalendarStatus] = useState(null); // null o { type: 'success'|'danger', message: string }
+  const [status, setStatus] = useState("PENDING");
+
+  const { appointmentStatuses } = useAppointmentsStore();
 
   // Cargar datos del formulario al abrir
   useEffect(() => {
@@ -92,6 +96,7 @@ export default function AppointmentModal({
         }
       }
       setSelectedServiceIds(initialServiceIds);
+      setStatus(appointment.status || "PENDING");
     } else {
       // Valores por defecto para creación
       setClientFirstName("");
@@ -146,6 +151,7 @@ export default function AppointmentModal({
       
       // Primer servicio seleccionado
       setSelectedServiceIds(services[0]?.id ? [services[0].id] : []);
+      setStatus("PENDING");
     }
   }, [show, isEdit, appointment, initialWorkerId, initialHour, initialMinute, workers, services]);
 
@@ -308,7 +314,7 @@ export default function AppointmentModal({
     const savedAppt = {
       id: isEdit ? appointment.id : `new-${Date.now()}`,
       startsAt,
-      status: isEdit ? appointment.status : "PENDING",
+      status: status,
       notes: finalNotes,
       workerId,
       serviceId,
@@ -523,6 +529,18 @@ export default function AppointmentModal({
             </div>
           </div>
 
+          {appointment?.client?.allergies && (
+            <Alert variant="danger" className="rounded-4 border-0 shadow-sm mb-4 animate-fade-in bg-red-50 text-red-950 p-3 border-start border-danger" style={{ borderLeft: "5px solid #dc2626 !important" }}>
+              <div className="fw-bold small d-flex align-items-center gap-1.5">
+                <AlertTriangle size={18} className="text-danger animate-pulse flex-shrink-0" />
+                <div>
+                  <strong className="d-block text-danger">⚠️ ALERGIAS DEL CLIENTE (Alerta de Seguridad):</strong>
+                  <span>{appointment.client.allergies}</span>
+                </div>
+              </div>
+            </Alert>
+          )}
+
           {(!laborHoursCheck.valid || !overlapCheck.valid) && (
             <Alert variant="danger" className="rounded-4 border-0 shadow-sm mb-4 animate-fade-in">
               <div className="fw-semibold small">
@@ -692,6 +710,23 @@ export default function AppointmentModal({
                       <option value="PAGADA">Seña Pagada</option>
                       <option value="PARCIAL">Pago Parcial</option>
                       <option value="PENDIENTE">Pendiente</option>
+                    </Form.Select>
+                  </Form.Group>
+                </Col>
+              </Row>
+              <h6 className="form-section-title mt-4">Estado de la Cita</h6>
+              <Row className="g-2 mb-3">
+                <Col xs={12}>
+                  <Form.Group>
+                    <Form.Label className="small-label">Estado del Turno</Form.Label>
+                    <Form.Select
+                      value={status}
+                      onChange={(e) => setStatus(e.target.value)}
+                      className="modern-input"
+                    >
+                      {appointmentStatuses.map(s => (
+                        <option key={s.key} value={s.key}>{s.label}</option>
+                      ))}
                     </Form.Select>
                   </Form.Group>
                 </Col>

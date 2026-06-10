@@ -9,10 +9,13 @@ import BookingSettings from "../components/configurable-fields/BookingSettings.j
 import UsersPermissionsSettings from "../components/configurable-fields/UsersPermissionsSettings.jsx";
 import BranchSettings from "../components/configurable-fields/BranchSettings.jsx";
 import GoogleSyncSettings from "../components/configurable-fields/GoogleSyncSettings.jsx";
+import ConsentSettings from "../components/configurable-fields/ConsentSettings.jsx";
+import AppointmentStatesSettings from "../components/configurable-fields/AppointmentStatesSettings.jsx";
 import { usePermissions } from "../auth/PermissionProvider.jsx";
 
 export default function SettingsView() {
-  const { t } = useTranslation("views");
+  const { t, i18n } = useTranslation("views");
+  const isEs = i18n.language === "es";
   const { hasPermission } = usePermissions();
 
   const canManageSettings = hasPermission("manage_settings");
@@ -88,6 +91,16 @@ export default function SettingsView() {
                   Google Calendar
                 </Nav.Link>
               </Nav.Item>
+              <Nav.Item>
+                <Nav.Link eventKey="consent-templates" className="rounded-pill px-4">
+                  {t("settings.tabs.consents", { defaultValue: "Consentimientos" })}
+                </Nav.Link>
+              </Nav.Item>
+              <Nav.Item>
+                <Nav.Link eventKey="appointment-states" className="rounded-pill px-4">
+                  {isEs ? "Estados de Cita" : "Appointment States"}
+                </Nav.Link>
+              </Nav.Item>
             </>
           )}
           {canManageUsers && (
@@ -119,6 +132,12 @@ export default function SettingsView() {
               </Tab.Pane>
               <Tab.Pane eventKey="google-sync">
                 <GoogleSyncSettings />
+              </Tab.Pane>
+              <Tab.Pane eventKey="consent-templates">
+                <ConsentSettings />
+              </Tab.Pane>
+              <Tab.Pane eventKey="appointment-states">
+                <AppointmentStatesSettings />
               </Tab.Pane>
             </>
           )}

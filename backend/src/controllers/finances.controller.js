@@ -175,8 +175,10 @@ export async function getFinanceDashboardData(req, res) {
       await prisma.auditLog.create({
         data: {
           action: "system_init",
-          actor: "Admin Aura Studio",
-          details: "Módulo ERP financiero inicializado en Neon Cloud PostgreSQL."
+          metadata: {
+            actor: "Admin Aura Studio",
+            details: "Módulo ERP financiero inicializado en Neon Cloud PostgreSQL."
+          }
         }
       });
     }
@@ -265,8 +267,10 @@ export async function createExpense(req, res) {
     await prisma.auditLog.create({
       data: {
         action: "create_expense",
-        actor: "Administrador de Salón",
-        details: `Gasto creado: ${name} por $${amount} (Categoría: ${category}).`,
+        metadata: {
+          actor: "Administrador de Salón",
+          details: `Gasto creado: ${name} por $${amount} (Categoría: ${category}).`
+        },
         businessId: req.businessId || null
       }
     });
@@ -332,8 +336,10 @@ export async function createCashClosing(req, res) {
     await prisma.auditLog.create({
       data: {
         action: "cash_closing",
-        actor: "Admin Aura",
-        details: `Cierre de caja diario guardado. Esperado: $${expectedCash}, Físico: $${actualCash}. Diferencia: $${difference}.`,
+        metadata: {
+          actor: "Admin Aura",
+          details: `Cierre de caja diario guardado. Esperado: $${expectedCash}, Físico: $${actualCash}. Diferencia: $${difference}.`
+        },
         businessId: req.businessId || null
       }
     });
@@ -402,8 +408,10 @@ export async function createSalaryPayment(req, res) {
     await prisma.auditLog.create({
       data: {
         action: "salary_payroll",
-        actor: "Director Aura",
-        details: `Pago de haberes liquidado para ${payment.worker.firstName} ${payment.worker.lastName} por un neto a pagar de $${netPaid}.`,
+        metadata: {
+          actor: "Director Aura",
+          details: `Pago de haberes liquidado para ${payment.worker.firstName} ${payment.worker.lastName} por un neto a pagar de $${netPaid}.`
+        },
         businessId: req.businessId || null
       }
     });
@@ -531,8 +539,10 @@ export async function createBranch(req, res) {
     await prisma.auditLog.create({
       data: {
         action: "create_branch",
-        actor: "Administrador",
-        details: `Sucursal creada: ${branch.name}.`,
+        metadata: {
+          actor: "Administrador",
+          details: `Sucursal creada: ${branch.name}.`
+        },
         businessId: req.businessId || null
       }
     });
@@ -585,8 +595,10 @@ export async function updateBranch(req, res) {
     await prisma.auditLog.create({
       data: {
         action: "update_branch",
-        actor: "Administrador",
-        details: `Sucursal actualizada: ${updated.name}.`,
+        metadata: {
+          actor: "Administrador",
+          details: `Sucursal actualizada: ${updated.name}.`
+        },
         businessId: req.businessId || null
       }
     });
@@ -617,8 +629,10 @@ export async function deleteBranch(req, res) {
     await prisma.auditLog.create({
       data: {
         action: "delete_branch",
-        actor: "Administrador",
-        details: `Sucursal eliminada: ${target.name}.`,
+        metadata: {
+          actor: "Administrador",
+          details: `Sucursal eliminada: ${target.name}.`
+        },
         businessId: req.businessId || null
       }
     });
@@ -649,8 +663,10 @@ export async function deleteExpense(req, res) {
     await prisma.auditLog.create({
       data: {
         action: "delete_expense",
-        actor: "Administrador de Salón",
-        details: `Gasto eliminado: ${target.name} por $${target.amount} (Categoría: ${target.category}).`,
+        metadata: {
+          actor: "Administrador de Salón",
+          details: `Gasto eliminado: ${target.name} por $${target.amount} (Categoría: ${target.category}).`
+        },
         businessId: req.businessId || null
       }
     });

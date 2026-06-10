@@ -1,4 +1,5 @@
 import prisma from "../prisma.js";
+import { decryptData } from "../utils/consentCrypto.js";
 
 export async function getClientCRMProfile(req, res) {
   try {
@@ -252,6 +253,8 @@ export async function getClientCRMProfile(req, res) {
         email: client.email,
         phone: client.phone,
         notes: client.notes,
+        allergies: decryptData(client.allergies),
+        medicalNotes: decryptData(client.medicalNotes),
         createdAt: client.createdAt,
       },
       metrics: {

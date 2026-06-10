@@ -29,6 +29,7 @@ import invitationsRoutes from "./routes/invitations.routes.js";
 import rolesRoutes from "./routes/roles.routes.js";
 import meRoutes from "./routes/me.routes.js";
 import auditRoutes from "./routes/audit.routes.js";
+import consentRoutes from "./routes/consent.routes.js";
 import requireAuth from "./middleware/requireAuth.js";
 import { checkTenant } from "./middleware/tenant.middleware.js";
 import { getCorsOptions } from "./config/cors.js";
@@ -71,6 +72,7 @@ app.use("/api/public", publicRoutes);
 
 app.use("/api/appointments", requireAuth, checkTenant, appointmentsRoutes);
 app.use("/api/clients", requireAuth, checkTenant, clientsRoutes);
+app.use("/api/consents", requireAuth, checkTenant, consentRoutes);
 app.use("/api/workers", requireAuth, checkTenant, workersRoutes);
 app.use("/api/staff", requireAuth, checkTenant, staffRoutes);
 app.use("/api/services", requireAuth, checkTenant, servicesRoutes);

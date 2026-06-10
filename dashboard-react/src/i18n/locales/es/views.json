@@ -366,6 +366,8 @@
       "cita-confirmada": { "name": "✅ Cita Confirmada", "desc": "Se ejecuta al confirmar cita." },
       "cita-cancelada": { "name": "❌ Cita Cancelada", "desc": "Se ejecuta al cancelar cita." },
       "cita-finalizada": { "name": "🏁 Cita Finalizada", "desc": "Se ejecuta al marcar cita DONE." },
+      "consentimiento-firmado": { "name": "✍️ Consentimiento Firmado", "desc": "Se ejecuta al firmar el consentimiento." },
+      "cambio-estado-cita": { "name": "🔄 Cambio de Estado de Cita", "desc": "Se ejecuta al cambiar de estado de cita." },
       "cliente-nuevo": { "name": "👤 Cliente Nuevo", "desc": "Se ejecuta al crear cliente." },
       "cliente-inactivo": { "name": "⚠️ Cliente Inactivo", "desc": "Se ejecuta si cliente no asiste en 60d." },
       "stock-bajo": { "name": "📦 Stock Bajo", "desc": "Se ejecuta al cruzar stock mínimo." },
@@ -374,6 +376,9 @@
       "email": { "name": "✉️ Correo Email", "desc": "Envía un email formal por Gmail API." },
       "notificacion": { "name": "🔔 Alerta Push", "desc": "Muestra alerta interna en la campana." },
       "crear-tarea": { "name": "📝 Crear Tarea", "desc": "Asigna tarea técnica al equipo." },
+      "enviar-consentimiento": { "name": "📑 Enviar Consentimiento", "desc": "Genera y envía solicitud de consentimiento por Email." },
+      "cambiar-estado-cita": { "name": "🔄 Cambiar Estado de Cita", "desc": "Cambia el estado de la cita automáticamente." },
+      "enviar-comprobante": { "name": "🧾 Enviar Comprobante", "desc": "Envía comprobante de pago por Email." },
       "condition": { "name": "🧠 Condición (IF/ELSE)", "desc": "Bifurca el camino lógico." },
       "delay": { "name": "⏳ Retardo (Delay)", "desc": "Espera antes de avanzar." }
     },

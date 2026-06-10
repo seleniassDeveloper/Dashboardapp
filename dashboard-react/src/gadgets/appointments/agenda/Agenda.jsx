@@ -27,7 +27,7 @@ export default function Agenda({
   onSaved,
   onUpsert,
 }) {
-  const { appointments, upsertAppointment } = useAppointmentsStore();
+  const { appointments, upsertAppointment, appointmentStatuses } = useAppointmentsStore();
   const [workers, setWorkers] = useState([]);
   const [services, setServices] = useState([]);
   const [scheduleBlocks, setScheduleBlocks] = useState([]);
@@ -391,7 +391,10 @@ export default function Agenda({
 
     const updated = { ...appt, status: newStatus };
     upsertAppointment(updated);
-    setAlertMessage(`Cita marcada como ${newStatus === "CONFIRMED" ? "Confirmada" : newStatus === "CANCELLED" ? "Cancelada" : "Pendiente"}.`);
+    
+    const statusObj = appointmentStatuses.find(s => s.key === newStatus);
+    const label = statusObj ? statusObj.label : newStatus;
+    setAlertMessage(`Cita marcada como ${label}.`);
 
     // Sincronizar
     onSaved?.();

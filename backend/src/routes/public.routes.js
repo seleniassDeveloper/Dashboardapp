@@ -8,6 +8,11 @@ import {
   googleOAuthCallback,
   reportPublicError,
 } from "../controllers/public.controller.js";
+import {
+  getPublicConsentDetails,
+  signConsent,
+  getConsentRecordById
+} from "../controllers/consent.controller.js";
 
 const router = Router();
 
@@ -19,5 +24,10 @@ router.get("/business/:slug/slots", getPublicAvailability);
 router.post("/business/:slug/bookings", createPublicBooking);
 router.get("/google/oauth-callback/:slug", googleOAuthCallback);
 router.post("/support/report-error", reportPublicError);
+
+// Consentimientos públicos
+router.get("/consent/:token", getPublicConsentDetails);
+router.post("/consent/:token/sign", signConsent);
+router.get("/consent/record/:id", getConsentRecordById);
 
 export default router;

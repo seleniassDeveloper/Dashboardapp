@@ -138,99 +138,113 @@ export default function ClientModal({
         ) : (
           <Form className="custom-form">
             <Row className="g-3">
-              {firstNameField && (
-                <Col md={6}>
-                  <Form.Group>
-                    <Form.Label htmlFor="client-first">
-                      {firstNameField.label} {firstNameField.required && "*"}
-                    </Form.Label>
-                    <Form.Control
-                      id="client-first"
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                      placeholder={firstNameField.placeholder || "Ej: María"}
-                      isInvalid={Boolean(errors.firstName)}
-                    />
-                    {errors.firstName && <div className="text-danger small mt-1">{errors.firstName}</div>}
-                  </Form.Group>
-                </Col>
-              )}
+              {enabledFields.map((field) => {
+                if (field.id === "firstName") {
+                  return (
+                    <Col md={6} key="firstName">
+                      <Form.Group>
+                        <Form.Label htmlFor="client-first">
+                          {field.label} {field.required && "*"}
+                        </Form.Label>
+                        <Form.Control
+                          id="client-first"
+                          value={firstName}
+                          onChange={(e) => setFirstName(e.target.value)}
+                          placeholder={field.placeholder || "Ej: María"}
+                          isInvalid={Boolean(errors.firstName)}
+                        />
+                        {errors.firstName && <div className="text-danger small mt-1">{errors.firstName}</div>}
+                      </Form.Group>
+                    </Col>
+                  );
+                }
 
-              {lastNameField && (
-                <Col md={6}>
-                  <Form.Group>
-                    <Form.Label htmlFor="client-last">
-                      {lastNameField.label} {lastNameField.required && "*"}
-                    </Form.Label>
-                    <Form.Control
-                      id="client-last"
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                      placeholder={lastNameField.placeholder || "Ej: García"}
-                      isInvalid={Boolean(errors.lastName)}
-                    />
-                    {errors.lastName && <div className="text-danger small mt-1">{errors.lastName}</div>}
-                  </Form.Group>
-                </Col>
-              )}
+                if (field.id === "lastName") {
+                  return (
+                    <Col md={6} key="lastName">
+                      <Form.Group>
+                        <Form.Label htmlFor="client-last">
+                          {field.label} {field.required && "*"}
+                        </Form.Label>
+                        <Form.Control
+                          id="client-last"
+                          value={lastName}
+                          onChange={(e) => setLastName(e.target.value)}
+                          placeholder={field.placeholder || "Ej: García"}
+                          isInvalid={Boolean(errors.lastName)}
+                        />
+                        {errors.lastName && <div className="text-danger small mt-1">{errors.lastName}</div>}
+                      </Form.Group>
+                    </Col>
+                  );
+                }
 
-              {phoneField && (
-                <Col md={6}>
-                  <Form.Group>
-                    <Form.Label htmlFor="client-phone">
-                      {phoneField.label} {phoneField.required && "*"}
-                    </Form.Label>
-                    <Form.Control
-                      id="client-phone"
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder={phoneField.placeholder || "Ej: +54 11..."}
-                      isInvalid={Boolean(errors.phone)}
-                    />
-                    {errors.phone && <div className="text-danger small mt-1">{errors.phone}</div>}
-                  </Form.Group>
-                </Col>
-              )}
+                if (field.id === "phone") {
+                  return (
+                    <Col md={6} key="phone">
+                      <Form.Group>
+                        <Form.Label htmlFor="client-phone">
+                          {field.label} {field.required && "*"}
+                        </Form.Label>
+                        <Form.Control
+                          id="client-phone"
+                          type="tel"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          placeholder={field.placeholder || "Ej: +54 11..."}
+                          isInvalid={Boolean(errors.phone)}
+                        />
+                        {errors.phone && <div className="text-danger small mt-1">{errors.phone}</div>}
+                      </Form.Group>
+                    </Col>
+                  );
+                }
 
-              {emailField && (
-                <Col md={6}>
-                  <Form.Group>
-                    <Form.Label htmlFor="client-email">
-                      {emailField.label} {emailField.required && "*"}
-                    </Form.Label>
-                    <Form.Control
-                      id="client-email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder={emailField.placeholder || "cliente@email.com"}
-                      isInvalid={Boolean(errors.email)}
-                    />
-                    {errors.email && <div className="text-danger small mt-1">{errors.email}</div>}
-                  </Form.Group>
-                </Col>
-              )}
+                if (field.id === "email") {
+                  return (
+                    <Col md={6} key="email">
+                      <Form.Group>
+                        <Form.Label htmlFor="client-email">
+                          {field.label} {field.required && "*"}
+                        </Form.Label>
+                        <Form.Control
+                          id="client-email"
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder={field.placeholder || "cliente@email.com"}
+                          isInvalid={Boolean(errors.email)}
+                        />
+                        {errors.email && <div className="text-danger small mt-1">{errors.email}</div>}
+                      </Form.Group>
+                    </Col>
+                  );
+                }
 
-              {notesField && (
-                <Col md={12}>
-                  <Form.Group>
-                    <Form.Label htmlFor="client-notes">
-                      {notesField.label} {notesField.required && "*"}
-                    </Form.Label>
-                    <Form.Control
-                      id="client-notes"
-                      as="textarea"
-                      rows={3}
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      placeholder={notesField.placeholder || "Preferencias, historial, observaciones..."}
-                      isInvalid={Boolean(errors.notes)}
-                    />
-                    {errors.notes && <div className="text-danger small mt-1">{errors.notes}</div>}
-                  </Form.Group>
-                </Col>
-              )}
+                if (field.id === "notes") {
+                  return (
+                    <Col md={12} key="notes">
+                      <Form.Group>
+                        <Form.Label htmlFor="client-notes">
+                          {field.label} {field.required && "*"}
+                        </Form.Label>
+                        <Form.Control
+                          id="client-notes"
+                          as="textarea"
+                          rows={3}
+                          value={notes}
+                          onChange={(e) => setNotes(e.target.value)}
+                          placeholder={field.placeholder || "Preferencias, historial, observaciones..."}
+                          isInvalid={Boolean(errors.notes)}
+                        />
+                        {errors.notes && <div className="text-danger small mt-1">{errors.notes}</div>}
+                      </Form.Group>
+                    </Col>
+                  );
+                }
+
+                return null;
+              })}
             </Row>
           </Form>
         )}

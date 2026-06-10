@@ -21,6 +21,10 @@ model Client {
   appointmentPhotos AppointmentPhoto[]
   clinicalNotes     ClinicalNote[]
   clinicalHistories ClinicalHistory[]
+  consentRequests   ConsentRequest[]
+  consentRecords    ConsentRecord[]
+  allergies         String?
+  medicalNotes      String?
   businessId        String?
   business          Business?          @relation(fields: [businessId], references: [id], onDelete: Cascade)
 }
@@ -48,6 +52,7 @@ model Service {
   appointments       Appointment[]
   workers            WorkerService[]
   consumptionRules   ServiceConsumptionRule[]
+  consentTemplates   ConsentTemplate[]
   businessId         String?
   business           Business?                @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
@@ -79,6 +84,9 @@ model Appointment {
   downpaymentStatus        String? // "PENDING" | "PAID" | "REFUNDED"
   downpaymentTransactionId String?
   googleEventId            String?
+  consentRequests          ConsentRequest[]
+  createdAt                DateTime           @default(now())
+  statusHistories          AppointmentStatusHistory[]
 }
 
 model Worker {
@@ -257,6 +265,11 @@ model Business {
   members                    BusinessMember[]
   invitations                Invitation[]
   clinicalHistories          ClinicalHistory[]
+  consentTemplates           ConsentTemplate[]
+  consentRequests            ConsentRequest[]
+  consentRecords             ConsentRecord[]
+  appointmentStatuses        Json?
+  statusHistories            AppointmentStatusHistory[]
 }
 
 model ScheduleBlock {
@@ -620,6 +633,93 @@ model ClinicalHistory {
   business      Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
   client        Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
   appointment   Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+}
+
+model ConsentTemplate {
+  id                String           @id @default(cuid())
+  serviceId         String?
+  name              String
+  version           Int              @default(1)
+  language          String           @default("es")
+  body              String           @db.Text // Términos, advertencias y condiciones
+  requirements      String?          @db.Text // Qué debe cumplir el cliente
+  whatToKnow        String?          @db.Text // Qué se le hará / qué debe saber
+  contraindications String?          @db.Text
+  preCare           String?          @db.Text
+  postCare          String?          @db.Text
+  collectAllergies  Boolean          @default(true)
+  active            Boolean          @default(true)
+  createdBy         String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  
+  businessId        String
+  business          Business         @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  service           Service?         @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  requests          ConsentRequest[]
+  records           ConsentRecord[]
+}
+
+model ConsentRequest {
+  id              String         @id @default(cuid())
+  templateId      String
+  templateVersion Int
+  clientId        String?
+  appointmentId   String?
+  token           String         @unique
+  channel         String         // "qr" | "link"
+  sentTo          String?
+  status          String         @default("PENDING") // "PENDING" | "SIGNED" | "EXPIRED" | "REVOKED"
+  createdBy       String?
+  createdAt       DateTime       @default(now())
+  expiresAt       DateTime
+  
+  businessId      String
+  business        Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  client          Client?        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  appointment     Appointment?   @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  template        ConsentTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  record          ConsentRecord?
+}
+
+model ConsentRecord {
+  id                 String          @id @default(cuid())
+  requestId          String          @unique
+  clientId           String
+  templateId         String
+  templateVersion    Int
+  termsSnapshot      String          @db.Text
+  fullNameTyped      String
+  signatureImage     String          @db.Text // Trazo Base64 de la firma
+  allergies          String?
+  medicalDeclarations Json?           // Condiciones, medicamentos, embarazo, etc.
+  accepted           Boolean         @default(true)
+  acceptedAt         DateTime        @default(now())
+  ipAddress          String?
+  userAgent          String?
+  pdfUrl             String?
+  createdAt          DateTime        @default(now())
+  
+  businessId         String
+  business           Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  client             Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  template           ConsentTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  request            ConsentRequest  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+}
+
+model AppointmentStatusHistory {
+  id              String      @id @default(cuid())
+  appointmentId   String
+  appointment     Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  statusFrom      String
+  statusTo        String
+  transitionedAt  DateTime    @default(now())
+  durationSeconds Int?        // Segundos transcurridos en statusFrom
+  businessId      String?
+  business        Business?   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([appointmentId])
+  @@index([businessId])
 }
 
 

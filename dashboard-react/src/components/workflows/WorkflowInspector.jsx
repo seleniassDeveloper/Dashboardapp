@@ -1,7 +1,9 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Card, Form, Row, Col, Button, Badge } from "react-bootstrap";
 import { Settings, HelpCircle, Code, PlusCircle, CheckCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useAppointmentsStore } from "../../gadgets/appointments/AppointmentsProvider.jsx";
+import api from "../../lib/api.js";
 
 export default function WorkflowInspector({ 
   node, 
@@ -9,6 +11,15 @@ export default function WorkflowInspector({
 }) {
   const { t, i18n } = useTranslation("views");
   const isEs = i18n.language === "es";
+
+  const { appointmentStatuses } = useAppointmentsStore();
+  const [templates, setTemplates] = useState([]);
+
+  useEffect(() => {
+    api.get("/consents/templates")
+      .then(res => setTemplates(res.data || []))
+      .catch(err => console.error("Error loading templates in inspector:", err));
+  }, []);
 
   if (!node) {
     return (
@@ -198,6 +209,72 @@ export default function WorkflowInspector({
                   <option value="ADMIN">{isEs ? "Administrador General" : "General Administrator"}</option>
                 </Form.Select>
               </Form.Group>
+            </div>
+          )}
+
+          {/* 2.1 SEND CONSENT */}
+          {(node.subtype === "enviar-consentimiento" || node.subtype === "send_consent_request") && (
+            <div className="d-grid gap-3 pt-2 border-top">
+              <span className="small fw-bold text-purple-700 d-block">{isEs ? "Configurar Consentimiento" : "Consent Configuration"}</span>
+              
+              <Form.Group>
+                <Form.Label className="smaller text-muted fw-bold">{isEs ? "Plantilla de Consentimiento" : "Consent Template"}</Form.Label>
+                <Form.Select 
+                  value={node.config?.templateId || ""}
+                  onChange={(e) => handleConfigChange("templateId", e.target.value)}
+                  className="rounded-xl border-gray-200 small"
+                >
+                  <option value="">{isEs ? "✨ Automático por Servicio" : "✨ Automatic by Service"}</option>
+                  {templates.map(t => (
+                    <option key={t.id} value={t.id}>{t.name} (v{t.version})</option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
+
+              <Form.Group>
+                <Form.Label className="smaller text-muted fw-bold">{isEs ? "Mover Cita al Estado" : "Transition Appointment to"}</Form.Label>
+                <Form.Select 
+                  value={node.config?.targetStatus || "CONSENT_PENDING"}
+                  onChange={(e) => handleConfigChange("targetStatus", e.target.value)}
+                  className="rounded-xl border-gray-200 small"
+                >
+                  {appointmentStatuses.map(s => (
+                    <option key={s.key} value={s.key}>{s.label}</option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
+            </div>
+          )}
+
+          {/* 2.2 CHANGE APPOINTMENT STATUS */}
+          {(node.subtype === "cambiar-estado-cita" || node.subtype === "change_appointment_status") && (
+            <div className="d-grid gap-3 pt-2 border-top">
+              <span className="small fw-bold text-purple-700 d-block">{isEs ? "Cambio de Estado Automático" : "Automatic Status Change"}</span>
+              
+              <Form.Group>
+                <Form.Label className="smaller text-muted fw-bold">{isEs ? "Estado Destino de la Cita" : "Target Appointment Status"}</Form.Label>
+                <Form.Select 
+                  value={node.config?.status || "CONFIRMED"}
+                  onChange={(e) => handleConfigChange("status", e.target.value)}
+                  className="rounded-xl border-gray-200 small"
+                >
+                  {appointmentStatuses.map(s => (
+                    <option key={s.key} value={s.key}>{s.label}</option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
+            </div>
+          )}
+
+          {/* 2.3 SEND RECEIPT */}
+          {(node.subtype === "enviar-comprobante" || node.subtype === "send_receipt") && (
+            <div className="d-grid gap-3 pt-2 border-top">
+              <span className="small fw-bold text-purple-700 d-block">{isEs ? "Configurar Comprobante" : "Receipt Configuration"}</span>
+              <p className="text-muted smaller mb-0">
+                {isEs 
+                  ? "Esta acción genera automáticamente un comprobante premium y lo envía al email del cliente." 
+                  : "This action automatically generates a premium receipt and sends it to the client's email."}
+              </p>
             </div>
           )}
 

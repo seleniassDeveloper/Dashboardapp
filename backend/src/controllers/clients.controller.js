@@ -1,4 +1,5 @@
 import prisma from "../prisma.js";
+import { encryptData, decryptData } from "../utils/consentCrypto.js";
 
 /* =========================
    VALIDADORES DE FORMATO
@@ -23,7 +24,7 @@ function isValidPhone(phone) {
 ========================= */
 export async function createClient(req, res) {
   try {
-    const { firstName, lastName, phone, email, notes } = req.body;
+    const { firstName, lastName, phone, email, notes, allergies, medicalNotes } = req.body;
     const businessId = req.businessId;
 
     if (!firstName?.trim() || !lastName?.trim()) {
@@ -51,9 +52,14 @@ export async function createClient(req, res) {
         phone: phoneVal,
         email: emailVal,
         notes: notesVal,
+        allergies: allergies ? encryptData(allergies) : null,
+        medicalNotes: medicalNotes ? encryptData(medicalNotes) : null,
         businessId: businessId || null,
       },
     });
+
+    created.allergies = allergies || null;
+    created.medicalNotes = medicalNotes || null;
 
     return res.status(201).json(created);
   } catch (e) {
@@ -68,7 +74,7 @@ export async function createClient(req, res) {
 export async function updateClient(req, res) {
   try {
     const { id } = req.params;
-    const { firstName, lastName, phone, email, notes } = req.body;
+    const { firstName, lastName, phone, email, notes, allergies, medicalNotes } = req.body;
 
     if (!firstName?.trim() || !lastName?.trim()) {
       return res
@@ -96,8 +102,13 @@ export async function updateClient(req, res) {
         phone: phoneVal,
         email: emailVal,
         notes: notesVal,
+        allergies: allergies ? encryptData(allergies) : null,
+        medicalNotes: medicalNotes ? encryptData(medicalNotes) : null,
       },
     });
+
+    updated.allergies = allergies || null;
+    updated.medicalNotes = medicalNotes || null;
 
     return res.json(updated);
   } catch (e) {
@@ -134,7 +145,14 @@ export async function listClients(req, res) {
       take: 50,
     });
 
-    return res.json(clients);
+    // Decrypt allergies and medicalNotes on output
+    const decryptedClients = clients.map(c => ({
+      ...c,
+      allergies: decryptData(c.allergies),
+      medicalNotes: decryptData(c.medicalNotes)
+    }));
+
+    return res.json(decryptedClients);
   } catch (e) {
     console.error("LIST CLIENTS ERROR:", e);
     return res.status(500).json({

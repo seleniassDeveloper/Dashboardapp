@@ -3,6 +3,7 @@ import { Container, Row, Col, Badge, Button, Spinner, Alert, Table, Card, Offcan
 import { Play, Plus, GitBranch, Zap, Pencil, Trash2, Pause, Sparkles, Activity, MessageSquare, Mail, AlertTriangle, ShieldCheck, ArrowUpRight, XCircle, CheckCircle2, X, Clock, ArrowRight, ClipboardCheck, Search, Filter, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import WorkflowBuilder from "../components/workflows/WorkflowBuilder.jsx";
+import SlaStatsView from "./SlaStatsView.jsx";
 import api from "../lib/api.js";
 import { TEMPLATES } from "./TemplatesView.jsx";
 
@@ -350,6 +351,17 @@ export default function WorkflowsView() {
         >
           <ClipboardCheck size={15} />
           <span>{isEs ? "Historial de Ejecuciones" : "Execution History"}</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("sla")}
+          className={`d-flex align-items-center gap-2 px-4 py-2.5 fw-bold rounded-xl border-0 transition-all ${
+            activeTab === "sla" ? "bg-purple-600 text-white shadow-sm btn-purple" : "bg-light text-muted hover-bg-gray-100"
+          }`}
+          style={{ fontSize: "13px" }}
+        >
+          <Clock size={15} />
+          <span>{isEs ? "Métricas de SLA" : "SLA Metrics"}</span>
         </button>
       </div>
 
@@ -852,6 +864,10 @@ export default function WorkflowsView() {
             </div>
           )}
         </Card>
+      )}
+
+      {activeTab === "sla" && (
+        <SlaStatsView />
       )}
 
       {/* FULL VIEWPORT WORKFLOW BUILDER OVERLAY */}

@@ -100,7 +100,7 @@ export default function AppointmentsCalendar() {
   const { brand } = useBrand();
   const accent = brand?.accentColor || brand?.textColor || "#d32f2f";
 
-  const { appointments, services, loading, error, fetchAppointments, upsertAppointment } = useAppointmentsStore();
+  const { appointments, services, loading, error, fetchAppointments, upsertAppointment, appointmentStatuses } = useAppointmentsStore();
 
   const [workers, setWorkers] = useState([]);
 
@@ -248,23 +248,10 @@ export default function AppointmentsCalendar() {
             .join(" ") || "Cliente";
 
         const title = `${clientName} · ${a?.service?.name || "Servicio"}`;
-        const bg =
-          a?.status === "CANCELLED"
-            ? "rgba(220,53,69,0.22)"
-            : a?.status === "CONFIRMED"
-              ? "rgba(25,135,84,0.20)"
-              : a?.status === "DONE"
-                ? "rgba(108,117,125,0.20)"
-                : withAlpha(accent, 0.22);
-
-        const border =
-          a?.status === "CANCELLED"
-            ? "rgba(220,53,69,0.85)"
-            : a?.status === "CONFIRMED"
-              ? "rgba(25,135,84,0.85)"
-              : a?.status === "DONE"
-                ? "rgba(108,117,125,0.85)"
-                : withAlpha(accent, 0.85);
+        const statusObj = appointmentStatuses.find(s => s.key === a?.status);
+        const color = statusObj?.color || accent;
+        const bg = withAlpha(color, 0.20);
+        const border = withAlpha(color, 0.85);
 
         return {
           id: String(a.id),
@@ -523,8 +510,8 @@ export default function AppointmentsCalendar() {
                 <div className="text-muted" style={{ fontSize: 12 }}>
                   Estado
                 </div>
-                <Badge bg={statusVariant(selected?.status)}>
-                  {statusLabel(selected?.status)}
+                <Badge style={{ backgroundColor: appointmentStatuses.find(s => s.key === selected?.status)?.color || "#d97706" }}>
+                  {appointmentStatuses.find(s => s.key === selected?.status)?.label || selected?.status || "—"}
                 </Badge>
               </div>
 

@@ -1,6 +1,7 @@
 import React from "react";
 import { Badge, Dropdown, Button } from "react-bootstrap";
-import { MessageSquare, Mail, Check, Clock, XCircle, MoreVertical } from "lucide-react";
+import { MessageSquare, Mail, MoreVertical } from "lucide-react";
+import { useAppointmentsStore } from "../AppointmentsProvider.jsx";
 
 // Formato de moneda ARS
 function currency(n) {
@@ -18,6 +19,8 @@ export default function AppointmentCard({
   onSendWhatsApp,
   onSendEmail,
 }) {
+  const { appointmentStatuses } = useAppointmentsStore();
+
   const starts = new Date(appt.startsAt);
   const hour = starts.getHours();
   const minute = starts.getMinutes();
@@ -39,11 +42,13 @@ export default function AppointmentCard({
     });
   };
 
-  const clientName = `${appt.client?.firstName || "Cliente"} ${appt.client?.lastName || ""}`.trim();
-  const serviceName = appt.service?.name || "Servicio";
+  const statusObj = appointmentStatuses.find(s => s.key === appt.status) || appointmentStatuses.find(s => s.key === "PENDING");
+
+  const clientName = appt.clientName || [appt.client?.firstName, appt.client?.lastName].filter(Boolean).join(" ") || "Cliente";
+  const serviceName = appt.serviceName || appt.service?.name || "Servicio";
   
   // Formatear seña
-  const senaStatus = appt.senaStatus || (appt.notes?.toLowerCase().includes("seña") ? "PAGADA" : "SIN_SENA");
+  const senaStatus = appt.depositStatus || appt.senaStatus || (appt.notes?.toLowerCase().includes("seña") ? "PAGADA" : "SIN_SENA");
 
   // Drag handlers
   const handleDragStart = (e) => {
@@ -53,10 +58,11 @@ export default function AppointmentCard({
 
   return (
     <div
-      className={`appt-card-absolute appt-status-${appt.status || "PENDING"}`}
+      className={`appt-card-absolute`}
       style={{
         top: `${topOffset}px`,
         height: `${height}px`,
+        borderLeft: `4px solid ${statusObj?.color || "#3b82f6"}`
       }}
       draggable
       onDragStart={handleDragStart}
@@ -75,15 +81,19 @@ export default function AppointmentCard({
             <MoreVertical size={13} className="text-dark opacity-75" />
           </Dropdown.Toggle>
           <Dropdown.Menu className="dropdown-premium" style={{ fontSize: "11.5px" }}>
-            <Dropdown.Item onClick={() => onUpdateStatus(appt.id, "CONFIRMED")} className="d-flex align-items-center gap-1.5 small">
-              <Check size={12} className="text-success" /> Confirmar cita
-            </Dropdown.Item>
-            <Dropdown.Item onClick={() => onUpdateStatus(appt.id, "PENDING")} className="d-flex align-items-center gap-1.5 small">
-              <Clock size={12} className="text-warning" /> Marcar Pendiente
-            </Dropdown.Item>
-            <Dropdown.Item onClick={() => onUpdateStatus(appt.id, "CANCELLED")} className="d-flex align-items-center gap-1.5 small">
-              <XCircle size={12} className="text-danger" /> Cancelar cita
-            </Dropdown.Item>
+            {appointmentStatuses.map(status => (
+              <Dropdown.Item 
+                key={status.key} 
+                onClick={() => onUpdateStatus(appt.id, status.key)} 
+                className="d-flex align-items-center gap-1.5 small"
+              >
+                <span 
+                  className="rounded-circle d-inline-block me-1.5" 
+                  style={{ width: "8px", height: "8px", backgroundColor: status.color }}
+                />
+                {status.label}
+              </Dropdown.Item>
+            ))}
             <Dropdown.Divider />
             <Dropdown.Item onClick={() => onSendWhatsApp(appt)} className="d-flex align-items-center gap-1.5 small">
               <MessageSquare size={12} className="text-success" /> Enviar WhatsApp
@@ -95,7 +105,14 @@ export default function AppointmentCard({
         </Dropdown>
       </div>
 
-      <div className="appt-card-title">{clientName}</div>
+      <div className="appt-card-title d-flex align-items-center gap-1">
+        <span>{clientName}</span>
+        {appt.client?.allergies && (
+          <span className="text-danger animate-pulse" title={`Alergias: ${appt.client.allergies}`} style={{ fontSize: "11px" }}>
+            ⚠️
+          </span>
+        )}
+      </div>
       <div className="appt-card-service text-truncate">{serviceName}</div>
 
       <div className="d-flex justify-content-between align-items-center mt-1.5 flex-wrap gap-1">

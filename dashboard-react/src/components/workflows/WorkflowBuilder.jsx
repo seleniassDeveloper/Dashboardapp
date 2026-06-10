@@ -16,6 +16,8 @@ const SYNC_TRIGGERS = [
   { subtype: "cita-confirmada", name: "✅ Cita Confirmada", type: "trigger", desc: "Se ejecuta al confirmar cita." },
   { subtype: "cita-cancelada", name: "❌ Cita Cancelada", type: "trigger", desc: "Se ejecuta al cancelar cita." },
   { subtype: "cita-finalizada", name: "🏁 Cita Finalizada", type: "trigger", desc: "Se ejecuta al marcar cita DONE." },
+  { subtype: "consentimiento-firmado", name: "✍️ Consentimiento Firmado", type: "trigger", desc: "Se ejecuta al firmar el consentimiento." },
+  { subtype: "cambio-estado-cita", name: "🔄 Cambio de Estado de Cita", type: "trigger", desc: "Se ejecuta al cambiar de estado de cita." },
   { subtype: "cliente-nuevo", name: "👤 Cliente Nuevo", type: "trigger", desc: "Se ejecuta al crear cliente." },
   { subtype: "cliente-inactivo", name: "⚠️ Cliente Inactivo", type: "trigger", desc: "Se ejecuta si cliente no asiste en 60d." },
   { subtype: "stock-bajo", name: "📦 Stock Bajo", type: "trigger", desc: "Se ejecuta al cruzar stock mínimo." },
@@ -26,7 +28,10 @@ const SYNC_ACTIONS = [
   { subtype: "whatsapp", name: "📱 WhatsApp", type: "action", desc: "Manda mensaje por enlace WhatsApp." },
   { subtype: "email", name: "✉️ Correo Email", type: "action", desc: "Envía un email formal por Gmail API." },
   { subtype: "notificacion", name: "🔔 Alerta Push", type: "action", desc: "Muestra alerta interna en la campana." },
-  { subtype: "crear-tarea", name: "📝 Crear Tarea", type: "action", desc: "Asigna tarea técnica al equipo." }
+  { subtype: "crear-tarea", name: "📝 Crear Tarea", type: "action", desc: "Asigna tarea técnica al equipo." },
+  { subtype: "enviar-consentimiento", name: "📑 Enviar Consentimiento", type: "action", desc: "Genera y envía solicitud de consentimiento por Email." },
+  { subtype: "cambiar-estado-cita", name: "🔄 Cambiar Estado de Cita", type: "action", desc: "Cambia el estado de la cita automáticamente." },
+  { subtype: "enviar-comprobante", name: "🧾 Enviar Comprobante", type: "action", desc: "Envía comprobante de pago por Email." }
 ];
 
 const SYNC_LOGIC = [

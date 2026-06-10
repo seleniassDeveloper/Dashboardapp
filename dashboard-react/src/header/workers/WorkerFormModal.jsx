@@ -109,6 +109,12 @@ export default function WorkerFormModal({
     );
   }, [enabledFields]);
 
+  const generalTabFields = useMemo(() => {
+    return enabledFields.filter(
+      (f) => !["roleTitle", "services", "servicePricing", "schedule"].includes(f.id)
+    );
+  }, [enabledFields]);
+
   const handleCustomFieldChange = (fieldId, val) => {
     setCustomFieldValues(prev => ({
       ...prev,
@@ -518,120 +524,92 @@ export default function WorkerFormModal({
                 <div className="animate-fade-in">
                   <h3 className="h6 fw-black text-gray-900 border-bottom pb-2 mb-3">Información General del Colaborador</h3>
                   <Row className="g-3">
-                    {isFirstNameEnabled && (
-                      <Col md={6}>
-                        <Form.Group>
-                          <Form.Label className="fw-semibold text-xs text-muted">
-                            {enabledFields.find(f => f.id === "firstName")?.label || "Nombre"}{" "}
-                            {enabledFields.find(f => f.id === "firstName")?.required && "*"}
-                          </Form.Label>
-                          <Form.Control
-                            type="text"
-                            required={enabledFields.find(f => f.id === "firstName")?.required}
-                            value={firstName}
-                            onChange={(e) => setFirstName(e.target.value)}
-                            placeholder="Ej: Andrea"
-                            className="rounded-xl border-gray-200"
-                          />
-                        </Form.Group>
-                      </Col>
-                    )}
-                    {isLastNameEnabled && (
-                      <Col md={6}>
-                        <Form.Group>
-                          <Form.Label className="fw-semibold text-xs text-muted">
-                            {enabledFields.find(f => f.id === "lastName")?.label || "Apellido"}{" "}
-                            {enabledFields.find(f => f.id === "lastName")?.required && "*"}
-                          </Form.Label>
-                          <Form.Control
-                            type="text"
-                            required={enabledFields.find(f => f.id === "lastName")?.required}
-                            value={lastName}
-                            onChange={(e) => setLastName(e.target.value)}
-                            placeholder="Ej: Paez"
-                            className="rounded-xl border-gray-200"
-                          />
-                        </Form.Group>
-                      </Col>
-                    )}
-                    {isEmailEnabled && (
-                      <Col md={6}>
-                        <Form.Group>
-                          <Form.Label className="fw-semibold text-xs text-muted">
-                            {enabledFields.find(f => f.id === "email")?.label || "Correo Electrónico"}{" "}
-                            {enabledFields.find(f => f.id === "email")?.required && "*"}
-                          </Form.Label>
-                          <Form.Control
-                            type="email"
-                            required={enabledFields.find(f => f.id === "email")?.required}
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            placeholder="Ej: andrea@salon.com"
-                            className="rounded-xl border-gray-200"
-                          />
-                        </Form.Group>
-                      </Col>
-                    )}
-                    {isPhoneEnabled && (
-                      <Col md={6}>
-                        <Form.Group>
-                          <Form.Label className="fw-semibold text-xs text-muted">
-                            {enabledFields.find(f => f.id === "phone")?.label || "Teléfono de Contacto"}{" "}
-                            {enabledFields.find(f => f.id === "phone")?.required && "*"}
-                          </Form.Label>
-                          <Form.Control
-                            type="text"
-                            required={enabledFields.find(f => f.id === "phone")?.required}
-                            value={phone}
-                            onChange={(e) => setPhone(e.target.value)}
-                            placeholder="Ej: +54 9 11 2345 6789"
-                            className="rounded-xl border-gray-200"
-                          />
-                        </Form.Group>
-                      </Col>
-                    )}
-                    <Col md={6}>
-                      <Form.Group>
-                        <Form.Label className="fw-semibold text-xs text-muted">Fecha de Ingreso</Form.Label>
-                        <Form.Control
-                          type="date"
-                          value={entryDate}
-                          onChange={(e) => setEntryDate(e.target.value)}
-                          className="rounded-xl border-gray-200"
-                        />
-                      </Form.Group>
-                    </Col>
-                    <Col md={6}>
-                      <Form.Group>
-                        <Form.Label className="fw-semibold text-xs text-muted">Estado del Colaborador</Form.Label>
-                        <Form.Select
-                          value={status}
-                          onChange={(e) => setStatus(e.target.value)}
-                          className="rounded-xl border-gray-200"
-                        >
-                          <option value="Activo">Activo</option>
-                          <option value="Vacaciones">En Vacaciones</option>
-                          <option value="Licencia">Licencia Laboral</option>
-                          <option value="Suspendido">Suspendido</option>
-                          <option value="Inactivo">Inactivo / Baja</option>
-                        </Form.Select>
-                      </Form.Group>
-                    </Col>
-                    <Col md={12}>
-                      <Form.Group>
-                        <Form.Label className="fw-semibold text-xs text-muted">URL Foto de Perfil (Opcional)</Form.Label>
-                        <Form.Control
-                          type="text"
-                          value={photo}
-                          onChange={(e) => setPhoto(e.target.value)}
-                          placeholder="Ej: https://mi-salón.com/avatars/andrea.jpg"
-                          className="rounded-xl border-gray-200"
-                        />
-                      </Form.Group>
-                    </Col>
+                    {generalTabFields.map((field) => {
+                      if (field.id === "firstName") {
+                        return (
+                          <Col md={6} key="firstName">
+                            <Form.Group>
+                              <Form.Label className="fw-semibold text-xs text-muted">
+                                {field.label || "Nombre"}{" "}
+                                {field.required && "*"}
+                              </Form.Label>
+                              <Form.Control
+                                type="text"
+                                required={field.required}
+                                value={firstName}
+                                onChange={(e) => setFirstName(e.target.value)}
+                                placeholder="Ej: Andrea"
+                                className="rounded-xl border-gray-200"
+                              />
+                            </Form.Group>
+                          </Col>
+                        );
+                      }
 
-                    {/* Campos Personalizados Dinámicos */}
-                    {customFields.map((field) => {
+                      if (field.id === "lastName") {
+                        return (
+                          <Col md={6} key="lastName">
+                            <Form.Group>
+                              <Form.Label className="fw-semibold text-xs text-muted">
+                                {field.label || "Apellido"}{" "}
+                                {field.required && "*"}
+                              </Form.Label>
+                              <Form.Control
+                                type="text"
+                                required={field.required}
+                                value={lastName}
+                                onChange={(e) => setLastName(e.target.value)}
+                                placeholder="Ej: Paez"
+                                className="rounded-xl border-gray-200"
+                              />
+                            </Form.Group>
+                          </Col>
+                        );
+                      }
+
+                      if (field.id === "email") {
+                        return (
+                          <Col md={6} key="email">
+                            <Form.Group>
+                              <Form.Label className="fw-semibold text-xs text-muted">
+                                {field.label || "Correo Electrónico"}{" "}
+                                {field.required && "*"}
+                              </Form.Label>
+                              <Form.Control
+                                type="email"
+                                required={field.required}
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="Ej: andrea@salon.com"
+                                className="rounded-xl border-gray-200"
+                              />
+                            </Form.Group>
+                          </Col>
+                        );
+                      }
+
+                      if (field.id === "phone") {
+                        return (
+                          <Col md={6} key="phone">
+                            <Form.Group>
+                              <Form.Label className="fw-semibold text-xs text-muted">
+                                {field.label || "Teléfono de Contacto"}{" "}
+                                {field.required && "*"}
+                              </Form.Label>
+                              <Form.Control
+                                type="text"
+                                required={field.required}
+                                value={phone}
+                                onChange={(e) => setPhone(e.target.value)}
+                                placeholder="Ej: +54 9 11 2345 6789"
+                                className="rounded-xl border-gray-200"
+                              />
+                            </Form.Group>
+                          </Col>
+                        );
+                      }
+
+                      // Custom Field
                       const label = (
                         <>
                           {field.label}
@@ -679,6 +657,46 @@ export default function WorkerFormModal({
                         </Col>
                       );
                     })}
+
+                    <Col md={6}>
+                      <Form.Group>
+                        <Form.Label className="fw-semibold text-xs text-muted">Fecha de Ingreso</Form.Label>
+                        <Form.Control
+                          type="date"
+                          value={entryDate}
+                          onChange={(e) => setEntryDate(e.target.value)}
+                          className="rounded-xl border-gray-200"
+                        />
+                      </Form.Group>
+                    </Col>
+                    <Col md={6}>
+                      <Form.Group>
+                        <Form.Label className="fw-semibold text-xs text-muted">Estado del Colaborador</Form.Label>
+                        <Form.Select
+                          value={status}
+                          onChange={(e) => setStatus(e.target.value)}
+                          className="rounded-xl border-gray-200"
+                        >
+                          <option value="Activo">Activo</option>
+                          <option value="Vacaciones">En Vacaciones</option>
+                          <option value="Licencia">Licencia Laboral</option>
+                          <option value="Suspendido">Suspendido</option>
+                          <option value="Inactivo">Inactivo / Baja</option>
+                        </Form.Select>
+                      </Form.Group>
+                    </Col>
+                    <Col md={12}>
+                      <Form.Group>
+                        <Form.Label className="fw-semibold text-xs text-muted">URL Foto de Perfil (Opcional)</Form.Label>
+                        <Form.Control
+                          type="text"
+                          value={photo}
+                          onChange={(e) => setPhoto(e.target.value)}
+                          placeholder="Ej: https://mi-salón.com/avatars/andrea.jpg"
+                          className="rounded-xl border-gray-200"
+                        />
+                      </Form.Group>
+                    </Col>
                   </Row>
                 </div>
               )}

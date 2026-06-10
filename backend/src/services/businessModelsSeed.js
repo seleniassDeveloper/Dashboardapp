@@ -3,20 +3,26 @@ import { DEFAULT_BUSINESS_MODELS } from "../config/defaultBusinessModels.js";
 
 export async function ensureBusinessModels() {
   for (const def of DEFAULT_BUSINESS_MODELS) {
-    const existing = await prisma.businessModel.findUnique({ where: { slug: def.slug } });
-    if (!existing) {
-      await prisma.businessModel.create({
-        data: {
-          slug: def.slug,
-          name: def.name,
-          description: def.description,
-          icon: def.icon,
-          allowedTriggers: def.allowedTriggers,
-          allowedActions: def.allowedActions,
-          templateWorkflows: def.templateWorkflows || [],
-        },
-      });
-    }
+    await prisma.businessModel.upsert({
+      where: { slug: def.slug },
+      update: {
+        name: def.name,
+        description: def.description,
+        icon: def.icon,
+        allowedTriggers: def.allowedTriggers,
+        allowedActions: def.allowedActions,
+        templateWorkflows: def.templateWorkflows || [],
+      },
+      create: {
+        slug: def.slug,
+        name: def.name,
+        description: def.description,
+        icon: def.icon,
+        allowedTriggers: def.allowedTriggers,
+        allowedActions: def.allowedActions,
+        templateWorkflows: def.templateWorkflows || [],
+      },
+    });
   }
 }
 

@@ -62,6 +62,9 @@ function currencyHelper(n, isEs = true) {
 // ---------------------------------------------------------
 // DATA INICIAL PRE-ESTABLECIDA DE GADGETS
 // ---------------------------------------------------------
+// ---------------------------------------------------------
+// DATA INICIAL PRE-ESTABLECIDA DE GADGETS (Valores iniciales limpios)
+// ---------------------------------------------------------
 const INITIAL_GADGETS_DATA = [
   {
     id: "gadget-kpi-1",
@@ -72,8 +75,8 @@ const INITIAL_GADGETS_DATA = [
     groupBy: "Total",
     filter: "Ninguno",
     color: "#10b981",
-    kpiValue: 4850000,
-    kpiChange: "+12%",
+    kpiValue: 0,
+    kpiChange: "0%",
     kpiPositive: true,
     category: "Finanzas"
   },
@@ -86,20 +89,7 @@ const INITIAL_GADGETS_DATA = [
     groupBy: "Mes",
     filter: "Ninguno",
     color: "#8b5cf6",
-    chartData: [
-      { name: "May", value: 2100000 },
-      { name: "Jun", value: 2500000 },
-      { name: "Jul", value: 2000000 },
-      { name: "Ago", value: 1800000 },
-      { name: "Sep", value: 2300000 },
-      { name: "Oct", value: 2800000 },
-      { name: "Nov", value: 3100000 },
-      { name: "Dic", value: 2900000 },
-      { name: "Ene", value: 3500000 },
-      { name: "Feb", value: 3800000 },
-      { name: "Mar", value: 4100000 },
-      { name: "Abr", value: 4850000 }
-    ],
+    chartData: [],
     category: "Finanzas"
   },
   {
@@ -111,13 +101,7 @@ const INITIAL_GADGETS_DATA = [
     groupBy: "Categoría",
     filter: "Solo finalizados",
     color: "#6d28d9",
-    chartData: [
-      { name: "Cabello", value: 160 },
-      { name: "Uñas", value: 110 },
-      { name: "Spa", value: 80 },
-      { name: "Barbería", value: 65 },
-      { name: "Otros", value: 30 }
-    ],
+    chartData: [],
     category: "Servicios"
   },
   {
@@ -129,12 +113,7 @@ const INITIAL_GADGETS_DATA = [
     groupBy: "Método",
     filter: "Ninguno",
     color: "#3b82f6",
-    chartData: [
-      { name: "Mercado Pago", value: 48 },
-      { name: "Efectivo", value: 28 },
-      { name: "Tarjeta Débito", value: 15 },
-      { name: "Tarjeta Crédito", value: 9 }
-    ],
+    chartData: [],
     category: "Finanzas"
   },
   {
@@ -147,13 +126,7 @@ const INITIAL_GADGETS_DATA = [
     filter: "VIP",
     color: "#f59e0b",
     tableHeaders: ["Cliente", "Visitas", "Gasto Total"],
-    tableRows: [
-      ["Selenia Sanchez", "18 visitas", 320000],
-      ["Carlos Pérez", "14 visitas", 240000],
-      ["María Rodríguez", "12 visitas", 195000],
-      ["Ana Gómez", "10 visitas", 160000],
-      ["Laura Silva", "8 visitas", 130000]
-    ],
+    tableRows: [],
     category: "Clientes"
   },
   {
@@ -165,6 +138,8 @@ const INITIAL_GADGETS_DATA = [
     groupBy: "Día/Hora",
     filter: "Ninguno",
     color: "#8b5cf6",
+    heatmapOccupancy: {},
+    maxCellCount: 0,
     category: "Servicios"
   },
   {
@@ -176,13 +151,7 @@ const INITIAL_GADGETS_DATA = [
     groupBy: "Facturación",
     filter: "Ninguno",
     color: "#8b5cf6",
-    rankingData: [
-      { rank: 1, name: "Valeria Gómez", value: 1250000, pct: 100 },
-      { rank: 2, name: "Sofía Martínez", value: 980000, pct: 78 },
-      { rank: 3, name: "Lucas Silva", value: 820000, pct: 65 },
-      { rank: 4, name: "Marcos Díaz", value: 640000, pct: 51 },
-      { rank: 5, name: "Paula Ruiz", value: 450000, pct: 36 }
-    ],
+    rankingData: [],
     category: "Equipo"
   }
 ];
@@ -211,6 +180,188 @@ export default function SmartReports({ appointments = [], clients = [], workers 
   const [formGroupBy, setFormGroupBy] = useState("Total");
   const [formFilter, setFormFilter] = useState("Ninguno");
   const [formColor, setFormColor] = useState("#8b5cf6");
+
+  // Recalcular métricas en base a props reales de la base de datos
+  useEffect(() => {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    const getMonthlyRevenue = (monthOffset) => {
+      const targetMonth = new Date();
+      targetMonth.setMonth(targetMonth.getMonth() - monthOffset);
+      const m = targetMonth.getMonth();
+      const y = targetMonth.getFullYear();
+      return appointments
+        .filter(a => {
+          if (!a.startsAt || a.status === 'CANCELLED') return false;
+          const d = new Date(a.startsAt);
+          return d.getMonth() === m && d.getFullYear() === y;
+        })
+        .reduce((sum, a) => sum + Number(a.service?.price || 0), 0);
+    };
+
+    const currentMonthRevenue = getMonthlyRevenue(0);
+    const lastMonthRevenue = getMonthlyRevenue(1);
+    let changePct = 0;
+    let positive = true;
+    if (lastMonthRevenue > 0) {
+      changePct = Math.round(((currentMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100);
+      positive = changePct >= 0;
+    } else if (currentMonthRevenue > 0) {
+      changePct = 100;
+      positive = true;
+    }
+    const kpiChange = changePct !== 0 ? `${positive ? '+' : ''}${changePct}%` : '0%';
+
+    const monthNames = isEs 
+      ? ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
+      : ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const lineChartData = [];
+    for (let i = 11; i >= 0; i--) {
+      const targetDate = new Date();
+      targetDate.setMonth(targetDate.getMonth() - i);
+      const m = targetDate.getMonth();
+      const y = targetDate.getFullYear();
+      const label = monthNames[m];
+      const value = appointments
+        .filter(a => {
+          if (!a.startsAt || a.status === 'CANCELLED') return false;
+          const d = new Date(a.startsAt);
+          return d.getMonth() === m && d.getFullYear() === y;
+        })
+        .reduce((sum, a) => sum + Number(a.service?.price || 0), 0);
+      lineChartData.push({ name: label, value });
+    }
+
+    const serviceMap = {};
+    appointments.filter(a => a.status !== 'CANCELLED').forEach(a => {
+      const key = a.service?.category || a.service?.name || (isEs ? 'Otros' : 'Others');
+      serviceMap[key] = (serviceMap[key] || 0) + 1;
+    });
+    const barChartData = Object.entries(serviceMap)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 5);
+
+    const paymentMap = {
+      [isEs ? "Mercado Pago" : "Mercado Pago"]: 0,
+      [isEs ? "Efectivo" : "Cash"]: 0
+    };
+    appointments.filter(a => a.status !== 'CANCELLED').forEach(a => {
+      if (a.downpaymentStatus === 'PAID') {
+        paymentMap[isEs ? "Mercado Pago" : "Mercado Pago"] += 1;
+      } else {
+        paymentMap[isEs ? "Efectivo" : "Cash"] += 1;
+      }
+    });
+    const totalPayments = Object.values(paymentMap).reduce((sum, v) => sum + v, 0);
+    const pieChartData = totalPayments > 0
+      ? Object.entries(paymentMap)
+          .map(([name, value]) => ({
+            name,
+            value: Math.round((value / totalPayments) * 100)
+          }))
+          .filter(d => d.value > 0)
+      : [];
+
+    const clientStats = {};
+    appointments.filter(a => a.status !== 'CANCELLED').forEach(a => {
+      const clientId = a.clientId;
+      const name = a.client ? `${a.client.firstName} ${a.client.lastName}`.trim() : null;
+      if (clientId && name) {
+        if (!clientStats[clientId]) {
+          clientStats[clientId] = { name, visits: 0, spent: 0 };
+        }
+        clientStats[clientId].visits += 1;
+        clientStats[clientId].spent += Number(a.service?.price || 0);
+      }
+    });
+    const tableRows = Object.values(clientStats)
+      .sort((a, b) => b.spent - a.spent)
+      .slice(0, 5)
+      .map(c => [
+        c.name, 
+        `${c.visits} ${c.visits === 1 ? (isEs ? 'visita' : 'visit') : (isEs ? 'visitas' : 'visits')}`, 
+        c.spent
+      ]);
+
+    // Ocupación Semanal (Heatmap)
+    const heatmapOccupancy = {};
+    const slots = [
+      { start: 9, end: 11 },
+      { start: 12, end: 14 },
+      { start: 15, end: 17 },
+      { start: 18, end: 20 },
+      { start: 21, end: 23 }
+    ];
+    let maxCellCount = 0;
+    appointments.filter(a => a.status !== 'CANCELLED').forEach(a => {
+      if (!a.startsAt) return;
+      const date = new Date(a.startsAt);
+      const day = date.getDay(); // 0-6 (Sun-Sat)
+      const hour = date.getHours();
+      const dayIdx = [1, 2, 3, 4, 5, 6, 0].indexOf(day); // index in Mon-Sun
+      if (dayIdx === -1) return;
+      const slotIdx = slots.findIndex(s => hour >= s.start && hour <= s.end);
+      if (slotIdx === -1) return;
+      const cellKey = `${dayIdx}-${slotIdx}`;
+      heatmapOccupancy[cellKey] = (heatmapOccupancy[cellKey] || 0) + 1;
+      if (heatmapOccupancy[cellKey] > maxCellCount) {
+        maxCellCount = heatmapOccupancy[cellKey];
+      }
+    });
+
+    const workerStats = {};
+    appointments.filter(a => a.status !== 'CANCELLED').forEach(a => {
+      const workerId = a.workerId;
+      const name = a.worker ? `${a.worker.firstName} ${a.worker.lastName}`.trim() : null;
+      if (workerId && name) {
+        workerStats[workerId] = (workerStats[workerId] || 0) + Number(a.service?.price || 0);
+      }
+    });
+    const sortedWorkers = Object.entries(workerStats)
+      .map(([id, value]) => {
+        const w = workers.find(work => work.id === id);
+        const name = w ? `${w.firstName} ${w.lastName}`.trim() : 'Profesional';
+        return { name, value };
+      })
+      .sort((a, b) => b.value - a.value);
+    const maxVal = sortedWorkers.length > 0 ? sortedWorkers[0].value : 1;
+    const rankingData = sortedWorkers.map((w, index) => ({
+      rank: index + 1,
+      name: w.name,
+      value: w.value,
+      pct: maxVal > 0 ? Math.round((w.value / maxVal) * 100) : 0
+    })).slice(0, 5);
+
+    setGadgets(prev => {
+      return prev.map(g => {
+        if (g.id === "gadget-kpi-1") {
+          return { ...g, kpiValue: currentMonthRevenue, kpiChange, kpiPositive: positive };
+        }
+        if (g.id === "gadget-line-2") {
+          return { ...g, chartData: lineChartData };
+        }
+        if (g.id === "gadget-bar-3") {
+          return { ...g, chartData: barChartData };
+        }
+        if (g.id === "gadget-dona-4") {
+          return { ...g, chartData: pieChartData };
+        }
+        if (g.id === "gadget-table-5") {
+          return { ...g, tableRows };
+        }
+        if (g.id === "gadget-heatmap-6") {
+          return { ...g, heatmapOccupancy, maxCellCount };
+        }
+        if (g.id === "gadget-ranking-7") {
+          return { ...g, rankingData };
+        }
+        return g;
+      });
+    });
+  }, [appointments, clients, workers, services, isEs]);
 
   // Alerta de éxito flotante temporizador
   useEffect(() => {
@@ -561,11 +712,14 @@ export default function SmartReports({ appointments = [], clients = [], workers 
         );
 
       case "bar":
-        const defaultBarData = g.chartData || [
-          { name: "A", value: 50 },
-          { name: "B", value: 80 },
-          { name: "C", value: 40 }
-        ];
+        const defaultBarData = g.chartData || [];
+        if (defaultBarData.length === 0) {
+          return (
+            <div className="d-flex align-items-center justify-content-center text-muted" style={{ height: "130px", fontSize: "12px" }}>
+              {isEs ? "Sin datos de servicios" : "No service data"}
+            </div>
+          );
+        }
         return (
           <div style={{ height: "130px", width: "100%" }}>
             <ResponsiveContainer width="100%" height="100%">
@@ -579,10 +733,14 @@ export default function SmartReports({ appointments = [], clients = [], workers 
         );
 
       case "dona":
-        const defaultPieData = g.chartData || [
-          { name: "Efectivo", value: 50 },
-          { name: "Digital", value: 50 }
-        ];
+        const defaultPieData = g.chartData || [];
+        if (defaultPieData.length === 0) {
+          return (
+            <div className="d-flex align-items-center justify-content-center text-muted" style={{ height: "130px", fontSize: "12px" }}>
+              {isEs ? "Sin datos de pago" : "No payment data"}
+            </div>
+          );
+        }
         const colors = [g.color || "#8b5cf6", "#10b981", "#f59e0b", "#ec4899"];
         return (
           <div className="d-flex align-items-center" style={{ height: "130px" }}>
@@ -612,7 +770,14 @@ export default function SmartReports({ appointments = [], clients = [], workers 
 
       case "table":
         const headers = g.tableHeaders || ["Col 1", "Col 2"];
-        const rows = g.tableRows || [["Valor 1", "Valor 2"]];
+        const rows = g.tableRows || [];
+        if (rows.length === 0) {
+          return (
+            <div className="d-flex align-items-center justify-content-center text-muted" style={{ height: "130px", fontSize: "12px" }}>
+              {isEs ? "Sin clientes registrados" : "No clients registered"}
+            </div>
+          );
+        }
         return (
           <div className="overflow-auto" style={{ maxHeight: "140px" }}>
             <div className="table-widget-header">
@@ -645,7 +810,6 @@ export default function SmartReports({ appointments = [], clients = [], workers 
         const days = isEs 
           ? ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
           : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-        const opacities = [0.15, 0.45, 0.85, 0.6, 0.95, 0.3, 0.1];
         return (
           <div className="heatmap-grid-container py-2">
             <div className="heatmap-hours-header">
@@ -661,17 +825,24 @@ export default function SmartReports({ appointments = [], clients = [], workers 
                   <span className="heatmap-label">{day}</span>
                   <div className="heatmap-cells-container">
                     {[0, 1, 2, 3, 4, 5, 6].map((cellIdx) => {
-                      // Simular opacidad variable
-                      const randomOpacity = opacities[(idx + cellIdx) % opacities.length];
+                      let occupancyPercent = 0;
+                      let cellOpacity = 0.05;
+                      const cellKey = `${idx}-${cellIdx}`;
+                      if (g.heatmapOccupancy && g.heatmapOccupancy[cellKey]) {
+                        const count = g.heatmapOccupancy[cellKey];
+                        const max = g.maxCellCount || 1;
+                        cellOpacity = 0.1 + (count / max) * 0.9;
+                        occupancyPercent = Math.round((count / max) * 100);
+                      }
                       return (
                         <div
                           className="heatmap-cell"
                           key={cellIdx}
                           style={{
                             background: g.color || "#8b5cf6",
-                            opacity: randomOpacity
+                            opacity: cellOpacity
                           }}
-                          title={`Ocupación: ${Math.round(randomOpacity * 100)}%`}
+                          title={`Ocupación: ${occupancyPercent}%`}
                         />
                       );
                     })}
@@ -684,6 +855,13 @@ export default function SmartReports({ appointments = [], clients = [], workers 
 
       case "ranking":
         const rankList = g.rankingData || [];
+        if (rankList.length === 0) {
+          return (
+            <div className="d-flex align-items-center justify-content-center text-muted" style={{ height: "130px", fontSize: "12px" }}>
+              {isEs ? "Sin profesionales registrados" : "No workers registered"}
+            </div>
+          );
+        }
         return (
           <div className="ranking-list py-1">
             {rankList.map((item, idx) => (

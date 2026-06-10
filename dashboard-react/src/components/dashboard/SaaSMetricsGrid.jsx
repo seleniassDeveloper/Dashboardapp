@@ -153,6 +153,7 @@ export default function SaaSMetricsGrid({
     }
     const isFlat = data.every((val) => val === 0 || val === data[0]);
     if (isFlat) {
+      if (clientsCount === 0) return [0, 0, 0, 0, 0, 0];
       const base = Math.max(1, Math.round(clientsCount / 6));
       return Array.from({ length: 6 }, (_, i) => Math.min(clientsCount, base + i * base));
     }
@@ -161,7 +162,7 @@ export default function SaaSMetricsGrid({
 
   const monthlyClients = getMonthlyClientsData();
   const maxMonthlyClients = Math.max(...monthlyClients, 1);
-  const barHeights = monthlyClients.map((val) => Math.max(2, Math.round((val / maxMonthlyClients) * 20)));
+  const barHeights = monthlyClients.map((val) => val > 0 ? Math.max(2, Math.round((val / maxMonthlyClients) * 20)) : 0);
 
   // 4. Cancelaciones: Barras verticales irregulares rojas, hoy casi en cero
   const getWeeklyCancellationsData = () => {
@@ -181,7 +182,7 @@ export default function SaaSMetricsGrid({
     }
     const isZero = data.every((val) => val === 0);
     if (isZero) {
-      return [18, 6, 22, 14, 6, cancellationsToday || 1];
+      return [0, 0, 0, 0, 0, 0, 0];
     }
     return data;
   };
@@ -189,9 +190,7 @@ export default function SaaSMetricsGrid({
   const weeklyCancellations = getWeeklyCancellationsData();
   const maxWeeklyCancellations = Math.max(...weeklyCancellations, 1);
   const cancelBarHeights = weeklyCancellations.map((val, idx) => {
-    if (idx === weeklyCancellations.length - 1 && val === 0) {
-      return 1; // Hoy casi en cero
-    }
+    if (val === 0) return 0;
     return Math.max(1, Math.round((val / maxWeeklyCancellations) * 20));
   });
 
@@ -201,11 +200,11 @@ export default function SaaSMetricsGrid({
   const topWorkerCount = stats.topWorkerCount ?? 0;
   const topWorkerFullName = stats.topWorkerName && stats.topWorkerName !== "Ninguno" && stats.topWorkerName !== "None"
     ? stats.topWorkerName 
-    : "Andrea";
+    : (isEs ? "Ninguno" : "None");
   const topWorkerFirstName = topWorkerFullName.split(" ")[0];
 
   const getInitials = (name) => {
-    if (!name || name === "Ninguno" || name === "None") return "AN";
+    if (!name || name === "Ninguno" || name === "None") return "—";
     const parts = name.split(" ");
     if (parts.length >= 2) {
       return (parts[0][0] + parts[1][0]).toUpperCase();
@@ -214,8 +213,8 @@ export default function SaaSMetricsGrid({
   };
   const workerInitials = getInitials(topWorkerFullName);
 
-  let topWorkerPercent = 62;
-  let othersPercent = 38;
+  let topWorkerPercent = 0;
+  let othersPercent = 0;
   if (totalActiveCount > 0 && topWorkerCount > 0) {
     topWorkerPercent = Math.round((topWorkerCount / totalActiveCount) * 100);
     othersPercent = 100 - topWorkerPercent;

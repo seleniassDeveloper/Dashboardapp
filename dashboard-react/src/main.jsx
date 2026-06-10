@@ -24,6 +24,7 @@ import PublicBookingPage from "./views/booking/PublicBookingPage.jsx";
 import BookingSuccess from "./views/booking/BookingSuccess.jsx";
 import QuickAddBookingPage from "./views/booking/QuickAddBookingPage.jsx";
 import AcceptInviteView from "./views/AcceptInviteView.jsx";
+import PublicConsentPage from "./views/booking/PublicConsentPage.jsx";
 import GlobalErrorModal from "./components/layout/GlobalErrorModal.jsx";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
@@ -36,6 +37,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         <Route path="/booking/:businessSlug/success" element={<BookingSuccess />} />
         <Route path="/booking/:businessSlug/add" element={<QuickAddBookingPage />} />
         <Route path="/invite/:token" element={<AcceptInviteView />} />
+        <Route path="/consent/:token" element={<PublicConsentPage />} />
         <Route
           path="/app/*"
           element={

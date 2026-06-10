@@ -43,6 +43,7 @@ const AppointmentsContext = createContext(null);
 export function AppointmentsProvider({ children }) {
   const [appointments, setAppointments] = useState([]);
   const [services, setServices] = useState([]);
+  const [business, setBusiness] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -70,6 +71,15 @@ export function AppointmentsProvider({ children }) {
     }
   }, []);
 
+  const fetchBusiness = useCallback(async () => {
+    try {
+      const res = await api.get(`/appointments/business`);
+      setBusiness(res.data || null);
+    } catch (e) {
+      console.error("Error fetching business configuration", e);
+    }
+  }, []);
+
   const { user } = useAuth();
 
   useEffect(() => {
@@ -78,6 +88,7 @@ export function AppointmentsProvider({ children }) {
     
     fetchAppointments(true);
     fetchServices();
+    fetchBusiness();
 
     // Polling automático en segundo plano cada 10 segundos (sincroniza reservas en vivo sin parpadeos)
     const interval = setInterval(() => {
@@ -85,7 +96,7 @@ export function AppointmentsProvider({ children }) {
     }, 10000);
 
     return () => clearInterval(interval);
-  }, [user, fetchAppointments, fetchServices]);
+  }, [user, fetchAppointments, fetchServices, fetchBusiness]);
 
   const upsertAppointment = useCallback((appointment) => {
     if (!appointment?.id) return;
@@ -103,19 +114,34 @@ export function AppointmentsProvider({ children }) {
     setAppointments((prev) => prev.filter((x) => x.id !== id));
   }, []);
 
+  const appointmentStatuses = useMemo(() => {
+    if (business && Array.isArray(business.appointmentStatuses) && business.appointmentStatuses.length > 0) {
+      return business.appointmentStatuses;
+    }
+    return [
+      { key: "PENDING", label: "Pendiente", color: "#d97706" },
+      { key: "CONFIRMED", label: "Confirmada", color: "#10b981" },
+      { key: "CANCELLED", label: "Cancelada", color: "#ef4444" },
+      { key: "DONE", label: "Finalizada", color: "#6b7280" }
+    ];
+  }, [business]);
+
   const value = useMemo(
     () => ({
       appointments,
       services,
+      business,
+      appointmentStatuses,
       loading,
       error,
       setError,
       fetchAppointments,
       fetchServices,
+      fetchBusiness,
       upsertAppointment,
       removeAppointment,
     }),
-    [appointments, services, loading, error, fetchAppointments, fetchServices, upsertAppointment, removeAppointment]
+    [appointments, services, business, appointmentStatuses, loading, error, fetchAppointments, fetchServices, fetchBusiness, upsertAppointment, removeAppointment]
   );
 
   return <AppointmentsContext.Provider value={value}>{children}</AppointmentsContext.Provider>;

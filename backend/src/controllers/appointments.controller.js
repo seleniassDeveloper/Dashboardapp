@@ -6,6 +6,7 @@ import {
   findAvailableWorkers,
 } from "../services/appointmentAvailability.js";
 import { sendReminderEmail } from "../services/mailer.js";
+import { triggerWorkflows, recordStatusTransition } from "../services/workflowEngine.js";
 
 /**
  * Traduce el motivo por el que un horario no está disponible a un código HTTP:
@@ -167,6 +168,21 @@ export async function createAppointment(req, res) {
       })
       .catch((err) => console.error("Error importando googleService:", err));
 
+    // Log the initial transition in status history
+    prisma.appointmentStatusHistory.create({
+      data: {
+        appointmentId: appt.id,
+        statusFrom: "CREATED",
+        statusTo: appt.status || "PENDING",
+        transitionedAt: new Date(),
+        durationSeconds: 0,
+        businessId: req.businessId
+      }
+    }).catch(err => console.error("Error logging initial transition:", err));
+
+    // Trigger workflows in background
+    triggerWorkflows(req.businessId, "appointment_created", appt).catch(err => console.error("Error triggering workflows:", err));
+
     return res.status(201).json(appt);
   } catch (e) {
     console.error("Error creando la cita:", e);
@@ -238,6 +254,9 @@ export async function updateAppointment(req, res) {
       });
     }
 
+    const oldStatus = existing.status;
+    const isStatusChanged = status && status !== oldStatus;
+
     const appt = await prisma.appointment.update({
       where: { id: String(id) },
       data: {
@@ -254,6 +273,12 @@ export async function updateAppointment(req, res) {
         service: true,
       },
     });
+
+    if (isStatusChanged) {
+      recordStatusTransition(req.businessId, id, oldStatus, status).catch(err => console.error(err));
+      triggerWorkflows(req.businessId, "status_changed", appt).catch(err => console.error("Error triggering status changed workflows:", err));
+      triggerWorkflows(req.businessId, status, appt).catch(err => console.error("Error triggering status workflows:", err));
+    }
 
     // Sincronizar con Google Calendar en segundo plano
     import("../services/googleService.js")
@@ -349,6 +374,7 @@ export async function updateBusinessConfig(req, res) {
       bookingDownpaymentPercent,
       bookingDownpaymentAmount,
       bookingDownpaymentMethod,
+      appointmentStatuses,
     } = req.body;
 
     if (!name || !slug) {
@@ -382,6 +408,7 @@ export async function updateBusinessConfig(req, res) {
         bookingDownpaymentPercent: typeof bookingDownpaymentPercent !== "undefined" ? Number(bookingDownpaymentPercent) : 30,
         bookingDownpaymentAmount: bookingDownpaymentAmount ? Number(bookingDownpaymentAmount) : null,
         bookingDownpaymentMethod: bookingDownpaymentMethod || "mock_mercadopago",
+        appointmentStatuses: appointmentStatuses !== undefined ? appointmentStatuses : undefined,
       }
     });
 
@@ -722,5 +749,67 @@ function saveBase64Image(base64Data, filenamePrefix, clientId) {
 
   return `/uploads/${filename}`;
 }
+
+export async function getSlaStats(req, res) {
+  try {
+    const businessId = req.businessId;
+    if (!businessId) {
+      return res.status(400).json({ error: "Contexto de negocio faltante." });
+    }
+
+    // 1. Fetch all transition histories for this business
+    const histories = await prisma.appointmentStatusHistory.findMany({
+      where: { businessId },
+      include: {
+        appointment: {
+          include: {
+            client: true,
+            service: true
+          }
+        }
+      },
+      orderBy: { transitionedAt: "desc" }
+    });
+
+    // 2. Calculate average duration per statusFrom
+    const statusDurations = {};
+    for (const h of histories) {
+      if (h.durationSeconds === null || h.statusFrom === "CREATED") continue;
+      if (!statusDurations[h.statusFrom]) {
+        statusDurations[h.statusFrom] = { sumSeconds: 0, count: 0 };
+      }
+      statusDurations[h.statusFrom].sumSeconds += h.durationSeconds;
+      statusDurations[h.statusFrom].count += 1;
+    }
+
+    const averages = Object.entries(statusDurations).map(([status, data]) => ({
+      status,
+      averageSeconds: Math.round(data.sumSeconds / data.count),
+      count: data.count
+    }));
+
+    // 3. Format recent transitions
+    const recentTransitions = histories.slice(0, 50).map(h => ({
+      id: h.id,
+      appointmentId: h.appointmentId,
+      clientName: h.appointment?.client ? `${h.appointment.client.firstName} ${h.appointment.client.lastName}` : "Cliente",
+      serviceName: h.appointment?.service?.name || "Servicio",
+      statusFrom: h.statusFrom,
+      statusTo: h.statusTo,
+      transitionedAt: h.transitionedAt,
+      durationSeconds: h.durationSeconds
+    }));
+
+    return res.json({
+      averages,
+      recentTransitions,
+      totalTransitions: histories.length
+    });
+  } catch (error) {
+    console.error("Error obtaining SLA stats:", error);
+    return res.status(500).json({ error: "Error obteniendo estadísticas del SLA." });
+  }
+}
+
 
 

@@ -63,7 +63,7 @@ export default function FinancesView() {
       setDashboardData(res.data);
     } catch (err) {
       console.error(err);
-      setError("No se pudieron calcular las métricas ERP contables.");
+      setError("No se pudieron calcular las métricas ERP contables (es posible que aún no haya datos registrados en la cuenta).");
     } finally {
       setLoading(false);
     }

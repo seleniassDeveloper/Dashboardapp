@@ -93,6 +93,21 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
 
   const requiresClinicalHistory = isMedical;
 
+  // Consentimientos (Digital Consent) states
+  const [consentsList, setConsentsList] = useState([]);
+  const [requestsList, setRequestsList] = useState([]);
+  const [loadingConsents, setLoadingConsents] = useState(false);
+  const [consentTemplates, setConsentTemplates] = useState([]);
+  
+  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState("");
+  const [requestChannel, setRequestChannel] = useState("link");
+  const [generatedRequest, setGeneratedRequest] = useState(null);
+
+  const [showRecordDetailModal, setShowRecordDetailModal] = useState(false);
+  const [activeRecordDetails, setActiveRecordDetails] = useState(null);
+  const [loadingRecordDetail, setLoadingRecordDetail] = useState(false);
+
   // Historial Clínico CRUD states
   const [clinicalEntries, setClinicalEntries] = useState([]);
   const [loadingClinical, setLoadingClinical] = useState(false);
@@ -161,6 +176,31 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
       fetchClinicalHistory();
     }
   }, [show, client?.id, requiresClinicalHistory, canViewClinical, fetchClinicalHistory]);
+
+  const fetchConsentData = useCallback(async () => {
+    if (!client?.id) return;
+    try {
+      setLoadingConsents(true);
+      const [recordsRes, requestsRes, templatesRes] = await Promise.all([
+        api.get(`/consents/records?clientId=${client.id}`),
+        api.get(`/consents/requests?clientId=${client.id}`),
+        api.get("/consents/templates")
+      ]);
+      setConsentsList(recordsRes.data || []);
+      setRequestsList(requestsRes.data || []);
+      setConsentTemplates(templatesRes.data || []);
+    } catch (err) {
+      console.error("Error al cargar consentimientos:", err);
+    } finally {
+      setLoadingConsents(false);
+    }
+  }, [client?.id]);
+
+  useEffect(() => {
+    if (show && client?.id && activeTab === "consentimientos") {
+      fetchConsentData();
+    }
+  }, [show, client?.id, activeTab, fetchConsentData]);
 
   const handleOpenNewEntry = () => {
     setEditingEntry(null);
@@ -553,6 +593,17 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
           </Alert>
         )}
 
+        {/* Banner de Alergias Declaradas */}
+        {(client?.allergies || crmData?.client?.allergies) && (
+          <Alert variant="danger" className="rounded-2xl mb-4 border-0 d-flex align-items-center gap-2.5 shadow-sm bg-red-50 text-red-950 p-3 border-start border-danger" style={{ borderLeft: "5px solid #dc2626 !important" }}>
+            <AlertTriangle size={22} className="text-danger animate-pulse flex-shrink-0" />
+            <div>
+              <strong className="d-block text-danger" style={{ fontSize: "14px" }}>⚠️ ALERGIAS DECLARADAS (Alerta de Seguridad):</strong> 
+              <span className="fw-bold text-dark" style={{ fontSize: "13.5px" }}>{client?.allergies || crmData?.client?.allergies}</span>
+            </div>
+          </Alert>
+        )}
+
         {/* MENÚ DE PESTAÑAS ESTILO CRM PREMIUM */}
         <div className="d-flex border-bottom mb-4 gap-2 overflow-auto scrollbar-none py-1">
           <button
@@ -615,6 +666,18 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
           >
             <Calendar size={16} />
             <span>Historial de Citas</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("consentimientos")}
+            className={`d-flex align-items-center gap-2 px-4 py-2.5 fw-bold rounded-xl border-0 transition-all ${
+              activeTab === "consentimientos"
+                ? "bg-purple-600 text-white shadow-sm hover-bg-purple-700"
+                : "bg-light text-muted hover-bg-gray-100"
+            }`}
+          >
+            <FileText size={16} />
+            <span>Consentimientos</span>
           </button>
         </div>
 
@@ -1808,6 +1871,167 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
                 )}
               </Card>
             )}
+
+            {/* PESTAÑA 5: HISTORIAL DE CONSENTIMIENTOS */}
+            {activeTab === "consentimientos" && (
+              <Card className="border-0 border bg-white p-4 rounded-2xl shadow-sm">
+                <div className="d-flex justify-content-between align-items-center mb-3 border-bottom pb-3 flex-wrap gap-2">
+                  <h3 className="h6 fw-bold m-0 d-flex align-items-center gap-2 text-gray-900">
+                    <FileText size={18} className="text-purple-500" />
+                    <span>Consentimientos Informados Digitales</span>
+                  </h3>
+                  <Button 
+                    variant="purple" 
+                    className="rounded-xl px-4 py-2 text-white bg-purple-600 border-0 hover-bg-purple-700 fw-bold shadow-sm d-flex align-items-center gap-1.5"
+                    onClick={() => {
+                      setGeneratedRequest(null);
+                      setSelectedTemplateId("");
+                      setShowRequestModal(true);
+                    }}
+                  >
+                    <Plus size={14} />
+                    <span>Solicitar Firma</span>
+                  </Button>
+                </div>
+
+                {loadingConsents ? (
+                  <div className="text-center py-4">
+                    <Spinner animation="border" variant="purple" className="text-purple-600" />
+                    <p className="text-muted mt-2 small">Cargando registros...</p>
+                  </div>
+                ) : (
+                  <Row className="g-4">
+                    {/* Lista de Firmados */}
+                    <Col md={12}>
+                      <h4 className="smaller text-muted fw-bold uppercase mb-3">Documentos Firmados ({consentsList.length})</h4>
+                      {consentsList.length === 0 ? (
+                        <div className="text-center py-4 bg-light rounded-xl text-muted small border mb-4">
+                          No hay consentimientos firmados para este cliente.
+                        </div>
+                      ) : (
+                        <div className="table-responsive border rounded-xl bg-light mb-4">
+                          <Table hover className="mb-0 align-middle">
+                            <thead>
+                              <tr className="table-header-small" style={{ fontSize: "11px" }}>
+                                <th className="py-2.5">Procedimiento</th>
+                                <th>Versión</th>
+                                <th>Firmado por</th>
+                                <th>Fecha de Aceptación</th>
+                                <th className="text-end pe-3">Acciones</th>
+                              </tr>
+                            </thead>
+                            <tbody style={{ fontSize: "13px" }}>
+                              {consentsList.map(r => (
+                                <tr key={r.id}>
+                                  <td className="fw-bold text-purple-950 py-2.5">{r.template?.name || "Consentimiento"}</td>
+                                  <td><span className="badge bg-light text-dark border">v{r.templateVersion}</span></td>
+                                  <td className="fw-semibold">{r.fullNameTyped}</td>
+                                  <td>{new Date(r.acceptedAt).toLocaleString("es-AR")} hs</td>
+                                  <td className="text-end pe-3">
+                                    <Button
+                                      size="sm"
+                                      variant="outline-purple"
+                                      className="rounded-xl px-3 py-1 text-xs fw-bold"
+                                      onClick={async () => {
+                                        try {
+                                          setLoadingRecordDetail(true);
+                                          setShowRecordDetailModal(true);
+                                          const detailsRes = await api.get(`/consents/records/${r.id}`);
+                                          setActiveRecordDetails(detailsRes.data);
+                                          setLoadingRecordDetail(false);
+                                        } catch (detailErr) {
+                                          console.error(detailErr);
+                                          alert("Error cargando detalles del registro.");
+                                          setShowRecordDetailModal(false);
+                                          setLoadingRecordDetail(false);
+                                        }
+                                      }}
+                                    >
+                                      Ver Documento
+                                    </Button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </Table>
+                        </div>
+                      )}
+                    </Col>
+
+                    {/* Lista de Pendientes / Enviados */}
+                    <Col md={12}>
+                      <h4 className="smaller text-muted fw-bold uppercase mb-3">Solicitudes Pendientes / Enviadas ({requestsList.filter(req => req.status === "PENDING").length})</h4>
+                      {requestsList.filter(req => req.status === "PENDING").length === 0 ? (
+                        <div className="text-center py-4 bg-light rounded-xl text-muted small border">
+                          No hay solicitudes pendientes de firma.
+                        </div>
+                      ) : (
+                        <div className="table-responsive border rounded-xl bg-light">
+                          <Table hover className="mb-0 align-middle">
+                            <thead>
+                              <tr className="table-header-small" style={{ fontSize: "11px" }}>
+                                <th className="py-2.5">Procedimiento</th>
+                                <th>Canal</th>
+                                <th>Creado el</th>
+                                <th>Expira el</th>
+                                <th>Estado</th>
+                                <th className="text-end pe-3">Acciones</th>
+                              </tr>
+                            </thead>
+                            <tbody style={{ fontSize: "13px" }}>
+                              {requestsList.filter(req => req.status === "PENDING").map(req => {
+                                const link = `${window.location.origin}/consent/${req.token}`;
+                                return (
+                                  <tr key={req.id}>
+                                    <td className="fw-bold text-gray-900 py-2.5">{req.template?.name}</td>
+                                    <td>
+                                      <span className="badge bg-purple-50 text-purple-700 border border-purple-100">
+                                        {req.channel === "qr" ? "QR en Recepción" : "WhatsApp/Link"}
+                                      </span>
+                                    </td>
+                                    <td>{new Date(req.createdAt).toLocaleDateString("es-AR")}</td>
+                                    <td>{new Date(req.expiresAt).toLocaleDateString("es-AR")}</td>
+                                    <td>
+                                      <span className="badge bg-warning text-dark animate-pulse">Pendiente</span>
+                                    </td>
+                                    <td className="text-end pe-3">
+                                      <div className="d-flex justify-content-end gap-1.5">
+                                        <Button
+                                          size="sm"
+                                          variant="light"
+                                          className="rounded-xl px-2 py-1 text-xs border"
+                                          onClick={() => {
+                                            navigator.clipboard.writeText(link);
+                                            alert("Enlace copiado al portapapeles.");
+                                          }}
+                                        >
+                                          Copiar Link
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="success"
+                                          className="rounded-xl px-2 py-1 text-xs border-0"
+                                          onClick={() => {
+                                            const message = `Hola ${client.firstName}. Por favor lee y firma el consentimiento digital para tu procedimiento aquí: ${link}`;
+                                            window.open(`https://wa.me/${client.phone ? client.phone.replace(/\D/g, "") : ""}?text=${encodeURIComponent(message)}`, "_blank");
+                                          }}
+                                        >
+                                          WhatsApp
+                                        </Button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </Table>
+                        </div>
+                      )}
+                    </Col>
+                  </Row>
+                )}
+              </Card>
+            )}
           </div>
         )}
       </Modal.Body>
@@ -1816,6 +2040,263 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
           Cerrar
         </Button>
       </Modal.Footer>
+
+      {/* MODAL GENERAR SOLICITUD / MOSTRAR QR */}
+      <Modal show={showRequestModal} onHide={() => setShowRequestModal(false)} centered className="hegemonic-modal">
+        <Modal.Header closeButton className="border-0 pb-0 bg-light py-3 px-4">
+          <Modal.Title className="fw-bold text-dark">Solicitar Firma de Consentimiento</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="p-4">
+          {!generatedRequest ? (
+            <Form onSubmit={async (e) => {
+              e.preventDefault();
+              if (!selectedTemplateId) return;
+              try {
+                setSavingNotes(true);
+                const res = await api.post("/consents/requests", {
+                  templateId: selectedTemplateId,
+                  clientId: client.id,
+                  channel: requestChannel
+                });
+                setGeneratedRequest(res.data);
+                fetchConsentData();
+              } catch (err) {
+                console.error(err);
+                alert("Error generando la solicitud.");
+              } finally {
+                setSavingNotes(false);
+              }
+            }}>
+              <Form.Group className="mb-3">
+                <Form.Label className="fw-semibold">1. Selecciona el procedimiento/plantilla</Form.Label>
+                <Form.Select
+                  required
+                  value={selectedTemplateId}
+                  onChange={(e) => setSelectedTemplateId(e.target.value)}
+                  className="rounded-xl border-gray-200"
+                >
+                  <option value="">-- Seleccionar Plantilla --</option>
+                  {consentTemplates.map(t => (
+                    <option key={t.id} value={t.id}>{t.name} (v{t.version})</option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
+
+              <Form.Group className="mb-4">
+                <Form.Label className="fw-semibold">2. Canal de Firma</Form.Label>
+                <Form.Select
+                  value={requestChannel}
+                  onChange={(e) => setRequestChannel(e.target.value)}
+                  className="rounded-xl border-gray-200"
+                >
+                  <option value="link">Enviar Link por WhatsApp / Email</option>
+                  <option value="qr">Mostrar código QR en pantalla (Tablet/Recepción)</option>
+                </Form.Select>
+              </Form.Group>
+
+              <div className="d-flex justify-content-end gap-2 mt-4">
+                <Button variant="light" className="rounded-xl px-4 py-2" onClick={() => setShowRequestModal(false)}>
+                  Cancelar
+                </Button>
+                <Button
+                  variant="purple"
+                  type="submit"
+                  disabled={!selectedTemplateId || savingNotes}
+                  className="rounded-xl px-4 py-2 text-white bg-purple-600 border-0 hover-bg-purple-700 shadow"
+                >
+                  {savingNotes ? "Generando..." : "Generar Solicitud"}
+                </Button>
+              </div>
+            </Form>
+          ) : (
+            <div className="text-center py-3">
+              {requestChannel === "qr" ? (
+                <div>
+                  <h5 className="fw-bold text-purple-950 mb-3">Haga escanear este código QR al cliente</h5>
+                  <div className="d-inline-flex p-3 bg-white border rounded-3 shadow-sm mb-4">
+                    <img 
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`${window.location.origin}/consent/${generatedRequest.token}`)}`} 
+                      alt="Código QR"
+                      style={{ width: 200, height: 200 }} 
+                    />
+                  </div>
+                  <p className="text-muted small px-3">
+                    El cliente puede apuntar la cámara de su teléfono para abrir el consentimiento legal, declarar sus alergias y firmar.
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <div className="p-3 bg-success bg-opacity-10 text-success rounded-circle d-inline-flex mb-3">
+                    <CheckCircle size={32} />
+                  </div>
+                  <h5 className="fw-bold text-purple-950 mb-3">¡Solicitud Generada Exitosamente!</h5>
+                  <p className="text-muted small mb-4">El enlace está listo para ser compartido con el cliente.</p>
+
+                  <div className="d-grid gap-2 col-10 mx-auto">
+                    <Button 
+                      variant="purple"
+                      className="rounded-xl py-2 fw-bold text-white bg-purple-600 border-0 shadow-sm"
+                      onClick={() => {
+                        const link = `${window.location.origin}/consent/${generatedRequest.token}`;
+                        navigator.clipboard.writeText(link);
+                        alert("Enlace copiado al portapapeles.");
+                      }}
+                    >
+                      Copiar Enlace de Firma
+                    </Button>
+                    <Button 
+                      variant="success"
+                      className="rounded-xl py-2 fw-bold border-0 shadow-sm"
+                      onClick={() => {
+                        const link = `${window.location.origin}/consent/${generatedRequest.token}`;
+                        const message = `Hola ${client.firstName}. Por favor lee y firma el consentimiento digital para tu procedimiento aquí: ${link}`;
+                        window.open(`https://wa.me/${client.phone ? client.phone.replace(/\D/g, "") : ""}?text=${encodeURIComponent(message)}`, "_blank");
+                      }}
+                    >
+                      Enviar por WhatsApp
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              <div className="border-top mt-4 pt-3 text-center">
+                <Button variant="secondary" className="rounded-xl px-4 py-2" onClick={() => setShowRequestModal(false)}>
+                  Cerrar
+                </Button>
+              </div>
+            </div>
+          )}
+        </Modal.Body>
+      </Modal>
+
+      {/* MODAL DETALLES DE REGISTRO FIRMADO */}
+      <Modal show={showRecordDetailModal} onHide={() => setShowRecordDetailModal(false)} size="lg" centered className="hegemonic-modal">
+        <Modal.Header closeButton className="border-0 pb-0 bg-light py-3 px-4">
+          <Modal.Title className="fw-bold text-dark">Consentimiento Firmado Inmutable</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="p-4 bg-white">
+          {loadingRecordDetail ? (
+            <div className="text-center py-5">
+              <Spinner animation="border" variant="purple" className="text-purple-600" />
+              <p className="text-muted mt-2 fw-semibold">Cargando detalles del consentimiento...</p>
+            </div>
+          ) : activeRecordDetails ? (
+            <div>
+              <div id="printable-consent-document" className="p-3 border rounded-3 bg-white text-dark mb-4">
+                <div style={{ borderBottom: "2px solid #7c3aed", paddingBottom: "15px", marginBottom: "20px" }}>
+                  <h4 className="fw-black m-0" style={{ color: "#1a103c" }}>{activeRecordDetails.template?.name}</h4>
+                  <p style={{ margin: "5px 0", fontSize: "13px" }}><strong>Establecimiento:</strong> {business?.name || "Aura Studio"}</p>
+                  <p style={{ margin: "5px 0", fontSize: "13px" }}><strong>Cliente:</strong> {activeRecordDetails.client?.firstName} {activeRecordDetails.client?.lastName}</p>
+                  <p style={{ margin: "5px 0", fontSize: "13px" }}><strong>Fecha de firma:</strong> {new Date(activeRecordDetails.acceptedAt).toLocaleString("es-AR")} hs</p>
+                </div>
+
+                <div className="mb-4">
+                  <h5 className="h6 fw-bold text-purple-900 border-bottom pb-1 mb-2">Términos y Declaraciones Aceptadas</h5>
+                  <div style={{ whiteSpace: "pre-wrap", fontSize: "12.5px", lineHeight: "1.6", maxHeight: "200px", overflowY: "auto", padding: "10px", background: "#f9f9f9", borderRadius: "5px", border: "1px solid #eee" }}>
+                    {activeRecordDetails.termsSnapshot}
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <h5 className="h6 fw-bold text-purple-900 border-bottom pb-1 mb-2">Declaración de Salud del Cliente</h5>
+                  <Row className="g-2 small">
+                    <Col xs={6}><strong>Alergias / Sensibilidades:</strong></Col>
+                    <Col xs={6} className={activeRecordDetails.allergies ? "text-danger fw-bold" : "text-muted"}>
+                      {activeRecordDetails.allergies || "Ninguna declarada"}
+                    </Col>
+                    <Col xs={6}><strong>Medicación actual:</strong></Col>
+                    <Col xs={6} className={activeRecordDetails.medicalDeclarations?.medication ? "fw-bold" : "text-muted"}>
+                      {activeRecordDetails.medicalDeclarations?.medication || "Ninguna"}
+                    </Col>
+                    <Col xs={6}><strong>¿Embarazo / Lactancia?:</strong></Col>
+                    <Col xs={6} className="fw-semibold">
+                      {activeRecordDetails.medicalDeclarations?.pregnant ? "Sí" : "No"}
+                    </Col>
+                    <Col xs={6}><strong>Observaciones médicas:</strong></Col>
+                    <Col xs={6} className="text-muted">
+                      {activeRecordDetails.medicalDeclarations?.conditions || "Ninguna"}
+                    </Col>
+                  </Row>
+                </div>
+
+                <div className="mb-4">
+                  <h5 className="h6 fw-bold text-purple-900 border-bottom pb-1 mb-2">Registro de Auditoría Electrónica (Evidencia Digital)</h5>
+                  <Row className="g-1 text-xxs text-muted">
+                    <Col xs={4}><strong>Token único de firma:</strong></Col>
+                    <Col xs={8} className="font-mono">{activeRecordDetails.request?.token || "—"}</Col>
+                    <Col xs={4}><strong>Dirección IP:</strong></Col>
+                    <Col xs={8} className="font-mono">{activeRecordDetails.ipAddress || "—"}</Col>
+                    <Col xs={4}><strong>User-Agent:</strong></Col>
+                    <Col xs={8} className="text-truncate">{activeRecordDetails.userAgent || "—"}</Col>
+                  </Row>
+                </div>
+
+                <div style={{ marginTop: "40px", display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                  <div>
+                    <p style={{ margin: "5px 0", fontSize: "13px" }}><strong>Nombre Tipeado:</strong> {activeRecordDetails.fullNameTyped}</p>
+                    <p style={{ margin: "5px 0", fontSize: "11px", color: "#666" }}>Aceptado electrónicamente en conformidad legal.</p>
+                  </div>
+                  <div style={{ textAlign: "center" }}>
+                    <p style={{ margin: "0 0 5px 0", fontSize: "12px", fontWeight: "bold" }}>Firma del Cliente:</p>
+                    <img 
+                      src={activeRecordDetails.signatureImage} 
+                      alt="Firma del cliente" 
+                      style={{ maxWidth: "220px", maxHeight: "80px", borderBottom: "1px solid #444", paddingBottom: "5px" }} 
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="d-flex justify-content-between mt-4">
+                <Button 
+                  variant="outline-purple"
+                  className="rounded-xl px-4 py-2 fw-bold"
+                  onClick={() => {
+                    const printContents = document.getElementById("printable-consent-document").innerHTML;
+                    
+                    // Create simple print preview window
+                    const printWindow = window.open("", "_blank");
+                    printWindow.document.write(`
+                      <html>
+                        <head>
+                          <title>Imprimir Consentimiento</title>
+                          <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
+                          <style>
+                            body { font-family: sans-serif; padding: 40px; }
+                            @media print {
+                              body { padding: 0; }
+                              .no-print { display: none; }
+                            }
+                          </style>
+                        </head>
+                        <body>
+                          ${printContents}
+                          <script>
+                            window.onload = function() {
+                              window.print();
+                              window.close();
+                            }
+                          </script>
+                        </body>
+                      </html>
+                    `);
+                    printWindow.document.close();
+                  }}
+                >
+                  <Printer size={16} className="me-1.5" />
+                  <span>Imprimir Documento</span>
+                </Button>
+                
+                <Button variant="secondary" className="rounded-xl px-4 py-2" onClick={() => setShowRecordDetailModal(false)}>
+                  Cerrar
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-4 text-muted">No se pudieron cargar los detalles del registro.</div>
+          )}
+        </Modal.Body>
+      </Modal>
     </Modal>
   );
 }

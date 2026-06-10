@@ -9,6 +9,7 @@ import {
   updateBusinessConfig,
   sendManualConfirmationEmail,
   finalizeAppointment,
+  getSlaStats,
 } from "../controllers/appointments.controller.js";
 import { requirePermission } from "../middleware/rbac.middleware.js";
 
@@ -18,6 +19,7 @@ const router = Router();
 router.get("/availability", requirePermission("agenda.view"), checkAppointmentAvailability);
 router.get("/business", requirePermission("agenda.view"), getBusinessConfig);
 router.put("/business", requirePermission("settings.edit"), updateBusinessConfig);
+router.get("/sla/stats", requirePermission("agenda.view"), getSlaStats);
 router.get("/", requirePermission("agenda.view"), getAppointments);
 router.post("/", requirePermission("agenda.create"), createAppointment);
 router.put("/:id", requirePermission("agenda.edit"), updateAppointment);
