@@ -3,7 +3,8 @@ import { Modal, Row, Col, Card, Badge, Table, Button, Form, Alert, ProgressBar, 
 import { 
   Calendar, CreditCard, Clock, MessageCircle, Cake, Sparkles, 
   AlertTriangle, ArrowRight, BookOpen, Activity, Award, User, 
-  Heart, ShoppingBag, ShieldCheck, Save, FileText, CheckCircle 
+  Heart, ShoppingBag, ShieldCheck, Save, FileText, CheckCircle,
+  Plus, Printer
 } from "lucide-react";
 import { API_BASE_URL } from "../../lib/api.js";
 import api from "../../lib/api.js";
