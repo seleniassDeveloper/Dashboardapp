@@ -323,16 +323,6 @@ export default function ServiceModal({ show, onHide, editService = null }) {
             </button>
 
             <button
-              onClick={() => setActiveTab("booking")}
-              className={`d-flex align-items-center gap-3 w-100 px-3 py-2.5 rounded-xl border-0 text-start fw-bold transition-all ${
-                activeTab === "booking" ? "bg-purple-600 text-white shadow-sm" : "bg-transparent text-muted hover-bg-gray-200"
-              }`}
-            >
-              <Shield size={18} />
-              <span>Reservas Online</span>
-            </button>
-
-            <button
               onClick={() => setActiveTab("inventory")}
               className={`d-flex align-items-center gap-3 w-100 px-3 py-2.5 rounded-xl border-0 text-start fw-bold transition-all ${
                 activeTab === "inventory" ? "bg-purple-600 text-white shadow-sm" : "bg-transparent text-muted hover-bg-gray-200"
@@ -685,52 +675,6 @@ export default function ServiceModal({ show, onHide, editService = null }) {
                         </Card>
                       </Col>
                     )}
-                  </Row>
-                </div>
-              )}
-
-              {/* TAB 5: RESERVAS ONLINE */}
-              {activeTab === "booking" && (
-                <div className="animate-fade-in">
-                  <h3 className="h6 fw-black text-gray-900 border-bottom pb-2 mb-3">Parámetros de Reserva Online</h3>
-                  <p className="text-muted smaller">Controla la visualización y confirmaciones automáticas de cara a tus clientes en el portal web.</p>
-                  
-                  <Row className="g-3 mt-1">
-                    <Col md={6}>
-                      <Card className="border p-3.5 rounded-2xl bg-light h-100">
-                        <Form.Group>
-                          <Form.Label className="fw-black text-gray-900 d-flex align-items-center gap-1.5 mb-2.5">
-                            <Shield size={16} className="text-purple-600" />
-                            <span>Control de Aprobación</span>
-                          </Form.Label>
-                          <Form.Check
-                            type="switch"
-                            id="requires-approval-switch"
-                            label={<span className="fw-semibold text-gray-700 small">Requiere aprobación manual del administrador</span>}
-                            checked={requiresApproval}
-                            onChange={(e) => setRequiresApproval(e.target.checked)}
-                            className="custom-switch"
-                          />
-                        </Form.Group>
-                        <div className="mt-3 smaller text-muted">
-                          {requiresApproval 
-                            ? "ℹ️ Los turnos agendados por clientes quedarán en estado PENDIENTE hasta que confirmes la disponibilidad." 
-                            : "ℹ️ Las citas se confirmarán automáticamente en la agenda del profesional si el horario está disponible."}
-                        </div>
-                      </Card>
-                    </Col>
-
-                    <Col md={6}>
-                      <Card className="border p-3.5 rounded-2xl bg-light h-100">
-                        <div className="fw-black text-gray-900 d-flex align-items-center gap-1.5 mb-2.5">
-                          <CheckCircle size={16} className="text-emerald-500" />
-                          <span>Habilitación y Visibilidad</span>
-                        </div>
-                        <p className="smaller text-muted mb-0">
-                          La visibilidad está ligada al <strong>Estado Inicial</strong> (Info Básica). Si seleccionaste <i>Oculto en Reservas Online</i>, este servicio solo podrá ser agendado de forma interna por tus recepcionistas.
-                        </p>
-                      </Card>
-                    </Col>
                   </Row>
                 </div>
               )}
