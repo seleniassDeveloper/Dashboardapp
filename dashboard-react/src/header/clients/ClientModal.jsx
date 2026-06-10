@@ -92,6 +92,17 @@ export default function ClientModal({
         }
       }
 
+      if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+        fieldErrors["email"] = "El email no tiene un formato válido.";
+      }
+
+      if (phone.trim()) {
+        const cleaned = phone.replace(/\D/g, "");
+        if (!/^[+0-9()\-.\s]+$/.test(phone) || cleaned.length < 7 || cleaned.length > 15) {
+          fieldErrors["phone"] = "El teléfono debe tener entre 7 y 15 dígitos.";
+        }
+      }
+
       if (Object.keys(fieldErrors).length > 0) {
         setErrors(fieldErrors);
         return setError("Revisá los campos marcados.");

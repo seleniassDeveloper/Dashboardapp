@@ -45,8 +45,11 @@ export function setErrorListener(listener) {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Excluir código 401 para permitir manejo de redirecciones de login normales
-    if (error.response?.status !== 401 && errorListener) {
+    // Solo disparar el listener de error global para errores de red o errores de servidor (status >= 500)
+    // Se excluyen los códigos de error 4xx (400, 401, 403, 404, 409) que deben manejarse localmente
+    const status = error.response?.status;
+    const isSystemError = !status || status >= 500;
+    if (isSystemError && errorListener) {
       errorListener(error);
     }
     return Promise.reject(error);

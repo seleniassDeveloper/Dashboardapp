@@ -577,6 +577,13 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
       }
     }
 
+    if (form.phone.trim()) {
+      const cleaned = form.phone.replace(/\D/g, "");
+      if (!/^[+0-9()\-.\s]+$/.test(form.phone) || cleaned.length < 7 || cleaned.length > 15) {
+        fieldErrors["phone"] = "El teléfono debe tener entre 7 y 15 dígitos.";
+      }
+    }
+
     if (Object.keys(fieldErrors).length > 0) {
       setErrors(fieldErrors);
       setError("Revisá los campos marcados.");
