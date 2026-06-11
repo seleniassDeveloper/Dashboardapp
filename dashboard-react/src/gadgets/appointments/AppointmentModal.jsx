@@ -148,6 +148,33 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
   const [showFinalizeModal, setShowFinalizeModal] = useState(false);
   const [finalizingAppt, setFinalizingAppt] = useState(null);
 
+  const handleFinalizeCompleted = (updatedAppt) => {
+    setShowFinalizeModal(false);
+    setFinalizingAppt(null);
+    onSaved?.({ mode: isEdit ? "edit" : "create", appointment: updatedAppt });
+    onHide?.();
+  };
+
+  const handleFinalizeCancel = () => {
+    setShowFinalizeModal(false);
+    setFinalizingAppt(null);
+    onSaved?.({ mode: isEdit ? "edit" : "create", appointment: finalizingAppt });
+    onHide?.();
+  };
+
+  const { enabledFields, loading: schemaLoading, error: schemaError } = useFormSchema(
+    "assign.appointment.form.modal",
+    { enabled: show }
+  );
+
+  const [form, setForm] = useState(emptyForm);
+  const [dirty, setDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [loadingRefs, setLoadingRefs] = useState(false);
+  const [error, setError] = useState("");
+  const [errors, setErrors] = useState({});
+
+  // SLA de Ejecución
   const [liveData, setLiveData] = useState(null);
   const [secondsElapsed, setSecondsElapsed] = useState(0);
 
@@ -184,32 +211,6 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
 
   const isExceeded = liveData && secondsElapsed > liveData.estimatedSec;
   const isHardExceeded = liveData && liveData.hardLimitSec && secondsElapsed > liveData.hardLimitSec;
-
-  const handleFinalizeCompleted = (updatedAppt) => {
-    setShowFinalizeModal(false);
-    setFinalizingAppt(null);
-    onSaved?.({ mode: isEdit ? "edit" : "create", appointment: updatedAppt });
-    onHide?.();
-  };
-
-  const handleFinalizeCancel = () => {
-    setShowFinalizeModal(false);
-    setFinalizingAppt(null);
-    onSaved?.({ mode: isEdit ? "edit" : "create", appointment: finalizingAppt });
-    onHide?.();
-  };
-
-  const { enabledFields, loading: schemaLoading, error: schemaError } = useFormSchema(
-    "assign.appointment.form.modal",
-    { enabled: show }
-  );
-
-  const [form, setForm] = useState(emptyForm);
-  const [dirty, setDirty] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [loadingRefs, setLoadingRefs] = useState(false);
-  const [error, setError] = useState("");
-  const [errors, setErrors] = useState({});
 
   const [workers, setWorkers] = useState([]);
   const [servicesCatalog, setServicesCatalog] = useState([]);
