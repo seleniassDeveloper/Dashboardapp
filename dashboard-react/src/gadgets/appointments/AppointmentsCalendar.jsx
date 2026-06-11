@@ -21,6 +21,7 @@ import AppointmentModal from "./AppointmentModal.jsx";
 import Agenda from "./agenda/Agenda";
 import AgendaSummary from "./agenda/AgendaSummary";
 import AgendaSummaryDetailModal from "./agenda/AgendaSummaryDetailModal";
+import FinalizeServiceModal from "../../components/clients/FinalizeServiceModal.jsx";
 import axiosApi from "../../lib/api.js";
 import { User, Calendar } from "lucide-react";
 
@@ -138,6 +139,10 @@ export default function AppointmentsCalendar() {
 
   const [summaryDetail, setSummaryDetail] = useState(null);
 
+  // Modal para finalizar servicio (CRM)
+  const [showFinalizeModal, setShowFinalizeModal] = useState(false);
+  const [finalizingAppt, setFinalizingAppt] = useState(null);
+
   const appointmentsByWorker = useMemo(() => {
     const map = {};
     workers.forEach(w => { map[w.id] = []; });
@@ -157,6 +162,14 @@ export default function AppointmentsCalendar() {
 
   const handleStatusChange = async (newStatus) => {
     if (!selected) return;
+
+    if (newStatus === "DONE") {
+      setShowDetail(false);
+      setFinalizingAppt(selected);
+      setShowFinalizeModal(true);
+      return;
+    }
+
     try {
       const payload = {
         clientId: selected.clientId || selected.client?.id,
@@ -175,6 +188,12 @@ export default function AppointmentsCalendar() {
       console.error("Error updating status:", e);
       alert("No se pudo actualizar el estado de la cita.");
     }
+  };
+
+  const handleFinalizeCompleted = (updatedAppt) => {
+    upsertAppointment(updatedAppt);
+    fetchAppointments();
+    setFinalizingAppt(null);
   };
 
   const handleSendWhatsApp = (appt) => {
@@ -591,6 +610,16 @@ export default function AppointmentsCalendar() {
         onSendWhatsApp={handleSendWhatsApp}
         onSendEmail={handleSendEmail}
         onMarkSenaPaid={handleMarkSenaPaid}
+      />
+
+      <FinalizeServiceModal
+        show={showFinalizeModal}
+        onHide={() => {
+          setShowFinalizeModal(false);
+          setFinalizingAppt(null);
+        }}
+        appointment={finalizingAppt}
+        onCompleted={handleFinalizeCompleted}
       />
     </>
   );

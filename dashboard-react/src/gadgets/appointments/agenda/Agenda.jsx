@@ -512,10 +512,13 @@ export default function Agenda({
         };
 
         upsertAppointment(savedRecord);
-        setAlertMessage("Cita actualizada exitosamente.");
-
-        // Sincronizar
-        onSaved?.();
+        if (appt.status === "DONE") {
+          setFinalizingAppt(savedRecord);
+          setShowFinalizeModal(true);
+        } else {
+          setAlertMessage("Cita actualizada exitosamente.");
+          onSaved?.();
+        }
       } else {
         const res = await api.post(`/appointments`, payload);
         const savedRecord = { 
@@ -526,10 +529,13 @@ export default function Agenda({
         };
 
         upsertAppointment(savedRecord);
-        setAlertMessage("Nueva cita agendada exitosamente.");
-
-        // Sincronizar
-        onSaved?.();
+        if (appt.status === "DONE") {
+          setFinalizingAppt(savedRecord);
+          setShowFinalizeModal(true);
+        } else {
+          setAlertMessage("Nueva cita agendada exitosamente.");
+          onSaved?.();
+        }
       }
     } catch (e) {
       console.error("Error guardando cita en la base de datos:", e?.response?.data || e);

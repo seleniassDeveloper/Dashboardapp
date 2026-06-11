@@ -40,8 +40,19 @@ export default function PublicBookingPage() {
   const [step, setStep] = useState(1); // 1: Servicio, 2: Profesional, 3: Fecha/Hora, 4: Datos Cliente, 5: Pago de Seña
 
   // Selecciones
-  const [selService, setSelService] = useState(null);
+  const [selServices, setSelServices] = useState([]);
   const [selProfessional, setSelProfessional] = useState(null); // null significa "Cualquiera"
+
+  const handleToggleService = (service) => {
+    setSelServices((prev) => {
+      const exists = prev.some((s) => s.id === service.id);
+      if (exists) {
+        return prev.filter((s) => s.id !== service.id);
+      } else {
+        return [...prev, service];
+      }
+    });
+  };
   const [selDate, setSelDate] = useState("");
   const [selTime, setSelTime] = useState("");
   const [serviceSearch, setServiceSearch] = useState("");
@@ -82,11 +93,12 @@ export default function PublicBookingPage() {
   const [mpTxId, setMpTxId] = useState("");
 
   const getDownpaymentAmount = () => {
-    if (!business || !selService) return 0;
+    if (!business || selServices.length === 0) return 0;
     if (business.bookingDownpaymentAmount) {
       return business.bookingDownpaymentAmount;
     }
-    return Math.round((selService.price * (business.bookingDownpaymentPercent || 30)) / 100);
+    const totalPrice = selServices.reduce((sum, s) => sum + s.price, 0);
+    return Math.round((totalPrice * (business.bookingDownpaymentPercent || 30)) / 100);
   };
 
   const getNextDays = () => {
@@ -176,13 +188,14 @@ export default function PublicBookingPage() {
 
   // Cargar slots cuando cambia la fecha o el profesional
   useEffect(() => {
-    if (!selService || !selDate) return;
+    if (selServices.length === 0 || !selDate) return;
     const loadSlots = async () => {
       try {
         setLoadingSlots(true);
         const workerId = selProfessional ? selProfessional.id : "";
+        const serviceIds = selServices.map((s) => s.id).join(",");
         const res = await api.get(
-          `/public/business/${businessSlug}/slots?serviceId=${selService.id}&workerId=${workerId}&date=${selDate}`
+          `/public/business/${businessSlug}/slots?serviceId=${serviceIds}&workerId=${workerId}&date=${selDate}`
         );
         setSlots(res.data || []);
       } catch (e) {
@@ -193,7 +206,7 @@ export default function PublicBookingPage() {
       }
     };
     loadSlots();
-  }, [selService, selProfessional, selDate]);
+  }, [selServices, selProfessional, selDate]);
 
   const handleNextStep = () => setStep((p) => p + 1);
   const handleBackStep = () => setStep((p) => p - 1);
@@ -205,24 +218,29 @@ export default function PublicBookingPage() {
       setError("");
 
       const workerId = selProfessional ? selProfessional.id : "any";
+      const serviceIds = selServices.map((s) => s.id).join(",");
 
       const payload = {
         ...clientForm,
-        serviceId: selService.id,
+        serviceId: serviceIds,
         professionalId: workerId,
         date: selDate,
         time: selTime,
       };
 
       const res = await api.post(`/public/business/${businessSlug}/bookings`, payload);
+      
+      const mappedBookings = (res.data.bookings || [res.data.booking]).map((b) => ({
+        ...b,
+        service: selServices.find((s) => s.id === b.serviceId) || b.service,
+        worker: selProfessional || professionals.find((p) => p.id === b.workerId),
+      }));
+
       navigate(`/booking/${businessSlug}/success`, {
         state: {
           message: res.data.message || t("form.successFallback"),
-          booking: {
-            ...res.data.booking,
-            service: selService,
-            worker: selProfessional || professionals.find((p) => p.id === res.data.booking.workerId || p.id === workerId),
-          },
+          booking: mappedBookings[0],
+          bookings: mappedBookings,
           color: business.bookingPrimaryColor,
         },
       });
@@ -249,6 +267,7 @@ export default function PublicBookingPage() {
       setError("");
 
       const workerId = selProfessional ? selProfessional.id : "any";
+      const serviceIds = selServices.map((s) => s.id).join(",");
 
       const downpayment = getDownpaymentAmount();
       const transactionId = customTxId || (paymentMethod === "mercadopago" 
@@ -257,7 +276,7 @@ export default function PublicBookingPage() {
 
       const payload = {
         ...clientForm,
-        serviceId: selService.id,
+        serviceId: serviceIds,
         professionalId: workerId,
         date: selDate,
         time: selTime,
@@ -268,15 +287,17 @@ export default function PublicBookingPage() {
 
       const res = await api.post(`/public/business/${businessSlug}/bookings`, payload);
       
+      const mappedBookings = (res.data.bookings || [res.data.booking]).map((b) => ({
+        ...b,
+        service: selServices.find((s) => s.id === b.serviceId) || b.service,
+        worker: selProfessional || professionals.find((p) => p.id === b.workerId),
+      }));
+
       navigate(`/booking/${businessSlug}/success`, {
         state: {
           message: res.data.message || t("form.successFallback"),
-          booking: {
-            ...res.data.booking,
-            downpaymentPaid: downpayment,
-            service: selService,
-            worker: selProfessional || professionals.find((p) => p.id === res.data.booking.workerId || p.id === workerId),
-          },
+          booking: mappedBookings[0],
+          bookings: mappedBookings,
           color: business.bookingPrimaryColor,
         },
       });
@@ -461,8 +482,8 @@ export default function PublicBookingPage() {
             {/* PASO 1: SELECCIONAR SERVICIO */}
             {step === 1 && (
               <div className="animate-fade-in">
-                <h2 className="h5 fw-black text-gray-900 mb-1">{isEs ? "Selecciona el Servicio" : "Select Service"}</h2>
-                <p className="text-muted smaller mb-4">{isEs ? "Elegí el tratamiento contable o estético que deseas agendar." : "Choose the accounting or aesthetic treatment you want to schedule."}</p>
+                <h2 className="h5 fw-black text-gray-900 mb-1">{isEs ? "Selecciona los Servicios" : "Select Services"}</h2>
+                <p className="text-muted smaller mb-4">{isEs ? "Elegí uno o más tratamientos que deseas agendar." : "Choose one or more treatments you want to schedule."}</p>
                 
                 {business?.googleBookingUrl && (
                   <Card className="border-0 shadow-sm p-3.5 rounded-4 mb-4" style={{ backgroundColor: "#f3e8ff", border: "1px solid #e9d5ff" }}>
@@ -517,38 +538,62 @@ export default function PublicBookingPage() {
                   ) : (
                     services
                       .filter((s) => s.name.toLowerCase().includes(serviceSearch.toLowerCase()))
-                      .map((s) => (
-                        <div 
-                          key={s.id}
-                          onClick={() => { setSelService(s); handleNextStep(); }}
-                          className="p-3 border rounded-2xl cursor-pointer transition-all hover-row-focus d-flex justify-content-between align-items-center gap-3"
-                          style={{
-                            borderColor: selService?.id === s.id ? primaryColor : "#e2e8f0",
-                            backgroundColor: selService?.id === s.id ? `${primaryColor}05` : "#fff",
-                            borderWidth: selService?.id === s.id ? "2px" : "1px",
-                            boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.05)"
-                          }}
-                        >
-                          <div className="d-flex align-items-center gap-3">
-                            <div className="rounded-xl d-flex align-items-center justify-content-center text-white" style={{ width: "42px", height: "42px", background: `linear-gradient(135deg, ${primaryColor} 0%, #1f2937 100%)` }}>
-                              <Sparkles size={18} />
+                      .map((s) => {
+                        const isSelected = selServices.some((svc) => svc.id === s.id);
+                        return (
+                          <div 
+                            key={s.id}
+                            onClick={() => handleToggleService(s)}
+                            className="p-3 border rounded-2xl cursor-pointer transition-all hover-row-focus d-flex justify-content-between align-items-center gap-3"
+                            style={{
+                              borderColor: isSelected ? primaryColor : "#e2e8f0",
+                              backgroundColor: isSelected ? `${primaryColor}05` : "#fff",
+                              borderWidth: isSelected ? "2px" : "1px",
+                              boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.05)"
+                            }}
+                          >
+                            <div className="d-flex align-items-center gap-3">
+                              <div className="rounded-xl d-flex align-items-center justify-content-center text-white" style={{ width: "42px", height: "42px", background: isSelected ? `linear-gradient(135deg, ${primaryColor} 0%, #10b981 100%)` : `linear-gradient(135deg, #94a3b8 0%, #475569 100%)` }}>
+                                {isSelected ? <CheckCircle size={18} /> : <Sparkles size={18} />}
+                              </div>
+                              <div>
+                                <strong className="text-gray-900 d-block small fw-bold">{s.name}</strong>
+                                <span className="smaller text-muted d-block mt-0.5 d-flex align-items-center gap-1">
+                                  <Clock size={12} />
+                                  <span>{s.duration} min</span>
+                                </span>
+                              </div>
                             </div>
-                            <div>
-                              <strong className="text-gray-900 d-block small fw-bold">{s.name}</strong>
-                              <span className="smaller text-muted d-block mt-0.5 d-flex align-items-center gap-1">
-                                <Clock size={12} />
-                                <span>{s.duration} min</span>
-                              </span>
+                            <div className="text-end d-flex align-items-center gap-2">
+                              <strong style={{ fontSize: "15px", color: isSelected ? primaryColor : "#475569" }} className="fw-black">{currency(s.price)}</strong>
+                              <ChevronRight size={16} className="text-muted" />
                             </div>
                           </div>
-                          <div className="text-end d-flex align-items-center gap-2">
-                            <strong style={{ fontSize: "15px", color: primaryColor }} className="fw-black">{currency(s.price)}</strong>
-                            <ChevronRight size={16} className="text-muted" />
-                          </div>
-                        </div>
-                      ))
+                        );
+                      })
                   )}
                 </div>
+
+                {selServices.length > 0 && (
+                  <div className="mt-4 p-3 bg-white border rounded-2xl d-flex justify-content-between align-items-center shadow-sm sticky-bottom animate-fade-in" style={{ borderColor: primaryColor }}>
+                    <div>
+                      <strong className="d-block text-dark small">
+                        {selServices.length} {selServices.length === 1 ? "servicio seleccionado" : "servicios seleccionados"}
+                      </strong>
+                      <span className="smaller text-muted">
+                        Total: {currency(selServices.reduce((sum, s) => sum + s.price, 0))} • {selServices.reduce((sum, s) => sum + s.duration, 0)} min
+                      </span>
+                    </div>
+                    <Button 
+                      onClick={handleNextStep}
+                      className="rounded-pill px-4 border-0 text-white font-semibold d-flex align-items-center gap-1 btn-premium"
+                      style={{ background: primaryColor }}
+                    >
+                      <span>Continuar</span>
+                      <ChevronRight size={16} />
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
 
@@ -580,8 +625,18 @@ export default function PublicBookingPage() {
                     </div>
                   </div>
 
+                  {professionals.filter((p) => selServices.every((s) => p.serviceIds.includes(s.id))).length === 0 && (
+                    <div className="w-100 col-span-full">
+                      <Alert variant="warning" className="rounded-2xl border-0 shadow-sm text-center py-4 mb-0">
+                        <AlertTriangle size={24} className="mx-auto text-warning mb-2 animate-bounce" />
+                        <strong className="d-block small text-dark mb-1">Ningún profesional realiza todos los servicios seleccionados</strong>
+                        <span className="smaller text-muted d-block">Intenta quitando algún servicio o reservándolos por separado.</span>
+                      </Alert>
+                    </div>
+                  )}
+
                   {professionals
-                    .filter((p) => p.serviceIds.includes(selService.id))
+                    .filter((p) => selServices.every((s) => p.serviceIds.includes(s.id)))
                     .map((p) => (
                       <div 
                         key={p.id}
@@ -600,7 +655,7 @@ export default function PublicBookingPage() {
                         </div>
                         <div>
                           <strong className="text-gray-900 d-block small fw-bold">{p.firstName} {p.lastName}</strong>
-                          <span className="smaller text-muted d-block mt-0.5" style={{ fontSize: "11px" }}>{isEs ? `Especialista en ${selService?.name}` : `Specialist in ${selService?.name}`}</span>
+                          <span className="smaller text-muted d-block mt-0.5" style={{ fontSize: "11px" }}>{isEs ? "Profesional Calificado" : "Qualified Professional"}</span>
                         </div>
                       </div>
                     ))}
@@ -863,8 +918,8 @@ export default function PublicBookingPage() {
                 {/* Desglose de Precios */}
                 <div className="p-3.5 border rounded-2xl bg-light bg-opacity-40 mb-4">
                   <div className="d-flex justify-content-between align-items-center pb-2 border-bottom mb-2">
-                    <span className="smaller text-muted">Precio del Servicio</span>
-                    <strong className="text-gray-900">{currency(selService.price)}</strong>
+                    <span className="smaller text-muted">Total de Servicios ({selServices.length})</span>
+                    <strong className="text-gray-900">{currency(selServices.reduce((sum, s) => sum + s.price, 0))}</strong>
                   </div>
                   <div className="d-flex justify-content-between align-items-center py-1">
                     <div>
@@ -875,7 +930,7 @@ export default function PublicBookingPage() {
                   </div>
                   <div className="d-flex justify-content-between align-items-center pt-2 border-top mt-2">
                     <span className="smaller text-muted">Saldo restante en Salón</span>
-                    <strong className="text-muted small">{currency(selService.price - getDownpaymentAmount())}</strong>
+                    <strong className="text-muted small">{currency(selServices.reduce((sum, s) => sum + s.price, 0) - getDownpaymentAmount())}</strong>
                   </div>
                   <div className="text-muted smaller mt-3" style={{ fontSize: "11px", lineHeight: "1.4" }}>
                     * Los pagos son procesados de forma 100% segura y encriptada. El monto abonado se descontará del precio final en el local.
@@ -1200,7 +1255,7 @@ export default function PublicBookingPage() {
                   <Col md={4}>
                     <div className="bg-white border rounded-3 p-3 shadow-sm d-grid gap-2">
                       <strong className="text-gray-900 small d-block mb-1 border-bottom pb-1">{isEs ? "Resumen del Turno" : "Appointment Summary"}</strong>
-                      <div className="small"><span className="text-muted">{isEs ? "Servicio:" : "Service:"}</span> <strong>{selService?.name}</strong></div>
+                      <div className="small"><span className="text-muted">{isEs ? "Servicios:" : "Services:"}</span> <strong>{selServices.map(s => s.name).join(", ")}</strong></div>
                       <div className="small"><span className="text-muted">{isEs ? "Profesional:" : "Professional:"}</span> <strong>{selProfessional ? `${selProfessional.firstName}` : (isEs ? "Cualquiera" : "Any")}</strong></div>
                       <div className="small">
                         <span className="text-muted">{isEs ? "Fecha:" : "Date:"}</span>{" "}

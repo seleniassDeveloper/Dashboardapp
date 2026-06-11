@@ -4,7 +4,7 @@ import {
   Calendar, CreditCard, Clock, MessageCircle, Cake, Sparkles, 
   AlertTriangle, ArrowRight, BookOpen, Activity, Award, User, 
   Heart, ShoppingBag, ShieldCheck, Save, FileText, CheckCircle,
-  Plus, Printer, Camera, Upload, X, RotateCw
+  Plus, Printer, Camera, Upload, X, RotateCw, Image as ImageIcon
 } from "lucide-react";
 import { API_BASE_URL } from "../../lib/api.js";
 import api from "../../lib/api.js";
@@ -46,6 +46,7 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
   const [loadingCrm, setLoadingCrm] = useState(false);
   const [errorCrm, setErrorCrm] = useState("");
   const [activeTab, setActiveTab] = useState("resumen");
+  const [lightboxImage, setLightboxImage] = useState(null);
 
   // Estados y efectos para foto de perfil / cámara
   const [currentPhotoUrl, setCurrentPhotoUrl] = useState("");
@@ -573,6 +574,34 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
       });
   }, [appointments, client?.id]);
 
+  // Agrupar fotos del cliente por cita para la galería
+  const groupedGallery = useMemo(() => {
+    if (!crmData?.gallery || crmData.gallery.length === 0) return [];
+
+    const groups = {};
+    crmData.gallery.forEach(p => {
+      const apptId = p.appointmentId;
+      if (!groups[apptId]) {
+        const appt = p.appointment || appointments.find(a => a.id === apptId);
+        groups[apptId] = {
+          appointmentId: apptId,
+          date: appt ? appt.startsAt : p.createdAt,
+          serviceName: appt?.service?.name || "Servicio General",
+          workerName: appt?.worker ? `${appt.worker.firstName} ${appt.worker.lastName}` : "Profesional",
+          before: null,
+          after: null,
+        };
+      }
+      if (p.type === "before") {
+        groups[apptId].before = p.imageUrl;
+      } else if (p.type === "after") {
+        groups[apptId].after = p.imageUrl;
+      }
+    });
+
+    return Object.values(groups).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [crmData?.gallery, appointments]);
+
   if (!client) return null;
 
   const handleSaveNotes = async () => {
@@ -828,6 +857,18 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
           >
             <FileText size={16} />
             <span>Consentimientos</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("historial_visual")}
+            className={`d-flex align-items-center gap-2 px-4 py-2.5 fw-bold rounded-xl border-0 transition-all ${
+              activeTab === "historial_visual"
+                ? "bg-purple-600 text-white shadow-sm hover-bg-purple-700"
+                : "bg-light text-muted hover-bg-gray-100"
+            }`}
+          >
+            <ImageIcon size={16} />
+            <span>Historial Visual</span>
           </button>
         </div>
 
@@ -1851,119 +1892,213 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
             {/* PESTAÑA 3: LÍNEA DE TIEMPO CRM */}
             {activeTab === "timeline" && crmData && (
               <div>
-                <Card className="border-0 border bg-white p-4 rounded-2xl shadow-sm">
-                  <h3 className="h6 fw-bold mb-4 d-flex align-items-center gap-2 text-gray-900 border-bottom pb-3">
-                    <Clock size={18} className="text-purple-500" />
-                    <span>{isMedical ? "Línea de Tiempo de Evolución Clínica" : "Línea de Tiempo de Evolución y Estilo"}</span>
-                  </h3>
+                <Row className="g-4">
+                  {/* Columna Izquierda: Galería de Evolución */}
+                  <Col lg={5} className="mb-4 mb-lg-0">
+                    <Card className="border-0 border bg-white p-4 rounded-2xl shadow-sm h-100">
+                      <h3 className="h6 fw-bold mb-4 d-flex align-items-center gap-2 text-gray-900 border-bottom pb-3">
+                        <Camera size={18} className="text-purple-500" />
+                        <span>Galería de Evolución Visual</span>
+                      </h3>
 
-                  {(() => {
-                    const filteredTimeline = (crmData.timeline || []).filter(event => {
-                      if (event.type === "clinical_note" && !canViewNotes) return false;
-                      return true;
-                    });
-
-                    if (filteredTimeline.length === 0) {
-                      return (
-                        <div className="text-center py-5 text-muted small">
-                          Sin eventos registrados en la línea de tiempo.
+                      {groupedGallery.length === 0 ? (
+                        <div className="text-center py-5 text-muted my-auto">
+                          <div className="p-3 bg-light rounded-circle d-inline-flex mb-3 text-purple-300">
+                            <Camera size={32} />
+                          </div>
+                          <div className="fw-bold text-dark mb-1">Sin fotos de evolución</div>
+                          <p className="small text-muted px-3">
+                            Las fotos tomadas por el profesional al finalizar las citas aparecerán aquí.
+                          </p>
                         </div>
-                      );
-                    }
-
-                    return (
-                      <div className="position-relative ps-4 ms-2" style={{ borderLeft: "2px solid #e9d5ff" }}>
-                        {filteredTimeline.map((event, index) => {
-                          return (
-                            <div key={event.id} className="position-relative mb-5 animate-fade-in">
-                              {/* Dot indicator */}
-                              <div 
-                                className="position-absolute rounded-circle d-flex align-items-center justify-content-center shadow"
-                                style={{ 
-                                  left: "-32px", 
-                                  top: "0px", 
-                                  width: "24px", 
-                                  height: "24px",
-                                  backgroundColor: event.type === "creation" ? "#3b82f6" : event.type === "appointment" ? (event.status === "DONE" ? "#10b981" : "#f59e0b") : event.type === "clinical_note" ? "#8b5cf6" : "#ec4899",
-                                  color: "#fff",
-                                  fontSize: "10px"
-                                }}
-                              >
-                                {event.type === "creation" ? "✓" : event.type === "appointment" ? "📅" : event.type === "clinical_note" ? "📝" : "🖼️"}
-                              </div>
-
-                              {/* Event Header */}
-                              <div className="d-flex justify-content-between align-items-baseline mb-2 flex-wrap gap-2">
-                                <h5 className="h6 fw-bold text-gray-900 m-0">{event.title}</h5>
-                                <small className="text-purple-600 fw-bold bg-purple-50 rounded-pill px-2.5 py-0.5" style={{ fontSize: "12px" }}>
-                                  {new Date(event.date).toLocaleDateString("es-AR", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })} hs
-                                </small>
-                              </div>
-
-                              {/* Event Body */}
-                              <div className="p-3 rounded-xl bg-light border shadow-inner text-gray-700" style={{ fontSize: "13.5px" }}>
-                                <p className="mb-0">{event.description}</p>
-                                
-                                {/* Specialized payload elements based on event type */}
-                                {event.type === "appointment" && (
-                                  <div className="mt-2 pt-2 border-top border-gray-200 d-flex flex-wrap gap-3 align-items-center">
-                                    <span className={`badge ${
-                                      event.status === "DONE" ? "bg-secondary" : event.status === "CONFIRMED" ? "bg-success" : event.status === "CANCELLED" ? "bg-danger" : "bg-warning"
-                                    }`}>
-                                      {event.status === "DONE" ? "Realizada" : event.status === "CONFIRMED" ? "Confirmada" : event.status === "CANCELLED" ? "Cancelada" : "Pendiente"}
-                                    </span>
-                                    {canViewFinance && (
-                                      <span className="fw-bold text-dark">{currency(event.metadata.price)}</span>
-                                    )}
-                                    {event.metadata.notes && (
-                                      <span className="text-muted smaller italic">"{event.metadata.notes}"</span>
-                                    )}
+                      ) : (
+                        <div className="d-flex flex-column gap-3.5 overflow-auto" style={{ maxHeight: "650px", paddingRight: "4px" }}>
+                          {groupedGallery.map((group) => {
+                            const dateLabel = new Date(group.date).toLocaleDateString("es-AR", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric"
+                            });
+                            return (
+                              <div key={group.appointmentId} className="p-3 border rounded-2xl bg-light bg-opacity-50">
+                                <div className="d-flex justify-content-between align-items-start mb-2">
+                                  <div>
+                                    <div className="fw-bold text-gray-900 small">{group.serviceName}</div>
+                                    <div className="text-muted smaller">Por: {group.workerName}</div>
                                   </div>
-                                )}
+                                  <Badge bg="purple" className="bg-purple-100 text-purple-700 fw-bold rounded-pill px-2.5 py-1" style={{ fontSize: "10.5px" }}>
+                                    {dateLabel}
+                                  </Badge>
+                                </div>
 
-                                {event.type === "clinical_note" && (
-                                  <div className="mt-2 pt-2 border-top border-gray-200">
-                                    <div className="text-muted smaller fw-bold uppercase">{isMedical ? "Recomendaciones Clínicas:" : "Recomendaciones de Estilo/Autocuidado:"}</div>
-                                    <div className="text-emerald-800 bg-emerald-50 rounded p-2 mt-1">
-                                      {event.metadata.recommendations || "Sin especificaciones especiales."}
-                                    </div>
-                                  </div>
-                                )}
-
-                              {event.type === "photos_session" && (
-                                <div className="mt-3">
-                                  <Row className="g-2">
-                                    {event.metadata.photos?.map((photo) => (
-                                      <Col xs={6} md={3} key={photo.id}>
-                                        <div className="position-relative border rounded-lg overflow-hidden" style={{ height: "90px" }}>
+                                <Row className="g-2 mt-1">
+                                  {/* Antes */}
+                                  <Col xs={6}>
+                                    <div className="position-relative border rounded-xl overflow-hidden bg-gray-100 aspect-square d-flex align-items-center justify-content-center" style={{ height: "130px" }}>
+                                      {group.before ? (
+                                        <>
                                           <img
-                                            src={getImageUrl(photo.imageUrl)}
-                                            alt={photo.type}
-                                            className="w-100 h-100 object-fit-cover"
+                                            src={getImageUrl(group.before)}
+                                            alt="Antes"
+                                            className="w-100 h-100 object-fit-cover transition-all hover-scale"
                                             style={{ objectFit: "cover", width: "100%", height: "100%" }}
                                           />
-                                          <span 
-                                            className={`position-absolute bottom-1 left-1 badge rounded px-1.5 py-0.5 text-white fw-bold ${
-                                              photo.type === "before" ? "bg-amber-500" : "bg-emerald-500"
-                                            }`}
-                                            style={{ fontSize: "8px", left: "4px", bottom: "4px" }}
-                                          >
-                                            {photo.type === "before" ? "Antes" : "Después"}
+                                          <span className="position-absolute bottom-2 left-2 badge bg-amber-500 text-white rounded px-2 py-1 fw-bold" style={{ fontSize: "9px", left: "6px", bottom: "6px" }}>
+                                            Antes
                                           </span>
-                                        </div>
-                                      </Col>
-                                    ))}
-                                  </Row>
-                                </div>
-                              )}
+                                        </>
+                                      ) : (
+                                        <span className="text-muted smaller">Sin foto antes</span>
+                                      )}
+                                    </div>
+                                  </Col>
+
+                                  {/* Después */}
+                                  <Col xs={6}>
+                                    <div className="position-relative border rounded-xl overflow-hidden bg-gray-100 aspect-square d-flex align-items-center justify-content-center" style={{ height: "130px" }}>
+                                      {group.after ? (
+                                        <>
+                                          <img
+                                            src={getImageUrl(group.after)}
+                                            alt="Después"
+                                            className="w-100 h-100 object-fit-cover transition-all hover-scale"
+                                            style={{ objectFit: "cover", width: "100%", height: "100%" }}
+                                          />
+                                          <span className="position-absolute bottom-2 left-2 badge bg-emerald-500 text-white rounded px-2 py-1 fw-bold" style={{ fontSize: "9px", left: "6px", bottom: "6px" }}>
+                                            Después
+                                          </span>
+                                        </>
+                                      ) : (
+                                        <span className="text-muted smaller">Sin foto después</span>
+                                      )}
+                                    </div>
+                                  </Col>
+                                </Row>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </Card>
+                  </Col>
+
+                  {/* Columna Derecha: Línea de Tiempo */}
+                  <Col lg={7}>
+                    <Card className="border-0 border bg-white p-4 rounded-2xl shadow-sm h-100">
+                      <h3 className="h6 fw-bold mb-4 d-flex align-items-center gap-2 text-gray-900 border-bottom pb-3">
+                        <Clock size={18} className="text-purple-500" />
+                        <span>{isMedical ? "Línea de Tiempo de Evolución Clínica" : "Línea de Tiempo de Evolución y Estilo"}</span>
+                      </h3>
+
+                      {(() => {
+                        const filteredTimeline = (crmData.timeline || []).filter(event => {
+                          if (event.type === "clinical_note" && !canViewNotes) return false;
+                          return true;
+                        });
+
+                        if (filteredTimeline.length === 0) {
+                          return (
+                            <div className="text-center py-5 text-muted small">
+                              Sin eventos registrados en la línea de tiempo.
                             </div>
+                          );
+                        }
+
+                        return (
+                          <div className="position-relative ps-4 ms-2" style={{ borderLeft: "2px solid #e9d5ff" }}>
+                            {filteredTimeline.map((event, index) => {
+                              return (
+                                <div key={event.id} className="position-relative mb-5 animate-fade-in">
+                                  {/* Dot indicator */}
+                                  <div 
+                                    className="position-absolute rounded-circle d-flex align-items-center justify-content-center shadow"
+                                    style={{ 
+                                      left: "-32px", 
+                                      top: "0px", 
+                                      width: "24px", 
+                                      height: "24px",
+                                      backgroundColor: event.type === "creation" ? "#3b82f6" : event.type === "appointment" ? (event.status === "DONE" ? "#10b981" : "#f59e0b") : event.type === "clinical_note" ? "#8b5cf6" : "#ec4899",
+                                      color: "#fff",
+                                      fontSize: "10px"
+                                    }}
+                                  >
+                                    {event.type === "creation" ? "✓" : event.type === "appointment" ? "📅" : event.type === "clinical_note" ? "📝" : "🖼️"}
+                                  </div>
+
+                                  {/* Event Header */}
+                                  <div className="d-flex justify-content-between align-items-baseline mb-2 flex-wrap gap-2">
+                                    <h5 className="h6 fw-bold text-gray-900 m-0">{event.title}</h5>
+                                    <small className="text-purple-600 fw-bold bg-purple-50 rounded-pill px-2.5 py-0.5" style={{ fontSize: "12px" }}>
+                                      {new Date(event.date).toLocaleDateString("es-AR", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })} hs
+                                    </small>
+                                  </div>
+
+                                  {/* Event Body */}
+                                  <div className="p-3 rounded-xl bg-light border shadow-inner text-gray-700" style={{ fontSize: "13.5px" }}>
+                                    <p className="mb-0">{event.description}</p>
+                                    
+                                    {/* Specialized payload elements based on event type */}
+                                    {event.type === "appointment" && (
+                                      <div className="mt-2 pt-2 border-top border-gray-200 d-flex flex-wrap gap-3 align-items-center">
+                                        <span className={`badge ${
+                                          event.status === "DONE" ? "bg-secondary" : event.status === "CONFIRMED" ? "bg-success" : event.status === "CANCELLED" ? "bg-danger" : "bg-warning"
+                                        }`}>
+                                          {event.status === "DONE" ? "Realizada" : event.status === "CONFIRMED" ? "Confirmada" : event.status === "CANCELLED" ? "Cancelada" : "Pendiente"}
+                                        </span>
+                                        {canViewFinance && (
+                                          <span className="fw-bold text-dark">{currency(event.metadata.price)}</span>
+                                        )}
+                                        {event.metadata.notes && (
+                                          <span className="text-muted smaller italic">"{event.metadata.notes}"</span>
+                                        )}
+                                      </div>
+                                    )}
+
+                                    {event.type === "clinical_note" && (
+                                      <div className="mt-2 pt-2 border-top border-gray-200">
+                                        <div className="text-muted smaller fw-bold uppercase">{isMedical ? "Recomendaciones Clínicas:" : "Recomendaciones de Estilo/Autocuidado:"}</div>
+                                        <div className="text-emerald-800 bg-emerald-50 rounded p-2 mt-1">
+                                          {event.metadata.recommendations || "Sin especificaciones especiales."}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {event.type === "photos_session" && (
+                                      <div className="mt-3">
+                                        <Row className="g-2">
+                                          {event.metadata.photos?.map((photo) => (
+                                            <Col xs={6} md={3} key={photo.id}>
+                                              <div className="position-relative border rounded-lg overflow-hidden" style={{ height: "90px" }}>
+                                                <img
+                                                  src={getImageUrl(photo.imageUrl)}
+                                                  alt={photo.type}
+                                                  className="w-100 h-100 object-fit-cover"
+                                                  style={{ objectFit: "cover", width: "100%", height: "100%" }}
+                                                />
+                                                <span 
+                                                  className={`position-absolute bottom-1 left-1 badge rounded px-1.5 py-0.5 text-white fw-bold ${
+                                                    photo.type === "before" ? "bg-amber-500" : "bg-emerald-500"
+                                                  }`}
+                                                  style={{ fontSize: "8px", left: "4px", bottom: "4px" }}
+                                                >
+                                                  {photo.type === "before" ? "Antes" : "Después"}
+                                                </span>
+                                              </div>
+                                            </Col>
+                                          ))}
+                                        </Row>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
                         );
-                      })}
-                    </div>
-                  );
-                })()}
-                </Card>
+                      })()}
+                    </Card>
+                  </Col>
+                </Row>
               </div>
             )}
 
@@ -2179,6 +2314,160 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
                       )}
                     </Col>
                   </Row>
+                )}
+              </Card>
+            )}
+
+            {/* PESTAÑA 6: HISTORIAL VISUAL */}
+            {activeTab === "historial_visual" && (
+              <Card className="border-0 border bg-white p-4 rounded-2xl shadow-sm">
+                <div className="d-flex justify-content-between align-items-center mb-3 border-bottom pb-3 flex-wrap gap-2">
+                  <h3 className="h6 fw-bold m-0 d-flex align-items-center gap-2 text-gray-900">
+                    <Camera size={18} className="text-purple-500" />
+                    <span>Historial Visual y Registro Fotográfico</span>
+                  </h3>
+                </div>
+
+                {!crmData?.gallery || crmData.gallery.length === 0 ? (
+                  <div className="text-center py-5 bg-light rounded-xl text-muted small border">
+                    No se han registrado fotografías de tratamiento para este cliente.
+                  </div>
+                ) : (
+                  <div className="client-visual-gallery animate-fade-in">
+                    {(() => {
+                      const groups = {};
+                      crmData.gallery.forEach(photo => {
+                        const dateObj = new Date(photo.createdAt);
+                        const dateStr = dateObj.toLocaleDateString("es-AR", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric"
+                        });
+                        const serviceName = photo.service?.name || "Servicio General";
+                        const key = `${dateStr}__${serviceName}`;
+                        if (!groups[key]) {
+                          groups[key] = {
+                            date: dateStr,
+                            serviceName,
+                            photos: []
+                          };
+                        }
+                        groups[key].photos.push(photo);
+                      });
+
+                      const sortedGroupKeys = Object.keys(groups).sort((a, b) => {
+                        return new Date(groups[b].photos[0].createdAt) - new Date(groups[a].photos[0].createdAt);
+                      });
+
+                      return sortedGroupKeys.map(key => {
+                        const group = groups[key];
+                        return (
+                          <div key={key} className="mb-4 border pb-3.5 px-3.5 pt-3 rounded-2xl bg-light">
+                            <div className="d-flex align-items-center justify-content-between border-bottom pb-2 mb-3">
+                              <span className="fw-black text-dark" style={{ fontSize: "14px" }}>{group.date}</span>
+                              <Badge bg="purple" className="px-2.5 py-1.5 text-xs bg-purple-100 text-purple-700 border border-purple-200">{group.serviceName}</Badge>
+                            </div>
+
+                            <Row className="g-3">
+                              {group.photos.map(p => {
+                                const photoUrl = p.imageUrl.startsWith("/uploads/") ? `${api.defaults.baseURL?.replace(/\/api\/?$/, "")}${p.imageUrl}` : p.imageUrl;
+                                const uploaderName = p.worker ? `${p.worker.firstName} ${p.worker.lastName}` : "Profesional";
+                                const uploaderInitials = p.worker ? `${p.worker.firstName.charAt(0)}${p.worker.lastName.charAt(0)}`.toUpperCase() : "PR";
+                                const photoTime = new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: '2-digit', minute: '2-digit' }) + " hs";
+
+                                return (
+                                  <Col xs={12} sm={6} md={4} key={p.id}>
+                                    <Card className="h-100 border rounded-xl overflow-hidden shadow-sm bg-white">
+                                      <div className="position-relative" style={{ paddingTop: "75%", backgroundColor: "#f8f9fa" }}>
+                                        <img 
+                                          src={photoUrl} 
+                                          alt={p.photoType || p.type}
+                                          className="w-100 h-100 position-absolute start-0 top-0"
+                                          style={{ objectFit: "cover", cursor: "pointer" }}
+                                          onClick={() => {
+                                            setLightboxImage(photoUrl);
+                                          }}
+                                        />
+                                        <Badge 
+                                          bg="dark" 
+                                          className="position-absolute top-2.5 start-2.5 px-2 py-1 text-uppercase"
+                                          style={{ fontSize: "9px", background: "rgba(17, 24, 39, 0.75)", letterSpacing: "0.5px" }}
+                                        >
+                                          {p.photoType === "before" ? "Antes" :
+                                           p.photoType === "during" ? "Durante" :
+                                           p.photoType === "after" ? "Después" :
+                                           p.photoType === "final" ? "Resultado Final" : "Otro"}
+                                        </Badge>
+                                      </div>
+                                      <Card.Body className="p-3 d-flex flex-column gap-2 text-start small">
+                                        {p.note && (
+                                          <div className="p-2 rounded bg-light border border-purple-opacity text-secondary mb-1">
+                                            <strong>Nota:</strong> {p.note}
+                                          </div>
+                                        )}
+                                        
+                                        <div className="d-flex align-items-center gap-2 mt-auto border-top pt-2">
+                                          <div 
+                                            className="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold"
+                                            style={{
+                                              width: "24px",
+                                              height: "24px",
+                                              background: "linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)",
+                                              fontSize: "8.5px"
+                                            }}
+                                            title={`Cargado por ${uploaderName}`}
+                                          >
+                                            {uploaderInitials}
+                                          </div>
+                                          <div>
+                                            <span className="text-dark d-block" style={{ fontSize: "10.5px", fontWeight: 600 }}>{uploaderName}</span>
+                                            <span className="text-muted d-block" style={{ fontSize: "9.5px" }}>{photoTime}</span>
+                                          </div>
+                                        </div>
+                                      </Card.Body>
+                                      <Card.Footer className="bg-light border-0 py-2 px-3 d-flex justify-content-between gap-2">
+                                        <Button
+                                          variant="outline-secondary"
+                                          size="sm"
+                                          className="rounded-pill px-3 flex-grow-1 font-bold text-xs"
+                                          onClick={() => window.open(photoUrl, "_blank")}
+                                        >
+                                          Descargar
+                                        </Button>
+                                        
+                                        {hasPermission("clients.edit") && (
+                                          <Button
+                                            variant="danger"
+                                            size="sm"
+                                            className="rounded-pill px-2.5 text-xs bg-red-600 hover-bg-red-700 border-0"
+                                            onClick={async () => {
+                                              if (!window.confirm("¿Estás seguro de que deseas eliminar esta fotografía del historial visual del cliente?")) return;
+                                              try {
+                                                await api.delete(`/appointments/photos/${p.id}`);
+                                                const res = await api.get(`/crm/${client.id}`);
+                                                if (res.data) {
+                                                  setCrmData(res.data);
+                                                }
+                                              } catch (err) {
+                                                console.error("Error deleting photo:", err);
+                                                alert(err.response?.data?.error || "Error al eliminar la foto.");
+                                              }
+                                            }}
+                                          >
+                                            Eliminar
+                                          </Button>
+                                        )}
+                                      </Card.Footer>
+                                    </Card>
+                                  </Col>
+                                );
+                              })}
+                            </Row>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
                 )}
               </Card>
             )}
@@ -2585,6 +2874,14 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
             </Button>
           )}
         </Modal.Footer>
+      </Modal>
+
+      {/* Lightbox Modal para Vista Ampliada */}
+      <Modal show={!!lightboxImage} onHide={() => setLightboxImage(null)} centered size="lg" className="hegemonic-modal">
+        <Modal.Header closeButton className="border-0 pb-0 bg-transparent position-absolute end-0 top-0" style={{ zIndex: 1060 }}></Modal.Header>
+        <Modal.Body className="p-0 bg-dark rounded-3 overflow-hidden text-center d-flex align-items-center justify-content-center" style={{ minHeight: "300px" }}>
+          <img src={lightboxImage} alt="Expanded Preview" className="img-fluid" style={{ maxHeight: "85vh", objectFit: "contain" }} />
+        </Modal.Body>
       </Modal>
     </Modal>
   );

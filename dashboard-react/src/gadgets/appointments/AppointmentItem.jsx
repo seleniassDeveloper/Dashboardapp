@@ -168,11 +168,6 @@ export default function AppointmentItem({ appt, onEdit, onDelete, onChangeStatus
   }, [waPhone, clientName, serviceName, when, price, payMethod, paymentDetails]);
 
   const handleSelectStatus = (nextStatus) => {
-    if (nextStatus === "DONE") {
-      setPendingStatus("DONE");
-      setShowPay(true);
-      return;
-    }
     onChangeStatus?.(appt, nextStatus);
   };
 

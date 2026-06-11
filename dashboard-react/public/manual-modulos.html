@@ -196,6 +196,7 @@
           <span class="tag">Información en Pantalla</span>
           <ul>
             <li><span class="term">Calendario Central (FullCalendar):</span> <span class="descr">grilla de horarios con código de colores según el profesional asignado.</span></li>
+            <li><span class="term">Botón "+ Nueva cita":</span> <span class="descr">ubicado en el encabezado superior, permite agendar turnos de forma rápida abriendo el modal con los campos limpios sin necesidad de pulsar una celda horaria del calendario.</span></li>
             <li><span class="term">Barra Lateral Izquierda (Buscador de Huecos):</span> <span class="descr">formulario rápido para encontrar huecos libres.</span></li>
             <li><span class="term">Lista de Espera:</span> <span class="descr">clientes anotados para hoy que esperan una cancelación.</span></li>
           </ul>
@@ -243,20 +244,23 @@
       </div>
 
       <div class="screen">
-        <h3>D. Modal: Detalle de Cita y Cobro</h3>
+        <h3>D. Modal: Finalizar Servicio y Cobro (Checkout Flow) <span class="pill">FinalizeServiceModal</span></h3>
         <div class="block info">
           <span class="tag">Información / Formulario</span>
           <ul>
-            <li>Resumen de la cita: Cliente, Servicios, Total a pagar.</li>
-            <li><span class="term">Estado del Turno:</span> <span class="descr">PENDIENTE, CONFIRMADO, REALIZADO y CANCELADO.</span></li>
-            <li><span class="term">Método de Pago:</span> <span class="descr">Efectivo, Débito, Crédito o Transferencia.</span></li>
+            <li>Resumen de la cita: Cliente, Servicios y Especialista responsable.</li>
+            <li><span class="term">Monto a Cobrar ($):</span> <span class="descr">precio final real cobrado al cliente (se inicializa con el precio del servicio original pero permite aplicar descuentos o adicionales).</span></li>
+            <li><span class="term">Método de Pago:</span> <span class="descr">Efectivo, Mercado Pago, Transferencia Bancaria, Tarjeta de Débito o Tarjeta de Crédito.</span></li>
+            <li><span class="term">Notas Clínicas / Evolución:</span> <span class="descr">registro obligatorio del detalle técnico del trabajo realizado (ej: tonos de tintura, tiempo de pose, estado inicial) para el historial técnico.</span></li>
+            <li><span class="term">Recomendaciones Post-Cuidado:</span> <span class="descr">indicaciones opcionales para que el cliente realice cuidados en su domicilio.</span></li>
+            <li><span class="term">Fotos de Evolución (Antes & Después):</span> <span class="descr">carga visual interactiva de dos fotos (antes de empezar el trabajo y después de completarlo).</span></li>
+            <li><span class="term">Envío de Comprobante Digital:</span> <span class="descr">opciones para enviar una factura en HTML vía correo electrónico (Gmail) y/o abrir la redirección de WhatsApp con un mensaje pre-completado detallando el servicio, profesional, monto y método de pago.</span></li>
           </ul>
         </div>
         <div class="block func">
           <span class="tag">Funcionalidades / Botones</span>
           <ul>
-            <li><span class="btn">Completar y Cobrar</span> registra el pago, liquida la comisión y descuenta insumos del inventario (si hay reglas de consumo).</li>
-            <li><span class="btn">Enviar Recordatorio</span> abre WhatsApp Web con un mensaje formateado con los datos de la cita.</li>
+            <li><span class="btn">Finalizar Turno</span> guarda la ficha técnica del servicio, registra la transacción en Finanzas, liquida la comisión al profesional, descuenta insumos del stock y cambia el estado de la cita a "Finalizada".</li>
           </ul>
         </div>
       </div>
@@ -293,7 +297,7 @@
 
       <div class="screen">
         <h3>B. Panel Detalle del Cliente <span class="pill">ClientDetailModal</span></h3>
-        <p class="tabs-note">Se divide en 4 pestañas:</p>
+        <p class="tabs-note">Ficha del cliente unificada que se despliega al seleccionarlo. Cuenta con la opción de capturar o subir una foto de perfil (haciendo click en el avatar, que abre la webcam del dispositivo o un selector de archivos locales). Se divide en 4 pestañas:</p>
         <div class="block info">
           <span class="tag">Pestaña · Perfil y Estadísticas</span>
           <ul><li>Gráficos de gasto acumulado, ticket promedio, servicios más contratados y profesional favorito.</li></ul>
@@ -310,10 +314,11 @@
           <ul><li>Tabla cronológica: Fecha, Cita ID, Servicios, Profesional, Total cobrado y Estado de pago.</li></ul>
         </div>
         <div class="block info">
-          <span class="tag">Pestaña · Galería Antes y Después</span>
+          <span class="tag">Pestaña · Evolución y Estilo (Línea de Tiempo y Galería)</span>
           <ul>
-            <li>Mosaico de imágenes que documentan los trabajos realizados.</li>
-            <li><span class="btn">Subir Foto</span> carga imágenes directo al servidor/nube.</li>
+            <li>Layout side-by-side de doble columna:</li>
+            <li><strong>Columna Izquierda:</strong> "Galería de Evolución Visual" que renderiza las fotos del "Antes" y "Después" tomadas en el checkout del servicio una al lado de la otra, etiquetadas y ordenadas cronológicamente con hover effects de zoom.</li>
+            <li><strong>Columna Derecha:</strong> "Línea de Tiempo de Evolución" que detalla las notas clínicas de evolución técnica e indicaciones de cuidado.</li>
           </ul>
         </div>
       </div>
@@ -502,13 +507,23 @@
       <div class="screen">
         <h3>B. Pestaña: Catálogo de Stock <span class="pill">ProductForm</span></h3>
         <div class="block info">
-          <span class="tag">Información en Pantalla</span>
-          <ul><li>Productos con foto/ícono, categoría, código de barras, stock actual, stock mínimo y ubicación física (ej: "Estante A1").</li></ul>
+          <span class="tag">Información en Pantalla / Ficha Técnica</span>
+          <ul>
+            <li><span class="term">Estructura Avanzada de Ficha por Pestañas:</span>
+              <ul>
+                <li><span class="term">Básico:</span> Nombre, Categoría, Unidad de Medida (ml, gr, Litros, unidades), Ubicación Interna, Descripción, Color e Icono personalizado.</li>
+                <li><span class="term">Stock &amp; Lotes:</span> Control de existencias (Stock Actual, Mínimo e Ideal) y conmutadores para activar el control de Vencimientos y seguimiento de Lotes/Batch en ingresos.</li>
+                <li><span class="term">Finanzas:</span> Costo de Compra, Precio de Venta sugerido e IVA o impuestos aplicables.</li>
+                <li><span class="term">Logística &amp; Envase:</span> Código SKU único, SKU del proveedor, Proveedor asociado, Días estimados de reposición (Lead Time), Peso físico, Volumen exacto, Dimensiones del envase (Largo/Ancho/Alto) y Código de barras/QR.</li>
+              </ul>
+            </li>
+            <li><span class="term">Badges en Tabla/Tarjetas:</span> Identificación visual inmediata si el producto requiere <i>"Control Lote"</i>, <i>"Control Vencimiento"</i> o si tiene <i>"Stock Crítico"</i>.</li>
+          </ul>
         </div>
         <div class="block func">
           <span class="tag">Funcionalidades / Botones</span>
           <ul>
-            <li><span class="btn">+ Nuevo Producto</span> abre un formulario lateral.</li>
+            <li><span class="btn">+ Nuevo Producto</span> abre la ficha técnica avanzada tabulada para la carga completa.</li>
             <li><span class="btn">+ / -</span> botones rápidos para ajustar stock sin abrir el formulario completo.</li>
           </ul>
         </div>
@@ -703,6 +718,28 @@
             <li><span class="btn">Checkboxes de la Matriz</span> tilda o destilda permisos individuales por rol.</li>
             <li><span class="btn">Crear Rol Personalizado</span> nuevo rol (ej: "Estilista Junior") con accesos desde cero.</li>
             <li><span class="btn">Guardar Cambios de Seguridad</span> aplica los permisos en caliente, impactando las sesiones activas.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="screen">
+        <h3>C. Catálogo de Campos y Formularios Personalizados <span class="pill">FieldRegistryEditor</span> <span class="pill">FormSchemaEditor</span></h3>
+        <div class="block info">
+          <span class="tag">Información / Definición</span>
+          <ul>
+            <li><span class="term">Catálogo Global de Campos:</span> Define campos reutilizables asignados a entidades de la aplicación: <i>Empleado/Equipo, Cliente, Cita/Reserva, Servicio, y Workflows</i>.</li>
+            <li><span class="term">Campos Anidados (Subcampos):</span> Permite estructurar un campo con múltiples subcampos asociados (ej: en un campo "Dirección", agregar subcampos "Calle", "Número", "Piso", "CP"). Cada subcampo posee su propio tipo y regla de validación de obligatoriedad.</li>
+            <li><span class="term">Formularios Dinámicos:</span> Los esquemas de formularios (como el de "Alta de Empleado") renderizan estos campos y sus subcampos anidados agrupándolos lógicamente, realizando validaciones complejas de entrada en tiempo real.</li>
+            <li><span class="term">Persistencia JSON:</span> Los valores de los subcampos completados se guardan de forma anidada bajo la clave <span class="code">customFields.[fieldId].[subFieldId]</span> en formato JSON en PostgreSQL.</li>
+          </ul>
+        </div>
+        <div class="block func">
+          <span class="tag">Funcionalidades / Botones</span>
+          <ul>
+            <li><span class="btn">Guardar Catálogo</span> en el catálogo de campos persiste la lista global de definiciones de campos y subcampos.</li>
+            <li><span class="btn">Agregar Subcampo</span> dentro de un campo permite crear un subcampo anidado especificando su tipo (texto, número, selección, etc.) y si es obligatorio.</li>
+            <li><span class="btn">Guardar Formulario</span> en el editor de esquemas aplica el orden, visibilidad y validación de los campos/subcampos configurados para la creación y edición de registros.</li>
+            <li><span class="btn">Chevron Arriba / Abajo</span> reordena visualmente los campos y subcampos en la grilla y el formulario de carga.</li>
           </ul>
         </div>
       </div>

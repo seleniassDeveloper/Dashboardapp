@@ -155,22 +155,25 @@
   <div class="card" id="catalogo">
     <h3>B. Catálogo de Stock</h3>
     <span class="where">Inventario → pestaña Catálogo · ProductForm</span>
-    <div class="goal"><b>Para qué sirve:</b> es la lista maestra de todos tus productos e insumos. Acá das de alta lo que manejás y consultás cantidades y ubicaciones.</div>
-    <span class="lbl fields">Qué muestra cada producto</span>
+    <div class="goal"><b>Para qué sirve:</b> es la lista maestra de todos tus productos e insumos. Cuenta con una ficha técnica avanzada y detallada para cada artículo, organizándolo mediante pestañas para facilitar la carga exacta y específica de datos.</div>
+    
+    <span class="lbl fields">Estructura de la Ficha Técnica (Pestañas)</span>
     <ul class="fields">
-      <li>Foto o ícono, categoría y código de barras.</li>
-      <li><span class="term">Stock actual</span> y <span class="term">stock mínimo</span> (el umbral que dispara la alerta de "crítico").</li>
-      <li><span class="term">Ubicación física</span> (ej: "Estante A1") para encontrarlo rápido en el depósito.</li>
+      <li><span class="term">Básico:</span> Nombre, Categoría, Unidad de Medida (ml, gr, Litros, unidades), Ubicación Interna, Descripción Detallada, Color e Icono personalizado para fácil identificación.</li>
+      <li><span class="term">Stock &amp; Lotes:</span> Control de existencias (Stock Actual, Mínimo e Ideal) y conmutadores para activar el control de Vencimientos y seguimiento obligatorio de Lote/Batch en ingresos.</li>
+      <li><span class="term">Finanzas:</span> Costo de Compra, Precio de Venta sugerido y porcentaje de IVA o impuestos aplicables.</li>
+      <li><span class="term">Logística &amp; Envase:</span> Código SKU único, SKU del proveedor, Proveedor asociado, Días estimados de reposición, Peso físico, Volumen exacto, Dimensiones del envase y Código de barras/QR.</li>
     </ul>
+
     <span class="lbl steps">Cargar un producto nuevo</span>
     <ol class="steps">
-      <li>Tocá <span class="btn">+ Nuevo Producto</span>: se abre un formulario lateral.</li>
-      <li>Completá nombre, categoría, código de barras, stock mínimo y ubicación.</li>
-      <li>Guardá. El producto queda disponible para asociarlo a servicios y a compras.</li>
+      <li>Tocá el botón <span class="btn">Añadir Producto</span> en la esquina superior derecha.</li>
+      <li>Completá los datos básicos del producto en la primera pestaña ("Básico") y navegá a través de las pestañas ("Stock", "Finanzas", "Logística") para completar los detalles específicos.</li>
+      <li>Guardá. El producto quedará registrado e identificará con badges visuales si tiene activo el control de lote o de vencimiento, o si se encuentra en stock crítico.</li>
     </ol>
-    <span class="lbl tips">Ajustes rápidos</span>
-    <div class="tip">Con los <span class="btn">+ / −</span> de cada fila corregís cantidades al instante (ej: rotura, regalo, conteo manual) sin abrir el formulario completo.</div>
-    <div class="warn"><b>Importante:</b> el <span class="term">stock mínimo</span> bien configurado es lo que hace que el sistema te avise a tiempo. Definilo según cuánto tardás en reponer cada insumo.</div>
+    <span class="lbl tips">Ajustes rápidos y visuales</span>
+    <div class="tip"><b>Badges y Código SKU:</b> El catálogo muestra el código SKU y pequeños badges como <i>"Control Vencimiento"</i> y <i>"Control Lote"</i> directamente en las tarjetas y filas de la tabla para saber al instante qué tipo de seguimiento requiere el artículo.</div>
+    <div class="warn"><b>Importante:</b> Configurar el <span class="term">Tiempo de reposición</span> en la pestaña Logística te permite anticipar las compras calculando exactamente cuántos días de anticipación requiere tu pedido para evitar quiebres de stock.</div>
   </div>
 
   <div class="card" id="lotes">
@@ -237,8 +240,9 @@
       <li>Elegí el servicio (ej: "Alisado") y el insumo (ej: "Keratina Líquida"), con la cantidad (150 ml).</li>
       <li>Guardá. A partir de ahí, cada vez que se completa ese servicio se descuentan esos 150 ml.</li>
     </ol>
-    <div class="flow"><b>Cómo se conecta con Agenda:</b> al tocar <b>Completar y Cobrar</b> en una cita, el sistema lee las reglas de consumo y descuenta los insumos del stock automáticamente.</div>
-    <div class="warn"><b>Importante:</b> si un servicio no tiene reglas cargadas, el stock <b>no</b> se descontará al cobrarlo. Revisá que tus servicios principales tengan sus consumos definidos.</div>
+    <div class="flow"><b>Cómo se conecta con la Agenda y el Checkout:</b> En tiempo real, al finalizar la cita desde el modal de <b>Finalización de Servicio y Facturación (Checkout)</b>, el sistema lee las reglas de consumo del servicio realizado y descuenta automáticamente las unidades consumidas de los lotes activos respetando la regla <b>FIFO</b> (consumiendo primero las unidades del lote con fecha de vencimiento más cercana).</div>
+    <div class="tip"><b>Consumo Automático FIFO:</b> No necesitas calcular a mano de qué lote descontar. El sistema siempre elegirá el lote con fecha de vencimiento más cercana (Método FIFO) y reducirá la cantidad del producto configurado en la regla de forma instantánea al presionar <span class="btn">Finalizar Turno</span> en el Checkout.</div>
+    <div class="warn"><b>Importante:</b> si un servicio no tiene reglas cargadas, el stock <b>no</b> se descontará al cobrarlo. Revisá que tus servicios principales tengan sus consumos definidos en este panel.</div>
   </div>
 
   <div class="card" id="rutina-inv">
@@ -272,10 +276,11 @@
     <ul class="fields">
       <li><span class="term">Monto de Apertura:</span> la caja chica con la que arrancás el día (cambio inicial).</li>
       <li><span class="term">Movimiento Manual:</span> entradas (ej: ingreso de cambio) o salidas (ej: compra de café) de efectivo físico que no son una cita.</li>
-      <li><span class="term">Balance del Sistema:</span> suma automática de todos los pagos cobrados en Efectivo, Tarjeta y Transferencia.</li>
+      <li><span class="term">Balance del Sistema:</span> suma y cálculo automático en tiempo real de todos los pagos cobrados (Efectivo, Tarjeta y Transferencia) a través del flujo de finalización de citas (Checkout).</li>
       <li><span class="term">Arqueo / Cierre:</span> el efectivo físico real que contás al final de la jornada.</li>
       <li><span class="term">Diferencia de Caja:</span> la discrepancia exacta entre lo contado y lo registrado por el sistema.</li>
     </ul>
+    <div class="tip"><b>Integración en Tiempo Real:</b> No es necesario cargar manualmente las ventas de servicios en la caja. El proceso de cobro integrado en el modal de cierre de la cita registra automáticamente los montos y el método de pago seleccionado, impactando al instante en la caja diaria activa.</div>
     <span class="lbl steps">Flujo de un día completo</span>
     <ol class="steps">
       <li>Al abrir el salón, tocá <span class="btn">Abrir Caja</span> e ingresá el monto de apertura (caja chica). Queda registrada la hora de inicio.</li>

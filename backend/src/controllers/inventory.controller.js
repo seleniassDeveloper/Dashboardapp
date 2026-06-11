@@ -275,7 +275,10 @@ export async function listProducts(req, res) {
 
 export async function createProduct(req, res) {
   try {
-    const { name, category, costPrice, salePrice, stock, minStock, maxStock, unit, barcode, location, providerId, color, icon, label } = req.body;
+    const {
+      name, category, costPrice, salePrice, stock, minStock, maxStock, unit, barcode, location, providerId, color, icon, label,
+      sku, description, weight, volume, dimensions, taxRate, leadTimeDays, supplierSku, requireExpiration, requireBatch
+    } = req.body;
     if (!name || costPrice === undefined || minStock === undefined) {
       return res.status(400).json({ error: "Campos requeridos: name, costPrice, minStock." });
     }
@@ -295,7 +298,17 @@ export async function createProduct(req, res) {
         providerId: providerId || null,
         color: color || null,
         icon: icon || null,
-        label: label || null
+        label: label || null,
+        sku: sku || null,
+        description: description || null,
+        weight: (weight !== undefined && weight !== "" && weight !== null) ? Number(weight) : null,
+        volume: (volume !== undefined && volume !== "" && volume !== null) ? Number(volume) : null,
+        dimensions: dimensions || null,
+        taxRate: (taxRate !== undefined && taxRate !== "" && taxRate !== null) ? Number(taxRate) : 0,
+        leadTimeDays: (leadTimeDays !== undefined && leadTimeDays !== "" && leadTimeDays !== null) ? Math.round(Number(leadTimeDays)) : 0,
+        supplierSku: supplierSku || null,
+        requireExpiration: requireExpiration !== undefined ? Boolean(requireExpiration) : false,
+        requireBatch: requireBatch !== undefined ? Boolean(requireBatch) : false
       },
       include: { provider: true }
     });
@@ -325,7 +338,8 @@ export async function createProduct(req, res) {
           actualQty: Number(stock),
           costPrice: Number(costPrice),
           branchId: firstBranchId,
-          supplierId: providerId || null
+          supplierId: providerId || null,
+          expirationDate: requireExpiration ? new Date(Date.now() + 180 * 24 * 60 * 60 * 1000) : null
         }
       });
 
@@ -353,7 +367,10 @@ export async function createProduct(req, res) {
 export async function updateProduct(req, res) {
   try {
     const { id } = req.params;
-    const { name, category, costPrice, salePrice, stock, minStock, maxStock, unit, barcode, location, providerId, color, icon, label } = req.body;
+    const {
+      name, category, costPrice, salePrice, stock, minStock, maxStock, unit, barcode, location, providerId, color, icon, label,
+      sku, description, weight, volume, dimensions, taxRate, leadTimeDays, supplierSku, requireExpiration, requireBatch
+    } = req.body;
 
     const current = await prisma.product.findUnique({ where: { id } });
     if (!current) return res.status(404).json({ error: "Producto no encontrado." });
@@ -377,7 +394,17 @@ export async function updateProduct(req, res) {
         providerId: providerId || null,
         color: color !== undefined ? color : undefined,
         icon: icon !== undefined ? icon : undefined,
-        label: label !== undefined ? label : undefined
+        label: label !== undefined ? label : undefined,
+        sku: sku !== undefined ? (sku || null) : undefined,
+        description: description !== undefined ? (description || null) : undefined,
+        weight: weight !== undefined ? ((weight !== "" && weight !== null) ? Number(weight) : null) : undefined,
+        volume: volume !== undefined ? ((volume !== "" && volume !== null) ? Number(volume) : null) : undefined,
+        dimensions: dimensions !== undefined ? (dimensions || null) : undefined,
+        taxRate: taxRate !== undefined ? ((taxRate !== "" && taxRate !== null) ? Number(taxRate) : 0) : undefined,
+        leadTimeDays: leadTimeDays !== undefined ? ((leadTimeDays !== "" && leadTimeDays !== null) ? Math.round(Number(leadTimeDays)) : 0) : undefined,
+        supplierSku: supplierSku !== undefined ? (supplierSku || null) : undefined,
+        requireExpiration: requireExpiration !== undefined ? Boolean(requireExpiration) : undefined,
+        requireBatch: requireBatch !== undefined ? Boolean(requireBatch) : undefined
       },
       include: { provider: true }
     });

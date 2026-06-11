@@ -4,6 +4,7 @@ import { Modal, Button, Form, Row, Col, Alert, Spinner, InputGroup } from "react
 import api from "../../lib/api.js";
 import { useFormSchema } from "../../hooks/useFormSchema.js";
 import { useAppointmentsStore } from "./AppointmentsProvider.jsx";
+import FinalizeServiceModal from "../../components/clients/FinalizeServiceModal.jsx";
 const emptyForm = {
   clientFirstName: "",
   clientLastName: "",
@@ -143,6 +144,23 @@ function formatDateTimeLocalLabel(dtLocal) {
 export default function AppointmentModal({ show, onHide, onSaved, initialData = null }) {
   const isEdit = Boolean(initialData?.id);
   const { appointmentStatuses } = useAppointmentsStore();
+
+  const [showFinalizeModal, setShowFinalizeModal] = useState(false);
+  const [finalizingAppt, setFinalizingAppt] = useState(null);
+
+  const handleFinalizeCompleted = (updatedAppt) => {
+    setShowFinalizeModal(false);
+    setFinalizingAppt(null);
+    onSaved?.({ mode: isEdit ? "edit" : "create", appointment: updatedAppt });
+    onHide?.();
+  };
+
+  const handleFinalizeCancel = () => {
+    setShowFinalizeModal(false);
+    setFinalizingAppt(null);
+    onSaved?.({ mode: isEdit ? "edit" : "create", appointment: finalizingAppt });
+    onHide?.();
+  };
 
   const { enabledFields, loading: schemaLoading, error: schemaError } = useFormSchema(
     "assign.appointment.form.modal",
@@ -616,8 +634,13 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
       const url = isEdit ? `/appointments/${initialData.id}` : `/appointments`;
       const res = isEdit ? await api.put(url, payload) : await api.post(url, payload);
 
-      onSaved?.({ mode: isEdit ? "edit" : "create", appointment: res.data });
-      onHide?.();
+      if (form.status === "DONE") {
+        setFinalizingAppt(res.data);
+        setShowFinalizeModal(true);
+      } else {
+        onSaved?.({ mode: isEdit ? "edit" : "create", appointment: res.data });
+        onHide?.();
+      }
     } catch (e) {
       console.error("Appointment save error:", e?.response?.data || e);
 
@@ -694,7 +717,8 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
   const whenLabel = formatDateTimeLocalLabel(startsAtLocal);
 
   return (
-    <Modal 
+    <>
+      <Modal 
       show={show} 
       onHide={saving ? undefined : onHide} 
       centered 
@@ -1084,5 +1108,15 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
         </Button>
       </Modal.Footer>
     </Modal>
+
+      {showFinalizeModal && finalizingAppt && (
+        <FinalizeServiceModal
+          show={showFinalizeModal}
+          onHide={handleFinalizeCancel}
+          appointment={finalizingAppt}
+          onCompleted={handleFinalizeCompleted}
+        />
+      )}
+    </>
   );
 }

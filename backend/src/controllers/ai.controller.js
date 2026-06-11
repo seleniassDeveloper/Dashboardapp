@@ -533,8 +533,29 @@ export async function createAIReport(req, res) {
         ? JSON.stringify(gadgetIntent)
         : "{}";
 
-    const [appointments, workers, services] = await Promise.all([
+    let businessId = req.businessId;
+    if (!businessId) {
+      const firstBiz = await prisma.business.findFirst();
+      businessId = firstBiz ? firstBiz.id : "business-default";
+    }
+
+    const [
+      appointments,
+      workers,
+      services,
+      clients,
+      expenses,
+      cashClosings,
+      salaryPayments,
+      products,
+      branches,
+      appointmentPhotos,
+      clinicalNotes,
+      consentRecords,
+      workflows
+    ] = await Promise.all([
       prisma.appointment.findMany({
+        where: { businessId },
         include: {
           client: true,
           worker: true,
@@ -542,11 +563,173 @@ export async function createAIReport(req, res) {
         },
         orderBy: { startsAt: "asc" },
       }),
-      prisma.worker.findMany(),
+      prisma.worker.findMany({
+        where: { businessId },
+      }),
       prisma.service.findMany({
-        where: { isActive: true },
+        where: { businessId, isActive: true },
+      }),
+      prisma.client.findMany({
+        where: { businessId },
+      }),
+      prisma.expense.findMany({
+        where: { businessId },
+        include: { branch: true },
+      }),
+      prisma.cashClosing.findMany({
+        where: { businessId },
+      }),
+      prisma.salaryPayment.findMany({
+        where: { businessId },
+        include: { worker: true },
+      }),
+      prisma.product.findMany({
+        where: { businessId },
+      }),
+      prisma.branch.findMany({
+        where: { businessId },
+      }),
+      prisma.appointmentPhoto.findMany({
+        where: { appointment: { businessId } },
+        include: {
+          client: true,
+          worker: true,
+          service: true,
+        },
+      }),
+      prisma.clinicalNote.findMany({
+        where: { appointment: { businessId } },
+        include: {
+          client: true,
+          worker: true,
+          appointment: { include: { service: true } },
+        },
+      }),
+      prisma.consentRecord.findMany({
+        where: { client: { businessId } },
+        include: {
+          client: true,
+          template: true,
+        },
+      }),
+      prisma.workflow.findMany({
+        where: { businessId },
+        include: {
+          triggers: true,
+          actions: true,
+        },
       }),
     ]);
+
+    const dbContext = {
+      appointments: appointments.map(a => ({
+        id: a.id,
+        startsAt: a.startsAt,
+        status: a.status,
+        notes: a.notes,
+        clientName: a.client ? `${a.client.firstName} ${a.client.lastName}` : null,
+        workerName: a.worker ? `${a.worker.firstName} ${a.worker.lastName}` : null,
+        serviceName: a.service?.name,
+        finalPrice: a.finalPrice || a.service?.price,
+        paymentMethod: a.paymentMethod
+      })),
+      workers: workers.map(w => ({
+        id: w.id,
+        name: `${w.firstName} ${w.lastName}`,
+        roleTitle: w.roleTitle,
+        email: w.email
+      })),
+      services: services.map(s => ({
+        id: s.id,
+        name: s.name,
+        price: s.price,
+        duration: s.duration,
+        category: s.category
+      })),
+      clients: clients.map(c => ({
+        id: c.id,
+        name: `${c.firstName} ${c.lastName}`,
+        email: c.email,
+        phone: c.phone,
+        createdAt: c.createdAt
+      })),
+      expenses: expenses.map(e => ({
+        id: e.id,
+        name: e.name,
+        amount: e.amount,
+        category: e.category,
+        date: e.date,
+        description: e.description,
+        branchName: e.branch?.name
+      })),
+      cashClosings: cashClosings.map(cc => ({
+        id: cc.id,
+        closingDate: cc.closingDate,
+        openingAmount: cc.openingAmount,
+        closingAmount: cc.closingAmount,
+        netAmount: cc.netAmount,
+        difference: cc.difference,
+        status: cc.status
+      })),
+      salaryPayments: salaryPayments.map(sp => ({
+        id: sp.id,
+        workerName: sp.worker ? `${sp.worker.firstName} ${sp.worker.lastName}` : "Desconocido",
+        baseSalary: sp.baseSalary,
+        commissionsAmount: sp.commissionsAmount,
+        bonusesAmount: sp.bonusesAmount,
+        totalPaid: sp.totalPaid,
+        payDate: sp.payDate,
+        periodStart: sp.periodStart,
+        periodEnd: sp.periodEnd
+      })),
+      products: products.map(p => ({
+        id: p.id,
+        name: p.name,
+        sku: p.sku,
+        purchasePrice: p.purchasePrice,
+        salePrice: p.salePrice,
+        stock: p.stock,
+        category: p.category
+      })),
+      branches: branches.map(b => ({
+        id: b.id,
+        name: b.name,
+        active: b.active
+      })),
+      appointmentPhotos: appointmentPhotos.map(p => ({
+        id: p.id,
+        appointmentId: p.appointmentId,
+        clientName: p.client ? `${p.client.firstName} ${p.client.lastName}` : "Desconocido",
+        uploaderName: p.worker ? `${p.worker.firstName} ${p.worker.lastName}` : "Desconocido",
+        serviceName: p.service?.name,
+        photoType: p.photoType || p.type,
+        note: p.note,
+        createdAt: p.createdAt
+      })),
+      clinicalNotes: clinicalNotes.map(n => ({
+        id: n.id,
+        clientName: n.client ? `${n.client.firstName} ${n.client.lastName}` : "Desconocido",
+        note: n.note,
+        recommendations: n.recommendations,
+        workerName: n.worker ? `${n.worker.firstName} ${n.worker.lastName}` : "Desconocido",
+        serviceName: n.appointment?.service?.name,
+        createdAt: n.createdAt
+      })),
+      consentRecords: consentRecords.map(r => ({
+        id: r.id,
+        clientName: r.client ? `${r.client.firstName} ${r.client.lastName}` : "Desconocido",
+        templateName: r.template?.name,
+        acceptedAt: r.acceptedAt,
+        status: "accepted"
+      })),
+      workflows: workflows.map(w => ({
+        id: w.id,
+        name: w.name,
+        active: w.isActive,
+        triggerCount: w.triggers?.length || 0,
+        actionCount: w.actions?.length || 0
+      }))
+    };
 
     const metrics = buildDashboardContext({ appointments, workers, services });
 
@@ -554,7 +737,10 @@ export async function createAIReport(req, res) {
 Eres un analista de negocio para un dashboard de citas.
 
 Responde en español.
-Interpretá cualquier pedido del usuario: consejos, comparaciones, alertas, explicaciones o pedidos de visualización basados solo en el contexto.
+Interpretá cualquier pedido del usuario: consejos, comparaciones, alertas, explicaciones o pedidos de visualización basados en el contexto del dashboard y en la información detallada de la base de datos que se te proporciona.
+Tienes acceso a toda la información de la base de datos del negocio en el bloque "Información detallada de la Base de Datos".
+Responde a cualquier pregunta que el usuario haga sobre clientes, citas, finanzas, gastos, sueldos, productos, inventario, fotos de citas, evolución clínica, consentimientos, workflows, sucursales, etc., basándote de forma precisa en estos datos.
+
 No inventes cifras ni hechos que no puedas inferir de los datos proporcionados.
 
 Usá el bloque "comparisons" para hablar de variaciones (%): mes actual (MTD) vs los mismos días del mes anterior, mes cerrado vs mes cerrado anterior, y últimos 7 días vs los 7 anteriores.
@@ -605,13 +791,16 @@ Si existe gadgetIntent.calculation y operation es "sum", "multiply" o "divide":
 - Respetá calculation.whyThisOperation al explicar en summary por qué ese cálculo es relevante.
 - Cuando sea posible, reflejá el resultado en KPIs claros y/o en chart.data si encaja la comparación.
 
-Si gadgetIntent.whatShouldShow u howToVisualize tienen texto, usalos como prioridad junto con la pregunta del usuario.
+If gadgetIntent.whatShouldShow u howToVisualize tienen texto, usalos como prioridad junto con la pregunta del usuario.
 
 Pregunta del usuario:
 ${question}
 
 Contexto del dashboard:
 ${JSON.stringify(metrics, null, 2)}
+
+Información detallada de la Base de Datos:
+${JSON.stringify(dbContext, null, 2)}
 `;
 
     const response = await getOpenAIClient().responses.create({

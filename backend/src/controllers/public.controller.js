@@ -15,6 +15,16 @@ function minutesToTime(mins) {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
+// Helper para agregar minutos a una fecha
+function addMinutes(date, minutes) {
+  return new Date(date.getTime() + Number(minutes || 0) * 60 * 1000);
+}
+
+// Helper para verificar solapamiento
+function overlaps(aStart, aEnd, bStart, bEnd) {
+  return aStart < bEnd && aEnd > bStart;
+}
+
 // Helper para obtener fecha actual y minutos del día actual en la zona de Argentina
 function getArgentinaTimeParts() {
   const formatter = new Intl.DateTimeFormat("en-US", {
@@ -124,6 +134,82 @@ export async function getPublicProfessionals(req, res) {
 }
 
 // Lógica de cálculo de disponibilidad horaria real
+// Helper para verificar la disponibilidad de un profesional específico para un bloque total
+async function checkWorkerAvailability(workerId, date, time, totalDuration, bizId) {
+  const [year, month, day] = date.split("-").map(Number);
+  const dayOfWeek = new Date(year, month - 1, day).getDay();
+  const [h, m] = time.split(":").map(Number);
+  
+  const targetStartMins = h * 60 + m;
+  const targetEndMins = targetStartMins + totalDuration;
+
+  // 1. Validar jornada laboral del profesional
+  const schedule = await prisma.workerSchedule.findFirst({
+    where: { workerId, dayOfWeek }
+  });
+  if (!schedule) {
+    return { available: false, reason: "El profesional no trabaja este día de la semana." };
+  }
+
+  const schedStartMins = timeToMinutes(schedule.startTime);
+  const schedEndMins = timeToMinutes(schedule.endTime);
+  if (targetStartMins < schedStartMins || targetEndMins > schedEndMins) {
+    return { available: false, reason: "El horario está fuera de la jornada laboral del profesional." };
+  }
+
+  // 2. Validar citas existentes (en la zona horaria de Argentina)
+  const startOfDay = new Date(`${date}T00:00:00-03:00`);
+  const endOfDay = new Date(`${date}T23:59:59.999-03:00`);
+
+  const appts = await prisma.appointment.findMany({
+    where: {
+      workerId,
+      startsAt: {
+        gte: startOfDay,
+        lte: endOfDay,
+      },
+      status: { not: "CANCELLED" },
+    },
+    include: { service: true }
+  });
+
+  for (const appt of appts) {
+    const apptDate = new Date(appt.startsAt);
+    const timeString = apptDate.toLocaleTimeString("es-AR", {
+      timeZone: "America/Argentina/Buenos_Aires",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false
+    });
+    const [apptH, apptM] = timeString.split(":").map(Number);
+    const apptStartM = apptH * 60 + apptM;
+    const apptEndM = apptStartM + (appt.service?.duration || 30);
+
+    if (targetStartMins < apptEndM && targetEndMins > apptStartM) {
+      return { available: false, reason: "El profesional tiene otra cita programada en ese horario." };
+    }
+  }
+
+  // 3. Validar bloqueos de agenda
+  const blocks = await prisma.scheduleBlock.findMany({
+    where: {
+      workerId,
+      date,
+    }
+  });
+
+  for (const block of blocks) {
+    const blockStartM = timeToMinutes(block.startTime);
+    const blockEndM = timeToMinutes(block.endTime);
+    if (targetStartMins < blockEndM && targetEndMins > blockStartM) {
+      return { available: false, reason: "El profesional tiene un bloqueo de agenda en ese horario." };
+    }
+  }
+
+  return { available: true };
+}
+
+// Lógica de cálculo de disponibilidad horaria real
 export async function getPublicAvailability(req, res) {
   try {
     const { slug } = req.params;
@@ -141,11 +227,25 @@ export async function getPublicAvailability(req, res) {
       return res.status(404).json({ error: "Negocio no encontrado o reservas desactivadas." });
     }
 
-    // 1. Obtener servicio y validar duración
-    const service = await prisma.service.findFirst({
-      where: { id: serviceId, businessId: biz.id, isActive: true, availableOnline: true },
+    // 1. Obtener servicios y validar duración total
+    const serviceIds = serviceId.split(",");
+    const services = await prisma.service.findMany({
+      where: {
+        id: { in: serviceIds },
+        businessId: biz.id,
+        isActive: true,
+        availableOnline: true
+      },
     });
-    if (!service) return res.status(404).json({ error: "Servicio no disponible para este negocio." });
+
+    if (services.length !== serviceIds.length) {
+      return res.status(404).json({ error: "Uno o más servicios seleccionados no están disponibles para este negocio." });
+    }
+
+    // Calcular la duración total combinada en el orden solicitado
+    const orderedServices = serviceIds.map(id => services.find(s => s.id === id));
+    const svcDuration = orderedServices.reduce((sum, s) => sum + (s.duration || 30), 0);
+    const slotInterval = 30; // Slots cada 30 minutos
 
     // 2. Obtener profesional(es) a validar
     let workers = [];
@@ -153,20 +253,30 @@ export async function getPublicAvailability(req, res) {
       const worker = await prisma.worker.findFirst({
         where: { id: effectiveProfessionalId, businessId: biz.id, availableOnline: true },
         include: {
-          services: { where: { serviceId } },
+          services: true,
         },
       });
-      if (worker && worker.services.length > 0) {
-        workers = [worker];
+      if (worker) {
+        const workerServiceIds = worker.services.map(ws => ws.serviceId);
+        const canDoAll = serviceIds.every(id => workerServiceIds.includes(id));
+        if (canDoAll) {
+          workers = [worker];
+        }
       }
     } else {
-      // "Cualquiera" - buscar todos los profesionales del negocio que realizan este servicio
-      workers = await prisma.worker.findMany({
+      // "Cualquiera" - buscar todos los profesionales del negocio que realizan TODOS los servicios seleccionados
+      const allWorkers = await prisma.worker.findMany({
         where: {
           businessId: biz.id,
           availableOnline: true,
-          services: { some: { serviceId } }
+        },
+        include: {
+          services: true
         }
+      });
+      workers = allWorkers.filter(w => {
+        const workerServiceIds = w.services.map(ws => ws.serviceId);
+        return serviceIds.every(id => workerServiceIds.includes(id));
       });
     }
 
@@ -182,9 +292,6 @@ export async function getPublicAvailability(req, res) {
 
     // Verificación de hoy en tiempo real (evitar reservar en el pasado) usando la zona de Argentina
     const { todayStr, currentMins } = getArgentinaTimeParts();
-
-    const svcDuration = service.duration || 30;
-    const slotInterval = 30; // Slots cada 30 minutos
 
     // Recorrer cada profesional para calcular su disponibilidad
     for (const w of workers) {
@@ -286,7 +393,7 @@ export async function createPublicBooking(req, res) {
       phone,
       email,
       notes,
-      serviceId,
+      serviceId, // Puede ser comma-separated (ej: "id1,id2")
       professionalId,
       date, // YYYY-MM-DD
       time, // HH:MM
@@ -305,105 +412,42 @@ export async function createPublicBooking(req, res) {
       return res.status(403).json({ error: "Las reservas no están permitidas en este momento." });
     }
 
-    // Validar que el servicio pertenece al negocio
-    const service = await prisma.service.findFirst({
-      where: { id: serviceId, businessId: biz.id, isActive: true, availableOnline: true }
+    // Validar servicios
+    const serviceIds = serviceId.split(",");
+    const services = await prisma.service.findMany({
+      where: { id: { in: serviceIds }, businessId: biz.id, isActive: true, availableOnline: true }
     });
-    if (!service) {
-      return res.status(400).json({ error: "El servicio seleccionado no está disponible para este negocio." });
+
+    if (services.length !== serviceIds.length) {
+      return res.status(400).json({ error: "Uno o más servicios seleccionados no están disponibles para este negocio." });
     }
 
-    // 2. Determinar profesional asignado
+    const orderedServices = serviceIds.map(id => services.find(s => s.id === id));
+    const totalDuration = orderedServices.reduce((sum, s) => sum + (s.duration || 30), 0);
+    const totalPrice = orderedServices.reduce((sum, s) => sum + s.price, 0);
+
+    // 2. Determinar profesional asignado o validar el seleccionado
     let workerIdToAssign = professionalId;
 
     if (!professionalId || professionalId === "any" || professionalId === "null" || professionalId === "undefined") {
-      // Buscar todos los profesionales que realizan este servicio y están online
-      const workers = await prisma.worker.findMany({
-        where: {
-          businessId: biz.id,
-          availableOnline: true,
-          services: { some: { serviceId } }
-        }
+      // "Cualquiera" - buscar todos los profesionales del negocio que realizan TODOS los servicios y están online
+      const allWorkers = await prisma.worker.findMany({
+        where: { businessId: biz.id, availableOnline: true },
+        include: { services: true }
+      });
+      const eligibleWorkers = allWorkers.filter(w => {
+        const workerServiceIds = w.services.map(ws => ws.serviceId);
+        return serviceIds.every(id => workerServiceIds.includes(id));
       });
 
-      // Encontrar uno que esté libre en la fecha y hora seleccionada (en hora local del servidor)
-      const [year, month, day] = date.split("-").map(Number);
-      const dayOfWeek = new Date(year, month - 1, day).getDay();
-      const [h, m] = time.split(":").map(Number);
-      
-      const targetStartMins = h * 60 + m;
-      const targetEndMins = targetStartMins + (service.duration || 30);
-
-      const startsAt = new Date(`${date}T${time}:00-03:00`);
-
+      // Encontrar uno que esté libre en la fecha y hora seleccionada para el bloque completo
       let foundWorker = null;
-      for (const w of workers) {
-        // Verificar jornada laboral
-        const schedule = await prisma.workerSchedule.findFirst({
-          where: { workerId: w.id, dayOfWeek }
-        });
-        if (!schedule) continue;
-
-        const schedStartMins = timeToMinutes(schedule.startTime);
-        const schedEndMins = timeToMinutes(schedule.endTime);
-        if (targetStartMins < schedStartMins || targetEndMins > schedEndMins) continue;
-
-        // Verificar citas existentes (overlap en la zona horaria de Argentina)
-        const startOfDay = new Date(`${date}T00:00:00-03:00`);
-        const endOfDay = new Date(`${date}T23:59:59.999-03:00`);
-
-        const appts = await prisma.appointment.findMany({
-          where: {
-            workerId: w.id,
-            startsAt: {
-              gte: startOfDay,
-              lte: endOfDay,
-            },
-            status: { not: "CANCELLED" },
-          },
-          include: { service: true }
-        });
-
-        let overlaps = false;
-        for (const appt of appts) {
-          const apptDate = new Date(appt.startsAt);
-          const timeString = apptDate.toLocaleTimeString("es-AR", {
-            timeZone: "America/Argentina/Buenos_Aires",
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false
-          });
-          const [apptH, apptM] = timeString.split(":").map(Number);
-          const apptStartM = apptH * 60 + apptM;
-          const apptEndM = apptStartM + (appt.service?.duration || 30);
-
-          if (targetStartMins < apptEndM && targetEndMins > apptStartM) {
-            overlaps = true;
-            break;
-          }
+      for (const w of eligibleWorkers) {
+        const check = await checkWorkerAvailability(w.id, date, time, totalDuration, biz.id);
+        if (check.available) {
+          foundWorker = w;
+          break;
         }
-        if (overlaps) continue;
-
-        // Verificar bloqueos
-        const blocks = await prisma.scheduleBlock.findMany({
-          where: {
-            workerId: w.id,
-            date,
-          }
-        });
-
-        for (const block of blocks) {
-          const blockStartM = timeToMinutes(block.startTime);
-          const blockEndM = timeToMinutes(block.endTime);
-          if (targetStartMins < blockEndM && targetEndMins > blockStartM) {
-            overlaps = true;
-            break;
-          }
-        }
-        if (overlaps) continue;
-
-        foundWorker = w;
-        break; // Asignamos el primero disponible
       }
 
       if (!foundWorker) {
@@ -414,11 +458,54 @@ export async function createPublicBooking(req, res) {
     } else {
       // Validar profesional seleccionado
       const worker = await prisma.worker.findFirst({
-        where: { id: professionalId, businessId: biz.id, availableOnline: true }
+        where: { id: professionalId, businessId: biz.id, availableOnline: true },
+        include: { services: true }
       });
       if (!worker) {
         return res.status(400).json({ error: "El profesional seleccionado no está disponible para este negocio." });
       }
+
+      // Validar si realiza todos los servicios
+      const workerServiceIds = worker.services.map(ws => ws.serviceId);
+      const canDoAll = serviceIds.every(id => workerServiceIds.includes(id));
+      if (!canDoAll) {
+        return res.status(400).json({ error: "El profesional seleccionado no realiza todos los servicios elegidos." });
+      }
+
+      // Validar disponibilidad real del profesional seleccionado
+      const check = await checkWorkerAvailability(worker.id, date, time, totalDuration, biz.id);
+      if (!check.available) {
+        // Buscar profesionales alternativos que sí estén libres a esa hora
+        const allWorkers = await prisma.worker.findMany({
+          where: { businessId: biz.id, availableOnline: true },
+          include: { services: true }
+        });
+        const eligibleWorkers = allWorkers.filter(w => {
+          if (w.id === worker.id) return false;
+          const wsIds = w.services.map(ws => ws.serviceId);
+          return serviceIds.every(id => wsIds.includes(id));
+        });
+
+        const alternativeWorkers = [];
+        for (const w of eligibleWorkers) {
+          const checkAlt = await checkWorkerAvailability(w.id, date, time, totalDuration, biz.id);
+          if (checkAlt.available) {
+            alternativeWorkers.push(w);
+          }
+        }
+
+        if (alternativeWorkers.length > 0) {
+          const namesList = alternativeWorkers.map(w => `${w.firstName} ${w.lastName}`).join(", ");
+          return res.status(400).json({
+            error: `El profesional seleccionado no está disponible en este horario. Podrías reservar con: ${namesList}.`,
+            alternativeWorkers: alternativeWorkers.map(w => ({ id: w.id, name: `${w.firstName} ${w.lastName}` }))
+          });
+        } else {
+          return res.status(400).json({ error: "El profesional seleccionado no está disponible en este horario y no hay otros profesionales libres." });
+        }
+      }
+
+      workerIdToAssign = worker.id;
     }
 
     // 3. Buscar o crear cliente en el contexto del negocio
@@ -450,46 +537,87 @@ export async function createPublicBooking(req, res) {
     // 4. Calcular fecha/hora de inicio en la zona horaria de Argentina
     const startsAt = new Date(`${date}T${time}:00-03:00`);
 
-    // 5. Crear la cita (Appointment)
-    const appointment = await prisma.appointment.create({
-      data: {
-        clientId: client.id,
-        serviceId,
-        workerId: workerIdToAssign,
-        startsAt,
-        notes: notes || null,
-        status: "PENDING", // Por defecto se crea en PENDING
-        source: "online_booking",
-        businessId: biz.id,
-        downpaymentPaid: downpaymentPaid ? Number(downpaymentPaid) : null,
-        downpaymentStatus: downpaymentStatus || null,
-        downpaymentTransactionId: downpaymentTransactionId || null,
-      },
-      include: {
-        client: true,
-        service: true,
-        worker: true,
-      },
-    });
+    // 5. Crear las citas (Appointments) secuencialmente
+    let currentStartsAt = startsAt;
+    const createdAppointments = [];
+
+    for (let i = 0; i < orderedServices.length; i++) {
+      const svc = orderedServices[i];
+      
+      // Dividir proporcionalmente el pago de la seña si aplica
+      let apptDpPaid = null;
+      if (downpaymentPaid) {
+        if (i === orderedServices.length - 1) {
+          apptDpPaid = Number(downpaymentPaid) - createdAppointments.reduce((sum, a) => sum + (a.downpaymentPaid || 0), 0);
+        } else {
+          apptDpPaid = Math.round(Number(downpaymentPaid) * (svc.price / totalPrice));
+        }
+      }
+
+      const appointment = await prisma.appointment.create({
+        data: {
+          clientId: client.id,
+          serviceId: svc.id,
+          workerId: workerIdToAssign,
+          startsAt: currentStartsAt,
+          notes: notes ? `${notes} (${i + 1}/${orderedServices.length})` : `Reserva múltiple (${i + 1}/${orderedServices.length})`,
+          status: "PENDING",
+          source: "online_booking",
+          businessId: biz.id,
+          downpaymentPaid: apptDpPaid,
+          downpaymentStatus: downpaymentStatus || null,
+          downpaymentTransactionId: downpaymentTransactionId || null,
+        },
+        include: {
+          client: true,
+          service: true,
+          worker: true,
+        },
+      });
+
+      createdAppointments.push(appointment);
+      currentStartsAt = addMinutes(currentStartsAt, svc.duration || 30);
+    }
 
     // Sincronizar con Google Calendar en segundo plano
-    import("../services/googleService.js")
-      .then(({ syncAppointmentToGoogleCalendar }) => {
-        syncAppointmentToGoogleCalendar(appointment.id);
-      })
-      .catch((err) => console.error("Error importando googleService:", err));
+    for (const appt of createdAppointments) {
+      import("../services/googleService.js")
+        .then(({ syncAppointmentToGoogleCalendar }) => {
+          syncAppointmentToGoogleCalendar(appt.id);
+        })
+        .catch((err) => console.error("Error importando googleService:", err));
+    }
 
-    // Enviar email de confirmación
-    if (appointment.client?.email) {
+    // Enviar email consolidado de confirmación si el cliente tiene email
+    if (client.email) {
       try {
-        const formattedDate = new Date(startsAt).toLocaleDateString("es-AR", {
-          weekday: "long",
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-          timeZone: "America/Argentina/Buenos_Aires"
-        });
-        const formattedTime = time;
+        const emailServicesList = createdAppointments.map((appt, idx) => {
+          const apptDate = new Date(appt.startsAt);
+          const formattedDate = apptDate.toLocaleDateString("es-AR", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+            timeZone: "America/Argentina/Buenos_Aires"
+          });
+          const formattedTime = apptDate.toLocaleTimeString("es-AR", {
+            timeZone: "America/Argentina/Buenos_Aires",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false
+          });
+          return `
+            <div style="padding: 12px; background-color: #f9fafb; border-radius: 8px; margin-bottom: 12px; border: 1px solid #f1f5f9;">
+              <strong style="color: #111827; font-size: 14px;">Servicio ${idx + 1}: ${appt.service?.name}</strong>
+              <div style="color: #4b5563; font-size: 13px; margin-top: 4px;">
+                <strong>Profesional:</strong> ${appt.worker?.firstName} ${appt.worker?.lastName}<br/>
+                <strong>Fecha:</strong> <span style="text-transform: capitalize;">${formattedDate}</span><br/>
+                <strong>Hora:</strong> ${formattedTime} hs<br/>
+                <strong>Precio:</strong> $${appt.service?.price}
+              </div>
+            </div>
+          `;
+        }).join("");
 
         const mailHtml = `
           <div style="font-family: 'Inter', 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 12px; background-color: #ffffff;">
@@ -499,30 +627,18 @@ export async function createPublicBooking(req, res) {
             </div>
             
             <div style="padding: 20px 0;">
-              <h3 style="color: #111827; font-size: 16px; margin-top: 0; margin-bottom: 15px; font-weight: 600;">Detalle de la cita:</h3>
-              <table style="width: 100%; border-collapse: collapse;">
-                <tr>
-                  <td style="padding: 8px 0; color: #6b7280; font-size: 14px; width: 35%;">Servicio</td>
-                  <td style="padding: 8px 0; color: #111827; font-size: 14px; font-weight: 500;">${appointment.service?.name}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Precio</td>
-                  <td style="padding: 8px 0; color: #10b981; font-size: 14px; font-weight: 600;">$${appointment.service?.price}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Profesional</td>
-                  <td style="padding: 8px 0; color: #111827; font-size: 14px; font-weight: 500;">${appointment.worker?.firstName} ${appointment.worker?.lastName}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Fecha</td>
-                  <td style="padding: 8px 0; color: #111827; font-size: 14px; font-weight: 500; text-transform: capitalize;">${formattedDate}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Hora</td>
-                  <td style="padding: 8px 0; color: #111827; font-size: 14px; font-weight: 500;">${formattedTime} hs</td>
-                </tr>
-              </table>
+              <h3 style="color: #111827; font-size: 16px; margin-top: 0; margin-bottom: 15px; font-weight: 600;">Detalle de tus turnos:</h3>
+              ${emailServicesList}
             </div>
+            
+            ${downpaymentPaid ? `
+              <div style="padding: 15px; background-color: #e6f4ea; border-radius: 8px; margin-bottom: 20px; border: 1px solid #c2e7cd;">
+                <p style="margin: 0; color: #137333; font-size: 13px; line-height: 1.5;">
+                  <strong>Seña Total Abonada:</strong> $${downpaymentPaid} (Código: ${downpaymentTransactionId})<br/>
+                  <strong>Saldo restante en salón:</strong> $${totalPrice - downpaymentPaid}
+                </p>
+              </div>
+            ` : ""}
             
             <div style="padding: 15px; background-color: #f9fafb; border-radius: 8px; margin-bottom: 20px;">
               <p style="margin: 0; color: #4b5563; font-size: 13px; line-height: 1.5;">
@@ -536,12 +652,16 @@ export async function createPublicBooking(req, res) {
           </div>
         `;
 
+        const subjectStr = createdAppointments.length === 1 
+          ? `Reserva Confirmada: ${createdAppointments[0].service?.name} en ${biz.name}`
+          : `Reserva Confirmada: ${createdAppointments.length} servicios en ${biz.name}`;
+
         await sendReminderEmail({
-          to: appointment.client.email.trim(),
-          subject: `Reserva Confirmada: ${appointment.service?.name} en ${biz.name}`,
+          to: client.email.trim(),
+          subject: subjectStr,
           html: mailHtml,
         });
-        console.log(`Email de confirmación enviado exitosamente a ${appointment.client.email}`);
+        console.log(`Email de confirmación unificado enviado exitosamente a ${client.email}`);
       } catch (err) {
         console.error("Error al enviar el email de confirmación:", err);
       }
@@ -550,7 +670,8 @@ export async function createPublicBooking(req, res) {
     return res.status(201).json({
       success: true,
       message: biz.bookingConfirmationMessage,
-      booking: appointment,
+      booking: createdAppointments[0], // Retrocompatibilidad
+      bookings: createdAppointments,
     });
   } catch (error) {
     console.error("Error creando reserva pública:", error);
@@ -650,5 +771,22 @@ export async function reportPublicError(req, res) {
     return res.status(500).json({ error: "No se pudo enviar el reporte por correo. Inténtalo más tarde." });
   }
 }
+
+export async function triggerPublicWorkflowWebhook(req, res) {
+  try {
+    const { workflowId } = req.params;
+    const { secret } = req.query;
+    const authSecret = secret || req.headers["x-webhook-secret"];
+
+    const { triggerWorkflowByInboundWebhook } = await import("../services/workflowEngine.js");
+    const result = await triggerWorkflowByInboundWebhook(workflowId, req.body || {}, authSecret);
+    
+    return res.status(200).json({ ok: true, result });
+  } catch (error) {
+    console.error("Error triggering public workflow webhook:", error);
+    return res.status(400).json({ error: error.message || "Error al ejecutar webhook." });
+  }
+}
+
 
 

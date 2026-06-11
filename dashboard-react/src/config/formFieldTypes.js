@@ -7,6 +7,7 @@ export const FIELD_TYPE_OPTIONS = [
   { value: "number", label: "Número" },
   { value: "currency", label: "Monto ($)" },
   { value: "select", label: "Lista desplegable" },
+  { value: "nested", label: "Grupo de campos (Anidado)" },
   { value: "services", label: "Servicios (sistema)", systemOnly: true },
   { value: "servicePricing", label: "Tarifas por servicio (sistema)", systemOnly: true },
   { value: "schedule", label: "Horario laboral (sistema)", systemOnly: true },

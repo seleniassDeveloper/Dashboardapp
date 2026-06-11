@@ -14,6 +14,7 @@ import {
 import AppointmentItem from "./AppointmentItem";
 import AppointmentModal from "./AppointmentModal";
 import ConfirmDeleteModal from "./ConfirmDeleteModal";
+import FinalizeServiceModal from "../../components/clients/FinalizeServiceModal.jsx";
 
 import { useAppointmentsStore } from "./AppointmentsProvider.jsx";
 import { useBrand } from "../../header/name/BrandProvider.jsx";
@@ -110,6 +111,9 @@ export default function AppointmentsList() {
 
   const [showDelete, setShowDelete] = useState(false);
   const [deletingAppt, setDeletingAppt] = useState(null);
+
+  const [showFinalizeModal, setShowFinalizeModal] = useState(false);
+  const [finalizingAppt, setFinalizingAppt] = useState(null);
 
   const [range, setRange] = useState("ALL");
   const [status, setStatus] = useState("ALL");
@@ -258,8 +262,24 @@ export default function AppointmentsList() {
     [removeAppointment, fetchAppointments]
   );
 
+  const handleFinalizeCompleted = useCallback(
+    (updatedAppt) => {
+      upsertAppointment(updatedAppt);
+      fetchAppointments();
+      setFinalizingAppt(null);
+      setShowFinalizeModal(false);
+    },
+    [upsertAppointment, fetchAppointments]
+  );
+
   const handleStatusChange = useCallback(
     async (appt, nextStatus) => {
+      if (nextStatus === "DONE") {
+        setFinalizingAppt(appt);
+        setShowFinalizeModal(true);
+        return;
+      }
+
       try {
         setError("");
 
@@ -439,9 +459,18 @@ export default function AppointmentsList() {
       <ConfirmDeleteModal
         show={showDelete}
         onHide={handleCloseDelete}
-        appt={deletingAppt}
-        onDeleted={handleDeleted}
-        onError={(msg) => setError(msg)}
+        onConfirm={handleConfirmDelete}
+        appointment={deletingAppt}
+      />
+
+      <FinalizeServiceModal
+        show={showFinalizeModal}
+        onHide={() => {
+          setShowFinalizeModal(false);
+          setFinalizingAppt(null);
+        }}
+        appointment={finalizingAppt}
+        onCompleted={handleFinalizeCompleted}
       />
     </div>
   );

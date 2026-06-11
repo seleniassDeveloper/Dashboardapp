@@ -270,6 +270,103 @@ export async function triggerWorkflows(businessId, triggerType, context) {
             stepResult = `Comprobante de pago generado (${receiptNumber}) y enviado por email a ${clientEmail} exitosamente.`;
           }
 
+          // CUSTOM OUTBOUND WEBHOOK (HTTP POST/GET/PUT/DELETE)
+          else if (node.integrationType === "webhook") {
+            const url = node.config?.url;
+            if (!url) throw new Error("No se especificó la URL de destino del Webhook.");
+
+            const method = node.config?.method || "POST";
+            let headers = {};
+            if (node.config?.headers) {
+              try {
+                headers = JSON.parse(node.config.headers);
+              } catch (e) {
+                throw new Error("Formato JSON inválido en las cabeceras del Webhook.");
+              }
+            }
+
+            let body = undefined;
+            if (method !== "GET" && node.config?.body) {
+              body = processTemplateVars(node.config.body, {
+                cliente: clientName,
+                fecha: appt ? new Date(appt.startsAt).toLocaleDateString("es-AR") : "",
+                hora: appt ? new Date(appt.startsAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }) : "",
+                profesional: workerName,
+                servicio: serviceName,
+                saldo: appt ? `$${appt.finalPrice || servicePrice}` : "",
+                sucursal: business.name
+              });
+            }
+
+            const response = await fetch(url, {
+              method,
+              headers: {
+                "Content-Type": "application/json",
+                ...headers
+              },
+              body
+            });
+
+            const responseText = await response.text();
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}: ${responseText.substring(0, 150)}`);
+            }
+
+            stepResult = `Webhook enviado con éxito a ${url}. Respuesta: ${responseText.substring(0, 100)}`;
+          }
+
+          // CUSTOM EMAIL INTEGRATION
+          else if (node.integrationType === "email") {
+            if (!clientEmail) throw new Error("El cliente no tiene un email configurado.");
+            const subjectTemplate = node.config?.subject || "Notificación de Cita";
+            const messageTemplate = node.config?.message || "Hola {{cliente}}!";
+
+            const contextVars = {
+              cliente: clientName,
+              fecha: appt ? new Date(appt.startsAt).toLocaleDateString("es-AR") : "",
+              hora: appt ? new Date(appt.startsAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }) : "",
+              profesional: workerName,
+              servicio: serviceName,
+              saldo: appt ? `$${appt.finalPrice || servicePrice}` : "",
+              sucursal: business.name
+            };
+
+            const subject = processTemplateVars(subjectTemplate, contextVars);
+            const message = processTemplateVars(messageTemplate, contextVars);
+
+            await sendReminderEmail({
+              to: clientEmail,
+              subject,
+              html: `
+                <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 25px; border: 1px solid #eaeaea; border-radius: 12px; background-color: #ffffff;">
+                  <h2 style="color: #7c3aed; margin-top: 0;">${business.name}</h2>
+                  <hr style="border: 0; border-top: 1px solid #eee; margin-bottom: 20px;" />
+                  <p style="white-space: pre-wrap;">${message}</p>
+                  <hr style="border: 0; border-top: 1px solid #eee; margin-top: 25px; margin-bottom: 10px;" />
+                  <p style="font-size: 11px; color: #888; text-align: center;">Automatizado por AuraDash Suite.</p>
+                </div>
+              `
+            });
+
+            stepResult = `Email personalizado enviado con éxito a ${clientEmail}. Asunto: "${subject}"`;
+          }
+
+          // CUSTOM WHATSAPP LOG/REDIRECT
+          else if (node.integrationType === "whatsapp") {
+            const messageTemplate = node.config?.message || "Hola {{cliente}}!";
+            const contextVars = {
+              cliente: clientName,
+              fecha: appt ? new Date(appt.startsAt).toLocaleDateString("es-AR") : "",
+              hora: appt ? new Date(appt.startsAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }) : "",
+              profesional: workerName,
+              servicio: serviceName,
+              saldo: appt ? `$${appt.finalPrice || servicePrice}` : "",
+              sucursal: business.name
+            };
+            const message = processTemplateVars(messageTemplate, contextVars);
+            stepResult = `[WhatsApp simulado / Link generado para enviar a ${clientPhone || "cliente"}]: "${message}"`;
+          }
+
           else {
             // General actions like notifications or fallback task creation
             stepResult = `Acción de tipo ${subtype} no requiere procesamiento especial en backend o ejecutada exitosamente.`;
@@ -376,3 +473,183 @@ export async function recordStatusTransition(businessId, appointmentId, statusFr
     console.error("[SLA] Error recording status transition:", err);
   }
 }
+
+// Helper function to process double mustache variables dynamically
+function processTemplateVars(template, vars) {
+  if (typeof template !== "string") return "";
+  let result = template;
+  for (const [key, value] of Object.entries(vars)) {
+    const regex = new RegExp(`{{${key}}}`, "g");
+    result = result.replace(regex, value !== undefined && value !== null ? String(value) : "");
+  }
+  return result;
+}
+
+// Inbound webhook executor
+export async function triggerWorkflowByInboundWebhook(workflowId, payload, secret) {
+  const workflow = await prisma.workflow.findUnique({
+    where: { id: workflowId },
+    include: { businessModel: true }
+  });
+
+  if (!workflow) throw new Error("Workflow no encontrado.");
+  if (workflow.status !== "ACTIVE") throw new Error("El workflow no está activo.");
+
+  // Check trigger config
+  const triggerConfig = workflow.trigger;
+  if (triggerConfig?.type !== "webhook-inbound") {
+    throw new Error("El workflow no está configurado para recibir peticiones webhook.");
+  }
+
+  if (triggerConfig.config?.secret && triggerConfig.config.secret !== secret) {
+    throw new Error("Token secreto inválido.");
+  }
+
+  // Find a business that has this business model slug
+  const businessModel = workflow.businessModel;
+  if (!businessModel) throw new Error("El modelo de negocio asociado al workflow no existe.");
+
+  const business = await prisma.business.findFirst({
+    where: { model: businessModel.slug }
+  });
+
+  if (!business) throw new Error("No hay ningún negocio activo para este modelo de negocio.");
+
+  const startTime = Date.now();
+  const stepLogs = [];
+  let executionStatus = "SUCCESS";
+
+  const actionNodes = Array.isArray(workflow.steps) 
+    ? workflow.steps.filter(n => n.type === "action")
+    : [];
+
+  // Parse variables from payload
+  const clientName = payload.cliente || payload.name || "Cliente";
+  const clientEmail = payload.email || payload.correo;
+  const clientPhone = payload.telefono || payload.phone;
+  const serviceName = payload.servicio || "Servicio";
+  const servicePrice = payload.monto || payload.price || 0;
+  const workerName = payload.profesional || "Profesional";
+
+  const contextVars = {
+    cliente: clientName,
+    fecha: payload.fecha || new Date().toLocaleDateString("es-AR"),
+    hora: payload.hora || new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }),
+    profesional: workerName,
+    servicio: serviceName,
+    saldo: `$${servicePrice}`,
+    sucursal: business.name,
+    ...payload
+  };
+
+  for (const node of actionNodes) {
+    const subtype = String(node.subtype || node.type).toLowerCase();
+    let stepResult = null;
+    let stepError = null;
+
+    try {
+      if (node.integrationType === "webhook") {
+        const url = node.config?.url;
+        if (!url) throw new Error("No se especificó la URL de destino del Webhook.");
+
+        const method = node.config?.method || "POST";
+        let headers = {};
+        if (node.config?.headers) {
+          try { headers = JSON.parse(node.config.headers); } catch (e) { throw new Error("Cabeceras JSON inválidas."); }
+        }
+
+        let body = undefined;
+        if (method !== "GET" && node.config?.body) {
+          body = processTemplateVars(node.config.body, contextVars);
+        }
+
+        const response = await fetch(url, {
+          method,
+          headers: { "Content-Type": "application/json", ...headers },
+          body
+        });
+
+        const responseText = await response.text();
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${responseText.substring(0, 150)}`);
+        }
+        stepResult = `Webhook enviado a ${url}. Respuesta: ${responseText.substring(0, 100)}`;
+      } 
+      else if (node.integrationType === "email") {
+        if (!clientEmail) throw new Error("El cliente no tiene un email configurado.");
+        const subject = processTemplateVars(node.config?.subject || "Notificación", contextVars);
+        const message = processTemplateVars(node.config?.message || "Hola {{cliente}}!", contextVars);
+
+        await sendReminderEmail({
+          to: clientEmail,
+          subject,
+          html: `
+            <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 25px; border: 1px solid #eaeaea; border-radius: 12px; background-color: #ffffff;">
+              <h2 style="color: #7c3aed; margin-top: 0;">${business.name}</h2>
+              <hr style="border: 0; border-top: 1px solid #eee; margin-bottom: 20px;" />
+              <p style="white-space: pre-wrap;">${message}</p>
+              <hr style="border: 0; border-top: 1px solid #eee; margin-top: 25px; margin-bottom: 10px;" />
+              <p style="font-size: 11px; color: #888; text-align: center;">Automatizado por AuraDash Suite.</p>
+            </div>
+          `
+        });
+        stepResult = `Email enviado a ${clientEmail}.`;
+      } 
+      else if (node.integrationType === "whatsapp") {
+        const message = processTemplateVars(node.config?.message || "Hola {{cliente}}!", contextVars);
+        stepResult = `[WhatsApp simulado para ${clientPhone || "cliente"}]: "${message}"`;
+      } 
+      else {
+        stepResult = `Acción de tipo ${subtype} completada.`;
+      }
+
+      stepLogs.push({
+        nodeName: node.name || subtype,
+        nodeType: node.type,
+        status: "SUCCESS",
+        result: stepResult
+      });
+    } catch (err) {
+      executionStatus = "FAILED";
+      stepError = err.message || String(err);
+      stepLogs.push({
+        nodeName: node.name || subtype,
+        nodeType: node.type,
+        status: "FAILED",
+        error: stepError
+      });
+    }
+  }
+
+  // Save execution log to DB
+  const runTimeMs = Date.now() - startTime;
+  await prisma.workflowExecution.create({
+    data: {
+      workflowId: workflow.id,
+      status: executionStatus,
+      triggerType: "webhook-inbound",
+      runTimeMs,
+      logs: {
+        create: stepLogs.map(l => ({
+          nodeName: l.nodeName,
+          nodeType: l.nodeType,
+          status: l.status,
+          result: l.result || null,
+          error: l.error || null
+        }))
+      }
+    }
+  });
+
+  // Update run count
+  await prisma.workflow.update({
+    where: { id: workflow.id },
+    data: {
+      runCount: { increment: 1 },
+      lastRunAt: new Date()
+    }
+  });
+
+  return { status: executionStatus, logs: stepLogs };
+}
+

@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import api from "../lib/api.js";
 import { useBrand } from "../header/name/BrandProvider";
+import { useAuth } from "../auth/AuthProvider";
 
 // Componentes
 import DashboardGrid from "../components/dashboard/DashboardGrid";
@@ -28,6 +29,7 @@ import ClientModal from "../header/clients/ClientModal";
 import FinalizeServiceModal from "../components/clients/FinalizeServiceModal";
 import SmartReports from "../components/dashboard/SmartReports";
 import { getWidgetTypes, getMetricOptions } from "../components/dashboard/WidgetRegistry";
+import ProfessionalMobileView from "../components/dashboard/ProfessionalMobileView";
 
 // Formato de moneda ARS
 function currency(n) {
@@ -40,6 +42,7 @@ function currency(n) {
 
 export default function DashboardView() {
   const { brand } = useBrand();
+  const { role } = useAuth();
   const { t, i18n } = useTranslation(["dashboard", "common"]);
   const isEs = i18n && i18n.language ? i18n.language === "es" : true;
 
@@ -98,8 +101,10 @@ export default function DashboardView() {
   }, [t]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (role !== "professional") {
+      fetchData();
+    }
+  }, [fetchData, role]);
 
   // --- Saludo Dinámico y Fecha ---
   const getGreeting = () => {
@@ -452,6 +457,11 @@ export default function DashboardView() {
       const appt = appointments.find((a) => a.id === apptId);
       if (!appt) return;
 
+      if (newStatus === "DONE") {
+        handleFinalizeAppointment(appt);
+        return;
+      }
+
       await api.put(`/appointments/${apptId}`, {
         clientId: appt.clientId,
         serviceId: appt.serviceId,
@@ -478,6 +488,10 @@ export default function DashboardView() {
   const handleFinalizeCompleted = () => {
     fetchData();
   };
+
+  if (role === "professional") {
+    return <ProfessionalMobileView />;
+  }
 
   if (loading) {
     return (

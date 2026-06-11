@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Container, Row, Col, Card, Button, Badge, Form, Alert } from "react-bootstrap";
+import { createPortal } from "react-dom";
+import { Container, Row, Col, Card, Button, Badge, Form, Alert, Modal } from "react-bootstrap";
 import { 
   GitBranch, Play, Save, X, Plus, Sparkles, 
   Terminal, ShieldAlert, Layers, HelpCircle, Bot 
@@ -39,6 +40,32 @@ const SYNC_LOGIC = [
   { subtype: "delay", name: "⏳ Retardo (Delay)", type: "delay", desc: "Espera antes de avanzar." }
 ];
 
+const getNodeDisplayInfo = (item, t) => {
+  let nameStr = item.subtype.startsWith("custom-") ? item.name : t(`workflowsBuilder.nodes.${item.subtype}.name`, { defaultValue: item.name });
+  let descStr = item.subtype.startsWith("custom-") ? item.desc : t(`workflowsBuilder.nodes.${item.subtype}.desc`, { defaultValue: item.desc });
+  
+  nameStr = nameStr.trim();
+  const chars = Array.from(nameStr);
+  if (chars.length > 0) {
+    const firstChar = chars[0];
+    const codePoint = firstChar.codePointAt(0);
+    if (codePoint > 0x2000 || firstChar === "⚡") {
+      const remainingName = chars.slice(1).join("").trim();
+      return {
+        emoji: firstChar,
+        name: remainingName,
+        desc: descStr
+      };
+    }
+  }
+  
+  return {
+    emoji: item.icon || (item.type === "trigger" ? "⚡" : item.type === "condition" ? "🔀" : "⏳"),
+    name: nameStr,
+    desc: descStr
+  };
+};
+
 export default function WorkflowBuilder({
   show,
   onHide,
@@ -53,6 +80,33 @@ export default function WorkflowBuilder({
   const [status, setStatus] = useState("DRAFT");
   const [nodes, setNodes] = useState([]);
   const [transitions, setTransitions] = useState([]);
+
+  // Custom workflow components state
+  const [customTriggers, setCustomTriggers] = useState(() => {
+    try {
+      const saved = localStorage.getItem("custom_triggers");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [customActions, setCustomActions] = useState(() => {
+    try {
+      const saved = localStorage.getItem("custom_actions");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Modal creation states
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createType, setCreateType] = useState("trigger"); // "trigger" | "action"
+  const [newItemName, setNewItemName] = useState("");
+  const [newItemDesc, setNewItemDesc] = useState("");
+  const [newItemIcon, setNewItemIcon] = useState("🤖");
+  const [newItemIntegration, setNewItemIntegration] = useState("webhook-inbound"); // "whatsapp" | "email" | "webhook" | "cron" | "webhook-inbound" | "sms" | "custom"
   
   const [selectedNodeId, setSelectedNodeId] = useState(null);
   const [executingNodeId, setExecutingNodeId] = useState(null);
@@ -163,21 +217,45 @@ export default function WorkflowBuilder({
   // Add new nodes on canvas
   const handleAddComponent = (comp) => {
     const newId = `${comp.type}_${Date.now()}`;
+    const isCustom = comp.subtype.startsWith("custom-");
     const newNode = {
       id: newId,
-      name: t(`workflowsBuilder.nodes.${comp.subtype}.name`, { defaultValue: comp.name }),
+      name: isCustom ? comp.name : t(`workflowsBuilder.nodes.${comp.subtype}.name`, { defaultValue: comp.name }),
       type: comp.type,
       subtype: comp.subtype,
       x: 350 + Math.floor(Math.random() * 80),
       y: 200 + Math.floor(Math.random() * 80),
-      description: t(`workflowsBuilder.nodes.${comp.subtype}.desc`, { defaultValue: comp.desc }),
-      config: comp.subtype === "whatsapp" || comp.subtype === "email" 
-        ? { message: isEs ? "Hola {{cliente}}! Tu cita de {{servicio}} con {{profesional}} está confirmada." : "Hi {{cliente}}! Your appointment for {{servicio}} with {{profesional}} is confirmed." }
-        : comp.subtype === "condition"
-          ? { property: "cliente.vip", operator: "==", value: "true" }
-          : comp.subtype === "delay"
-            ? { timeValue: 2, timeUnit: isEs ? "horas" : "hours" }
-            : {}
+      description: isCustom ? comp.desc : t(`workflowsBuilder.nodes.${comp.subtype}.desc`, { defaultValue: comp.desc }),
+      icon: comp.icon || undefined,
+      integrationType: comp.integrationType || undefined,
+      config: comp.subtype === "whatsapp" || comp.subtype === "email" || comp.integrationType === "whatsapp" || comp.integrationType === "email" || comp.integrationType === "sms"
+        ? { 
+            message: isEs ? "Hola {{cliente}}! Tu cita de {{servicio}} con {{profesional}} está registrada." : "Hi {{cliente}}! Your appointment for {{servicio}} with {{profesional}} is registered.",
+            subject: (comp.subtype === "email" || comp.integrationType === "email") ? (isEs ? "Notificación de Turno" : "Appointment Alert") : undefined
+          }
+        : comp.integrationType === "webhook"
+          ? {
+              url: "https://api.mi-servidor.com/webhook",
+              method: "POST",
+              headers: '{\n  "Content-Type": "application/json",\n  "Authorization": "Bearer TOKEN"\n}',
+              body: '{\n  "cliente": "{{cliente}}",\n  "fecha": "{{fecha}}",\n  "servicio": "{{servicio}}"\n}'
+            }
+          : comp.integrationType === "cron"
+            ? {
+                expression: "0 9 * * *",
+                description: isEs ? "Todos los días a las 9 AM" : "Every day at 9 AM"
+              }
+            : comp.integrationType === "webhook-inbound"
+              ? {
+                  endpoint: `/api/public/workflows/trigger/${newId}`,
+                  secret: Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
+                  expectedVariables: "cliente, telefono, monto"
+                }
+              : comp.subtype === "condition"
+                ? { property: "cliente.vip", operator: "==", value: "true" }
+                : comp.subtype === "delay"
+                  ? { timeValue: 2, timeUnit: isEs ? "horas" : "hours" }
+                  : {}
     };
 
     setNodes(prev => [...prev, newNode]);
@@ -276,10 +354,10 @@ export default function WorkflowBuilder({
     }
   };
 
-  return (
+  return createPortal(
     <div 
       className="position-fixed top-0 start-0 w-100 h-100 bg-light"
-      style={{ zIndex: 1050, overflow: "hidden" }}
+      style={{ zIndex: 9999, overflow: "hidden" }}
     >
       <Container fluid className="px-4 py-3 h-100 d-flex flex-column" style={{ maxHeight: "100vh" }}>
         
@@ -295,7 +373,7 @@ export default function WorkflowBuilder({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder={t("workflowsBuilder.builder.placeholderName", { defaultValue: "Nombre de la automatización..." })}
-                className="fw-black text-gray-900 border-0 p-0 fs-5 border-hover-bottom"
+                className="fw-black text-gray-950 border-0 p-0 fs-5 border-hover-bottom"
                 style={{ width: "320px", background: "transparent", borderBottom: "2px solid transparent" }}
               />
               <Form.Control
@@ -304,7 +382,7 @@ export default function WorkflowBuilder({
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder={isEs ? "Escribe una breve descripción del flujo..." : "Write a brief description of the flow..."}
                 className="text-muted border-0 p-0 smaller mt-0.5"
-                style={{ width: "400px", background: "transparent" }}
+                style={{ width: "450px", background: "transparent" }}
               />
             </div>
           </div>
@@ -314,7 +392,7 @@ export default function WorkflowBuilder({
               value={status}
               onChange={(e) => setStatus(e.target.value)}
               className="rounded-xl border-gray-200 py-1.5 fw-bold text-gray-700 small"
-              style={{ width: "130px" }}
+              style={{ width: "135px", boxShadow: "0 2px 4px rgba(0,0,0,0.02)" }}
             >
               <option value="DRAFT">📋 {isEs ? "Borrador" : "Draft"}</option>
               <option value="ACTIVE">🟢 {isEs ? "Activo" : "Active"}</option>
@@ -324,7 +402,7 @@ export default function WorkflowBuilder({
             <Button
               variant="outline-purple"
               onClick={() => { setShowDebugger(true); setSelectedNodeId(null); }}
-              className="rounded-xl px-3 py-1.5 fw-bold text-purple-700 border-purple-300 hover-bg-purple-50 d-flex align-items-center gap-1.5 small"
+              className="rounded-xl px-3.5 py-1.8 fw-bold text-purple-700 border-purple-200 hover-bg-purple-50 d-flex align-items-center gap-1.5 small shadow-sm"
             >
               <Play size={14} />
               <span>{t("workflowsBuilder.builder.test", { defaultValue: "Probar" })}</span>
@@ -334,7 +412,7 @@ export default function WorkflowBuilder({
               variant="purple"
               onClick={handleSaveWorkflow}
               disabled={saving}
-              className="rounded-xl px-4 py-1.5 fw-bold text-white bg-purple-600 hover-bg-purple-700 border-0 d-flex align-items-center gap-1.5 shadow-sm small"
+              className="rounded-xl px-4 py-1.8 fw-bold text-white bg-purple-600 hover-bg-purple-700 border-0 d-flex align-items-center gap-1.5 shadow-md small"
             >
               <Save size={14} />
               <span>{saving ? t("workflowsBuilder.builder.saving", { defaultValue: "Guardando..." }) : t("workflowsBuilder.builder.save", { defaultValue: "Guardar" })}</span>
@@ -342,7 +420,7 @@ export default function WorkflowBuilder({
 
             <button 
               onClick={onHide} 
-              className="btn btn-light p-2.5 rounded-xl border hover-bg-gray-100 d-flex align-items-center justify-content-center"
+              className="btn btn-light p-2.5 rounded-xl border hover-bg-gray-100 d-flex align-items-center justify-content-center shadow-sm"
             >
               <X size={16} />
             </button>
@@ -365,18 +443,31 @@ export default function WorkflowBuilder({
               <div className="flex-grow-1 overflow-auto pe-1 scrollbar-none" style={{ overflowY: "auto" }}>
                 {/* CATEGORÍA 1: TRIGGERS */}
                 <div className="mb-3.5">
-                  <span className="smaller text-orange-600 fw-bold px-1 text-uppercase tracking-wider d-block mb-2" style={{ fontSize: "8.5px" }}>
-                    {t("workflowsBuilder.builder.triggerTitle", { defaultValue: "⚡ Disparadores (Triggers)" })}
-                  </span>
+                  <div className="d-flex justify-content-between align-items-center mb-2 px-1">
+                    <span className="smaller text-orange-600 fw-bold text-uppercase tracking-wider" style={{ fontSize: "8.5px" }}>
+                      {t("workflowsBuilder.builder.triggerTitle", { defaultValue: "⚡ Disparadores (Triggers)" })}
+                    </span>
+                    <button 
+                      onClick={() => { setCreateType("trigger"); setNewItemIntegration("webhook-inbound"); setShowCreateModal(true); }}
+                      className="btn btn-xs p-0 text-orange-600 hover-text-orange-800 border-0 d-flex align-items-center bg-transparent"
+                      title={isEs ? "Crear disparador personalizado" : "Create custom trigger"}
+                    >
+                      <Plus size={14} />
+                    </button>
+                  </div>
                   <div className="d-flex flex-column gap-1.5">
-                    {SYNC_TRIGGERS.map((tItem) => (
+                    {[...SYNC_TRIGGERS, ...customTriggers].map((tItem) => (
                       <button
                         key={tItem.subtype}
                         onClick={() => handleAddComponent(tItem)}
                         className="btn btn-outline-orange w-100 rounded-xl px-2.5 py-1.8 text-start small border-orange-200 hover-bg-orange-50 d-grid gap-0.5"
                       >
-                        <strong className="text-gray-800" style={{ fontSize: "11.5px" }}>{t(`workflowsBuilder.nodes.${tItem.subtype}.name`, { defaultValue: tItem.name })}</strong>
-                        <span className="smaller text-muted" style={{ fontSize: "9.5px", lineHeight: "1.2" }}>{t(`workflowsBuilder.nodes.${tItem.subtype}.desc`, { defaultValue: tItem.desc })}</span>
+                        <strong className="text-gray-800" style={{ fontSize: "11.5px" }}>
+                          {tItem.subtype.startsWith("custom-") ? tItem.name : t(`workflowsBuilder.nodes.${tItem.subtype}.name`, { defaultValue: tItem.name })}
+                        </strong>
+                        <span className="smaller text-muted" style={{ fontSize: "9.5px", lineHeight: "1.2" }}>
+                          {tItem.subtype.startsWith("custom-") ? tItem.desc : t(`workflowsBuilder.nodes.${tItem.subtype}.desc`, { defaultValue: tItem.desc })}
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -384,18 +475,31 @@ export default function WorkflowBuilder({
 
                 {/* CATEGORÍA 2: ACTIONS */}
                 <div className="mb-3.5">
-                  <span className="smaller text-purple-600 fw-bold px-1 text-uppercase tracking-wider d-block mb-2" style={{ fontSize: "8.5px" }}>
-                    {t("workflowsBuilder.builder.actionTitle", { defaultValue: "🟢 Acciones del Sistema" })}
-                  </span>
+                  <div className="d-flex justify-content-between align-items-center mb-2 px-1">
+                    <span className="smaller text-purple-600 fw-bold text-uppercase tracking-wider" style={{ fontSize: "8.5px" }}>
+                      {t("workflowsBuilder.builder.actionTitle", { defaultValue: "🟢 Acciones del Sistema" })}
+                    </span>
+                    <button 
+                      onClick={() => { setCreateType("action"); setNewItemIntegration("whatsapp"); setShowCreateModal(true); }}
+                      className="btn btn-xs p-0 text-purple-600 hover-text-purple-800 border-0 d-flex align-items-center bg-transparent"
+                      title={isEs ? "Crear acción personalizada" : "Create custom action"}
+                    >
+                      <Plus size={14} />
+                    </button>
+                  </div>
                   <div className="d-flex flex-column gap-1.5">
-                    {SYNC_ACTIONS.map((a) => (
+                    {[...SYNC_ACTIONS, ...customActions].map((a) => (
                       <button
                         key={a.subtype}
                         onClick={() => handleAddComponent(a)}
                         className="btn btn-outline-purple w-100 rounded-xl px-2.5 py-1.8 text-start small border-purple-200 hover-bg-purple-50 d-grid gap-0.5"
                       >
-                        <strong className="text-gray-800" style={{ fontSize: "11.5px" }}>{t(`workflowsBuilder.nodes.${a.subtype}.name`, { defaultValue: a.name })}</strong>
-                        <span className="smaller text-muted" style={{ fontSize: "9.5px", lineHeight: "1.2" }}>{t(`workflowsBuilder.nodes.${a.subtype}.desc`, { defaultValue: a.desc })}</span>
+                        <strong className="text-gray-800" style={{ fontSize: "11.5px" }}>
+                          {a.subtype.startsWith("custom-") ? a.name : t(`workflowsBuilder.nodes.${a.subtype}.name`, { defaultValue: a.name })}
+                        </strong>
+                        <span className="smaller text-muted" style={{ fontSize: "9.5px", lineHeight: "1.2" }}>
+                          {a.subtype.startsWith("custom-") ? a.desc : t(`workflowsBuilder.nodes.${a.subtype}.desc`, { defaultValue: a.desc })}
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -457,7 +561,6 @@ export default function WorkflowBuilder({
         </Row>
       </Container>
       
-      {/* Node dragging CSS resets */}
       <style>{`
         .border-hover-bottom:hover {
           border-bottom-color: #cbd5e1 !important;
@@ -494,6 +597,138 @@ export default function WorkflowBuilder({
           border-color: #fcd34d;
         }
       `}</style>
-    </div>
+
+      {/* MODAL PARA CREAR DISPARADOR O ACCIÓN PERSONALIZADA */}
+      <Modal 
+        show={showCreateModal} 
+        onHide={() => setShowCreateModal(false)}
+        centered
+        className="modern-modal"
+      >
+        <Modal.Header closeButton className="border-0 pb-0">
+          <Modal.Title className="fw-black text-gray-900 fs-5 d-flex align-items-center gap-2">
+            <Sparkles size={20} className="text-purple-600 animate-pulse" />
+            <span>{createType === "trigger" ? (isEs ? "Crear Disparador Personalizado" : "Create Custom Trigger") : (isEs ? "Crear Acción Personalizada" : "Create Custom Action")}</span>
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="pt-3">
+          <Form className="d-grid gap-3">
+            <Form.Group>
+              <Form.Label className="small fw-bold text-gray-700">{isEs ? "Nombre" : "Name"} *</Form.Label>
+              <Form.Control
+                type="text"
+                value={newItemName}
+                onChange={(e) => setNewItemName(e.target.value)}
+                placeholder={isEs ? "Ej: Enviar SMS Recordatorio" : "e.g., Send SMS Reminder"}
+                className="rounded-xl border-gray-200 small"
+                required
+              />
+            </Form.Group>
+
+            <Form.Group>
+              <Form.Label className="small fw-bold text-gray-700">{isEs ? "Descripción" : "Description"}</Form.Label>
+              <Form.Control
+                type="text"
+                value={newItemDesc}
+                onChange={(e) => setNewItemDesc(e.target.value)}
+                placeholder={isEs ? "Ej: Envía un SMS a través de Twilio" : "e.g., Sends an SMS via Twilio"}
+                className="rounded-xl border-gray-200 small"
+              />
+            </Form.Group>
+
+            <Row className="g-2">
+              <Col xs={6}>
+                <Form.Group>
+                  <Form.Label className="small fw-bold text-gray-700">{isEs ? "Icono (Emoji)" : "Icon (Emoji)"}</Form.Label>
+                  <Form.Select
+                    value={newItemIcon}
+                    onChange={(e) => setNewItemIcon(e.target.value)}
+                    className="rounded-xl border-gray-200 small"
+                  >
+                    <option value="🤖">🤖 Webhook</option>
+                    <option value="📱">📱 WhatsApp</option>
+                    <option value="✉️">✉️ Email</option>
+                    <option value="💬">💬 SMS</option>
+                    <option value="⚡">⚡ Evento</option>
+                    <option value="📅">📅 Calendario</option>
+                    <option value="🎂">🎂 Cumpleaños</option>
+                    <option value="📦">📦 Stock</option>
+                    <option value="⚙️">⚙️ Ajustes</option>
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+              <Col xs={6}>
+                <Form.Group>
+                  <Form.Label className="small fw-bold text-gray-700">{isEs ? "Tipo de Integración" : "Integration Type"}</Form.Label>
+                  <Form.Select
+                    value={newItemIntegration}
+                    onChange={(e) => setNewItemIntegration(e.target.value)}
+                    className="rounded-xl border-gray-200 small"
+                  >
+                    {createType === "trigger" ? (
+                      <>
+                        <option value="webhook-inbound">{isEs ? "Webhook Entrante" : "Inbound Webhook"}</option>
+                        <option value="cron">{isEs ? "Programación (Cron)" : "Cron Schedule"}</option>
+                        <option value="custom">{isEs ? "Sistema / Personalizado" : "System / Custom"}</option>
+                      </>
+                    ) : (
+                      <>
+                        <option value="whatsapp">{isEs ? "WhatsApp Link/API" : "WhatsApp Link/API"}</option>
+                        <option value="email">{isEs ? "Email personalizado" : "Custom Email"}</option>
+                        <option value="webhook">{isEs ? "Webhook Saliente" : "Outbound Webhook"}</option>
+                        <option value="sms">{isEs ? "Mensaje SMS" : "SMS message"}</option>
+                        <option value="custom">{isEs ? "Acción Personalizada" : "Custom Action"}</option>
+                      </>
+                    )}
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+            </Row>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer className="border-0 pt-0 pb-4 justify-content-end gap-2">
+          <Button 
+            variant="light" 
+            onClick={() => setShowCreateModal(false)}
+            className="rounded-xl px-3 py-1.8 small fw-bold"
+          >
+            {isEs ? "Cancelar" : "Cancel"}
+          </Button>
+          <Button 
+            variant="purple" 
+            onClick={() => {
+              if (!newItemName.trim()) return;
+              const subId = `custom-${createType}-${Date.now()}`;
+              const newItem = {
+                subtype: subId,
+                name: `${newItemIcon} ${newItemName.trim()}`,
+                type: createType,
+                desc: newItemDesc.trim() || (isEs ? "Elemento personalizado" : "Custom element"),
+                icon: newItemIcon,
+                integrationType: newItemIntegration
+              };
+
+              if (createType === "trigger") {
+                const list = [...customTriggers, newItem];
+                setCustomTriggers(list);
+                localStorage.setItem("custom_triggers", JSON.stringify(list));
+              } else {
+                const list = [...customActions, newItem];
+                setCustomActions(list);
+                localStorage.setItem("custom_actions", JSON.stringify(list));
+              }
+
+              setShowCreateModal(false);
+              setNewItemName("");
+              setNewItemDesc("");
+            }}
+            className="rounded-xl px-4 py-1.8 bg-purple-600 hover-bg-purple-700 text-white border-0 small fw-bold"
+          >
+            {isEs ? "Crear" : "Create"}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+    </div>,
+    document.body
   );
 }

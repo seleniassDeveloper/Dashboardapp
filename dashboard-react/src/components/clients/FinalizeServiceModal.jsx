@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Modal, Button, Form, Row, Col, Spinner, Card } from "react-bootstrap";
-import { Sparkles, Camera, Clipboard, Plus, Trash2, CheckCircle } from "lucide-react";
+import { Sparkles, Camera, Clipboard, Plus, Trash2, CheckCircle, CreditCard } from "lucide-react";
 import api from "../../lib/api.js";
 
 export default function FinalizeServiceModal({ show, onHide, appointment, onCompleted }) {
@@ -8,8 +8,25 @@ export default function FinalizeServiceModal({ show, onHide, appointment, onComp
   const [recommendations, setRecommendations] = useState("");
   const [beforePhoto, setBeforePhoto] = useState(null);
   const [afterPhoto, setAfterPhoto] = useState(null);
+  const [paymentMethod, setPaymentMethod] = useState("Efectivo");
+  const [finalPrice, setFinalPrice] = useState(0);
+  const [sendEmail, setSendEmail] = useState(false);
+  const [sendWhatsapp, setSendWhatsapp] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (appointment) {
+      setNote("");
+      setRecommendations("");
+      setBeforePhoto(null);
+      setAfterPhoto(null);
+      setFinalPrice(appointment.service?.price || 0);
+      setSendEmail(!!appointment.client?.email);
+      setSendWhatsapp(!!appointment.client?.phone);
+      setPaymentMethod("Efectivo");
+    }
+  }, [appointment]);
 
   if (!appointment) return null;
 
@@ -79,11 +96,38 @@ export default function FinalizeServiceModal({ show, onHide, appointment, onComp
         recommendations: recommendations.trim(),
         beforePhoto,
         afterPhoto,
+        paymentMethod,
+        finalPrice,
+        sendEmail,
       };
 
       const res = await api.post(`/appointments/${appointment.id}/finalize`, payload);
 
       if (res.data?.success) {
+        // WhatsApp redirection if checked
+        if (sendWhatsapp && appointment.client?.phone) {
+          try {
+            const rawPhone = appointment.client.phone.trim();
+            const cleanPhone = rawPhone.replace(/\D/g, "");
+            const clientName = `${appointment.client.firstName} ${appointment.client.lastName || ""}`.trim();
+            const serviceName = appointment.service?.name || "Servicio";
+            const workerName = appointment.worker ? `${appointment.worker.firstName} ${appointment.worker.lastName}` : "Profesional";
+            const formattedPrice = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(finalPrice);
+            
+            const messageText = `¡Hola ${clientName}! Gracias por tu visita a Aura Studio. Te enviamos el detalle de tu servicio de hoy: *${serviceName}* con *${workerName}*.\n\n*Total abonado:* ${formattedPrice} (${paymentMethod})\n\n¡Esperamos verte pronto! 🧾✨`;
+            
+            let finalPhone = cleanPhone;
+            if (finalPhone.length === 10 && !finalPhone.startsWith("54")) {
+              finalPhone = `549${finalPhone}`;
+            }
+            
+            const waUrl = `https://wa.me/${finalPhone}?text=${encodeURIComponent(messageText)}`;
+            window.open(waUrl, "_blank");
+          } catch (waErr) {
+            console.error("Error creating WhatsApp redirect:", waErr);
+          }
+        }
+
         // Reset state
         setNote("");
         setRecommendations("");
@@ -139,6 +183,84 @@ export default function FinalizeServiceModal({ show, onHide, appointment, onComp
         )}
 
         <Form onSubmit={handleSubmit}>
+          {/* Detalles de Cobro y Cierre */}
+          <div className="border border-purple-100 rounded-2xl p-4 bg-purple-50 bg-opacity-20 mb-4 shadow-inner">
+            <h4 className="h6 fw-bold mb-3 text-purple-900 d-flex align-items-center gap-1.5">
+              <CreditCard size={18} className="text-purple-600" />
+              <span>Detalles de Cierre & Cobro del Turno</span>
+            </h4>
+            
+            <Row className="g-3">
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label className="fw-bold text-gray-700 mb-1">Monto a Cobrar ($) *</Form.Label>
+                  <Form.Control
+                    type="number"
+                    value={finalPrice}
+                    onChange={(e) => setFinalPrice(Number(e.target.value))}
+                    placeholder="Monto final cobrado"
+                    className="border-gray-200 rounded-xl focus-ring-purple"
+                    required
+                  />
+                  <Form.Text className="text-muted">
+                    Precio original del servicio: ${appointment.service?.price || 0}
+                  </Form.Text>
+                </Form.Group>
+              </Col>
+              
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label className="fw-bold text-gray-700 mb-1">Método de Pago *</Form.Label>
+                  <Form.Select
+                    value={paymentMethod}
+                    onChange={(e) => setPaymentMethod(e.target.value)}
+                    className="border-gray-200 rounded-xl focus-ring-purple cursor-pointer"
+                  >
+                    <option value="Efectivo">Efectivo</option>
+                    <option value="Mercado Pago">Mercado Pago</option>
+                    <option value="Transferencia">Transferencia Bancaria</option>
+                    <option value="Tarjeta de Débito">Tarjeta de Débito</option>
+                    <option value="Tarjeta de Crédito">Tarjeta de Crédito</option>
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+            </Row>
+
+            {/* Opciones de Envío de Comprobante */}
+            <div className="mt-3.5 pt-3 border-top border-purple-100/50">
+              <div className="fw-bold text-gray-700 mb-2 small text-uppercase tracking-wider">Enviar Comprobante Digital</div>
+              <div className="d-flex flex-wrap gap-4">
+                <Form.Check
+                  type="checkbox"
+                  id="send-email-checkbox"
+                  label={
+                    <span className="small text-gray-700 text-truncate">
+                      Enviar por Email {appointment.client?.email ? `(${appointment.client.email})` : <em className="text-muted">(Sin email)</em>}
+                    </span>
+                  }
+                  checked={sendEmail}
+                  onChange={(e) => setSendEmail(e.target.checked)}
+                  disabled={!appointment.client?.email}
+                  className="cursor-pointer"
+                />
+                
+                <Form.Check
+                  type="checkbox"
+                  id="send-whatsapp-checkbox"
+                  label={
+                    <span className="small text-gray-700 text-truncate">
+                      Enviar por WhatsApp {appointment.client?.phone ? `(${appointment.client.phone})` : <em className="text-muted">(Sin teléfono)</em>}
+                    </span>
+                  }
+                  checked={sendWhatsapp}
+                  onChange={(e) => setSendWhatsapp(e.target.checked)}
+                  disabled={!appointment.client?.phone}
+                  className="cursor-pointer"
+                />
+              </div>
+            </div>
+          </div>
+
           {/* Evolución clínica y Notas */}
           <Form.Group className="mb-4">
             <Form.Label className="fw-bold text-gray-700 d-flex align-items-center gap-2 mb-2">

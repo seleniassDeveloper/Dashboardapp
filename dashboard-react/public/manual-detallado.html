@@ -185,6 +185,7 @@
         <div class="block info"><span class="tag">Información en Pantalla</span>
           <ul>
             <li><span class="term">Calendario Central (FullCalendar):</span> grilla de horarios con color por profesional.</li>
+            <li><span class="term">Botón "+ Nueva cita":</span> acceso rápido en el encabezado superior para programar citas de forma ágil mediante el formulario limpio, sin requerir clickear un bloque del calendario.</li>
             <li><span class="term">Buscador de Huecos</span> (barra lateral) y <span class="term">Lista de Espera</span> con clientes que esperan una cancelación.</li>
           </ul>
         </div>
@@ -223,19 +224,24 @@
         </div>
       </div>
 
-      <div class="screen"><h3>D. Modal: Detalle de Cita y Cobro</h3>
+      <div class="screen"><h3>D. Modal: Finalizar Servicio y Ficha Técnica <span class="code">FinalizeServiceModal</span></h3>
         <div class="block info"><span class="tag">Información / Formulario</span>
           <ul>
-            <li>Resumen (Cliente, Servicios, Total), <span class="term">Estado del Turno</span> (PENDIENTE/CONFIRMADO/REALIZADO/CANCELADO) y <span class="term">Método de Pago</span>.</li>
+            <li>Resumen del turno (Cliente, Servicio y Profesional).</li>
+            <li><span class="term">Monto a Cobrar ($):</span> importe final de cobro, permitiendo ajustes del precio original.</li>
+            <li><span class="term">Método de Pago:</span> selección obligatoria (Efectivo, Mercado Pago, Transferencia Bancaria, Tarjeta de Débito/Crédito).</li>
+            <li><span class="term">Notas Clínicas / Evolución:</span> campo obligatorio para documentar los detalles técnicos del trabajo (tonos, pose, etc.) para el dossier del cliente.</li>
+            <li><span class="term">Recomendaciones Post-Cuidado:</span> consejos opcionales de mantenimiento domiciliario.</li>
+            <li><span class="term">Galería Visual Antes/Después:</span> carga de dos fotos del servicio para registrar la evolución.</li>
+            <li><span class="term">Envío de Comprobante:</span> checkboxes para facturar digitalmente por mail y/o abrir WhatsApp con el resumen contable.</li>
           </ul>
         </div>
         <div class="block func"><span class="tag">Funcionalidades / Botones</span>
           <ul>
-            <li><span class="btn">Completar y Cobrar</span> registra el pago, liquida la comisión del profesional y descuenta los insumos del inventario (si hay reglas de consumo).</li>
-            <li><span class="btn">Enviar Recordatorio</span> abre WhatsApp con un mensaje listo con los datos de la cita.</li>
+            <li><span class="btn">Finalizar Turno</span> efectúa la callback que impacta simultáneamente en Finanzas (registro de ingresos), Equipo (liquidación de comisiones), Inventario (descuento de consumos) y CRM de Clientes (registro de fotos y evolución), marcando la cita como "Finalizada".</li>
           </ul>
         </div>
-        <div class="flow"><b>Este botón conecta 3 módulos:</b> al cobrar impacta en Finanzas (ingreso), en Equipo (comisión) y en Inventario (descuento de insumos).</div>
+        <div class="flow"><b>Este cierre conecta 4 módulos:</b> al finalizar la cita, impacta en Finanzas (ingresos), en Equipo (comisiones), en Inventario (descuento automático de insumos bajo reglas de consumo) y en Clientes (ficha técnica y galería antes/después).</div>
       </div>
       <a class="top" href="#top">↑ Volver al índice</a>
     </div>
@@ -264,6 +270,7 @@
       </div>
 
       <div class="screen"><h3>B. Detalle del Cliente <span class="code">ClientDetailModal</span> — 4 pestañas</h3>
+        <div class="tip"><b>Carga de Foto de Perfil:</b> Podés clickear en el avatar circular de las iniciales del cliente para abrir un widget interactivo que te permite tomar una foto con la cámara/webcam del dispositivo o subir una imagen local.</div>
         <div class="block info"><span class="tag">Pestaña · Perfil y Estadísticas</span>
           <ul><li>Gráficos de gasto acumulado, ticket promedio, servicios más contratados y profesional favorito.</li></ul>
         </div>
@@ -276,8 +283,12 @@
         <div class="block info"><span class="tag">Pestaña · Historial de Visitas</span>
           <ul><li>Tabla cronológica: Fecha, Cita ID, Servicios, Profesional, Total cobrado y Estado de pago.</li></ul>
         </div>
-        <div class="block info"><span class="tag">Pestaña · Galería Antes y Después</span>
-          <ul><li>Mosaico de imágenes de los trabajos. <span class="btn">Subir Foto</span> carga al servidor/nube.</li></ul>
+        <div class="block info"><span class="tag">Pestaña · Evolución y Estilo (Línea de Tiempo & Galería)</span>
+          <ul>
+            <li>Diseño de doble columna:</li>
+            <li><strong>Columna Izquierda (Galería de Evolución):</strong> muestra las fotos de "Antes" y "Después" tomadas en el checkout de manera conjunta y agrupada por cita, permitiendo ver el cambio visual de un vistazo con zoom reactivo en hover.</li>
+            <li><strong>Columna Derecha (Historial de Evolución):</strong> línea de tiempo de notas técnicas de evolución clínica, recomendaciones y detalles de cada visita.</li>
+          </ul>
         </div>
         <div class="tip"><b>Cómo usarlo:</b> antes de atender, revisá la Ficha Técnica para repetir la fórmula exacta y evitar contraindicaciones.</div>
       </div>
@@ -433,16 +444,26 @@
       </div>
 
       <div class="screen"><h3>B. Catálogo de Stock <span class="code">ProductForm</span></h3>
-        <div class="block info"><span class="tag">Información en Pantalla</span>
-          <ul><li>Productos con foto/ícono, categoría, código de barras, stock actual, stock mínimo y ubicación física (ej: "Estante A1").</li></ul>
+        <div class="block info"><span class="tag">Información en Pantalla / Ficha Técnica</span>
+          <ul>
+            <li><span class="term">Estructura Avanzada de Ficha por Pestañas:</span>
+              <ul>
+                <li><span class="term">Básico:</span> Nombre, Categoría, Unidad de Medida (ml, gr, Litros, unidades), Ubicación Interna, Descripción, Color e Icono personalizado.</li>
+                <li><span class="term">Stock &amp; Lotes:</span> Control de existencias (Stock Actual, Mínimo e Ideal) y conmutadores para activar el control de Vencimientos y seguimiento de Lotes/Batch en ingresos.</li>
+                <li><span class="term">Finanzas:</span> Costo de Compra, Precio de Venta sugerido e IVA o impuestos aplicables.</li>
+                <li><span class="term">Logística &amp; Envase:</span> Código SKU único, SKU del proveedor, Proveedor asociado, Días estimados de reposición (Lead Time), Peso físico, Volumen exacto, Dimensiones del envase (Largo/Ancho/Alto) y Código de barras/QR.</li>
+              </ul>
+            </li>
+            <li><span class="term">Badges en Tabla/Tarjetas:</span> Identificación visual inmediata si el producto requiere <i>"Control Lote"</i>, <i>"Control Vencimiento"</i> o si tiene <i>"Stock Crítico"</i>.</li>
+          </ul>
         </div>
         <div class="block func"><span class="tag">Funcionalidades / Botones</span>
           <ul>
-            <li><span class="btn">+ Nuevo Producto</span> abre un formulario lateral.</li>
-            <li><span class="btn">+ / −</span> ajustan cantidades al instante sin abrir el formulario completo.</li>
+            <li><span class="btn">+ Nuevo Producto</span> abre la ficha técnica avanzada tabulada para la carga completa.</li>
+            <li><span class="btn">+ / −</span> permiten el ajuste rápido de unidades de stock de manera directa en el catálogo.</li>
           </ul>
         </div>
-        <div class="warn"><b>Importante:</b> configurá bien el <span class="term">stock mínimo</span>: es lo que dispara las alertas a tiempo según cuánto tardás en reponer.</div>
+        <div class="warn"><b>Importante:</b> Configurá los <span class="term">Días de reposición</span> en la pestaña Logística; el sistema lo usa para calcular alertas preventivas antes de que se produzca un quiebre de stock.</div>
       </div>
 
       <div class="screen"><h3>C. Control de Lotes (FIFO) <span class="code">BatchControl</span></h3>
@@ -620,6 +641,26 @@
           </ul>
         </div>
         <div class="warn"><b>Importante:</b> los cambios impactan en caliente. Asigná solo los permisos necesarios a cada rol (ej: Recepción no debería ver Finanzas completas).</div>
+      </div>
+
+      <div class="screen"><h3>C. Catálogo de Campos y Formularios Personalizados <span class="code">FieldRegistryEditor + FormSchemaEditor</span></h3>
+        <div class="block info"><span class="tag">Información / Definición</span>
+          <ul>
+            <li><span class="term">Catálogo Global de Campos:</span> Define campos reutilizables asignados a entidades de la aplicación: <i>Empleado/Equipo, Cliente, Cita/Reserva, Servicio, y Workflows</i>.</li>
+            <li><span class="term">Campos Anidados (Subcampos):</span> Permite estructurar un campo con múltiples subcampos asociados (ej: en un campo "Dirección", agregar subcampos "Calle", "Número", "Piso", "CP"). Cada subcampo posee su propio tipo y regla de validación de obligatoriedad.</li>
+            <li><span class="term">Formularios Dinámicos:</span> Los esquemas de formularios (como el de "Alta de Empleado") renderizan estos campos y sus subcampos anidados agrupándolos lógicamente, realizando validaciones complejas de entrada en tiempo real.</li>
+            <li><span class="term">Persistencia JSON:</span> Los valores de los subcampos completados se guardan de forma anidada bajo la clave <span class="code">customFields.[fieldId].[subFieldId]</span> en formato JSON en PostgreSQL.</li>
+          </ul>
+        </div>
+        <div class="block func"><span class="tag">Funcionalidades / Botones</span>
+          <ul>
+            <li><span class="btn">Guardar Catálogo</span> en el catálogo de campos persiste la lista global de definiciones de campos y subcampos.</li>
+            <li><span class="btn">Agregar Subcampo</span> dentro de un campo permite crear un subcampo anidado especificando su tipo (texto, número, selección, etc.) y si es obligatorio.</li>
+            <li><span class="btn">Guardar Formulario</span> en el editor de esquemas aplica el orden, visibilidad y validación de los campos/subcampos configurados para la creación y edición de registros.</li>
+            <li><span class="btn">Chevron Arriba / Abajo</span> reordena visualmente los campos y subcampos en la grilla y el formulario de carga.</li>
+          </ul>
+        </div>
+        <div class="tip"><b>Sugerencia de Uso:</b> Usá subcampos cuando requieras agrupar datos relacionados (como dimensiones, detalles de contacto extra o selecciones jerárquicas) para mantener los formularios limpios y estructurados.</div>
       </div>
       <a class="top" href="#top">↑ Volver al índice</a>
     </div>

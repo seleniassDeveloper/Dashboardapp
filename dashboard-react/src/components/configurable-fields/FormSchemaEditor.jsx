@@ -69,6 +69,41 @@ export default function FormSchemaEditor() {
     ]);
   };
 
+  const addSubfield = (fieldIndex) => {
+    const field = fields[fieldIndex];
+    const subfields = Array.isArray(field.subfields) ? [...field.subfields] : [];
+    const subId = `sub_${Date.now()}`;
+    subfields.push({
+      id: subId,
+      label: "Nuevo subcampo",
+      type: "text",
+      required: false,
+    });
+    updateField(fieldIndex, { subfields });
+  };
+
+  const updateSubfield = (fieldIndex, subIndex, patch) => {
+    const field = fields[fieldIndex];
+    const subfields = Array.isArray(field.subfields) ? [...field.subfields] : [];
+    subfields[subIndex] = { ...subfields[subIndex], ...patch };
+    updateField(fieldIndex, { subfields });
+  };
+
+  const removeSubfield = (fieldIndex, subIndex) => {
+    const field = fields[fieldIndex];
+    const subfields = (field.subfields || []).filter((_, idx) => idx !== subIndex);
+    updateField(fieldIndex, { subfields });
+  };
+
+  const moveSubfield = (fieldIndex, subIndex, dir) => {
+    const field = fields[fieldIndex];
+    const subfields = Array.isArray(field.subfields) ? [...field.subfields] : [];
+    const targetIdx = subIndex + dir;
+    if (targetIdx < 0 || targetIdx >= subfields.length) return;
+    [subfields[subIndex], subfields[targetIdx]] = [subfields[targetIdx], subfields[subIndex]];
+    updateField(fieldIndex, { subfields });
+  };
+
   const handleSave = async () => {
     try {
       setSaving(true);
@@ -239,6 +274,117 @@ export default function FormSchemaEditor() {
                     onChange={(e) => updateField(index, { options: parseOptionsText(e.target.value) })}
                     placeholder="junior|Junior&#10;senior|Senior"
                   />
+                </div>
+              )}
+
+              {field.type === "nested" && (
+                <div className="mt-3 p-3 border rounded-3 bg-light">
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <span className="small fw-bold text-dark">Subcampos del Grupo</span>
+                    <Button
+                      variant="outline-dark"
+                      size="sm"
+                      onClick={() => addSubfield(index)}
+                      className="d-flex align-items-center gap-1 py-0.5 px-2 small"
+                    >
+                      <Plus size={12} /> Agregar subcampo
+                    </Button>
+                  </div>
+                  {safeArray(field.subfields).length === 0 ? (
+                    <div className="text-muted small text-center py-2">No hay subcampos. Agregá al menos uno.</div>
+                  ) : (
+                    <div className="d-flex flex-column gap-2 mt-2">
+                      {safeArray(field.subfields).map((sub, subIndex) => (
+                        <div key={sub.id || subIndex} className="p-2 border rounded bg-white shadow-sm">
+                          <Row className="g-2 align-items-end">
+                            <Col md={3}>
+                              <Form.Label className="smaller text-muted d-block mb-1">Código ID</Form.Label>
+                              <Form.Control
+                                size="sm"
+                                value={sub.id}
+                                onChange={(e) => updateSubfield(index, subIndex, { id: e.target.value })}
+                                placeholder="codigo_id"
+                              />
+                            </Col>
+                            <Col md={3}>
+                              <Form.Label className="smaller text-muted d-block mb-1">Etiqueta</Form.Label>
+                              <Form.Control
+                                size="sm"
+                                value={sub.label}
+                                onChange={(e) => updateSubfield(index, subIndex, { label: e.target.value })}
+                                placeholder="Nombre del subcampo"
+                              />
+                            </Col>
+                            <Col md={3}>
+                              <Form.Label className="smaller text-muted d-block mb-1">Tipo</Form.Label>
+                              <Form.Select
+                                size="sm"
+                                value={sub.type}
+                                onChange={(e) => updateSubfield(index, subIndex, { type: e.target.value })}
+                              >
+                                <option value="text">Texto corto</option>
+                                <option value="number">Número</option>
+                                <option value="email">Email</option>
+                                <option value="phone">Teléfono</option>
+                                <option value="textarea">Texto largo</option>
+                                <option value="select">Lista desplegable</option>
+                              </Form.Select>
+                            </Col>
+                            <Col md={2} className="d-flex align-items-center pb-1">
+                              <Form.Check
+                                type="checkbox"
+                                label="Obligatorio"
+                                checked={!!sub.required}
+                                onChange={(e) => updateSubfield(index, subIndex, { required: e.target.checked })}
+                                className="small"
+                              />
+                            </Col>
+                            <Col md={1} className="d-flex justify-content-end gap-1 pb-1">
+                              <Button
+                                variant="light"
+                                size="sm"
+                                className="p-1"
+                                onClick={() => moveSubfield(index, subIndex, -1)}
+                                disabled={subIndex === 0}
+                              >
+                                <ChevronUp size={12} />
+                              </Button>
+                              <Button
+                                variant="light"
+                                size="sm"
+                                className="p-1"
+                                onClick={() => moveSubfield(index, subIndex, 1)}
+                                disabled={subIndex === safeArray(field.subfields).length - 1}
+                              >
+                                <ChevronDown size={12} />
+                              </Button>
+                              <Button
+                                variant="light"
+                                size="sm"
+                                className="p-1 text-danger"
+                                onClick={() => removeSubfield(index, subIndex)}
+                              >
+                                <Trash2 size={12} />
+                              </Button>
+                            </Col>
+                          </Row>
+                          {sub.type === "select" && (
+                            <div className="mt-2">
+                              <Form.Label className="smaller text-muted d-block mb-1">Opciones (valor|etiqueta por línea)</Form.Label>
+                              <Form.Control
+                                as="textarea"
+                                rows={2}
+                                size="sm"
+                                value={safeOptionsText(sub.options)}
+                                onChange={(e) => updateSubfield(index, subIndex, { options: parseOptionsText(e.target.value) })}
+                                placeholder="opcion1|Opción 1"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

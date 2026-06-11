@@ -10,6 +10,8 @@ import {
   sendManualConfirmationEmail,
   finalizeAppointment,
   getSlaStats,
+  uploadAppointmentPhoto,
+  deleteAppointmentPhoto,
 } from "../controllers/appointments.controller.js";
 import { requirePermission } from "../middleware/rbac.middleware.js";
 
@@ -26,5 +28,9 @@ router.put("/:id", requirePermission("agenda.edit"), updateAppointment);
 router.delete("/:id", requirePermission("agenda.cancel"), deleteAppointment);
 router.post("/:id/confirm-email", requirePermission("agenda.edit"), sendManualConfirmationEmail);
 router.post("/:id/finalize", requirePermission("agenda.edit"), finalizeAppointment);
+
+// Fotos de citas
+router.post("/:id/photos", requirePermission("agenda.view"), uploadAppointmentPhoto);
+router.delete("/photos/:photoId", requirePermission("agenda.edit"), deleteAppointmentPhoto);
 
 export default router;

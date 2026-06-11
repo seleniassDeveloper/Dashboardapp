@@ -78,7 +78,7 @@ export default function WorkflowNode({
   const isEs = i18n.language === "es";
 
   const meta = NODE_COLORS[node.type] || NODE_COLORS.action;
-  const Icon = ICON_MAP[node.subtype] || (node.type === "trigger" ? Zap : node.type === "condition" ? GitFork : Clock);
+  const Icon = node.icon || ICON_MAP[node.subtype] || (node.type === "trigger" ? Zap : node.type === "condition" ? GitFork : Clock);
 
   return (
     <div
@@ -86,17 +86,28 @@ export default function WorkflowNode({
         e.stopPropagation();
         onSelect(node);
       }}
-      className={`position-absolute rounded-2xl border bg-white shadow-lg transition-all ${meta.border} ${
-        active ? "ring-2 ring-purple-600" : ""
-      } ${isExecuting ? "animate-bounce border-success ring-4 ring-success ring-opacity-20" : ""}`}
+      className={`position-absolute bg-white transition-all duration-300 ${
+        active ? "active-node-selected" : "inactive-node-shadow"
+      } ${isExecuting ? "animate-pulse" : ""}`}
       style={{
         left: node.x,
         top: node.y,
-        width: "250px",
+        width: "260px",
         cursor: "grab",
         zIndex: active ? 50 : 10,
-        boxShadow: `0 10px 25px -5px ${meta.glow}, 0 8px 10px -6px ${meta.glow}`,
-        userSelect: "none"
+        userSelect: "none",
+        border: active ? "1.5px solid #8b5cf6" : "1.5px solid rgba(226, 232, 240, 0.8)",
+        borderLeft: active 
+          ? "6px solid #8b5cf6" 
+          : node.type === "trigger" 
+            ? "6px solid #f97316" 
+            : node.type === "condition" 
+              ? "6px solid #f59e0b" 
+              : node.type === "delay" 
+                ? "6px solid #64748b" 
+                : "6px solid #8b5cf6",
+        borderRadius: "16px",
+        overflow: "hidden"
       }}
       onMouseDown={(e) => {
         // Prevent drag on input fields
@@ -105,10 +116,14 @@ export default function WorkflowNode({
       }}
     >
       {/* Node Header */}
-      <div className={`px-3 py-2.5 rounded-t-2xl d-flex align-items-center justify-content-between border-bottom ${meta.bg}`}>
+      <div className="px-3 py-2.5 d-flex align-items-center justify-content-between border-bottom" style={{ background: "rgba(248, 250, 252, 0.5)" }}>
         <div className="d-flex align-items-center gap-2">
           <div className={`p-1.5 rounded-lg bg-white shadow-sm ${meta.text}`}>
-            <Icon size={16} />
+            {typeof Icon === "string" ? (
+              <span style={{ fontSize: "14px", lineHeight: "1" }}>{Icon}</span>
+            ) : (
+              React.createElement(Icon, { size: 16 })
+            )}
           </div>
           <div>
             <Badge className={`rounded-pill px-2 py-0.5 fw-bold ${meta.badge}`} style={{ fontSize: "9px" }}>
@@ -155,7 +170,8 @@ export default function WorkflowNode({
             left: "-5px",
             top: "50%",
             transform: "translateY(-50%)",
-            boxShadow: "0 0 8px #8b5cf6"
+            boxShadow: "0 0 8px #8b5cf6",
+            zIndex: 100
           }}
           title="Input Connector"
         />
@@ -171,7 +187,8 @@ export default function WorkflowNode({
             right: "-5px",
             top: "50%",
             transform: "translateY(-50%)",
-            boxShadow: "0 0 8px #8b5cf6"
+            boxShadow: "0 0 8px #8b5cf6",
+            zIndex: 100
           }}
           title="Output Connector"
         />
@@ -188,7 +205,8 @@ export default function WorkflowNode({
               right: "-5px",
               top: "35%",
               transform: "translateY(-50%)",
-              boxShadow: "0 0 8px #10b981"
+              boxShadow: "0 0 8px #10b981",
+              zIndex: 100
             }}
             title="Yes Branch Output"
           />
@@ -200,12 +218,22 @@ export default function WorkflowNode({
               right: "-5px",
               top: "65%",
               transform: "translateY(-50%)",
-              boxShadow: "0 0 8px #ef4444"
+              boxShadow: "0 0 8px #ef4444",
+              zIndex: 100
             }}
             title="No Branch Output"
           />
         </>
       )}
+
+      <style>{`
+        .inactive-node-shadow {
+          box-shadow: 0 4px 25px -5px rgba(0, 0, 0, 0.05), 0 2px 10px -2px rgba(0, 0, 0, 0.02) !important;
+        }
+        .active-node-selected {
+          box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.15), 0 20px 25px -5px rgba(139, 92, 246, 0.12) !important;
+        }
+      `}</style>
     </div>
   );
 }

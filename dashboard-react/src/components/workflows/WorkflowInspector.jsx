@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Card, Form, Row, Col, Button, Badge } from "react-bootstrap";
-import { Settings, HelpCircle, Code, PlusCircle, CheckCircle } from "lucide-react";
+import { Settings, HelpCircle, Code, PlusCircle, CheckCircle, Bot, Sparkles } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAppointmentsStore } from "../../gadgets/appointments/AppointmentsProvider.jsx";
 import api from "../../lib/api.js";
@@ -23,10 +23,38 @@ export default function WorkflowInspector({
 
   if (!node) {
     return (
-      <Card className="card-premium border-0 shadow-sm bg-white p-4 h-100 d-flex flex-column justify-content-center align-items-center text-center text-muted">
-        <Settings size={36} className="opacity-25 mb-2 animate-spin" style={{ animationDuration: "10s" }} />
-        <h5 className="fw-bold">{t("workflowsBuilder.inspector.title", { defaultValue: "Inspector de Propiedades" })}</h5>
-        <p className="smaller px-3">{t("workflowsBuilder.inspector.empty", { defaultValue: "Selecciona un nodo del canvas para configurar sus parámetros, mermas, condiciones y automatizaciones." })}</p>
+      <Card 
+        className="border-0 p-4 h-100 d-flex flex-column justify-content-center align-items-center text-center text-muted workflow-glass"
+        style={{ borderRadius: "20px" }}
+      >
+        <div className="position-relative mb-4">
+          <div className="position-absolute rounded-circle bg-purple-100 animate-ping" style={{ width: "80px", height: "80px", opacity: 0.15, left: "-15px", top: "-15px" }} />
+          <div className="p-4 bg-purple-50 rounded-circle text-purple-600 border border-purple-100 shadow-sm">
+            <Bot size={40} className="animate-bounce" style={{ animationDuration: "3s" }} />
+          </div>
+        </div>
+        
+        <h5 className="fw-black text-gray-900 mb-2 fs-5">
+          {isEs ? "AuraBot Inspector" : "AuraBot Inspector"}
+        </h5>
+        
+        <p className="small text-muted px-2 mb-4" style={{ lineHeight: "1.5" }}>
+          {isEs 
+            ? "Selecciona un nodo en el canvas para configurar las propiedades de tus disparadores, condiciones y automatizaciones." 
+            : "Select any node on the canvas to configure the properties of your triggers, conditions, and actions."}
+        </p>
+
+        <div className="w-100 p-3 bg-light rounded-2xl border text-start smaller">
+          <div className="d-flex align-items-center gap-2 mb-2 text-purple-700 fw-bold">
+            <Sparkles size={14} className="animate-spin" style={{ animationDuration: "6s" }} />
+            <span>{isEs ? "Tip de AuraBot:" : "AuraBot Tip:"}</span>
+          </div>
+          <p className="mb-0 text-muted" style={{ fontSize: "11px", lineHeight: "1.4" }}>
+            {isEs 
+              ? "Arrastra conectores desde el borde derecho de un nodo y suéltalos en otro para crear transiciones de flujo lógico." 
+              : "Drag connections from the right connector circle of a node and drop them onto another node to link them."}
+          </p>
+        </div>
       </Card>
     );
   }
@@ -109,11 +137,11 @@ export default function WorkflowInspector({
           {/* ==================== CONFIGURATION DEPENDING ON NODE TYPE ==================== */}
 
           {/* 1. COMMUNICATIONS: WHATSAPP, EMAIL, NOTIFICATIONS */}
-          {(node.subtype === "whatsapp" || node.subtype === "email" || node.subtype === "notificacion") && (
+          {(node.subtype === "whatsapp" || node.subtype === "email" || node.subtype === "notificacion" || node.integrationType === "whatsapp" || node.integrationType === "email" || node.integrationType === "sms") && (
             <div className="d-grid gap-3 pt-2 border-top">
               <span className="small fw-bold text-purple-700 d-block">{t("workflowsBuilder.inspector.messagingSection")}</span>
 
-              {node.subtype === "email" && (
+              {(node.subtype === "email" || node.integrationType === "email") && (
                 <Form.Group>
                   <Form.Label className="smaller text-muted fw-bold">{isEs ? "Asunto del Correo *" : "Email Subject *"}</Form.Label>
                   <Form.Control
@@ -275,6 +303,149 @@ export default function WorkflowInspector({
                   ? "Esta acción genera automáticamente un comprobante premium y lo envía al email del cliente." 
                   : "This action automatically generates a premium receipt and sends it to the client's email."}
               </p>
+            </div>
+          )}
+
+          {/* 2.4 CUSTOM OUTBOUND WEBHOOK */}
+          {node.integrationType === "webhook" && (
+            <div className="d-grid gap-3 pt-2 border-top">
+              <span className="small fw-bold text-purple-700 d-block">{isEs ? "Configuración de Webhook (Salida)" : "Outbound Webhook Configuration"}</span>
+              
+              <Form.Group>
+                <Form.Label className="smaller text-muted fw-bold">{isEs ? "URL de Destino (Endpoint) *" : "Target URL *"}</Form.Label>
+                <Form.Control
+                  type="text"
+                  value={node.config?.url || ""}
+                  onChange={(e) => handleConfigChange("url", e.target.value)}
+                  className="rounded-xl border-gray-200 small font-mono"
+                  placeholder="https://api.ejemplo.com/endpoint"
+                />
+              </Form.Group>
+
+              <Form.Group>
+                <Form.Label className="smaller text-muted fw-bold">{isEs ? "Método HTTP" : "HTTP Method"}</Form.Label>
+                <Form.Select
+                  value={node.config?.method || "POST"}
+                  onChange={(e) => handleConfigChange("method", e.target.value)}
+                  className="rounded-xl border-gray-200 small"
+                >
+                  <option value="GET">GET</option>
+                  <option value="POST">POST</option>
+                  <option value="PUT">PUT</option>
+                  <option value="DELETE">DELETE</option>
+                </Form.Select>
+              </Form.Group>
+
+              <Form.Group>
+                <Form.Label className="smaller text-muted fw-bold">{isEs ? "Cabeceras (JSON)" : "Headers (JSON)"}</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={2}
+                  value={node.config?.headers || ""}
+                  onChange={(e) => handleConfigChange("headers", e.target.value)}
+                  className="rounded-xl border-gray-200 small font-mono"
+                  placeholder='{"Authorization": "Bearer token"}'
+                  style={{ fontSize: "11px" }}
+                />
+              </Form.Group>
+
+              <Form.Group>
+                <Form.Label className="smaller text-muted fw-bold">{isEs ? "Cuerpo de la Petición (Payload JSON)" : "Request Body (JSON)"}</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={3}
+                  value={node.config?.body || ""}
+                  onChange={(e) => handleConfigChange("body", e.target.value)}
+                  className="rounded-xl border-gray-200 small font-mono"
+                  placeholder='{"cliente": "{{cliente}}", "monto": "{{saldo}}"}'
+                  style={{ fontSize: "11px" }}
+                />
+              </Form.Group>
+            </div>
+          )}
+
+          {/* 2.5 CUSTOM INBOUND WEBHOOK TRIGGER */}
+          {node.integrationType === "webhook-inbound" && (
+            <div className="d-grid gap-3 pt-2 border-top">
+              <span className="small fw-bold text-orange-700 d-block">{isEs ? "⚡ Configuración de Webhook Entrante" : "⚡ Inbound Webhook Config"}</span>
+              <p className="smaller text-muted mb-0">
+                {isEs ? "Usa este endpoint para iniciar el flujo enviando una petición HTTP desde una plataforma externa." : "Use this endpoint to trigger the workflow from an external platform via HTTP."}
+              </p>
+
+              <Form.Group>
+                <Form.Label className="smaller text-muted fw-bold">{isEs ? "URL del Webhook (Generado)" : "Webhook URL"}</Form.Label>
+                <Form.Control
+                  type="text"
+                  readOnly
+                  value={`${window.location.origin}/api/public/workflows/trigger/${node.id}`}
+                  className="rounded-xl border-gray-200 small font-mono bg-light text-muted"
+                  onClick={(e) => {
+                    e.target.select();
+                    navigator.clipboard.writeText(e.target.value);
+                  }}
+                  title={isEs ? "Click para copiar" : "Click to copy"}
+                  style={{ fontSize: "11px" }}
+                />
+              </Form.Group>
+
+              <Form.Group>
+                <Form.Label className="smaller text-muted fw-bold">{isEs ? "Token Secreto (x-webhook-secret)" : "Secret Token"}</Form.Label>
+                <Form.Control
+                  type="text"
+                  readOnly
+                  value={node.config?.secret || ""}
+                  className="rounded-xl border-gray-200 small font-mono bg-light text-muted"
+                  onClick={(e) => {
+                    e.target.select();
+                    navigator.clipboard.writeText(e.target.value);
+                  }}
+                  title={isEs ? "Click para copiar" : "Click to copy"}
+                  style={{ fontSize: "11px" }}
+                />
+              </Form.Group>
+
+              <Form.Group>
+                <Form.Label className="smaller text-muted fw-bold">{isEs ? "Variables esperadas (separadas por coma)" : "Expected variables (comma separated)"}</Form.Label>
+                <Form.Control
+                  type="text"
+                  value={node.config?.expectedVariables || ""}
+                  onChange={(e) => handleConfigChange("expectedVariables", e.target.value)}
+                  className="rounded-xl border-gray-200 small"
+                  placeholder="cliente, telefono, monto"
+                />
+              </Form.Group>
+            </div>
+          )}
+
+          {/* 2.6 CUSTOM CRON TRIGGER */}
+          {node.integrationType === "cron" && (
+            <div className="d-grid gap-3 pt-2 border-top">
+              <span className="small fw-bold text-orange-700 d-block">{isEs ? "⚡ Programación Temporal (Cron)" : "⚡ Time Schedule (Cron)"}</span>
+              
+              <Form.Group>
+                <Form.Label className="smaller text-muted fw-bold">{isEs ? "Expresión Cron" : "Cron Expression"}</Form.Label>
+                <Form.Control
+                  type="text"
+                  value={node.config?.expression || ""}
+                  onChange={(e) => handleConfigChange("expression", e.target.value)}
+                  className="rounded-xl border-gray-200 small font-mono"
+                  placeholder="0 9 * * *"
+                />
+                <Form.Text className="text-muted smaller">
+                  * * * * * (minutos, horas, día-del-mes, mes, día-de-la-semana)
+                </Form.Text>
+              </Form.Group>
+
+              <Form.Group>
+                <Form.Label className="smaller text-muted fw-bold">{isEs ? "Descripción del Horario" : "Schedule Description"}</Form.Label>
+                <Form.Control
+                  type="text"
+                  value={node.config?.description || ""}
+                  onChange={(e) => handleConfigChange("description", e.target.value)}
+                  className="rounded-xl border-gray-200 small"
+                  placeholder={isEs ? "Ej: Todos los lunes a las 9:00 AM" : "e.g., Every Monday at 9:00 AM"}
+                />
+              </Form.Group>
             </div>
           )}
 

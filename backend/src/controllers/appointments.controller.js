@@ -8,6 +8,7 @@ import {
 import { sendReminderEmail } from "../services/mailer.js";
 import { triggerWorkflows, recordStatusTransition } from "../services/workflowEngine.js";
 import { syncGoogleCalendarToDb } from "../services/googleService.js";
+import { uploadBase64Image } from "../services/storage.service.js";
 
 /**
  * Traduce el motivo por el que un horario no está disponible a un código HTTP:
@@ -558,7 +559,7 @@ export async function sendManualConfirmationEmail(req, res) {
 export async function finalizeAppointment(req, res) {
   try {
     const { id } = req.params;
-    const { note, recommendations, beforePhoto, afterPhoto } = req.body;
+    const { note, recommendations, beforePhoto, afterPhoto, paymentMethod, finalPrice, sendEmail } = req.body;
 
     if (!id) {
       return res.status(400).json({ error: "El ID de la cita es obligatorio." });
@@ -573,12 +574,82 @@ export async function finalizeAppointment(req, res) {
       return res.status(404).json({ error: "La cita no existe." });
     }
 
-    // 1. Update status to DONE
+    // 1. Update status to DONE and save payment details
     const updatedAppt = await prisma.appointment.update({
       where: { id },
-      data: { status: "DONE" },
+      data: { 
+        status: "DONE",
+        paymentMethod: paymentMethod || null,
+        finalPrice: finalPrice !== undefined && finalPrice !== null ? Number(finalPrice) : null,
+      },
       include: { client: true, worker: true, service: true }
     });
+
+    // Send email receipt if requested and client has email
+    if (sendEmail && appt.client?.email) {
+      try {
+        const clientEmail = appt.client.email.trim();
+        const clientName = `${appt.client.firstName} ${appt.client.lastName || ""}`;
+        const serviceName = appt.service?.name || "Servicio General";
+        const workerName = appt.worker ? `${appt.worker.firstName} ${appt.worker.lastName}` : "Profesional";
+        const businessName = "Aura Studio";
+        
+        const receiptNumber = `AURA-${id.substring(0, 8).toUpperCase()}`;
+        const chargedAmount = finalPrice !== undefined && finalPrice !== null ? Number(finalPrice) : (appt.service?.price || 0);
+        const formattedPrice = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(chargedAmount);
+
+        const receiptHtml = `
+          <div style="font-family: 'Outfit', 'Inter', Arial, sans-serif; color: #333; line-height: 1.6; max-width: 550px; margin: 0 auto; padding: 30px; border: 1px solid #eaeaea; border-radius: 16px; background-color: #ffffff; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+            <div style="text-align: center; margin-bottom: 25px;">
+              <span style="font-size: 36px; display: block; margin-bottom: 8px;">🧾</span>
+              <h2 style="color: #9333ea; margin: 0; font-weight: 900; font-size: 22px;">¡Gracias por tu visita!</h2>
+              <p style="color: #666; font-size: 13px; margin: 5px 0 0 0;">Comprobante de Servicio #${receiptNumber}</p>
+            </div>
+            
+            <div style="background-color: #faf5ff; border: 1px dashed #9333ea; padding: 20px; border-radius: 10px; text-align: center; margin: 25px 0;">
+              <span style="color: #666; font-size: 13px; text-transform: uppercase; display: block; font-weight: bold; margin-bottom: 5px;">TOTAL ABONADO</span>
+              <strong style="color: #7e22ce; font-size: 28px; font-weight: 900;">${formattedPrice}</strong>
+              ${paymentMethod ? `<span style="color: #6b21a8; font-size: 12px; display: block; margin-top: 4px; font-weight: 600;">Método de Pago: ${paymentMethod}</span>` : ""}
+            </div>
+
+            <div style="margin: 20px 0; font-size: 13.5px;">
+              <h4 style="color: #444; border-bottom: 1px solid #eee; padding-bottom: 8px; margin-bottom: 12px; font-weight: bold;">Detalles del Comprobante</h4>
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="padding: 6px 0; color: #666;"><b>Cliente:</b></td>
+                  <td style="padding: 6px 0; text-align: right;"><strong>${clientName}</strong></td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; color: #666;"><b>Servicio:</b></td>
+                  <td style="padding: 6px 0; text-align: right;">${serviceName}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; color: #666;"><b>Profesional:</b></td>
+                  <td style="padding: 6px 0; text-align: right;">${workerName}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; color: #666;"><b>Fecha de Emisión:</b></td>
+                  <td style="padding: 6px 0; text-align: right;">${new Date().toLocaleDateString("es-AR")}</td>
+                </tr>
+              </table>
+            </div>
+
+            <div style="text-align: center; margin-top: 35px; padding-top: 20px; border-top: 1px solid #f3f4f6; color: #888; font-size: 11px;">
+              <strong>${businessName}</strong><br />
+              Un socio registrado de AuraDash. Todos los derechos reservados.
+            </div>
+          </div>
+        `;
+
+        await sendReminderEmail({
+          to: clientEmail,
+          subject: `Comprobante de Pago #${receiptNumber} - ${businessName}`,
+          html: receiptHtml
+        });
+      } catch (emailErr) {
+        console.error("Error sending receipt email:", emailErr);
+      }
+    }
 
     // 2. Save Clinical Note if present
     let clinicalNote = null;
@@ -818,6 +889,135 @@ export async function getSlaStats(req, res) {
   } catch (error) {
     console.error("Error obtaining SLA stats:", error);
     return res.status(500).json({ error: "Error obteniendo estadísticas del SLA." });
+  }
+}
+
+/**
+ * Sube una foto asociada a una cita y la vincula con la cita, cliente, profesional y servicio correspondientes.
+ */
+export async function uploadAppointmentPhoto(req, res) {
+  try {
+    const { id } = req.params;
+    const { photo, photoType, note } = req.body;
+
+    if (!photo) {
+      return res.status(400).json({ error: "La foto (base64) es obligatoria." });
+    }
+
+    const appointment = await prisma.appointment.findUnique({
+      where: { id },
+      include: { worker: true }
+    });
+
+    if (!appointment || appointment.businessId !== req.businessId) {
+      return res.status(404).json({ error: "Cita no encontrada en tu negocio." });
+    }
+
+    // Seguridad: Si es un profesional, validar que la cita le pertenezca
+    const userRole = String(req.user?.role || "").toLowerCase();
+    const userEmail = String(req.user?.email || "").toLowerCase();
+    const isOwnerOrAdmin = userRole === "owner" || userRole === "admin" || userEmail === "seleniadeveloper@gmail.com";
+
+    if (!isOwnerOrAdmin) {
+      const worker = await prisma.worker.findFirst({
+        where: {
+          businessId: req.businessId,
+          email: { equals: userEmail, mode: "insensitive" }
+        }
+      });
+      if (!worker || appointment.workerId !== worker.id) {
+        return res.status(403).json({ error: "Acceso denegado. Solo puedes subir fotos de tus citas asignadas." });
+      }
+    }
+
+    // Subir la imagen usando el servicio de almacenamiento
+    const imageUrl = await uploadBase64Image(photo, photoType || "other", appointment.clientId);
+    if (!imageUrl) {
+      return res.status(400).json({ error: "Error al procesar la imagen." });
+    }
+
+    // Crear el registro de la foto con sus relaciones
+    const photoRecord = await prisma.appointmentPhoto.create({
+      data: {
+        appointmentId: id,
+        clientId: appointment.clientId,
+        professionalId: appointment.workerId,
+        serviceId: appointment.serviceId,
+        type: photoType || "other", // retrocompatibilidad
+        photoType: photoType || "other",
+        imageUrl,
+        note: note ? note.trim() : null
+      },
+      include: {
+        worker: {
+          select: { firstName: true, lastName: true }
+        },
+        service: {
+          select: { name: true }
+        }
+      }
+    });
+
+    return res.status(201).json(photoRecord);
+  } catch (error) {
+    console.error("Error al subir foto de la cita:", error);
+    return res.status(500).json({
+      error: "Error interno al subir la foto de la cita.",
+      detail: error?.message || "Unknown error"
+    });
+  }
+}
+
+/**
+ * Elimina una foto de la base de datos (solo administradores).
+ */
+export async function deleteAppointmentPhoto(req, res) {
+  try {
+    const { photoId } = req.params;
+
+    const photo = await prisma.appointmentPhoto.findUnique({
+      where: { id: photoId },
+      include: {
+        appointment: true
+      }
+    });
+
+    if (!photo || photo.appointment.businessId !== req.businessId) {
+      return res.status(404).json({ error: "Foto no encontrada." });
+    }
+
+    // Seguridad: Solo administradores pueden eliminar
+    const userRole = String(req.user?.role || "").toLowerCase();
+    const userEmail = String(req.user?.email || "").toLowerCase();
+    const isOwnerOrAdmin = userRole === "owner" || userRole === "admin" || userEmail === "seleniadeveloper@gmail.com";
+
+    if (!isOwnerOrAdmin) {
+      return res.status(403).json({ error: "Acceso denegado. Solo los administradores pueden eliminar fotos." });
+    }
+
+    await prisma.appointmentPhoto.delete({
+      where: { id: photoId }
+    });
+
+    // Eliminar archivo local si corresponde
+    if (photo.imageUrl.startsWith("/uploads/")) {
+      const localPath = path.join(process.cwd(), photo.imageUrl);
+      if (fs.existsSync(localPath)) {
+        try {
+          fs.unlinkSync(localPath);
+        } catch (err) {
+          console.error("Error al eliminar foto local:", err);
+        }
+      }
+    }
+
+    return res.json({ success: true, message: "Foto eliminada correctamente del historial." });
+  } catch (error) {
+    console.error("Error al eliminar foto:", error);
+    return res.status(500).json({
+      error: "Error interno al eliminar la foto.",
+      detail: error?.message || "Unknown error"
+    });
   }
 }
 

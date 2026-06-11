@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { Card, Button, Form, Alert, Spinner, Badge, Row, Col } from "react-bootstrap";
+import { Card, Button, Form, Alert, Spinner, Badge, Row, Col, Modal } from "react-bootstrap";
 import { Plus, Trash2, Save } from "lucide-react";
 import { FIELD_TYPE_OPTIONS } from "../../config/formFieldTypes.js";
 import { REGISTRY_SCHEMA_KEY } from "../../config/appFormTargets.js";
@@ -43,16 +43,125 @@ export default function FieldRegistryEditor() {
       : fields;
   }, [fields, filterEntity]);
 
-  const addField = () => {
-    setFields((prev) => [
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [modalError, setModalError] = useState("");
+  const [newFieldData, setNewFieldData] = useState({
+    id: "",
+    type: "text",
+    label: "",
+    entities: [],
+    rawOptions: "",
+    options: [],
+    subfields: []
+  });
+
+  const handleOpenCreateModal = () => {
+    setNewFieldData({
+      id: `custom_${Date.now()}`,
+      type: "text",
+      label: "",
+      entities: filterEntity ? [filterEntity] : ["worker"],
+      rawOptions: "",
+      options: [],
+      subfields: []
+    });
+    setModalError("");
+    setShowCreateModal(true);
+  };
+
+  const addSubfieldToNewField = () => {
+    const subId = `sub_${Date.now()}`;
+    setNewFieldData(prev => {
+      const subfields = Array.isArray(prev.subfields) ? [...prev.subfields] : [];
+      subfields.push({
+        id: subId,
+        label: "Nuevo subcampo",
+        type: "text",
+        required: false,
+      });
+      return { ...prev, subfields };
+    });
+  };
+
+  const updateSubfieldInNewField = (subIndex, patch) => {
+    setNewFieldData(prev => {
+      const subfields = Array.isArray(prev.subfields) ? [...prev.subfields] : [];
+      subfields[subIndex] = { ...subfields[subIndex], ...patch };
+      return { ...prev, subfields };
+    });
+  };
+
+  const removeSubfieldFromNewField = (subIndex) => {
+    setNewFieldData(prev => {
+      const subfields = (prev.subfields || []).filter((_, idx) => idx !== subIndex);
+      return { ...prev, subfields };
+    });
+  };
+
+  const handleConfirmCreate = () => {
+    if (!newFieldData.label || !newFieldData.label.trim()) {
+      setModalError("La etiqueta es requerida.");
+      return;
+    }
+    const cleanId = (newFieldData.id || "").trim();
+    if (!cleanId) {
+      setModalError("El ID es requerido.");
+      return;
+    }
+    if (fields.some(f => f.id === cleanId)) {
+      setModalError(`El ID de campo "${cleanId}" ya está en uso.`);
+      return;
+    }
+    if (!newFieldData.entities || newFieldData.entities.length === 0) {
+      setModalError("Debe seleccionar al menos una pantalla/entidad.");
+      return;
+    }
+
+    if (newFieldData.type === "nested") {
+      const subIds = new Set();
+      for (const sub of newFieldData.subfields) {
+        if (!sub.id || !sub.id.trim()) {
+          setModalError("Todos los subcampos deben tener un código ID.");
+          return;
+        }
+        if (!sub.label || !sub.label.trim()) {
+          setModalError("Todos los subcampos deben tener una etiqueta.");
+          return;
+        }
+        if (subIds.has(sub.id)) {
+          setModalError(`El ID de subcampo "${sub.id}" está duplicado.`);
+          return;
+        }
+        subIds.add(sub.id);
+      }
+    }
+
+    let options = [];
+    if (newFieldData.type === "select") {
+      const rawText = newFieldData.rawOptions || "";
+      options = rawText
+        .split(",")
+        .map((item) => {
+          const trimmed = item.trim();
+          return { value: trimmed.toLowerCase().replace(/\s+/g, "_"), label: trimmed };
+        })
+        .filter((opt) => opt.label);
+    }
+
+    setFields(prev => [
       ...prev,
       {
-        id: `custom_${Date.now()}`,
-        type: "text",
-        label: "Nuevo campo",
-        entities: filterEntity ? [filterEntity] : ["worker"],
-      },
+        id: cleanId,
+        type: newFieldData.type,
+        label: newFieldData.label.trim(),
+        entities: newFieldData.entities,
+        options,
+        subfields: newFieldData.type === "nested" ? newFieldData.subfields : undefined
+      }
     ]);
+
+    setShowCreateModal(false);
+    setModalError("");
   };
 
   const getRawOptionsString = (field) => {
@@ -71,6 +180,44 @@ export default function FieldRegistryEditor() {
 
     setFields((p) =>
       p.map((f, i) => (i === realIndex ? { ...f, rawOptions: rawText, options: opts } : f))
+    );
+  };
+
+  const addSubfield = (realIndex) => {
+    setFields((p) =>
+      p.map((f, i) => {
+        if (i !== realIndex) return f;
+        const subfields = Array.isArray(f.subfields) ? [...f.subfields] : [];
+        const subId = `sub_${Date.now()}`;
+        subfields.push({
+          id: subId,
+          label: "Nuevo subcampo",
+          type: "text",
+          required: false,
+        });
+        return { ...f, subfields };
+      })
+    );
+  };
+
+  const updateSubfield = (realIndex, subIndex, patch) => {
+    setFields((p) =>
+      p.map((f, i) => {
+        if (i !== realIndex) return f;
+        const subfields = Array.isArray(f.subfields) ? [...f.subfields] : [];
+        subfields[subIndex] = { ...subfields[subIndex], ...patch };
+        return { ...f, subfields };
+      })
+    );
+  };
+
+  const removeSubfield = (realIndex, subIndex) => {
+    setFields((p) =>
+      p.map((f, i) => {
+        if (i !== realIndex) return f;
+        const subfields = (f.subfields || []).filter((_, idx) => idx !== subIndex);
+        return { ...f, subfields };
+      })
     );
   };
 
@@ -136,7 +283,8 @@ export default function FieldRegistryEditor() {
   }
 
   return (
-    <Card className="card-premium border-0 shadow-sm">
+    <>
+      <Card className="card-premium border-0 shadow-sm">
       <Card.Body className="p-4">
         <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
           <div>
@@ -191,7 +339,7 @@ export default function FieldRegistryEditor() {
             <Button 
               variant="outline-purple" 
               size="sm" 
-              onClick={addField}
+              onClick={handleOpenCreateModal}
               className="py-2 px-3 rounded-xl fw-bold text-xs d-flex align-items-center gap-1.5"
             >
               <Plus size={14} />
@@ -336,6 +484,118 @@ export default function FieldRegistryEditor() {
                         </Form.Group>
                       </Col>
                     )}
+
+                    {field.type === "nested" && (
+                      <Col md={12}>
+                        <div className="bg-light p-3 rounded-2xl border border-gray-200">
+                          <div className="d-flex justify-content-between align-items-center mb-2">
+                            <span className="small fw-bold text-purple-950 text-xs">SUBFIELDS (CAMPOS ANIDADOS)</span>
+                            <Button
+                              variant="outline-purple"
+                              size="sm"
+                              onClick={() => addSubfield(realIndex)}
+                              className="py-1 px-2.5 rounded-lg fw-bold text-xxs d-flex align-items-center gap-1 bg-white border-gray-200"
+                            >
+                              <Plus size={10} />
+                              <span>Agregar subcampo</span>
+                            </Button>
+                          </div>
+                          
+                          {(!field.subfields || field.subfields.length === 0) ? (
+                            <div className="text-muted smaller text-center py-2 bg-white rounded-xl border border-dashed">
+                              No hay subcampos definidos en este grupo.
+                            </div>
+                          ) : (
+                            <div className="d-flex flex-column gap-2 mt-2">
+                              {field.subfields.map((sub, subIndex) => (
+                                <div key={sub.id || subIndex} className="p-2.5 border rounded-xl bg-white shadow-xs">
+                                  <Row className="g-2 align-items-end">
+                                    <Col md={3}>
+                                      <Form.Label className="text-xxs text-muted mb-1 font-semibold uppercase">Código ID</Form.Label>
+                                      <Form.Control
+                                        size="sm"
+                                        value={sub.id}
+                                        onChange={(e) => updateSubfield(realIndex, subIndex, { id: e.target.value })}
+                                        className="rounded-lg border-gray-200"
+                                        style={{ fontSize: "12px" }}
+                                      />
+                                    </Col>
+                                    <Col md={3}>
+                                      <Form.Label className="text-xxs text-muted mb-1 font-semibold uppercase">Etiqueta</Form.Label>
+                                      <Form.Control
+                                        size="sm"
+                                        value={sub.label}
+                                        onChange={(e) => updateSubfield(realIndex, subIndex, { label: e.target.value })}
+                                        className="rounded-lg border-gray-200"
+                                        style={{ fontSize: "12px" }}
+                                      />
+                                    </Col>
+                                    <Col md={3}>
+                                      <Form.Label className="text-xxs text-muted mb-1 font-semibold uppercase">Tipo de dato</Form.Label>
+                                      <Form.Select
+                                        size="sm"
+                                        value={sub.type}
+                                        onChange={(e) => updateSubfield(realIndex, subIndex, { type: e.target.value })}
+                                        className="rounded-lg border-gray-200"
+                                        style={{ fontSize: "12px" }}
+                                      >
+                                        <option value="text">Texto corto</option>
+                                        <option value="number">Número</option>
+                                        <option value="email">Email</option>
+                                        <option value="phone">Teléfono</option>
+                                        <option value="textarea">Texto largo</option>
+                                        <option value="select">Lista desplegable</option>
+                                      </Form.Select>
+                                    </Col>
+                                    <Col md={2} className="d-flex align-items-center pb-1">
+                                      <Form.Check
+                                        type="checkbox"
+                                        label="Obligatorio"
+                                        checked={!!sub.required}
+                                        onChange={(e) => updateSubfield(realIndex, subIndex, { required: e.target.checked })}
+                                        className="text-xxs font-bold uppercase text-muted"
+                                      />
+                                    </Col>
+                                    <Col md={1} className="d-flex justify-content-end pb-1">
+                                      <Button
+                                        variant="outline-danger"
+                                        size="sm"
+                                        className="p-1 rounded-lg border-0"
+                                        onClick={() => removeSubfield(realIndex, subIndex)}
+                                      >
+                                        <Trash2 size={12} />
+                                      </Button>
+                                    </Col>
+                                  </Row>
+                                  {sub.type === "select" && (
+                                    <div className="mt-2 bg-light p-2 rounded-lg border">
+                                      <Form.Label className="text-xxs text-purple-950 mb-1 fw-bold">Opciones de la lista desplegable (separadas por comas)</Form.Label>
+                                      <Form.Control
+                                        size="sm"
+                                        value={Array.isArray(sub.options) ? sub.options.map(o => o.label).join(", ") : ""}
+                                        onChange={(e) => {
+                                          const opts = e.target.value
+                                            .split(",")
+                                            .map((item) => {
+                                              const trimmed = item.trim();
+                                              return { value: trimmed.toLowerCase().replace(/\s+/g, "_"), label: trimmed };
+                                            })
+                                            .filter((opt) => opt.label);
+                                          updateSubfield(realIndex, subIndex, { options: opts });
+                                        }}
+                                        placeholder="Ej: Chico, Mediano, Grande"
+                                        className="rounded-lg border-gray-200 bg-white"
+                                        style={{ fontSize: "12px" }}
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </Col>
+                    )}
                   </Row>
                 </div>
               );
@@ -344,5 +604,209 @@ export default function FieldRegistryEditor() {
         </div>
       </Card.Body>
     </Card>
+
+    <Modal 
+      show={showCreateModal} 
+      onHide={() => setShowCreateModal(false)}
+      centered
+      size={newFieldData.type === "nested" ? "lg" : "md"}
+      className="border-0 shadow-lg"
+    >
+      <Modal.Header closeButton className="border-bottom-0 pb-0 pt-4 px-4">
+        <Modal.Title className="fw-black text-gray-900" style={{ fontSize: "18px" }}>Configurar Campo Nuevo</Modal.Title>
+      </Modal.Header>
+      <Modal.Body className="p-4">
+        {modalError && <Alert variant="danger" className="py-2.5 rounded-xl smaller mb-3">{modalError}</Alert>}
+        
+        <Form className="d-flex flex-column gap-3">
+          <Row className="g-3">
+            <Col md={6}>
+              <Form.Group>
+                <Form.Label className="small text-muted mb-1 font-semibold text-xxs uppercase">Código ID del campo</Form.Label>
+                <Form.Control
+                  placeholder="Ej: talla_uniforme"
+                  value={newFieldData.id}
+                  onChange={(e) => {
+                    const cleanId = e.target.value.replace(/[^a-zA-Z0-9_]/g, "");
+                    setNewFieldData(prev => ({ ...prev, id: cleanId }));
+                  }}
+                  className="rounded-xl border-gray-200"
+                  style={{ fontFamily: "monospace", fontSize: "13px" }}
+                />
+              </Form.Group>
+            </Col>
+            
+            <Col md={6}>
+              <Form.Group>
+                <Form.Label className="small text-muted mb-1 font-semibold text-xxs uppercase">Tipo de dato</Form.Label>
+                <Form.Select
+                  value={newFieldData.type}
+                  onChange={(e) => setNewFieldData(prev => ({ ...prev, type: e.target.value }))}
+                  className="rounded-xl border-gray-200"
+                >
+                  {FIELD_TYPE_OPTIONS.filter(t => !t.systemOnly).map(t => (
+                    <option key={t.value} value={t.value}>{t.label}</option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
+            </Col>
+          </Row>
+
+          <Form.Group>
+            <Form.Label className="small text-muted mb-1 font-semibold text-xxs uppercase">Etiqueta de visualización</Form.Label>
+            <Form.Control
+              placeholder="Ej: Talle de uniforme"
+              value={newFieldData.label}
+              onChange={(e) => setNewFieldData(prev => ({ ...prev, label: e.target.value }))}
+              className="rounded-xl border-gray-200"
+            />
+          </Form.Group>
+
+          <Form.Group>
+            <Form.Label className="small text-muted mb-1 font-semibold text-xxs uppercase">Asociado a las siguientes pantallas</Form.Label>
+            <div className="d-flex flex-wrap gap-2 pt-1">
+              {ENTITIES.map((ent) => {
+                const active = newFieldData.entities.includes(ent);
+                return (
+                  <Button
+                    key={ent}
+                    variant={active ? "purple" : "outline-secondary"}
+                    size="sm"
+                    className={`px-3 py-1.5 rounded-pill fw-bold text-xxs ${active ? "bg-purple-600 border-purple-600 text-white shadow-sm" : "text-muted border-gray-200 hover-bg-gray-100"}`}
+                    onClick={() => {
+                      const nextEntities = active
+                        ? newFieldData.entities.filter(e => e !== ent)
+                        : [...newFieldData.entities, ent];
+                      setNewFieldData(prev => ({ ...prev, entities: nextEntities }));
+                    }}
+                  >
+                    {ENTITY_LABELS[ent] || ent}
+                  </Button>
+                );
+              })}
+            </div>
+          </Form.Group>
+
+          {newFieldData.type === "select" && (
+            <Form.Group className="bg-light p-3 rounded-2xl border">
+              <Form.Label className="small text-purple-950 mb-1 fw-bold text-xs">Opciones de la lista desplegable (separadas por comas)</Form.Label>
+              <Form.Control
+                value={newFieldData.rawOptions}
+                onChange={(e) => setNewFieldData(prev => ({ ...prev, rawOptions: e.target.value }))}
+                placeholder="Ej: Chico, Mediano, Grande"
+                className="rounded-xl border-gray-200 bg-white"
+              />
+              <Form.Text className="text-muted text-xxs block mt-1">
+                💡 Cada opción ingresada por coma se convertirá en un elemento seleccionable en los formularios.
+              </Form.Text>
+            </Form.Group>
+          )}
+
+          {newFieldData.type === "nested" && (
+            <div className="bg-light p-3 rounded-2xl border">
+              <div className="d-flex justify-content-between align-items-center mb-2">
+                <span className="small fw-bold text-purple-950 text-xs">SUBFIELDS (CAMPOS ANIDADOS)</span>
+                <Button
+                  variant="outline-purple"
+                  size="sm"
+                  onClick={addSubfieldToNewField}
+                  className="py-1 px-2.5 rounded-lg fw-bold text-xxs d-flex align-items-center gap-1 bg-white border-gray-200"
+                >
+                  <Plus size={10} />
+                  <span>Agregar subcampo</span>
+                </Button>
+              </div>
+              
+              {(!newFieldData.subfields || newFieldData.subfields.length === 0) ? (
+                <div className="text-muted smaller text-center py-3 bg-white rounded-xl border border-dashed">
+                  No hay subcampos definidos en este grupo todavía.
+                </div>
+              ) : (
+                <div className="d-flex flex-column gap-2 mt-2" style={{ maxHeight: "200px", overflowY: "auto" }}>
+                  {newFieldData.subfields.map((sub, subIndex) => (
+                    <div key={sub.id || subIndex} className="p-2.5 border rounded-xl bg-white shadow-xs">
+                      <Row className="g-2 align-items-end">
+                        <Col md={3}>
+                          <Form.Label className="text-xxs text-muted mb-1 font-semibold uppercase">ID</Form.Label>
+                          <Form.Control
+                            size="sm"
+                            value={sub.id}
+                            onChange={(e) => updateSubfieldInNewField(subIndex, { id: e.target.value })}
+                            className="rounded-lg border-gray-200"
+                            style={{ fontSize: "11px" }}
+                          />
+                        </Col>
+                        <Col md={3}>
+                          <Form.Label className="text-xxs text-muted mb-1 font-semibold uppercase">Etiqueta</Form.Label>
+                          <Form.Control
+                            size="sm"
+                            value={sub.label}
+                            onChange={(e) => updateSubfieldInNewField(subIndex, { label: e.target.value })}
+                            className="rounded-lg border-gray-200"
+                            style={{ fontSize: "11px" }}
+                          />
+                        </Col>
+                        <Col md={3}>
+                          <Form.Label className="text-xxs text-muted mb-1 font-semibold uppercase">Tipo</Form.Label>
+                          <Form.Select
+                            size="sm"
+                            value={sub.type}
+                            onChange={(e) => updateSubfieldInNewField(subIndex, { type: e.target.value })}
+                            className="rounded-lg border-gray-200"
+                            style={{ fontSize: "11px" }}
+                          >
+                            <option value="text">Texto corto</option>
+                            <option value="number">Número</option>
+                            <option value="email">Email</option>
+                            <option value="phone">Teléfono</option>
+                            <option value="textarea">Texto largo</option>
+                          </Form.Select>
+                        </Col>
+                        <Col md={2} className="d-flex align-items-center pb-1">
+                          <Form.Check
+                            type="checkbox"
+                            label="Oblig."
+                            checked={!!sub.required}
+                            onChange={(e) => updateSubfieldInNewField(subIndex, { required: e.target.checked })}
+                            className="text-xxs font-bold text-muted uppercase"
+                          />
+                        </Col>
+                        <Col md={1} className="d-flex justify-content-end pb-1">
+                          <Button
+                            variant="outline-danger"
+                            size="sm"
+                            className="p-1 rounded-lg border-0"
+                            onClick={() => removeSubfieldFromNewField(subIndex)}
+                          >
+                            <Trash2 size={12} />
+                          </Button>
+                        </Col>
+                      </Row>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </Form>
+      </Modal.Body>
+      <Modal.Footer className="border-top-0 pt-0 px-4 pb-4 gap-2">
+        <Button 
+          variant="outline-secondary" 
+          onClick={() => setShowCreateModal(false)}
+          className="rounded-xl px-4 py-2.5 text-xs fw-bold border-gray-200"
+        >
+          Cancelar
+        </Button>
+        <Button 
+          variant="purple" 
+          onClick={handleConfirmCreate}
+          className="rounded-xl px-4 py-2.5 text-xs fw-bold bg-purple-600 hover-bg-purple-700 text-white border-0 shadow"
+        >
+          Confirmar y Agregar
+        </Button>
+      </Modal.Footer>
+    </Modal>
+    </>
   );
 }

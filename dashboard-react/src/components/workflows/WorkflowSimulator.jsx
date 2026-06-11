@@ -18,6 +18,7 @@ export default function WorkflowSimulator({
   const [clientType, setClientType] = useState("vip"); // "vip" | "regular"
   const [amountInput, setAmountInput] = useState("25000");
   const [stockLevel, setStockLevel] = useState("critical"); // "critical" | "sufficient"
+  const [simulatedPayload, setSimulatedPayload] = useState('{\n  "cliente": "Laura Sánchez",\n  "email": "laura@ejemplo.com",\n  "telefono": "+5411654321",\n  "servicio": "Keratina",\n  "monto": 35000\n}');
 
   const [simulating, setSimulating] = useState(false);
   const [simLogs, setSimLogs] = useState([]);
@@ -28,7 +29,9 @@ export default function WorkflowSimulator({
     "nueva-cita": "nueva-cita",
     "cliente-nuevo": "cliente-nuevo",
     "stock-bajo": "stock-bajo",
-    "pago-recibido": "pago-recibido"
+    "pago-recibido": "pago-recibido",
+    "webhook-inbound": "webhook-inbound",
+    "cron": "cron"
   };
 
   const handleSimulate = async () => {
@@ -201,13 +204,32 @@ export default function WorkflowSimulator({
   const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
   const processVariables = (templateText, client, amount) => {
-    return templateText
-      .replace(/{{cliente}}/g, client === "vip" ? "Sofía Altieri (VIP)" : "Juan Gómez")
-      .replace(/{{fecha}}/g, new Date().toLocaleDateString(isEs ? "es-AR" : "en-US"))
-      .replace(/{{hora}}/g, "14:30 hs")
-      .replace(/{{servicio}}/g, "Balayage Premium")
-      .replace(/{{profesional}}/g, "Andrea (Colorista Top)")
-      .replace(/{{saldo}}/g, `$${Number(amount).toLocaleString()}`)
+    let parsedPayload = {};
+    if (eventType === "webhook-inbound") {
+      try {
+        parsedPayload = JSON.parse(simulatedPayload);
+      } catch (e) {
+        console.error("Payload JSON parsing error in simulator:", e);
+      }
+    }
+
+    let text = templateText;
+    
+    // Replace custom variables from simulated payload if defined
+    Object.entries(parsedPayload).forEach(([key, val]) => {
+      const regex = new RegExp(`{{${key}}}`, "g");
+      text = text.replace(regex, String(val));
+    });
+
+    return text
+      .replace(/{{cliente}}/g, parsedPayload.cliente || (client === "vip" ? "Sofía Altieri (VIP)" : "Juan Gómez"))
+      .replace(/{{email}}/g, parsedPayload.email || "correo@ejemplo.com")
+      .replace(/{{telefono}}/g, parsedPayload.telefono || "+5411654321")
+      .replace(/{{fecha}}/g, parsedPayload.fecha || new Date().toLocaleDateString(isEs ? "es-AR" : "en-US"))
+      .replace(/{{hora}}/g, parsedPayload.hora || "14:30 hs")
+      .replace(/{{servicio}}/g, parsedPayload.servicio || "Balayage Premium")
+      .replace(/{{profesional}}/g, parsedPayload.profesional || "Andrea (Colorista Top)")
+      .replace(/{{saldo}}/g, parsedPayload.monto ? `$${parsedPayload.monto}` : `$${Number(amount).toLocaleString()}`)
       .replace(/{{sucursal}}/g, "Palermo Soho");
   };
 
@@ -235,10 +257,25 @@ export default function WorkflowSimulator({
               <option value="cliente-nuevo">{isEs ? "👤 Cliente nuevo creado" : "👤 New client created"}</option>
               <option value="stock-bajo">{isEs ? "⚠️ Alerta stock bajo" : "⚠️ Low stock alert"}</option>
               <option value="pago-recibido">{isEs ? "💸 Pago recibido / Caja" : "💸 Payment received / Checkout"}</option>
+              <option value="webhook-inbound">{isEs ? "⚡ Webhook Entrante" : "⚡ Inbound Webhook"}</option>
+              <option value="cron">{isEs ? "⏳ Programación Temporal (Cron)" : "⏳ Cron Schedule"}</option>
             </Form.Select>
           </Form.Group>
 
           {/* Conditional inputs depending on event */}
+          {eventType === "webhook-inbound" && (
+            <Form.Group>
+              <Form.Label className="small fw-bold text-gray-700">{isEs ? "Simular Payload JSON Recibido" : "Simulate Received JSON Payload"}</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={4}
+                value={simulatedPayload}
+                onChange={(e) => setSimulatedPayload(e.target.value)}
+                className="rounded-xl border-gray-200 small font-mono"
+                style={{ fontSize: "11px" }}
+              />
+            </Form.Group>
+          )}
           {eventType === "nueva-cita" && (
             <Form.Group>
               <Form.Label className="small fw-bold text-gray-700">{isEs ? "Estado de Lealtad del Cliente" : "Customer Loyalty Status"}</Form.Label>

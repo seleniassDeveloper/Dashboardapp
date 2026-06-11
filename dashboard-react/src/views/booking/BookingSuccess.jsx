@@ -10,13 +10,16 @@ export default function BookingSuccess() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const { message, booking, color } = location.state || {
+  const { message, booking, bookings, color } = location.state || {
     message: t("success.defaultMessage"),
     booking: null,
+    bookings: null,
     color: "#10b981",
   };
 
-  if (!booking) {
+  const list = bookings || (booking ? [booking] : []);
+
+  if (list.length === 0) {
     return (
       <Container className="py-5 text-center">
         <CheckCircle2 size={48} className="text-success mb-3" />
@@ -30,27 +33,20 @@ export default function BookingSuccess() {
   }
 
   const locale = i18n.language === "es" ? "es-AR" : "en-US";
-  const apptDate = new Date(booking.startsAt);
-  const formattedDate = apptDate.toLocaleDateString(locale, {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-  const formattedTime = apptDate.toLocaleTimeString(locale, {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "UTC",
-  });
-
   const currencyLocale = i18n.language === "es" ? "es-AR" : "en-US";
+
+  // Sumar totales de todos los servicios en la reserva
+  const totalPrice = list.reduce((sum, appt) => sum + (appt.service?.price || 0), 0);
+  const totalDownpayment = list.reduce((sum, appt) => sum + (appt.downpaymentPaid || 0), 0);
+  const hasDownpayment = list.some((appt) => appt.downpaymentPaid > 0);
+  const transactionId = list.find((appt) => appt.downpaymentTransactionId)?.downpaymentTransactionId;
 
   return (
     <div style={{ background: "#f3f4f6", minHeight: "100vh" }} className="py-5 d-flex align-items-center">
       <Container style={{ maxWidth: "560px" }}>
         <Card className="border-0 shadow-lg rounded-4 overflow-hidden text-center bg-white">
           <div className="p-4 text-white" style={{ background: color }}>
-            <CheckCircle2 size={56} className="mb-2" />
+            <CheckCircle2 size={56} className="mb-2 mx-auto" />
             <h2 className="fw-black h4 mb-0">{t("success.headline")}</h2>
           </div>
 
@@ -58,73 +54,71 @@ export default function BookingSuccess() {
             <h3 className="h6 fw-bold text-muted uppercase mb-3">{t("success.summary")}</h3>
 
             <div className="d-flex flex-column gap-3 mb-4">
-              <div className="d-flex gap-3 align-items-center">
-                <div className="p-2 bg-light rounded-circle text-muted">
-                  <Calendar size={18} />
-                </div>
-                <div>
-                  <div className="small text-muted">{t("success.date")}</div>
-                  <div className="fw-bold small text-capitalize">{formattedDate}</div>
-                </div>
-              </div>
+              {list.map((appt, index) => {
+                const apptDate = new Date(appt.startsAt);
+                const formattedDate = apptDate.toLocaleDateString(locale, {
+                  weekday: "long",
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                });
+                const formattedTime = apptDate.toLocaleTimeString(locale, {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  timeZone: "UTC",
+                });
 
-              <div className="d-flex gap-3 align-items-center">
-                <div className="p-2 bg-light rounded-circle text-muted">
-                  <Clock size={18} />
-                </div>
-                <div>
-                  <div className="small text-muted">{t("success.time")}</div>
-                  <div className="fw-bold small">{formattedTime}</div>
-                </div>
-              </div>
-
-              <div className="d-flex gap-3 align-items-center">
-                <div className="p-2 bg-light rounded-circle text-muted">
-                  <User size={18} />
-                </div>
-                <div>
-                  <div className="small text-muted">{t("success.professional")}</div>
-                  <div className="fw-bold small">
-                    {booking.worker ? `${booking.worker.firstName} ${booking.worker.lastName}` : t("success.autoAssigned")}
+                return (
+                  <div key={appt.id || index} className="p-3 border rounded-3 bg-light bg-opacity-40 shadow-sm">
+                    <div className="fw-bold small text-dark mb-2 d-flex justify-content-between">
+                      <span>Turno {index + 1}: {appt.service?.name}</span>
+                      <span style={{ color: color }}>
+                        {new Intl.NumberFormat(currencyLocale, {
+                          style: "currency",
+                          currency: i18n.language === "es" ? "ARS" : "USD",
+                          maximumFractionDigits: 0,
+                        }).format(appt.service?.price || 0)}
+                      </span>
+                    </div>
+                    <div className="d-flex flex-column gap-1 text-muted smaller" style={{ fontSize: "12px" }}>
+                      <div className="d-flex align-items-center gap-2">
+                        <Calendar size={13} className="text-muted" />
+                        <span className="text-capitalize">{formattedDate}</span>
+                      </div>
+                      <div className="d-flex align-items-center gap-2">
+                        <Clock size={13} className="text-muted" />
+                        <span>{formattedTime} hs</span>
+                      </div>
+                      <div className="d-flex align-items-center gap-2">
+                        <User size={13} className="text-muted" />
+                        <span>{appt.worker ? `${appt.worker.firstName} ${appt.worker.lastName}` : t("success.autoAssigned")}</span>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
+                );
+              })}
             </div>
 
-            <div className="p-3 bg-light rounded-3 mb-3">
-              <div className="fw-semibold small text-dark mb-1">{t("success.service")}</div>
-              <div className="d-flex justify-content-between align-items-center">
-                <span className="small text-muted">{booking.service?.name}</span>
-                <span className="fw-bold text-dark">
-                  {new Intl.NumberFormat(currencyLocale, {
-                    style: "currency",
-                    currency: i18n.language === "es" ? "ARS" : "USD",
-                    maximumFractionDigits: 0,
-                  }).format(booking.service?.price || 0)}
-                </span>
-              </div>
-            </div>
-
-            {booking.downpaymentPaid && (
+            {hasDownpayment && (
               <div className="p-3 rounded-3 mb-4 border border-opacity-25" style={{ background: `${color}06`, borderColor: color }}>
                 <div className="fw-bold small d-flex align-items-center gap-2 mb-2" style={{ color: color }}>
                   <CheckCircle2 size={16} />
                   <span>Seña Abonada Exitosamente</span>
                 </div>
                 <div className="d-flex justify-content-between text-muted small mb-1">
-                  <span>Monto de la Seña:</span>
+                  <span>Monto Total de la Seña:</span>
                   <span className="fw-bold text-dark">
                     {new Intl.NumberFormat(locale, {
                       style: "currency",
                       currency: i18n.language === "es" ? "ARS" : "USD",
                       maximumFractionDigits: 0,
-                    }).format(booking.downpaymentPaid)}
+                    }).format(totalDownpayment)}
                   </span>
                 </div>
-                {booking.downpaymentTransactionId && (
+                {transactionId && (
                   <div className="d-flex justify-content-between text-muted small mb-1" style={{ fontSize: "11px" }}>
                     <span>Código de Pago:</span>
-                    <span className="font-monospace text-dark">{booking.downpaymentTransactionId}</span>
+                    <span className="font-monospace text-dark">{transactionId}</span>
                   </div>
                 )}
                 <div className="d-flex justify-content-between text-muted small mt-2 pt-2 border-top">
@@ -134,7 +128,7 @@ export default function BookingSuccess() {
                       style: "currency",
                       currency: i18n.language === "es" ? "ARS" : "USD",
                       maximumFractionDigits: 0,
-                    }).format((booking.service?.price || 0) - booking.downpaymentPaid)}
+                    }).format(totalPrice - totalDownpayment)}
                   </span>
                 </div>
               </div>

@@ -92,6 +92,17 @@ export function validateDynamicForm(enabledFields, values) {
     }
     if (field.type === "servicePricing") continue;
 
+    if (field.type === "nested") {
+      const nestedVal = values.customFields?.[id] || {};
+      for (const sub of safeArray(field.subfields)) {
+        const subVal = nestedVal[sub.id];
+        if (sub.required === true && (subVal === undefined || subVal === null || String(subVal).trim() === "")) {
+          errors[`${id}.${sub.id}`] = "Campo obligatorio.";
+        }
+      }
+      continue;
+    }
+
     if (field.system && (id === "firstName" || id === "lastName")) {
       if (required && !String(values[id] || "").trim()) errors[id] = "Campo obligatorio.";
       continue;
@@ -364,6 +375,126 @@ export default function DynamicForm({ enabledFields, values, onChange, errors = 
         control = <Form.Control {...commonProps} />;
     }
 
+    if (field.type === "nested") {
+      const nestedVal = values.customFields?.[field.id] || {};
+      const setNestedSubValue = (subId, val) => {
+        const nextVal = { ...nestedVal, [subId]: val };
+        setCustom(field.id, nextVal);
+      };
+
+      return (
+        <div 
+          key={groupKey} 
+          className="p-3 mb-3 border rounded-3 bg-light bg-opacity-50"
+          style={{ borderStyle: "dashed" }}
+        >
+          <div className="fw-bold text-dark small mb-2">{field.label}</div>
+          {field.help && <div className="text-muted smaller mb-3">{field.help}</div>}
+          <Row className="g-2">
+            {safeArray(field.subfields).map((sub, subIdx) => {
+              const subErr = errors[`${field.id}.${sub.id}`];
+              const subLabel = (
+                <>
+                  {sub.label}
+                  {sub.required ? " *" : ""}
+                </>
+              );
+              
+              const subVal = nestedVal[sub.id] ?? "";
+              const handleSubChange = (e) => setNestedSubValue(sub.id, e.target.value);
+              const isInvalid = Boolean(subErr);
+
+              let subControl;
+              switch (sub.type) {
+                case "textarea":
+                  subControl = (
+                    <Form.Control
+                      as="textarea"
+                      rows={2}
+                      size="sm"
+                      value={subVal}
+                      onChange={handleSubChange}
+                      isInvalid={isInvalid}
+                    />
+                  );
+                  break;
+                case "number":
+                  subControl = (
+                    <Form.Control
+                      type="number"
+                      size="sm"
+                      value={subVal}
+                      onChange={handleSubChange}
+                      isInvalid={isInvalid}
+                    />
+                  );
+                  break;
+                case "select":
+                  subControl = (
+                    <Form.Select
+                      size="sm"
+                      value={subVal}
+                      onChange={handleSubChange}
+                      isInvalid={isInvalid}
+                    >
+                      <option value="">Seleccionar…</option>
+                      {safeArray(sub.options).map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </Form.Select>
+                  );
+                  break;
+                case "email":
+                  subControl = (
+                    <Form.Control
+                      type="email"
+                      size="sm"
+                      value={subVal}
+                      onChange={handleSubChange}
+                      isInvalid={isInvalid}
+                    />
+                  );
+                  break;
+                case "phone":
+                  subControl = (
+                    <Form.Control
+                      type="tel"
+                      size="sm"
+                      value={subVal}
+                      onChange={handleSubChange}
+                      isInvalid={isInvalid}
+                    />
+                  );
+                  break;
+                default:
+                  subControl = (
+                    <Form.Control
+                      size="sm"
+                      value={subVal}
+                      onChange={handleSubChange}
+                      isInvalid={isInvalid}
+                    />
+                  );
+              }
+
+              return (
+                <Col md={6} key={sub.id || subIdx} className="mb-2">
+                  <Form.Group>
+                    <Form.Label className="smaller text-muted mb-1">{subLabel}</Form.Label>
+                    {subControl}
+                    {subErr && <div className="text-danger smaller mt-0.5" style={{ fontSize: "11px" }}>{subErr}</div>}
+                  </Form.Group>
+                </Col>
+              );
+            })}
+          </Row>
+          {err && <div className="text-danger small mt-2">{err}</div>}
+        </div>
+      );
+    }
+
     return (
       <Form.Group key={`${field.entity || "worker"}-${field.name || field.id}-${field.id || index}`} className="mb-3">
         <Form.Label>{label}</Form.Label>
@@ -384,7 +515,7 @@ export default function DynamicForm({ enabledFields, values, onChange, errors = 
             <h6 className="text-uppercase text-muted small fw-bold mb-3">{sectionTitles[sec] || sec}</h6>
             <Row className="g-2">
               {fields.map((field, index) => {
-                const wide = field.type === "services" || field.type === "schedule" || field.type === "servicePricing";
+                const wide = field.type === "services" || field.type === "schedule" || field.type === "servicePricing" || field.type === "nested";
                 const compositeKey = `${field.entity || "worker"}-${field.name || field.id}-${field.id || index}`;
                 return (
                   <Col key={compositeKey} md={wide ? 12 : 6}>

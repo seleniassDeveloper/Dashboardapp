@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Card, Table, Form, Button, Row, Col, Spinner, Badge, Modal, Alert } from "react-bootstrap";
+import { Card, Table, Form, Button, Row, Col, Spinner, Badge, Modal, Alert, Nav } from "react-bootstrap";
 import { 
   Plus, Edit3, Trash2, Tag, DollarSign, Package, AlertTriangle, 
   Building, Barcode, Grid, List, Scan, CheckCircle, Search, 
@@ -46,6 +46,9 @@ export default function ProductForm({ products = [], suppliers = [], onRefresh }
   const [showScanModal, setShowScanModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
 
+  // Modal active tab
+  const [modalTab, setModalTab] = useState("basic");
+
   // Form states for Create/Edit
   const [name, setName] = useState("");
   const [category, setCategory] = useState("Coloración");
@@ -64,6 +67,18 @@ export default function ProductForm({ products = [], suppliers = [], onRefresh }
   const [selectedIcon, setSelectedIcon] = useState("package");
   const [customLabel, setCustomLabel] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // New highly specific stock fields
+  const [sku, setSku] = useState("");
+  const [description, setDescription] = useState("");
+  const [weight, setWeight] = useState("");
+  const [volume, setVolume] = useState("");
+  const [dimensions, setDimensions] = useState("");
+  const [taxRate, setTaxRate] = useState("0");
+  const [leadTimeDays, setLeadTimeDays] = useState("0");
+  const [supplierSku, setSupplierSku] = useState("");
+  const [requireExpiration, setRequireExpiration] = useState(false);
+  const [requireBatch, setRequireBatch] = useState(false);
 
   // Scanning Modal States
   const [barcodeInput, setBarcodeInput] = useState("");
@@ -85,6 +100,7 @@ export default function ProductForm({ products = [], suppliers = [], onRefresh }
     return products.filter(p => {
       const matchSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           (p.barcode && p.barcode.includes(searchTerm)) ||
+                          (p.sku && p.sku.toLowerCase().includes(searchTerm.toLowerCase())) ||
                           (p.label && p.label.toLowerCase().includes(searchTerm.toLowerCase()));
       const matchCategory = selectedCategory === "TODAS" || p.category === selectedCategory;
       return matchSearch && matchCategory;
@@ -107,6 +123,20 @@ export default function ProductForm({ products = [], suppliers = [], onRefresh }
     setSelectedColor("gray");
     setSelectedIcon("package");
     setCustomLabel("");
+
+    // Reset specific fields
+    setSku("");
+    setDescription("");
+    setWeight("");
+    setVolume("");
+    setDimensions("");
+    setTaxRate("0");
+    setLeadTimeDays("0");
+    setSupplierSku("");
+    setRequireExpiration(false);
+    setRequireBatch(false);
+
+    setModalTab("basic");
     setShowCreateModal(true);
   };
 
@@ -126,6 +156,20 @@ export default function ProductForm({ products = [], suppliers = [], onRefresh }
     setSelectedColor(p.color || "gray");
     setSelectedIcon(p.icon || "package");
     setCustomLabel(p.label || "");
+
+    // Load specific fields
+    setSku(p.sku || "");
+    setDescription(p.description || "");
+    setWeight(p.weight || "");
+    setVolume(p.volume || "");
+    setDimensions(p.dimensions || "");
+    setTaxRate(p.taxRate !== undefined && p.taxRate !== null ? String(p.taxRate) : "0");
+    setLeadTimeDays(p.leadTimeDays !== undefined && p.leadTimeDays !== null ? String(p.leadTimeDays) : "0");
+    setSupplierSku(p.supplierSku || "");
+    setRequireExpiration(!!p.requireExpiration);
+    setRequireBatch(!!p.requireBatch);
+
+    setModalTab("basic");
     setShowEditModal(true);
   };
 
@@ -149,7 +193,19 @@ export default function ProductForm({ products = [], suppliers = [], onRefresh }
         providerId: providerId || null,
         color: selectedColor,
         icon: selectedIcon,
-        label: customLabel.trim() || null
+        label: customLabel.trim() || null,
+
+        // New fields
+        sku: sku.trim() || null,
+        description: description.trim() || null,
+        weight: weight !== "" ? Number(weight) : null,
+        volume: volume !== "" ? Number(volume) : null,
+        dimensions: dimensions.trim() || null,
+        taxRate: taxRate !== "" ? Number(taxRate) : 0,
+        leadTimeDays: leadTimeDays !== "" ? Number(leadTimeDays) : 0,
+        supplierSku: supplierSku.trim() || null,
+        requireExpiration,
+        requireBatch
       };
 
       if (editingProduct) {
@@ -184,6 +240,376 @@ export default function ProductForm({ products = [], suppliers = [], onRefresh }
       console.error(err);
       alert("Error al eliminar el producto del inventario.");
     }
+  };
+
+  const renderProductFormFields = (isEdit) => {
+    return (
+      <>
+        <Nav variant="tabs" activeKey={modalTab} onSelect={(k) => setModalTab(k)} className="mb-3">
+          <Nav.Item>
+            <Nav.Link eventKey="basic" className="small fw-semibold">Básico</Nav.Link>
+          </Nav.Item>
+          <Nav.Item>
+            <Nav.Link eventKey="stock" className="small fw-semibold">Stock & Lotes</Nav.Link>
+          </Nav.Item>
+          <Nav.Item>
+            <Nav.Link eventKey="pricing" className="small fw-semibold">Finanzas</Nav.Link>
+          </Nav.Item>
+          <Nav.Item>
+            <Nav.Link eventKey="logistics" className="small fw-semibold">Logística & Envase</Nav.Link>
+          </Nav.Item>
+        </Nav>
+
+        {modalTab === "basic" && (
+          <div className="d-grid gap-3">
+            <Form.Group>
+              <Form.Label className="smaller text-muted fw-bold">Nombre del Producto *</Form.Label>
+              <Form.Control
+                placeholder="Ej: Shampoo Profesional Keratina 1L"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="border-gray-200 rounded-xl"
+                required
+              />
+            </Form.Group>
+
+            <Form.Group>
+              <Form.Label className="smaller text-muted fw-bold">Descripción Detallada</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={2}
+                placeholder="Escribe detalles del producto, para qué sirve, etc."
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="border-gray-200 rounded-xl"
+              />
+            </Form.Group>
+
+            <Row className="g-3">
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label className="smaller text-muted fw-bold">Categoría *</Form.Label>
+                  <Form.Select value={category} onChange={(e) => setCategory(e.target.value)} className="border-gray-200 rounded-xl">
+                    <option value="Coloración">Coloración</option>
+                    <option value="Lavado">Lavado</option>
+                    <option value="Tratamientos">Tratamientos</option>
+                    <option value="Manicuría">Manicuría</option>
+                    <option value="Estética">Estética</option>
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label className="smaller text-muted fw-bold">Unidad de Medida *</Form.Label>
+                  <Form.Select value={unit} onChange={(e) => setUnit(e.target.value)} className="border-gray-200 rounded-xl">
+                    <option value="unidad">Unidad</option>
+                    <option value="ml">Mililitros (ml)</option>
+                    <option value="gr">Gramos (gr)</option>
+                    <option value="litro">Litro</option>
+                    <option value="caja">Caja</option>
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <Row className="g-3">
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label className="smaller text-muted fw-bold">Etiqueta Rápida (Ej: Shampoo, Tinte)</Form.Label>
+                  <Form.Control
+                    placeholder="Ej: Tinte"
+                    value={customLabel}
+                    onChange={(e) => setCustomLabel(e.target.value)}
+                    className="border-gray-200 rounded-xl"
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label className="smaller text-muted fw-bold">Ubicación Interna</Form.Label>
+                  <Form.Control
+                    placeholder="Ej: Estante A1"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    className="border-gray-200 rounded-xl"
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <Row className="g-3">
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label className="smaller text-muted fw-bold d-block mb-2">Color Identificador</Form.Label>
+                  <div className="d-flex flex-wrap gap-2">
+                    {PRESET_COLORS.map(col => (
+                      <div
+                        key={col.id}
+                        onClick={() => setSelectedColor(col.id)}
+                        className="rounded-circle cursor-pointer border transition-all hover-scale"
+                        style={{
+                          width: "24px",
+                          height: "24px",
+                          backgroundColor: col.hex,
+                          borderColor: selectedColor === col.id ? "#111827" : "rgba(0,0,0,0.1)",
+                          borderWidth: selectedColor === col.id ? "2.5px" : "1px",
+                          boxShadow: selectedColor === col.id ? "0 0 4px rgba(0,0,0,0.2)" : "none"
+                        }}
+                        title={col.name}
+                      />
+                    ))}
+                  </div>
+                </Form.Group>
+              </Col>
+
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label className="smaller text-muted fw-bold">Icono Representativo</Form.Label>
+                  <div className="d-flex gap-2">
+                    {PRESET_ICONS.map(ic => {
+                      const IconComponent = ic.component;
+                      const isSelected = selectedIcon === ic.id;
+                      return (
+                        <div
+                          key={ic.id}
+                          onClick={() => setSelectedIcon(ic.id)}
+                          className={`p-2 border rounded-xl cursor-pointer hover-scale transition-all d-flex align-items-center justify-content-center ${
+                            isSelected ? "border-dark bg-dark text-white" : "bg-light text-secondary"
+                          }`}
+                          style={{ width: "36px", height: "36px" }}
+                          title={ic.name}
+                        >
+                          <IconComponent size={16} />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </Form.Group>
+              </Col>
+            </Row>
+          </div>
+        )}
+
+        {modalTab === "stock" && (
+          <div className="d-grid gap-3">
+            <Row className="g-3">
+              <Col md={4}>
+                <Form.Group>
+                  <Form.Label className="smaller text-muted fw-bold">{isEdit ? "Stock Actual *" : "Stock Inicial *"}</Form.Label>
+                  <Form.Control
+                    type="number"
+                    value={stock}
+                    onChange={(e) => setStock(e.target.value)}
+                    className="border-gray-200 rounded-xl"
+                    required
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={4}>
+                <Form.Group>
+                  <Form.Label className="smaller text-muted fw-bold">Stock Min (Alerta)</Form.Label>
+                  <Form.Control
+                    type="number"
+                    value={minStock}
+                    onChange={(e) => setMinStock(e.target.value)}
+                    className="border-gray-200 rounded-xl"
+                    required
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={4}>
+                <Form.Group>
+                  <Form.Label className="smaller text-muted fw-bold">Stock Ideal</Form.Label>
+                  <Form.Control
+                    type="number"
+                    value={maxStock}
+                    onChange={(e) => setMaxStock(e.target.value)}
+                    className="border-gray-200 rounded-xl"
+                    required
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <div className="p-3 bg-light rounded-xl border border-gray-150 mt-2">
+              <Form.Label className="small text-dark fw-bold mb-2">Controles de Alerta & Trazabilidad</Form.Label>
+              <Form.Check
+                type="switch"
+                id="requireExpiration-switch"
+                label="Habilitar control de Vencimiento para lotes"
+                checked={requireExpiration}
+                onChange={(e) => setRequireExpiration(e.target.checked)}
+                className="mb-2.5 small"
+              />
+              <Form.Check
+                type="switch"
+                id="requireBatch-switch"
+                label="Exigir número de lote en ingresos"
+                checked={requireBatch}
+                onChange={(e) => setRequireBatch(e.target.checked)}
+                className="small"
+              />
+            </div>
+          </div>
+        )}
+
+        {modalTab === "pricing" && (
+          <div className="d-grid gap-3">
+            <Row className="g-3">
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label className="smaller text-muted fw-bold">Precio Costo ($) *</Form.Label>
+                  <Form.Control
+                    type="number"
+                    placeholder="4500"
+                    value={costPrice}
+                    onChange={(e) => setCostPrice(e.target.value)}
+                    className="border-gray-200 rounded-xl"
+                    required
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label className="smaller text-muted fw-bold">Precio Venta (Opcional)</Form.Label>
+                  <Form.Control
+                    type="number"
+                    placeholder="9000"
+                    value={salePrice}
+                    onChange={(e) => setSalePrice(e.target.value)}
+                    className="border-gray-200 rounded-xl"
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <Form.Group>
+              <Form.Label className="smaller text-muted fw-bold">Porcentaje de IVA / Impuesto (%)</Form.Label>
+              <Form.Control
+                type="number"
+                step="0.01"
+                placeholder="21"
+                value={taxRate}
+                onChange={(e) => setTaxRate(e.target.value)}
+                className="border-gray-200 rounded-xl"
+              />
+              <Form.Text className="text-muted smaller">
+                Impuesto aplicable al costo y venta del producto para balances y cierres fiscales.
+              </Form.Text>
+            </Form.Group>
+          </div>
+        )}
+
+        {modalTab === "logistics" && (
+          <div className="d-grid gap-3">
+            <Row className="g-3">
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label className="smaller text-muted fw-bold">Código SKU (Referencia Única)</Form.Label>
+                  <Form.Control
+                    placeholder="Ej: SH-KER-1L"
+                    value={sku}
+                    onChange={(e) => setSku(e.target.value)}
+                    className="border-gray-200 rounded-xl"
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label className="smaller text-muted fw-bold">SKU del Proveedor</Form.Label>
+                  <Form.Control
+                    placeholder="Ej: LOR-4482-A"
+                    value={supplierSku}
+                    onChange={(e) => setSupplierSku(e.target.value)}
+                    className="border-gray-200 rounded-xl"
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <Row className="g-3">
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label className="smaller text-muted fw-bold">Proveedor Asociado</Form.Label>
+                  <Form.Select value={providerId} onChange={(e) => setProviderId(e.target.value)} className="border-gray-200 rounded-xl">
+                    <option value="">Ninguno</option>
+                    {suppliers.map(s => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label className="smaller text-muted fw-bold">Tiempo de reposición (días)</Form.Label>
+                  <Form.Control
+                    type="number"
+                    placeholder="5"
+                    value={leadTimeDays}
+                    onChange={(e) => setLeadTimeDays(e.target.value)}
+                    className="border-gray-200 rounded-xl"
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <Row className="g-3">
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label className="smaller text-muted fw-bold">Peso (g / Kg)</Form.Label>
+                  <Form.Control
+                    type="number"
+                    step="0.01"
+                    placeholder="Ej: 1.2"
+                    value={weight}
+                    onChange={(e) => setWeight(e.target.value)}
+                    className="border-gray-200 rounded-xl"
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label className="smaller text-muted fw-bold">Volumen (ml / Litros)</Form.Label>
+                  <Form.Control
+                    type="number"
+                    step="0.01"
+                    placeholder="Ej: 1000"
+                    value={volume}
+                    onChange={(e) => setVolume(e.target.value)}
+                    className="border-gray-200 rounded-xl"
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <Row className="g-3">
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label className="smaller text-muted fw-bold">Dimensiones del Envase</Form.Label>
+                  <Form.Control
+                    placeholder="Ej: 10x10x30 cm"
+                    value={dimensions}
+                    onChange={(e) => setDimensions(e.target.value)}
+                    className="border-gray-200 rounded-xl"
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label className="smaller text-muted fw-bold">Código Barras/QR</Form.Label>
+                  <Form.Control
+                    placeholder="Ej: 779012..."
+                    value={barcode}
+                    onChange={(e) => setBarcode(e.target.value)}
+                    className="border-gray-200 rounded-xl"
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+          </div>
+        )}
+      </>
+    );
   };
 
   // Scanning simulation flows
@@ -382,6 +808,11 @@ export default function ProductForm({ products = [], suppliers = [], onRefresh }
 
                       {/* Title & Details */}
                       <h4 className="fw-black text-gray-900 h6 mb-1 text-truncate" title={p.name}>{p.name}</h4>
+                      <div className="d-flex align-items-center gap-1.5 mb-2 flex-wrap">
+                        {p.sku && <Badge bg="light" className="text-dark border rounded px-1.5 smaller" style={{ fontSize: "10px" }}>SKU: {p.sku}</Badge>}
+                        {p.requireExpiration && <Badge bg="warning-soft" className="text-warning border border-warning border-opacity-10 px-1.5 smaller animate-pulse" style={{ fontSize: "10px" }}>Control Vencimiento</Badge>}
+                        {p.requireBatch && <Badge bg="info-soft" className="text-info border border-info border-opacity-10 px-1.5 smaller" style={{ fontSize: "10px" }}>Control Lote</Badge>}
+                      </div>
                       <p className="text-muted smaller mb-3">{p.provider?.name || "Sin Proveedor Registrado"}</p>
 
                       <div className="d-flex justify-content-between align-items-baseline mb-2">
@@ -450,10 +881,15 @@ export default function ProductForm({ products = [], suppliers = [], onRefresh }
                           >
                             {renderProductIcon(p.icon, colorPreset.hex, 14)}
                           </div>
-                          <div>
-                            <div className="fw-bold text-gray-900">{p.name}</div>
-                            {p.label && <span className="smaller text-muted bg-gray-50 px-1.5 py-0.5 rounded border">{p.label}</span>}
-                          </div>
+                           <div>
+                             <div className="fw-bold text-gray-900">{p.name}</div>
+                             <div className="d-flex align-items-center gap-1.5 mt-1 flex-wrap">
+                               {p.sku && <span className="smaller fw-bold text-gray-700 bg-gray-100 px-1.5 py-0.5 rounded border" style={{ fontSize: "10px" }}>SKU: {p.sku}</span>}
+                               {p.label && <span className="smaller text-muted bg-gray-50 px-1.5 py-0.5 rounded border" style={{ fontSize: "10px" }}>{p.label}</span>}
+                               {p.requireExpiration && <span className="smaller text-warning bg-warning bg-opacity-10 px-1.5 py-0.5 rounded fw-semibold animate-pulse" style={{ fontSize: "10px" }}>Vencimiento</span>}
+                               {p.requireBatch && <span className="smaller text-info bg-info bg-opacity-10 px-1.5 py-0.5 rounded fw-semibold" style={{ fontSize: "10px" }}>Lote</span>}
+                             </div>
+                           </div>
                         </div>
                       </td>
                       <td className="py-3">
@@ -514,213 +950,8 @@ export default function ProductForm({ products = [], suppliers = [], onRefresh }
           </Modal.Title>
         </Modal.Header>
         <Form onSubmit={handleSubmit}>
-          <Modal.Body className="p-4 d-grid gap-3">
-            <Form.Group>
-              <Form.Label className="smaller text-muted fw-bold">Nombre del Producto *</Form.Label>
-              <Form.Control
-                placeholder="Ej: Shampoo Profesional Keratina 1L"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="border-gray-200 rounded-xl"
-                required
-              />
-            </Form.Group>
-
-            <Row className="g-3">
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label className="smaller text-muted fw-bold">Categoría *</Form.Label>
-                  <Form.Select value={category} onChange={(e) => setCategory(e.target.value)} className="border-gray-200 rounded-xl">
-                    <option value="Coloración">Coloración</option>
-                    <option value="Lavado">Lavado</option>
-                    <option value="Tratamientos">Tratamientos</option>
-                    <option value="Manicuría">Manicuría</option>
-                    <option value="Estética">Estética</option>
-                  </Form.Select>
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label className="smaller text-muted fw-bold">Unidad de Medida *</Form.Label>
-                  <Form.Select value={unit} onChange={(e) => setUnit(e.target.value)} className="border-gray-200 rounded-xl">
-                    <option value="unidad">Unidad</option>
-                    <option value="ml">Mililitros (ml)</option>
-                    <option value="gr">Gramos (gr)</option>
-                    <option value="litro">Litro</option>
-                    <option value="caja">Caja</option>
-                  </Form.Select>
-                </Form.Group>
-              </Col>
-            </Row>
-
-            {/* COLOR & ICON SELECTION */}
-            <Row className="g-3">
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label className="smaller text-muted fw-bold d-block mb-2">Color Identificador</Form.Label>
-                  <div className="d-flex flex-wrap gap-2">
-                    {PRESET_COLORS.map(col => (
-                      <div
-                        key={col.id}
-                        onClick={() => setSelectedColor(col.id)}
-                        className="rounded-circle cursor-pointer border transition-all hover-scale"
-                        style={{
-                          width: "24px",
-                          height: "24px",
-                          backgroundColor: col.hex,
-                          borderColor: selectedColor === col.id ? "#111827" : "rgba(0,0,0,0.1)",
-                          borderWidth: selectedColor === col.id ? "2.5px" : "1px",
-                          boxShadow: selectedColor === col.id ? "0 0 4px rgba(0,0,0,0.2)" : "none"
-                        }}
-                        title={col.name}
-                      />
-                    ))}
-                  </div>
-                </Form.Group>
-              </Col>
-
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label className="smaller text-muted fw-bold">Icono Representativo</Form.Label>
-                  <div className="d-flex gap-2">
-                    {PRESET_ICONS.map(ic => {
-                      const IconComponent = ic.component;
-                      const isSelected = selectedIcon === ic.id;
-                      return (
-                        <div
-                          key={ic.id}
-                          onClick={() => setSelectedIcon(ic.id)}
-                          className={`p-2 border rounded-xl cursor-pointer hover-scale transition-all d-flex align-items-center justify-content-center ${
-                            isSelected ? "border-dark bg-dark text-white" : "bg-light text-secondary"
-                          }`}
-                          style={{ width: "36px", height: "36px" }}
-                          title={ic.name}
-                        >
-                          <IconComponent size={16} />
-                        </div>
-                      );
-                    })}
-                  </div>
-                </Form.Group>
-              </Col>
-            </Row>
-
-            <Row className="g-3">
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label className="smaller text-muted fw-bold">Precio Costo ($) *</Form.Label>
-                  <Form.Control
-                    type="number"
-                    placeholder="4500"
-                    value={costPrice}
-                    onChange={(e) => setCostPrice(e.target.value)}
-                    className="border-gray-200 rounded-xl"
-                    required
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label className="smaller text-muted fw-bold">Precio Venta (Opcional)</Form.Label>
-                  <Form.Control
-                    type="number"
-                    placeholder="9000"
-                    value={salePrice}
-                    onChange={(e) => setSalePrice(e.target.value)}
-                    className="border-gray-200 rounded-xl"
-                  />
-                </Form.Group>
-              </Col>
-            </Row>
-
-            <Row className="g-3">
-              <Col md={4}>
-                <Form.Group>
-                  <Form.Label className="smaller text-muted fw-bold">Stock Inicial</Form.Label>
-                  <Form.Control
-                    type="number"
-                    value={stock}
-                    onChange={(e) => setStock(e.target.value)}
-                    className="border-gray-200 rounded-xl"
-                    required
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={4}>
-                <Form.Group>
-                  <Form.Label className="smaller text-muted fw-bold">Stock Min</Form.Label>
-                  <Form.Control
-                    type="number"
-                    value={minStock}
-                    onChange={(e) => setMinStock(e.target.value)}
-                    className="border-gray-200 rounded-xl"
-                    required
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={4}>
-                <Form.Group>
-                  <Form.Label className="smaller text-muted fw-bold">Stock Ideal</Form.Label>
-                  <Form.Control
-                    type="number"
-                    value={maxStock}
-                    onChange={(e) => setMaxStock(e.target.value)}
-                    className="border-gray-200 rounded-xl"
-                    required
-                  />
-                </Form.Group>
-              </Col>
-            </Row>
-
-            <Row className="g-3">
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label className="smaller text-muted fw-bold">Etiqueta Rápida (Ej: Shampoo, Tinte)</Form.Label>
-                  <Form.Control
-                    placeholder="Ej: Tinte"
-                    value={customLabel}
-                    onChange={(e) => setCustomLabel(e.target.value)}
-                    className="border-gray-200 rounded-xl"
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label className="smaller text-muted fw-bold">Proveedor Asociado</Form.Label>
-                  <Form.Select value={providerId} onChange={(e) => setProviderId(e.target.value)} className="border-gray-200 rounded-xl">
-                    <option value="">Ninguno</option>
-                    {suppliers.map(s => (
-                      <option key={s.id} value={s.id}>{s.name}</option>
-                    ))}
-                  </Form.Select>
-                </Form.Group>
-              </Col>
-            </Row>
-
-            <Row className="g-3">
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label className="smaller text-muted fw-bold">Ubicación Interna</Form.Label>
-                  <Form.Control
-                    placeholder="Ej: Estante A1"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    className="border-gray-200 rounded-xl"
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label className="smaller text-muted fw-bold">Código Barras/QR</Form.Label>
-                  <Form.Control
-                    placeholder="Ej: 779012..."
-                    value={barcode}
-                    onChange={(e) => setBarcode(e.target.value)}
-                    className="border-gray-200 rounded-xl"
-                  />
-                </Form.Group>
-              </Col>
-            </Row>
+          <Modal.Body className="p-4">
+            {renderProductFormFields(false)}
           </Modal.Body>
           <Modal.Footer className="border-0 bg-light rounded-bottom px-4 py-3">
             <Button variant="outline-secondary" onClick={() => setShowCreateModal(false)} className="rounded-xl px-4" disabled={saving}>
@@ -742,213 +973,8 @@ export default function ProductForm({ products = [], suppliers = [], onRefresh }
           </Modal.Title>
         </Modal.Header>
         <Form onSubmit={handleSubmit}>
-          <Modal.Body className="p-4 d-grid gap-3">
-            <Form.Group>
-              <Form.Label className="smaller text-muted fw-bold">Nombre del Producto *</Form.Label>
-              <Form.Control
-                placeholder="Ej: Shampoo Profesional Keratina 1L"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="border-gray-200 rounded-xl"
-                required
-              />
-            </Form.Group>
-
-            <Row className="g-3">
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label className="smaller text-muted fw-bold">Categoría *</Form.Label>
-                  <Form.Select value={category} onChange={(e) => setCategory(e.target.value)} className="border-gray-200 rounded-xl">
-                    <option value="Coloración">Coloración</option>
-                    <option value="Lavado">Lavado</option>
-                    <option value="Tratamientos">Tratamientos</option>
-                    <option value="Manicuría">Manicuría</option>
-                    <option value="Estética">Estética</option>
-                  </Form.Select>
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label className="smaller text-muted fw-bold">Unidad de Medida *</Form.Label>
-                  <Form.Select value={unit} onChange={(e) => setUnit(e.target.value)} className="border-gray-200 rounded-xl">
-                    <option value="unidad">Unidad</option>
-                    <option value="ml">Mililitros (ml)</option>
-                    <option value="gr">Gramos (gr)</option>
-                    <option value="litro">Litro</option>
-                    <option value="caja">Caja</option>
-                  </Form.Select>
-                </Form.Group>
-              </Col>
-            </Row>
-
-            {/* COLOR & ICON SELECTION */}
-            <Row className="g-3">
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label className="smaller text-muted fw-bold d-block mb-2">Color Identificador</Form.Label>
-                  <div className="d-flex flex-wrap gap-2">
-                    {PRESET_COLORS.map(col => (
-                      <div
-                        key={col.id}
-                        onClick={() => setSelectedColor(col.id)}
-                        className="rounded-circle cursor-pointer border transition-all hover-scale"
-                        style={{
-                          width: "24px",
-                          height: "24px",
-                          backgroundColor: col.hex,
-                          borderColor: selectedColor === col.id ? "#111827" : "rgba(0,0,0,0.1)",
-                          borderWidth: selectedColor === col.id ? "2.5px" : "1px",
-                          boxShadow: selectedColor === col.id ? "0 0 4px rgba(0,0,0,0.2)" : "none"
-                        }}
-                        title={col.name}
-                      />
-                    ))}
-                  </div>
-                </Form.Group>
-              </Col>
-
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label className="smaller text-muted fw-bold">Icono Representativo</Form.Label>
-                  <div className="d-flex gap-2">
-                    {PRESET_ICONS.map(ic => {
-                      const IconComponent = ic.component;
-                      const isSelected = selectedIcon === ic.id;
-                      return (
-                        <div
-                          key={ic.id}
-                          onClick={() => setSelectedIcon(ic.id)}
-                          className={`p-2 border rounded-xl cursor-pointer hover-scale transition-all d-flex align-items-center justify-content-center ${
-                            isSelected ? "border-dark bg-dark text-white" : "bg-light text-secondary"
-                          }`}
-                          style={{ width: "36px", height: "36px" }}
-                          title={ic.name}
-                        >
-                          <IconComponent size={16} />
-                        </div>
-                      );
-                    })}
-                  </div>
-                </Form.Group>
-              </Col>
-            </Row>
-
-            <Row className="g-3">
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label className="smaller text-muted fw-bold">Precio Costo ($) *</Form.Label>
-                  <Form.Control
-                    type="number"
-                    placeholder="4500"
-                    value={costPrice}
-                    onChange={(e) => setCostPrice(e.target.value)}
-                    className="border-gray-200 rounded-xl"
-                    required
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label className="smaller text-muted fw-bold">Precio Venta (Opcional)</Form.Label>
-                  <Form.Control
-                    type="number"
-                    placeholder="9000"
-                    value={salePrice}
-                    onChange={(e) => setSalePrice(e.target.value)}
-                    className="border-gray-200 rounded-xl"
-                  />
-                </Form.Group>
-              </Col>
-            </Row>
-
-            <Row className="g-3">
-              <Col md={4}>
-                <Form.Group>
-                  <Form.Label className="smaller text-muted fw-bold">Stock Actual *</Form.Label>
-                  <Form.Control
-                    type="number"
-                    value={stock}
-                    onChange={(e) => setStock(e.target.value)}
-                    className="border-gray-200 rounded-xl"
-                    required
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={4}>
-                <Form.Group>
-                  <Form.Label className="smaller text-muted fw-bold">Stock Min</Form.Label>
-                  <Form.Control
-                    type="number"
-                    value={minStock}
-                    onChange={(e) => setMinStock(e.target.value)}
-                    className="border-gray-200 rounded-xl"
-                    required
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={4}>
-                <Form.Group>
-                  <Form.Label className="smaller text-muted fw-bold">Stock Ideal</Form.Label>
-                  <Form.Control
-                    type="number"
-                    value={maxStock}
-                    onChange={(e) => setMaxStock(e.target.value)}
-                    className="border-gray-200 rounded-xl"
-                    required
-                  />
-                </Form.Group>
-              </Col>
-            </Row>
-
-            <Row className="g-3">
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label className="smaller text-muted fw-bold">Etiqueta Rápida (Ej: Shampoo, Tinte)</Form.Label>
-                  <Form.Control
-                    placeholder="Ej: Tinte"
-                    value={customLabel}
-                    onChange={(e) => setCustomLabel(e.target.value)}
-                    className="border-gray-200 rounded-xl"
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label className="smaller text-muted fw-bold">Proveedor Asociado</Form.Label>
-                  <Form.Select value={providerId} onChange={(e) => setProviderId(e.target.value)} className="border-gray-200 rounded-xl">
-                    <option value="">Ninguno</option>
-                    {suppliers.map(s => (
-                      <option key={s.id} value={s.id}>{s.name}</option>
-                    ))}
-                  </Form.Select>
-                </Form.Group>
-              </Col>
-            </Row>
-
-            <Row className="g-3">
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label className="smaller text-muted fw-bold">Ubicación Interna</Form.Label>
-                  <Form.Control
-                    placeholder="Ej: Estante A1"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    className="border-gray-200 rounded-xl"
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label className="smaller text-muted fw-bold">Código Barras/QR</Form.Label>
-                  <Form.Control
-                    placeholder="Ej: 779012..."
-                    value={barcode}
-                    onChange={(e) => setBarcode(e.target.value)}
-                    className="border-gray-200 rounded-xl"
-                  />
-                </Form.Group>
-              </Col>
-            </Row>
+          <Modal.Body className="p-4">
+            {renderProductFormFields(true)}
           </Modal.Body>
           <Modal.Footer className="border-0 bg-light rounded-bottom px-4 py-3">
             <Button variant="outline-secondary" onClick={() => setShowEditModal(false)} className="rounded-xl px-4" disabled={saving}>

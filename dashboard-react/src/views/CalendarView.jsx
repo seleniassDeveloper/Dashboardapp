@@ -223,28 +223,42 @@ export default function CalendarView() {
           <p className="text-muted mb-0">{t("calendar.subtitle")}</p>
         </div>
 
-        {business?.googleCalendarId && business?.googleRefreshToken && (
-          <div className="d-flex bg-light p-1 rounded-3">
-            <Button
-              size="sm"
-              variant={!showEmbeddedGoogle ? "white" : "link"}
-              className={`rounded-2 px-3 py-1.5 text-dark small ${!showEmbeddedGoogle ? "shadow-sm border fw-bold bg-white" : "text-muted border-0"}`}
-              onClick={() => setShowEmbeddedGoogle(false)}
-              style={{ fontSize: "12px" }}
-            >
-              Calendario Local (Sincronizado)
-            </Button>
-            <Button
-              size="sm"
-              variant={showEmbeddedGoogle ? "white" : "link"}
-              className={`rounded-2 px-3 py-1.5 text-dark small ${showEmbeddedGoogle ? "shadow-sm border fw-bold bg-white" : "text-muted border-0"}`}
-              onClick={() => setShowEmbeddedGoogle(true)}
-              style={{ fontSize: "12px" }}
-            >
-              Google Calendar (Embebido)
-            </Button>
-          </div>
-        )}
+        <div className="d-flex align-items-center gap-3">
+          <Button
+            variant="dark"
+            className="rounded-pill px-4 py-2 d-flex align-items-center gap-2 fw-semibold btn-premium shadow-sm"
+            onClick={() => {
+              setInitialAddData(null);
+              setShowAddModal(true);
+            }}
+          >
+            <Plus size={16} />
+            <span>{t("calendar.newAppointment") || "Nueva Cita"}</span>
+          </Button>
+
+          {business?.googleCalendarId && business?.googleRefreshToken && (
+            <div className="d-flex bg-light p-1 rounded-3">
+              <Button
+                size="sm"
+                variant={!showEmbeddedGoogle ? "white" : "link"}
+                className={`rounded-2 px-3 py-1.5 text-dark small ${!showEmbeddedGoogle ? "shadow-sm border fw-bold bg-white" : "text-muted border-0"}`}
+                onClick={() => setShowEmbeddedGoogle(false)}
+                style={{ fontSize: "12px" }}
+              >
+                Calendario Local (Sincronizado)
+              </Button>
+              <Button
+                size="sm"
+                variant={showEmbeddedGoogle ? "white" : "link"}
+                className={`rounded-2 px-3 py-1.5 text-dark small ${showEmbeddedGoogle ? "shadow-sm border fw-bold bg-white" : "text-muted border-0"}`}
+                onClick={() => setShowEmbeddedGoogle(true)}
+                style={{ fontSize: "12px" }}
+              >
+                Google Calendar (Embebido)
+              </Button>
+            </div>
+          )}
+        </div>
       </header>
 
       <Row className="g-4">

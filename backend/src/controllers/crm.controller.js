@@ -33,6 +33,14 @@ export async function getClientCRMProfile(req, res) {
           orderBy: { createdAt: "desc" },
         },
         appointmentPhotos: {
+          include: {
+            appointment: {
+              include: {
+                service: true,
+                worker: true
+              }
+            }
+          },
           orderBy: { createdAt: "desc" },
         }
       }
