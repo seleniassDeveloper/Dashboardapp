@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import prisma from "../prisma.js";
 import { sendReminderEmail } from "./mailer.js";
+import { handleSlaTransition } from "./serviceSla.js";
 
 // Triggers: "appointment_created" (nueva-cita), "consent_signed" (consentimiento-firmado), "status_changed" (cambio-estado-cita)
 export async function triggerWorkflows(businessId, triggerType, context) {
@@ -456,7 +457,7 @@ export async function recordStatusTransition(businessId, appointmentId, statusFr
       durationSeconds = Math.round(diffMs / 1000);
     }
 
-    // 3. Create history record
+     // 3. Create history record
     await prisma.appointmentStatusHistory.create({
       data: {
         appointmentId,
@@ -469,6 +470,9 @@ export async function recordStatusTransition(businessId, appointmentId, statusFr
     });
 
     console.log(`[SLA] Transitioned appt ${appointmentId} from "${statusFrom}" to "${statusTo}". Spent ${durationSeconds} seconds.`);
+
+    // Trigger SLA transition calculations
+    await handleSlaTransition(businessId, appointmentId, statusFrom, statusTo);
   } catch (err) {
     console.error("[SLA] Error recording status transition:", err);
   }

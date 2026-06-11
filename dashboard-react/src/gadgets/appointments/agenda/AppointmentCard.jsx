@@ -2,6 +2,7 @@ import React from "react";
 import { Badge, Dropdown, Button } from "react-bootstrap";
 import { MessageSquare, Mail, MoreVertical } from "lucide-react";
 import { useAppointmentsStore } from "../AppointmentsProvider.jsx";
+import api from "../../../lib/api.js";
 
 // Formato de moneda ARS
 function currency(n) {
@@ -20,6 +21,43 @@ export default function AppointmentCard({
   onSendEmail,
 }) {
   const { appointmentStatuses } = useAppointmentsStore();
+
+  const [liveData, setLiveData] = React.useState(null);
+  const [secondsElapsed, setSecondsElapsed] = React.useState(0);
+
+  React.useEffect(() => {
+    if (appt.sla && appt.sla.status === "incompleto") {
+      api.get(`/appointments/sla-service/live/${appt.id}`)
+        .then(res => {
+          setLiveData(res.data);
+          setSecondsElapsed(res.data.actualSec);
+        })
+        .catch(err => console.error("Error fetching live SLA:", err));
+    } else {
+      setLiveData(null);
+    }
+  }, [appt.sla, appt.id, appt.status]);
+
+  React.useEffect(() => {
+    let interval = null;
+    if (liveData && liveData.isActive) {
+      interval = setInterval(() => {
+        setSecondsElapsed(prev => prev + 1);
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [liveData]);
+
+  const formatLiveDuration = (totalSeconds) => {
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  const isExceeded = liveData && secondsElapsed > liveData.estimatedSec;
+  const isHardExceeded = liveData && liveData.hardLimitSec && secondsElapsed > liveData.hardLimitSec;
 
   const starts = new Date(appt.startsAt);
   const hour = starts.getHours();
@@ -116,10 +154,38 @@ export default function AppointmentCard({
       <div className="appt-card-service text-truncate">{serviceName}</div>
 
       <div className="d-flex justify-content-between align-items-center mt-1.5 flex-wrap gap-1">
-        {/* Badge de Seña */}
-        <span className={`sena-badge-custom sena-badge-${senaStatus}`}>
-          {senaStatus === "PAGADA" ? "Seña Pagada" : senaStatus === "PARCIAL" ? "Pago Parcial" : senaStatus === "PENDIENTE" ? "Pendiente" : "Sin Seña"}
-        </span>
+        <div className="d-flex align-items-center gap-1 flex-wrap">
+          {/* Badge de Seña */}
+          <span className={`sena-badge-custom sena-badge-${senaStatus}`}>
+            {senaStatus === "PAGADA" ? "Seña Pagada" : senaStatus === "PARCIAL" ? "Pago Parcial" : senaStatus === "PENDIENTE" ? "Pendiente" : "Sin Seña"}
+          </span>
+
+          {/* SLA Badge */}
+          {appt.sla && appt.sla.status !== "incompleto" && (
+            <Badge 
+              bg={appt.sla.status === "excedido" ? "danger-soft" : appt.sla.status === "antes" ? "primary-soft" : "success-soft"} 
+              className={`text-${appt.sla.status === "excedido" ? "danger" : appt.sla.status === "antes" ? "primary" : "success"} rounded-pill border-0 px-1.5 py-0.5`}
+              style={{ fontSize: "10px", fontWeight: "bold" }}
+            >
+              {appt.sla.status === "a_tiempo" && "A tiempo"}
+              {appt.sla.status === "excedido" && `+${Math.round(appt.sla.varianceSec / 60)} min`}
+              {appt.sla.status === "antes" && `${Math.round(appt.sla.varianceSec / 60)} min`}
+            </Badge>
+          )}
+
+          {/* Live SLA Badge */}
+          {liveData && (
+            <Badge 
+              bg={isHardExceeded ? "danger" : isExceeded ? "warning" : "info-soft"} 
+              className={`${isHardExceeded ? "text-white" : isExceeded ? "text-dark" : "text-info"} rounded-pill border-0 px-1.5 py-0.5 d-inline-flex align-items-center gap-1`}
+              style={{ fontSize: "10px", fontWeight: "bold" }}
+              title={liveData.isActive ? "SLA de ejecución activo" : "SLA pausado"}
+            >
+              <span className={liveData.isActive ? "animate-pulse" : ""} style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: liveData.isActive ? (isHardExceeded ? "#ffffff" : "#10b981") : "#64748b" }} />
+              {formatLiveDuration(secondsElapsed)} / {Math.round(liveData.estimatedSec / 60)}m
+            </Badge>
+          )}
+        </div>
 
         {/* Mini Acciones */}
         <div className="d-flex gap-1">

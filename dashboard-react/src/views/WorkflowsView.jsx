@@ -4,6 +4,7 @@ import { Play, Plus, GitBranch, Zap, Pencil, Trash2, Pause, Sparkles, Activity, 
 import { useTranslation } from "react-i18next";
 import WorkflowBuilder from "../components/workflows/WorkflowBuilder.jsx";
 import SlaStatsView from "./SlaStatsView.jsx";
+import ServiceSlaStatsView from "./ServiceSlaStatsView.jsx";
 import api from "../lib/api.js";
 import { TEMPLATES } from "./TemplatesView.jsx";
 
@@ -362,6 +363,17 @@ export default function WorkflowsView() {
         >
           <Clock size={15} />
           <span>{isEs ? "Métricas de SLA" : "SLA Metrics"}</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("sla-service")}
+          className={`d-flex align-items-center gap-2 px-4 py-2.5 fw-bold rounded-xl border-0 transition-all ${
+            activeTab === "sla-service" ? "bg-purple-600 text-white shadow-sm btn-purple" : "bg-light text-muted hover-bg-gray-100"
+          }`}
+          style={{ fontSize: "13px" }}
+        >
+          <Clock size={15} />
+          <span>{isEs ? "SLA Ejecución Servicio" : "Service SLA"}</span>
         </button>
       </div>
 
@@ -868,6 +880,10 @@ export default function WorkflowsView() {
 
       {activeTab === "sla" && (
         <SlaStatsView />
+      )}
+
+      {activeTab === "sla-service" && (
+        <ServiceSlaStatsView />
       )}
 
       {/* FULL VIEWPORT WORKFLOW BUILDER OVERLAY */}

@@ -148,6 +148,43 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
   const [showFinalizeModal, setShowFinalizeModal] = useState(false);
   const [finalizingAppt, setFinalizingAppt] = useState(null);
 
+  const [liveData, setLiveData] = useState(null);
+  const [secondsElapsed, setSecondsElapsed] = useState(0);
+
+  useEffect(() => {
+    if (show && isEdit && initialData?.sla && initialData.sla.status === "incompleto") {
+      api.get(`/appointments/sla-service/live/${initialData.id}`)
+        .then(res => {
+          setLiveData(res.data);
+          setSecondsElapsed(res.data.actualSec);
+        })
+        .catch(err => console.error("Error fetching live SLA:", err));
+    } else {
+      setLiveData(null);
+    }
+  }, [show, isEdit, initialData?.sla, initialData?.id, form.status]);
+
+  useEffect(() => {
+    let interval = null;
+    if (liveData && liveData.isActive) {
+      interval = setInterval(() => {
+        setSecondsElapsed(prev => prev + 1);
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [liveData]);
+
+  const formatLiveDuration = (totalSeconds) => {
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  const isExceeded = liveData && secondsElapsed > liveData.estimatedSec;
+  const isHardExceeded = liveData && liveData.hardLimitSec && secondsElapsed > liveData.hardLimitSec;
+
   const handleFinalizeCompleted = (updatedAppt) => {
     setShowFinalizeModal(false);
     setFinalizingAppt(null);
@@ -379,12 +416,11 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
     saving || 
     (isEdit && !dirty) || 
     availability.loading || 
-    !laborHoursCheck.valid ||
     (slotComplete && availability.available === false);
 
   // verificar disponibilidad del profesional al cambiar hora/servicio/trabajador
   useEffect(() => {
-    if (!show || !slotComplete || !laborHoursCheck.valid) {
+    if (!show || !slotComplete) {
       setAvailability({ loading: false, available: null, reason: "", availableWorkers: [] });
       return;
     }
@@ -425,7 +461,7 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
       cancelled = true;
       clearTimeout(t);
     };
-  }, [show, form.workerId, form.serviceId, startsAtLocal, slotComplete, isEdit, initialData?.id, laborHoursCheck.valid]);
+  }, [show, form.workerId, form.serviceId, startsAtLocal, slotComplete, isEdit, initialData?.id]);
 
   // hydrate edit
   useEffect(() => {
@@ -767,13 +803,17 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
                 className="mb-3 p-3 rounded-3"
                 style={{
                   background:
-                    !laborHoursCheck.valid || availability.available === false
+                    availability.available === false
                       ? "rgba(220,53,69,0.08)"
-                      : "rgba(25,135,84,0.08)",
+                      : availability.available === true
+                      ? "rgba(25,135,84,0.08)"
+                      : "rgba(108,117,125,0.08)",
                   border: `1px solid ${
-                    !laborHoursCheck.valid || availability.available === false
+                    availability.available === false
                       ? "rgba(220,53,69,0.25)"
-                      : "rgba(25,135,84,0.25)"
+                      : availability.available === true
+                      ? "rgba(25,135,84,0.25)"
+                      : "rgba(108,117,125,0.25)"
                   }`,
                 }}
               >
@@ -790,23 +830,20 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
                     <Spinner size="sm" /> Verificando disponibilidad…
                   </div>
                 )}
-                {!availability.loading && !laborHoursCheck.valid && (
+                {!availability.loading && availability.available === false && (
                   <div className="small text-danger mt-2 fw-medium">
-                    {laborHoursCheck.reason}
-                  </div>
-                )}
-                {!availability.loading && laborHoursCheck.valid && availability.available === false && (
-                  <div className="small text-danger mt-2 fw-medium">
-                    Este profesional ya tiene una cita en ese horario.
+                    {availability.reason || "Este profesional no está disponible en este horario."}
                     {availability.availableWorkers?.length > 0 && (
-                      <div className="mt-1 fw-normal">
+                      <div className="mt-1 fw-normal text-muted">
                         Profesionales alternativos disponibles:{" "}
-                        {availability.availableWorkers.map((w) => w.name).join(", ")}
+                        <span className="fw-semibold text-danger">
+                          {availability.availableWorkers.map((w) => w.name).join(", ")}
+                        </span>
                       </div>
                     )}
                   </div>
                 )}
-                {!availability.loading && laborHoursCheck.valid && availability.available === true && (
+                {!availability.loading && availability.available === true && (
                   <div className="small text-success mt-2">
                     Horario disponible para este profesional.
                   </div>
@@ -1099,6 +1136,90 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
               {isEdit && (
                 <Col md={12}>
                   <hr className="my-4" />
+
+                  {/* Panel de SLA de Ejecución */}
+                  {initialData?.sla && (
+                    <div className="mb-4 p-3 rounded-xl border bg-light bg-opacity-30">
+                      <h6 className="fw-bold text-gray-900 mb-2 small text-uppercase tracking-wider">
+                        SLA de Ejecución de Servicio
+                      </h6>
+                      
+                      {/* Caso 1: Completado */}
+                      {initialData.sla.status !== "incompleto" && (
+                        <div className="d-grid gap-2 small">
+                          <div className="d-flex justify-content-between">
+                            <span className="text-muted">Estado de SLA:</span>
+                            <span className={`fw-bold text-${initialData.sla.status === "excedido" ? "danger" : initialData.sla.status === "antes" ? "primary" : "success"}`}>
+                              {initialData.sla.status === "a_tiempo" && "A Tiempo"}
+                              {initialData.sla.status === "excedido" && "Excedido"}
+                              {initialData.sla.status === "antes" && "Finalizado Antes"}
+                            </span>
+                          </div>
+                          <div className="d-flex justify-content-between">
+                            <span className="text-muted">Tiempo Estimado:</span>
+                            <strong className="text-dark">{Math.round(initialData.sla.estimatedSec / 60)} min</strong>
+                          </div>
+                          <div className="d-flex justify-content-between">
+                            <span className="text-muted">Tiempo Real de Ejecución:</span>
+                            <strong className="text-dark">{Math.round(initialData.sla.actualSec / 60)} min</strong>
+                          </div>
+                          <div className="d-flex justify-content-between">
+                            <span className="text-muted">Variación:</span>
+                            <strong className={`font-mono text-${initialData.sla.varianceSec > 0 ? "danger" : "success"}`}>
+                              {initialData.sla.varianceSec > 0 ? "+" : ""}{Math.round(initialData.sla.varianceSec / 60)} min
+                            </strong>
+                          </div>
+                          {initialData.sla.pausedSec > 0 && (
+                            <div className="d-flex justify-content-between">
+                              <span className="text-muted">Tiempo Pausado:</span>
+                              <strong className="text-muted">{Math.round(initialData.sla.pausedSec / 60)} min</strong>
+                            </div>
+                          )}
+                          {!initialData.sla.withinLimit && (
+                            <div className="text-danger fw-bold mt-1 text-end">
+                              ⚠️ Superó el límite máximo de tolerancia
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Caso 2: Incompleto / Activo con Temporizador en Vivo */}
+                      {initialData.sla.status === "incompleto" && liveData && (
+                        <div className="d-grid gap-2 small">
+                          <div className="d-flex justify-content-between align-items-center">
+                            <span className="text-muted">Estado de Ejecución:</span>
+                            <span className={`d-flex align-items-center gap-1.5 fw-bold ${liveData.isActive ? "text-success" : "text-muted"}`}>
+                              <span className={liveData.isActive ? "animate-pulse" : ""} style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: liveData.isActive ? "#10b981" : "#64748b" }} />
+                              {liveData.isActive ? "En ejecución" : "En pausa / Espera"}
+                            </span>
+                          </div>
+                          <div className="d-flex justify-content-between">
+                            <span className="text-muted">Estimado Base:</span>
+                            <strong className="text-dark">{Math.round(liveData.estimatedSec / 60)} min</strong>
+                          </div>
+                          <div className="d-flex justify-content-between align-items-center">
+                            <span className="text-muted">Cronómetro Activo:</span>
+                            <span className={`fw-black fs-6 ${isHardExceeded ? "text-danger animate-pulse" : isExceeded ? "text-warning" : "text-success"}`}>
+                              {formatLiveDuration(secondsElapsed)}
+                            </span>
+                          </div>
+                          {isHardExceeded && (
+                            <div className="text-danger fw-bold mt-1 text-end">
+                              ⚠️ Excedió el límite máximo tolerado
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Caso 3: SLA Inicializado pero sin Datos de Live Cargados aún */}
+                      {initialData.sla.status === "incompleto" && !liveData && (
+                        <div className="text-muted text-center py-2 smaller">
+                          <Spinner size="sm" className="me-2" /> Cargando temporizador en vivo...
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <Form.Group className="mb-3">
                     <Form.Label className="small-label fw-bold" htmlFor="appt-status">
                       Estado de la Cita

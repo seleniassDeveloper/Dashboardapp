@@ -44,6 +44,12 @@ export default function AppointmentModal({
   const [calendarLoading, setCalendarLoading] = useState(false);
   const [calendarStatus, setCalendarStatus] = useState(null); // null o { type: 'success'|'danger', message: string }
   const [status, setStatus] = useState("PENDING");
+  const [availability, setAvailability] = useState({
+    loading: false,
+    available: null,
+    reason: "",
+    availableWorkers: [],
+  });
 
   const { appointmentStatuses } = useAppointmentsStore();
 
@@ -264,6 +270,53 @@ export default function AppointmentModal({
     return { valid: true };
   }, [appointments, workerId, appointmentDate, appointmentTime, selectedServiceIds, totals.duration, appointment?.id]);
 
+  const slotComplete = Boolean(workerId) && selectedServiceIds.length > 0 && Boolean(appointmentDate) && Boolean(appointmentTime);
+
+  useEffect(() => {
+    if (!show || !slotComplete) {
+      setAvailability({ loading: false, available: null, reason: "", availableWorkers: [] });
+      return;
+    }
+
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      try {
+        setAvailability((p) => ({ ...p, loading: true }));
+        const dateObj = new Date(`${appointmentDate}T${appointmentTime}`);
+        if (isNaN(dateObj.getTime())) {
+          setAvailability({ loading: false, available: null, reason: "", availableWorkers: [] });
+          return;
+        }
+        const iso = dateObj.toISOString();
+        const params = {
+          workerId,
+          serviceId: selectedServiceIds.join(","),
+          startsAt: iso,
+        };
+        if (isEdit && appointment?.id) params.excludeId = appointment.id;
+
+        const res = await api.get(`/appointments/availability`, { params });
+        if (cancelled) return;
+
+        setAvailability({
+          loading: false,
+          available: Boolean(res.data?.available),
+          reason: res.data?.reason || "",
+          availableWorkers: res.data?.availableWorkers || [],
+        });
+      } catch (err) {
+        if (!cancelled) {
+          setAvailability({ loading: false, available: null, reason: "", availableWorkers: [] });
+        }
+      }
+    }, 350);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [show, workerId, selectedServiceIds, appointmentDate, appointmentTime, isEdit, appointment?.id]);
+
   const saveDisabled =
     !clientFirstName ||
     !clientLastName ||
@@ -271,8 +324,8 @@ export default function AppointmentModal({
     !appointmentDate ||
     !appointmentTime ||
     selectedServiceIds.length === 0 ||
-    !laborHoursCheck.valid ||
-    !overlapCheck.valid;
+    availability.loading ||
+    availability.available === false;
 
   // Manejo de clicks en checkbox de servicio
   const handleToggleService = (id) => {
@@ -588,13 +641,51 @@ export default function AppointmentModal({
             </Alert>
           )}
 
-          {(!laborHoursCheck.valid || !overlapCheck.valid) && (
-            <Alert variant="danger" className="rounded-4 border-0 shadow-sm mb-4 animate-fade-in">
-              <div className="fw-semibold small">
-                {!laborHoursCheck.valid && <div>⚠️ {laborHoursCheck.reason}</div>}
-                {!overlapCheck.valid && <div>⚠️ {overlapCheck.reason}</div>}
-              </div>
-            </Alert>
+          {slotComplete && (
+            <div
+              className="mb-4 p-3 rounded-4"
+              style={{
+                background:
+                  availability.available === false
+                    ? "rgba(220,53,69,0.08)"
+                    : availability.available === true
+                    ? "rgba(25,135,84,0.08)"
+                    : "rgba(108,117,125,0.08)",
+                border: `1px solid ${
+                  availability.available === false
+                    ? "rgba(220,53,69,0.25)"
+                    : availability.available === true
+                    ? "rgba(25,135,84,0.25)"
+                    : "rgba(108,117,125,0.25)"
+                }`,
+              }}
+            >
+              <div className="text-muted smaller fw-bold mb-1">DISPONIBILIDAD DEL PROFESIONAL</div>
+              {availability.loading && (
+                <div className="small text-muted d-flex align-items-center gap-2">
+                  <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" style={{ width: "12px", height: "12px" }}></span>
+                  Verificando disponibilidad…
+                </div>
+              )}
+              {!availability.loading && availability.available === false && (
+                <div className="small text-danger fw-medium">
+                  {availability.reason || "Este profesional no está disponible en este horario."}
+                  {availability.availableWorkers?.length > 0 && (
+                    <div className="mt-1 fw-normal text-muted">
+                      Profesionales alternativos disponibles:{" "}
+                      <span className="fw-semibold text-danger">
+                        {availability.availableWorkers.map((w) => w.name || `${w.firstName} ${w.lastName}`).join(", ")}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+              {!availability.loading && availability.available === true && (
+                <div className="small text-success">
+                  Horario disponible para este profesional.
+                </div>
+              )}
+            </div>
           )}
 
           <Row className="g-4">

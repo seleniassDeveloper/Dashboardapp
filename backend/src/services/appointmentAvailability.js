@@ -175,22 +175,38 @@ export async function validateAppointmentSlot({
     return { available: false, reason: "Profesional inválido.", code: "INVALID_WORKER" };
   }
 
-  if (worker.services.length !== serviceIds.length) {
-    return {
-      available: false,
-      reason: "Este profesional no realiza todos los servicios seleccionados.",
-      code: "WORKER_NOT_SERVICE",
-    };
-  }
-
   const newStart = new Date(startsAt);
   if (isNaN(newStart.getTime())) {
     return { available: false, reason: "Fecha/hora inválida.", code: "INVALID_DATE" };
   }
 
+  if (worker.services.length !== serviceIds.length) {
+    const availableWorkers = await findAvailableWorkers({
+      serviceId,
+      startsAt: newStart,
+      excludeAppointmentId,
+    });
+    return {
+      available: false,
+      reason: "Este profesional no realiza todos los servicios seleccionados.",
+      code: "WORKER_NOT_SERVICE",
+      availableWorkers,
+    };
+  }
+
   const scheduleCheck = isWithinWorkerSchedule(worker.schedules, newStart, totalDuration);
   if (!scheduleCheck.ok) {
-    return { available: false, reason: scheduleCheck.reason, code: scheduleCheck.code };
+    const availableWorkers = await findAvailableWorkers({
+      serviceId,
+      startsAt: newStart,
+      excludeAppointmentId,
+    });
+    return {
+      available: false,
+      reason: scheduleCheck.reason,
+      code: scheduleCheck.code,
+      availableWorkers,
+    };
   }
 
   const newEnd = addMinutes(newStart, totalDuration);

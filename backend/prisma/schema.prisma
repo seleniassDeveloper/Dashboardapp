@@ -48,15 +48,19 @@ model Service {
   requiresApproval   Boolean                  @default(false)
   commissionType     String                   @default("porcentaje") // "porcentaje" | "fijo" | "ninguno"
   commissionValue    Int                      @default(0)
-  createdAt          DateTime                 @default(now())
-  updatedAt          DateTime                 @updatedAt
-  appointments       Appointment[]
-  workers            WorkerService[]
-  consumptionRules   ServiceConsumptionRule[]
-  consentTemplates   ConsentTemplate[]
-  appointmentPhotos  AppointmentPhoto[]
-  businessId         String?
-  business           Business?                @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdAt            DateTime                      @default(now())
+  updatedAt            DateTime                      @updatedAt
+  appointments         Appointment[]
+  workers              WorkerService[]
+  consumptionRules     ServiceConsumptionRule[]
+  consentTemplates     ConsentTemplate[]
+  appointmentPhotos    AppointmentPhoto[]
+  businessId           String?
+  business             Business?                     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  estimatedDurationSec Int?
+  estimates            ServiceProfessionalEstimate[]
+  slaConfigs           ServiceSlaConfig[]
+  slas                 ServiceSla[]
 
   @@unique([name, businessId])
 }
@@ -87,10 +91,11 @@ model Appointment {
   downpaymentTransactionId String?
   googleEventId            String?
   consentRequests          ConsentRequest[]
-  createdAt                DateTime           @default(now())
+  createdAt                DateTime                   @default(now())
   statusHistories          AppointmentStatusHistory[]
   paymentMethod            String?
   finalPrice               Int?
+  sla                      ServiceSla?
 }
 
 model Worker {
@@ -114,7 +119,9 @@ model Worker {
   branch            Branch?          @relation(fields: [branchId], references: [id])
   salaryPayments    SalaryPayment[]
   businessId        String?
-  business          Business?        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  business          Business?                      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  estimates         ServiceProfessionalEstimate[]
+  slas              ServiceSla[]
 }
 
 model FormSchema {
@@ -275,6 +282,8 @@ model Business {
   consentRecords             ConsentRecord[]
   appointmentStatuses        Json?
   statusHistories            AppointmentStatusHistory[]
+  slaConfigs                 ServiceSlaConfig[]
+  slas                       ServiceSla[]
 }
 
 model ScheduleBlock {
@@ -742,6 +751,64 @@ model AppointmentStatusHistory {
 
   @@index([appointmentId])
   @@index([businessId])
+}
+
+model ServiceProfessionalEstimate {
+  serviceId            String
+  workerId             String
+  estimatedDurationSec Int
+  service              Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  worker               Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  @@id([serviceId, workerId])
+  @@index([workerId])
+}
+
+model ServiceSlaConfig {
+  id             String    @id @default(cuid())
+  businessId     String
+  serviceId      String?   @unique
+  toleranceType  String    @default("percent") // "percent" | "minutes"
+  toleranceValue Float     @default(10.0)
+  hardLimitSec   Int?
+  startStatusKey String    @default("CONFIRMED")
+  endStatusKey   String    @default("DONE")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  business       Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  service        Service?  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+}
+
+model ServiceSla {
+  id             String      @id @default(cuid())
+  businessId     String
+  appointmentId  String      @unique
+  serviceId      String
+  professionalId String      // workerId
+  estimatedSec   Int
+  actualSec      Int?
+  startedAt      DateTime
+  endedAt        DateTime?
+  pausedSec      Int         @default(0)
+  varianceSec    Int?
+  variancePct    Float?
+  status         String      // "antes" | "a_tiempo" | "excedido" | "incompleto"
+  withinLimit    Boolean     @default(true)
+  overageSec     Int         @default(0)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  business       Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  appointment    Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  service        Service     @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  worker         Worker      @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+  @@index([appointmentId])
+  @@index([status])
 }
 
 

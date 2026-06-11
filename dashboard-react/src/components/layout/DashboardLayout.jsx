@@ -8,7 +8,6 @@ import WorkerModal from "../../header/workers/WorkerModal";
 import UsersAdminModal from "../../admin/UsersAdminModal.jsx";
 import { useBrand } from "../../header/name/BrandProvider";
 import ProductionApiBanner from "./ProductionApiBanner.jsx";
-import OnboardingModal from "../onboarding/OnboardingModal";
 
 import CommandPalette from "./CommandPalette";
 import ClientModal from "../../header/clients/ClientModal";
@@ -28,12 +27,8 @@ export default function DashboardLayout({ children }) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   // Modal states
-  const [showOnboarding, setShowOnboarding] = useState(() => {
-    return localStorage.getItem("onboardingCompleted") !== "true";
-  });
   const [showBrandModal, setShowBrandModal] = useState(() => {
-    const onboardingDone = localStorage.getItem("onboardingCompleted") === "true";
-    return onboardingDone && !hasCompanyName;
+    return !hasCompanyName;
   });
   const [showWorkerModal, setShowWorkerModal] = useState(false);
   const [showServiceModal, setShowServiceModal] = useState(false);
@@ -153,12 +148,7 @@ export default function DashboardLayout({ children }) {
         </motion.div>
       </motion.main>
 
-      {/* --- Modales del Sistema --- */}
-      <OnboardingModal
-        show={showOnboarding}
-        onHide={() => setShowOnboarding(false)}
-        onEditBrand={() => setShowBrandModal(true)}
-      />
+
 
       <BrandModal
         show={showBrandModal}

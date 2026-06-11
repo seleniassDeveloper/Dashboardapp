@@ -75,6 +75,7 @@ export async function getAppointments(req, res) {
         client: true,
         worker: true,
         service: true,
+        sla: true,
       },
     });
 
@@ -180,6 +181,7 @@ export async function createAppointment(req, res) {
           client: true,
           worker: true,
           service: true,
+          sla: true,
         },
       });
 
@@ -192,17 +194,8 @@ export async function createAppointment(req, res) {
         })
         .catch((err) => console.error("Error importando googleService:", err));
 
-      // Log status history
-      prisma.appointmentStatusHistory.create({
-        data: {
-          appointmentId: appt.id,
-          statusFrom: "CREATED",
-          statusTo: appt.status || "PENDING",
-          transitionedAt: new Date(),
-          durationSeconds: 0,
-          businessId: req.businessId
-        }
-      }).catch(err => console.error("Error logging initial transition:", err));
+      // Log status history through SLA/transition system
+      recordStatusTransition(req.businessId, appt.id, "CREATED", appt.status || "PENDING").catch(err => console.error("Error logging initial transition:", err));
 
       // Trigger workflows in background
       triggerWorkflows(req.businessId, "appointment_created", appt).catch(err => console.error("Error triggering workflows:", err));
@@ -298,6 +291,7 @@ export async function updateAppointment(req, res) {
         client: true,
         worker: true,
         service: true,
+        sla: true,
       },
     });
 
