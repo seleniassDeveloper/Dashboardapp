@@ -58,8 +58,8 @@ export async function checkTenant(req, res, next) {
       }
     }
 
-    // AUTO-SEEDING en PostgreSQL para cualquier usuario autenticado (Google o cuenta local)
-    if (firebaseUid) {
+    // AUTO-SEEDING en PostgreSQL solo para usuarios de demostración (dev-user y quick-booking-user)
+    if (firebaseUid && (firebaseUid === "dev-user" || firebaseUid === "quick-booking-user")) {
       let devBusiness = await prisma.business.findFirst();
       if (!devBusiness) {
         devBusiness = await prisma.business.create({
@@ -162,7 +162,7 @@ export async function checkTenant(req, res, next) {
     // 4. Si no tiene ninguna membresía, retornamos código para redirección de onboarding en frontend
     if (!membership) {
       // Rutas que permiten bypass para poder crear la empresa inicial
-      const isCreatingBusiness = req.method === "POST" && (req.path === "/" || req.path === "");
+      const isCreatingBusiness = req.method === "POST" && (req.path === "/" || req.path === "" || req.path === "/setup" || req.path === "/setup/");
       if (isCreatingBusiness) {
         return next();
       }

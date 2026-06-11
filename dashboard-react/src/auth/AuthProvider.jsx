@@ -127,7 +127,8 @@ export function AuthProvider({ children }) {
     if (role) {
       api.get("/me/businesses")
         .then(res => {
-          setUserBusinesses(Array.isArray(res.data) ? res.data : []);
+          const list = res.data?.userBusinesses || [];
+          setUserBusinesses(list);
         })
         .catch(err => {
           console.error("Error fetching user businesses:", err);
@@ -276,8 +277,14 @@ export function AuthProvider({ children }) {
           setRole(data.role);
           setPermissions(data.permissions || []);
           setIsUnauthorized(false);
-          setBusiness({ id: "business-default", name: "Aura Studio" });
-          localStorage.setItem("active_business_id", "business-default");
+          
+          const isDemo = localStorage.getItem("auradash_demo_session") === "true";
+          if (AUTH_DISABLED || isDemo || email === "seleniadeveloper@gmail.com") {
+            setBusiness({ id: "business-default", name: "Aura Studio" });
+            localStorage.setItem("active_business_id", "business-default");
+          } else {
+            setBusiness(null);
+          }
           console.log("[Diagnostic] 5. Session successfully authorized. Role:", data.role, "Permissions:", data.permissions);
         } else {
           console.warn("[Diagnostic] User exists but is set as INACTIVE.");
@@ -370,6 +377,36 @@ export function AuthProvider({ children }) {
           setAuthError("");
           try {
             await fetchSession(u);
+            
+            const isDemo = localStorage.getItem("auradash_demo_session") === "true";
+            if (!AUTH_DISABLED && !isDemo && u.email !== "seleniadeveloper@gmail.com") {
+              try {
+                const res = await api.get("/me/businesses");
+                const list = res.data?.userBusinesses || [];
+                setUserBusinesses(list);
+
+                if (list.length > 0) {
+                  const activeBId = localStorage.getItem("active_business_id");
+                  const activeExists = list.some(b => b.id === activeBId);
+                  const selectedId = activeExists ? activeBId : list[0].id;
+                  
+                  localStorage.setItem("active_business_id", selectedId);
+                  
+                  const bizRes = await api.get("/appointments/business");
+                  if (bizRes.data) {
+                    setBusiness(bizRes.data);
+                  } else {
+                    setBusiness(null);
+                  }
+                } else {
+                  setBusiness(null);
+                  localStorage.removeItem("active_business_id");
+                }
+              } catch (err) {
+                console.error("Error loading businesses on auth state change:", err);
+                setBusiness(null);
+              }
+            }
           } catch (_) {}
         } else {
           setBusiness(null);
@@ -425,7 +462,8 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    if (role) {
+    const activeBId = localStorage.getItem("active_business_id");
+    if (role && !business && activeBId && activeBId !== "business-default") {
       api.get("/appointments/business")
         .then(res => {
           if (res.data) {
@@ -436,7 +474,7 @@ export function AuthProvider({ children }) {
           console.error("Error fetching business config from backend:", err);
         });
     }
-  }, [role]);
+  }, [role, business]);
 
   // No-op compatibility helpers
   const loginWithEmailPassword = useCallback(async () => {}, []);

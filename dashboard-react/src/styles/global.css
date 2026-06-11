@@ -396,3 +396,25 @@ a { text-decoration: none !important; color: inherit; }
   background-color: #ef4444 !important; /* red */
   border-color: #ef4444 !important;
 }
+
+/* Onboarding wizard custom utilities */
+.btn-outline-purple {
+  background-color: transparent !important;
+  color: #7c3aed !important;
+  border: 1px solid rgba(124, 58, 237, 0.4) !important;
+  transition: all 0.2s ease !important;
+}
+.btn-outline-purple:hover {
+  background-color: rgba(124, 58, 237, 0.08) !important;
+  border-color: #7c3aed !important;
+}
+.border-purple-opacity {
+  border-color: rgba(124, 58, 237, 0.12) !important;
+}
+.max-h-350 {
+  max-height: 350px !important;
+}
+.last-step-no-line:last-child div:last-child {
+  display: none !important;
+}
+

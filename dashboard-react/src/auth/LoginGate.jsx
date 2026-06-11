@@ -149,5 +149,23 @@ service cloud.firestore {
     );
   }
 
+  // Si está autenticado pero no tiene negocio configurado en PostgreSQL, redirigir a Onboarding
+  const isDemo = localStorage.getItem("auradash_demo_session") === "true";
+  if (user && !business && !isDemo && !import.meta.env.VITE_AUTH_DISABLED) {
+    const OnboardingView = React.lazy(() => import("../views/OnboardingView.jsx"));
+    return (
+      <React.Suspense fallback={
+        <div className="auth-loading-screen d-flex min-vh-100 flex-column align-items-center justify-content-center gap-3"
+             style={{ background: "radial-gradient(circle at 50% 50%, #fcfbff 0%, #f3ebff 100%)" }}>
+          <Spinner animation="border" variant="secondary" role="status" style={{ color: "#7c3aed" }}>
+            <span className="visually-hidden">Cargando...</span>
+          </Spinner>
+        </div>
+      }>
+        <OnboardingView />
+      </React.Suspense>
+    );
+  }
+
   return children;
 }

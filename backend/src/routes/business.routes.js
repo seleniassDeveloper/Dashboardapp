@@ -79,6 +79,145 @@ router.post("/", async (req, res) => {
   }
 });
 
+// POST /api/businesses/setup (Creación atómica de negocio + servicios + profesionales + horarios)
+router.post("/setup", async (req, res) => {
+  try {
+    const { name, rubro, slug, logo, services, workers, schedules } = req.body;
+    const firebaseUid = req.user?.uid;
+
+    if (!name || !slug) {
+      return res.status(400).json({ success: false, error: "El nombre y el slug del negocio son obligatorios." });
+    }
+
+    // Verificar si el slug ya existe
+    const existing = await prisma.business.findUnique({
+      where: { slug: slug.toLowerCase().trim() }
+    });
+    if (existing) {
+      return res.status(400).json({ success: false, error: "El slug seleccionado ya está en uso. Por favor elige otro." });
+    }
+
+    // Buscar rol 'owner'
+    let ownerRole = await prisma.role.findFirst({
+      where: { key: "owner", businessId: null }
+    });
+    if (!ownerRole) {
+      ownerRole = await prisma.role.create({
+        data: {
+          key: "owner",
+          name: "Owner / Dueño",
+          description: "Acceso total del sistema.",
+          isSystemRole: true
+        }
+      });
+    }
+
+    // Crear de forma atómica en una transacción
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Crear el negocio
+      const biz = await tx.business.create({
+        data: {
+          name,
+          slug: slug.toLowerCase().trim(),
+          ownerId: firebaseUid,
+          logo: logo || null,
+          industry: rubro || null,
+          description: `Negocio de rubro ${rubro || "Servicios"}`,
+          bookingEnabled: true,
+          bookingPrimaryColor: "#7c3aed"
+        }
+      });
+
+      // 2. Crear la membresía del Owner
+      const member = await tx.businessMember.create({
+        data: {
+          userId: firebaseUid,
+          businessId: biz.id,
+          roleId: ownerRole.id,
+          role: "owner",
+          status: "ACTIVE"
+        }
+      });
+
+      // 3. Crear los Servicios
+      const serviceMap = {}; // Nombre del servicio -> ID
+      if (Array.isArray(services)) {
+        for (const s of services) {
+          const createdSvc = await tx.service.create({
+            data: {
+              name: s.name,
+              duration: Number(s.duration || 30),
+              price: Number(s.price || 0),
+              category: s.category || rubro || "Servicios",
+              businessId: biz.id,
+              isActive: true,
+              availableOnline: true
+            }
+          });
+          serviceMap[s.name] = createdSvc.id;
+        }
+      }
+
+      // 4. Crear los Profesionales y sus Horarios
+      if (Array.isArray(workers)) {
+        for (const w of workers) {
+          const createdWorker = await tx.worker.create({
+            data: {
+              firstName: w.firstName,
+              lastName: w.lastName,
+              roleTitle: w.roleTitle || "Profesional",
+              businessId: biz.id,
+              availableOnline: true
+            }
+          });
+
+          // Crear horarios de trabajo para este profesional
+          if (Array.isArray(schedules)) {
+            for (const sch of schedules) {
+              await tx.workerSchedule.create({
+                data: {
+                  workerId: createdWorker.id,
+                  dayOfWeek: Number(sch.dayOfWeek),
+                  startTime: sch.startTime,
+                  endTime: sch.endTime
+                }
+              });
+            }
+          }
+
+          // Vincular servicios a este profesional
+          if (Array.isArray(w.services)) {
+            for (const svcName of w.services) {
+              const serviceId = serviceMap[svcName];
+              if (serviceId) {
+                await tx.workerService.create({
+                  data: {
+                    workerId: createdWorker.id,
+                    serviceId: serviceId
+                  }
+                });
+              }
+            }
+          }
+        }
+      }
+
+      return { biz, member };
+    });
+
+    await logAudit(result.biz.id, firebaseUid, "business_setup_completed", "Business", result.biz.id, { name, rubro });
+
+    res.status(201).json({
+      success: true,
+      business: result.biz,
+      member: result.member
+    });
+  } catch (error) {
+    console.error("Error en setup de negocio:", error);
+    res.status(500).json({ success: false, error: "No se pudo completar la configuración de tu negocio. Intenta nuevamente." });
+  }
+});
+
 // GET /api/businesses/me
 router.get("/me", async (req, res) => {
   try {
