@@ -155,46 +155,62 @@ export async function createAppointment(req, res) {
       }
     }
 
-    const appt = await prisma.appointment.create({
-      data: {
-        clientId: String(clientId),
-        serviceId: String(serviceId),
-        workerId: String(workerId),
-        startsAt: new Date(startsAt),
-        notes: notes || null,
-        status: status || "PENDING",
-        businessId: req.businessId,
-      },
-      include: {
-        client: true,
-        worker: true,
-        service: true,
-      },
+    const serviceIds = String(serviceId).split(",");
+    const services = await prisma.service.findMany({
+      where: { id: { in: serviceIds }, businessId: req.businessId }
     });
+    const orderedServices = serviceIds.map(id => services.find(s => s.id === id));
 
-    // Sincronizar con Google Calendar en segundo plano
-    import("../services/googleService.js")
-      .then(({ syncAppointmentToGoogleCalendar }) => {
-        syncAppointmentToGoogleCalendar(appt.id);
-      })
-      .catch((err) => console.error("Error importando googleService:", err));
+    let currentStartsAt = new Date(startsAt);
+    const createdAppointments = [];
 
-    // Log the initial transition in status history
-    prisma.appointmentStatusHistory.create({
-      data: {
-        appointmentId: appt.id,
-        statusFrom: "CREATED",
-        statusTo: appt.status || "PENDING",
-        transitionedAt: new Date(),
-        durationSeconds: 0,
-        businessId: req.businessId
-      }
-    }).catch(err => console.error("Error logging initial transition:", err));
+    for (let i = 0; i < orderedServices.length; i++) {
+      const svc = orderedServices[i];
+      const appt = await prisma.appointment.create({
+        data: {
+          clientId: String(clientId),
+          serviceId: svc.id,
+          workerId: String(workerId),
+          startsAt: currentStartsAt,
+          notes: notes ? `${notes} (${i + 1}/${orderedServices.length})` : `Reserva múltiple (${i + 1}/${orderedServices.length})`,
+          status: status || "PENDING",
+          businessId: req.businessId,
+        },
+        include: {
+          client: true,
+          worker: true,
+          service: true,
+        },
+      });
 
-    // Trigger workflows in background
-    triggerWorkflows(req.businessId, "appointment_created", appt).catch(err => console.error("Error triggering workflows:", err));
+      createdAppointments.push(appt);
 
-    return res.status(201).json(appt);
+      // Sincronizar con Google Calendar en segundo plano
+      import("../services/googleService.js")
+        .then(({ syncAppointmentToGoogleCalendar }) => {
+          syncAppointmentToGoogleCalendar(appt.id);
+        })
+        .catch((err) => console.error("Error importando googleService:", err));
+
+      // Log status history
+      prisma.appointmentStatusHistory.create({
+        data: {
+          appointmentId: appt.id,
+          statusFrom: "CREATED",
+          statusTo: appt.status || "PENDING",
+          transitionedAt: new Date(),
+          durationSeconds: 0,
+          businessId: req.businessId
+        }
+      }).catch(err => console.error("Error logging initial transition:", err));
+
+      // Trigger workflows in background
+      triggerWorkflows(req.businessId, "appointment_created", appt).catch(err => console.error("Error triggering workflows:", err));
+
+      currentStartsAt = new Date(currentStartsAt.getTime() + (svc.duration || 30) * 60 * 1000);
+    }
+
+    return res.status(201).json(createdAppointments[0]);
   } catch (e) {
     console.error("Error creando la cita:", e);
 

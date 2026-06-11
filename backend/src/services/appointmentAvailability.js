@@ -70,21 +70,24 @@ export function isWithinWorkerSchedule(schedules, startsAt, durationMinutes) {
 }
 
 export async function findAvailableWorkers({ serviceId, startsAt, excludeAppointmentId = null }) {
-  const service = await prisma.service.findUnique({
-    where: { id: String(serviceId) },
+  const serviceIds = String(serviceId).split(",");
+  const services = await prisma.service.findMany({
+    where: { id: { in: serviceIds } },
     select: { duration: true },
   });
 
-  if (!service) return [];
+  if (services.length !== serviceIds.length) return [];
+
+  const totalDuration = services.reduce((sum, s) => sum + (s.duration || 30), 0);
 
   const newStart = new Date(startsAt);
-  const newEnd = addMinutes(newStart, service.duration);
+  const newEnd = addMinutes(newStart, totalDuration);
   const { start: dayStart, end: dayEnd } = dayRange(newStart);
 
   const workers = await prisma.worker.findMany({
     where: {
       services: {
-        some: { serviceId: String(serviceId) },
+        some: { serviceId: { in: serviceIds } },
       },
     },
     select: {
@@ -92,6 +95,7 @@ export async function findAvailableWorkers({ serviceId, startsAt, excludeAppoint
       firstName: true,
       lastName: true,
       schedules: true,
+      services: true,
       appointments: {
         where: {
           startsAt: { gte: dayStart, lte: dayEnd },
@@ -109,8 +113,14 @@ export async function findAvailableWorkers({ serviceId, startsAt, excludeAppoint
     },
   });
 
-  const available = workers.filter((w) => {
-    const scheduleCheck = isWithinWorkerSchedule(w.schedules, newStart, service.duration);
+  // Filtrar trabajadores que realizan TODOS los servicios seleccionados
+  const eligibleWorkers = workers.filter(w => {
+    const workerServiceIds = w.services.map(ws => ws.serviceId);
+    return serviceIds.every(id => workerServiceIds.includes(id));
+  });
+
+  const available = eligibleWorkers.filter((w) => {
+    const scheduleCheck = isWithinWorkerSchedule(w.schedules, newStart, totalDuration);
     if (!scheduleCheck.ok) return false;
 
     const busy = (w.appointments || []).some((a) => {
@@ -136,14 +146,19 @@ export async function validateAppointmentSlot({
   startsAt,
   excludeAppointmentId = null,
 }) {
-  const service = await prisma.service.findUnique({
-    where: { id: String(serviceId) },
-    select: { id: true, name: true, duration: true },
+  const serviceIds = String(serviceId).split(",");
+  const services = await prisma.service.findMany({
+    where: { id: { in: serviceIds } },
+    select: { id: true, name: true, duration: true, price: true },
   });
 
-  if (!service) {
-    return { available: false, reason: "Servicio inválido.", code: "INVALID_SERVICE" };
+  if (services.length !== serviceIds.length) {
+    return { available: false, reason: "Uno o más servicios inválidos.", code: "INVALID_SERVICE" };
   }
+
+  // Ordenar según el orden original solicitado
+  const orderedServices = serviceIds.map(id => services.find(s => s.id === id));
+  const totalDuration = orderedServices.reduce((sum, s) => sum + (s.duration || 30), 0);
 
   const worker = await prisma.worker.findUnique({
     where: { id: String(workerId) },
@@ -152,7 +167,7 @@ export async function validateAppointmentSlot({
       firstName: true,
       lastName: true,
       schedules: true,
-      services: { where: { serviceId: String(serviceId) }, select: { serviceId: true } },
+      services: { where: { serviceId: { in: serviceIds } }, select: { serviceId: true } },
     },
   });
 
@@ -160,10 +175,10 @@ export async function validateAppointmentSlot({
     return { available: false, reason: "Profesional inválido.", code: "INVALID_WORKER" };
   }
 
-  if (!worker.services?.length) {
+  if (worker.services.length !== serviceIds.length) {
     return {
       available: false,
-      reason: "Este profesional no realiza el servicio seleccionado.",
+      reason: "Este profesional no realiza todos los servicios seleccionados.",
       code: "WORKER_NOT_SERVICE",
     };
   }
@@ -173,12 +188,12 @@ export async function validateAppointmentSlot({
     return { available: false, reason: "Fecha/hora inválida.", code: "INVALID_DATE" };
   }
 
-  const scheduleCheck = isWithinWorkerSchedule(worker.schedules, newStart, service.duration);
+  const scheduleCheck = isWithinWorkerSchedule(worker.schedules, newStart, totalDuration);
   if (!scheduleCheck.ok) {
     return { available: false, reason: scheduleCheck.reason, code: scheduleCheck.code };
   }
 
-  const newEnd = addMinutes(newStart, service.duration);
+  const newEnd = addMinutes(newStart, totalDuration);
   const { start: dayStart, end: dayEnd } = dayRange(newStart);
 
   const sameDay = await prisma.appointment.findMany({
@@ -232,7 +247,7 @@ export async function validateAppointmentSlot({
       lastName: worker.lastName,
       name: `${worker.firstName || ""} ${worker.lastName || ""}`.trim(),
     },
-    service,
+    service: orderedServices[0],
     startsAt: newStart,
     endsAt: newEnd,
   };

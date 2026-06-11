@@ -176,6 +176,7 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
 
   const [workers, setWorkers] = useState([]);
   const [servicesCatalog, setServicesCatalog] = useState([]);
+  const [selServiceIds, setSelServiceIds] = useState([]);
   const [availability, setAvailability] = useState({
     loading: false,
     available: null,
@@ -304,10 +305,15 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
       .filter(Boolean);
   }, [selectedWorker, servicesById]);
 
-  const selectedService = useMemo(
-    () => workerServices.find((s) => s.id === form.serviceId) || null,
-    [workerServices, form.serviceId]
-  );
+  const selectedServices = useMemo(() => {
+    return selServiceIds.map((id) => servicesCatalog.find((s) => s.id === id)).filter(Boolean);
+  }, [selServiceIds, servicesCatalog]);
+
+  const selectedService = selectedServices[0] || null;
+
+  useEffect(() => {
+    setForm((p) => ({ ...p, serviceId: selServiceIds.join(",") }));
+  }, [selServiceIds]);
 
   const startsAtLocal = useMemo(
     () => combineDateTime(form.appointmentDate, form.appointmentTime),
@@ -467,6 +473,7 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
           appointmentTime: finalTime,
           status: "PENDING",
         });
+        setSelServiceIds(initialData?.serviceId ? [String(initialData.serviceId)] : []);
       } else {
         setForm({
           ...emptyForm,
@@ -476,6 +483,7 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
           serviceId: initialData?.serviceId || "",
           workerId: initialData?.workerId || "",
         });
+        setSelServiceIds(initialData?.serviceId ? [String(initialData.serviceId)] : []);
       }
       return;
     }
@@ -516,24 +524,28 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
       price,
       status: appt?.status || "PENDING",
     });
+    setSelServiceIds(svcId ? [svcId] : []);
   }, [show, isEdit, initialData, workers]);
 
   // si cambia worker, resetea servicio si no pertenece
   useEffect(() => {
-    if (!form.workerId) return;
-    const exists = workerServices.some((s) => s.id === form.serviceId);
-    if (!exists) setForm((p) => ({ ...p, serviceId: "", price: "" }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (!form.workerId) {
+      setSelServiceIds([]);
+      return;
+    }
+    const eligibleIds = workerServices.map((s) => s.id);
+    setSelServiceIds((prev) => prev.filter((id) => eligibleIds.includes(id)));
   }, [form.workerId, workerServices]);
 
   // autoprecio
   useEffect(() => {
-    if (!selectedService) return;
+    if (selectedServices.length === 0) return;
+    const total = selectedServices.reduce((sum, s) => sum + (s.price || 0), 0);
     setForm((p) => ({
       ...p,
-      price: selectedService.price != null ? String(selectedService.price) : p.price,
+      price: String(total),
     }));
-  }, [selectedService]);
+  }, [selectedServices]);
 
   // seleccionar sugerencia cliente
   const pickClient = (c) => {
@@ -713,8 +725,9 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
   };
 
   const attendingLabel = selectedWorker?.name || "Sin asignar";
-  const serviceLabel = selectedService?.name || "—";
+  const serviceLabel = selectedServices.length > 0 ? selectedServices.map((s) => s.name).join(" + ") : "—";
   const whenLabel = formatDateTimeLocalLabel(startsAtLocal);
+  const totalDuration = selectedServices.reduce((sum, s) => sum + (s.duration || 30), 0);
 
   return (
     <>
@@ -770,7 +783,7 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
                 </div>
                 <div className="small text-muted mt-1">
                   {serviceLabel} · {whenLabel}
-                  {selectedService?.duration ? ` · ${selectedService.duration} min` : ""}
+                  {totalDuration ? ` · ${totalDuration} min` : ""}
                 </div>
                 {availability.loading && (
                   <div className="small text-muted mt-2 d-flex align-items-center gap-2">
@@ -915,22 +928,56 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
                   return (
                     <Col md={6} key="serviceId">
                       <Form.Group>
-                        <Form.Label className="small-label" htmlFor="appt-service">
+                        <Form.Label className="small-label">
                           {field.label} {field.required && "*"}
                         </Form.Label>
-                        <Form.Select
-                          id="appt-service"
-                          className="modern-input"
-                          value={form.serviceId}
-                          onChange={(e) => setField("serviceId", e.target.value)}
-                          disabled={!form.workerId}
-                          isInvalid={Boolean(errors.serviceId)}
-                        >
-                          <option value="">{form.workerId ? "Seleccionar..." : "Elige trabajador primero"}</option>
-                          {workerServices.map((s) => (
-                            <option key={s.id} value={s.id}>{s.name}</option>
+
+                        {/* List of selected services */}
+                        <div className="d-flex flex-column gap-2 mb-2">
+                          {selectedServices.map((svc) => (
+                            <div 
+                              key={svc.id} 
+                              className="d-flex justify-content-between align-items-center px-3 py-2 border rounded-xl"
+                              style={{ backgroundColor: "#f8fafc", borderColor: "#e2e8f0" }}
+                            >
+                              <span className="small fw-semibold text-dark">
+                                {svc.name} <span className="text-muted">(${svc.price})</span>
+                              </span>
+                              {!isEdit && (
+                                <button
+                                  type="button"
+                                  className="btn-close"
+                                  style={{ fontSize: "10px" }}
+                                  onClick={() => setSelServiceIds((prev) => prev.filter((id) => id !== svc.id))}
+                                />
+                              )}
+                            </div>
                           ))}
-                        </Form.Select>
+                        </div>
+
+                        {/* Selector para agregar servicio */}
+                        {!isEdit && (
+                          <Form.Select
+                            id="appt-service"
+                            className="modern-input"
+                            value=""
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val) {
+                                setSelServiceIds((prev) => [...prev, val]);
+                              }
+                            }}
+                            disabled={!form.workerId}
+                            isInvalid={Boolean(errors.serviceId)}
+                          >
+                            <option value="">{form.workerId ? "+ Agregar servicio..." : "Elige trabajador primero"}</option>
+                            {workerServices
+                              .filter((s) => !selServiceIds.includes(s.id))
+                              .map((s) => (
+                                <option key={s.id} value={s.id}>{s.name} - ${s.price}</option>
+                              ))}
+                          </Form.Select>
+                        )}
                         {errors.serviceId && <div className="text-danger small mt-1">{errors.serviceId}</div>}
                       </Form.Group>
                     </Col>
