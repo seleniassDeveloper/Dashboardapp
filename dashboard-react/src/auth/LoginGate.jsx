@@ -17,7 +17,8 @@ export default function LoginGate({ children }) {
     isUnauthorized,
     role,
     firestoreError,
-    loginDemo
+    loginDemo,
+    business
   } = useAuth();
 
   const googleRedirectPending =
