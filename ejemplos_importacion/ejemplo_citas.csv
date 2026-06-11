@@ -1,0 +1,6 @@
+Cliente Nombre;Cliente Telefono;Cliente Email;Tratamiento Solicitado;Estilista Asignado;Dia del Turno;Hora del Turno;Monto Cobrado;Estado Reserva;Notas Cita
+Sofía Altieri;1154329876;sofia.altieri@gmail.com;Esmaltado Semipermanente;Andrea;2026-06-12;14:30;12000;CONFIRMED;Turno de retoque
+Javier Rossi;1198765432;javier.rossi@yahoo.com.ar;Corte de Cabello Clásico;Nicolás;2026-06-12;16:00;15000;CONFIRMED;Corte regular
+Martina López;1134215678;martina.lopez@outlook.com;Limpieza Facial Profunda;Florencia;2026-06-13;10:00;25000;CONFIRMED;Primera sesión facial
+Bautista Sosa;1123456789;bautista.sosa@gmail.com;Masaje Descontracturante;Andrea;2026-06-11;18:00;30000;DONE;Turno completado ayer
+Delfina Fernández;1165437890;delfina.f@hotmail.com;Perfilado de Cejas;Florencia;2026-06-13;11:30;8000;CONFIRMED;Diseño con hilo
