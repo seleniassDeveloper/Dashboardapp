@@ -53,7 +53,7 @@ export default function ProfessionalProfitability({ professionalStats = [] }) {
           avgTicket: Number(p.avgTicket || 12000),
           totalRevenue: Number(p.totalRevenue || 0)
         }))
-      : MOCK_PROFESSIONALS;
+      : [];
   }, [professionalStats]);
 
   // Estados de filtros
@@ -126,6 +126,22 @@ export default function ProfessionalProfitability({ professionalStats = [] }) {
       setSortOrder("desc");
     }
   };
+
+  if (dataset.length === 0) {
+    return (
+      <Card className="card-premium border-0 shadow-sm bg-white text-center py-5">
+        <Card.Body className="p-4 d-flex flex-column align-items-center justify-content-center">
+          <div className="p-3 bg-purple-50 rounded-circle text-purple-600 mb-3" style={{ width: "fit-content" }}>
+            <Award size={32} />
+          </div>
+          <h3 className="h5 fw-black text-gray-900 mb-1">Sin datos de profesionales</h3>
+          <p className="text-muted smaller mb-0" style={{ maxWidth: "420px" }}>
+            No hay estadísticas operativas registradas para los profesionales del equipo en este período. Una vez comiences a facturar y completar citas, podrás ver aquí el rendimiento y facturación de cada estilista.
+          </p>
+        </Card.Body>
+      </Card>
+    );
+  }
 
   return (
     <div className="professional-profitability-view">
