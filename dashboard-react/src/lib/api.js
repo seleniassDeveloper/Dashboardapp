@@ -48,8 +48,10 @@ api.interceptors.response.use(
     // Solo disparar el listener de error global para errores de red o errores de servidor (status >= 500)
     // Se excluyen los códigos de error 4xx (400, 401, 403, 404, 409) que deben manejarse localmente
     const status = error.response?.status;
+    const method = error.config?.method?.toLowerCase() || "";
+    const isAllowedMethod = ["get", "post", "put"].includes(method);
     const isSystemError = !status || status >= 500;
-    if (isSystemError && errorListener) {
+    if (isSystemError && isAllowedMethod && errorListener) {
       errorListener(error);
     }
     return Promise.reject(error);
