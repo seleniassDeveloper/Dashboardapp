@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { Modal, Row, Col, Card, Badge, Table, Button, Form, Alert, ProgressBar, Spinner } from "react-bootstrap";
 import { 
   Calendar, CreditCard, Clock, MessageCircle, Cake, Sparkles, 
@@ -10,6 +11,7 @@ import { API_BASE_URL } from "../../lib/api.js";
 import api from "../../lib/api.js";
 import { usePermissions } from "../../auth/PermissionProvider.jsx";
 import { useBusiness } from "../../auth/BusinessContext.jsx";
+import { useTranslation } from "react-i18next";
 
 function currency(n) {
   return new Intl.NumberFormat("es-AR", {
@@ -29,8 +31,10 @@ const getImageUrl = (url) => {
 };
 
 export default function ClientDetailModal({ show, onHide, client, appointments = [], onPhotoUpdated }) {
+  const { t } = useTranslation("views");
   const { hasPermission } = usePermissions();
   const { business } = useBusiness();
+  const navigate = useNavigate();
   
   const canViewNotes = hasPermission("clients.privateNotes.view");
   const canEditNotes = hasPermission("clients.privateNotes.edit");
@@ -648,6 +652,34 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
     } finally {
       setSavingNotes(false);
     }
+  };
+
+  const handleUpdatePhotoFlag = async (photoId, flag, value) => {
+    try {
+      await api.put(`/appointments/photos/${photoId}`, { [flag]: value });
+      if (crmData?.gallery) {
+        setCrmData(prev => ({
+          ...prev,
+          gallery: prev.gallery.map(p => p.id === photoId ? { ...p, [flag]: value } : p)
+        }));
+      }
+    } catch (err) {
+      console.error("Error updating photo flag:", err);
+    }
+  };
+
+  const handleInstagramCreate = () => {
+    const selectedPhotoIds = (crmData?.gallery || [])
+      .filter(p => p.useForInstagram)
+      .map(p => p.id);
+      
+    if (selectedPhotoIds.length === 0) {
+      alert("Por favor selecciona al menos una fotografía marcando 'Usar para Instagram' en la galería.");
+      return;
+    }
+    
+    onHide();
+    navigate(`/marketing?clientId=${client.id}&photoIds=${selectedPhotoIds.join(",")}`);
   };
 
   const handleSendWhatsApp = () => {
@@ -2319,19 +2351,38 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
             )}
 
             {/* PESTAÑA 6: HISTORIAL VISUAL */}
-            {activeTab === "historial_visual" && (
-              <Card className="border-0 border bg-white p-4 rounded-2xl shadow-sm">
-                <div className="d-flex justify-content-between align-items-center mb-3 border-bottom pb-3 flex-wrap gap-2">
-                  <h3 className="h6 fw-bold m-0 d-flex align-items-center gap-2 text-gray-900">
-                    <Camera size={18} className="text-purple-500" />
-                    <span>Historial Visual y Registro Fotográfico</span>
-                  </h3>
-                </div>
-
-                {!crmData?.gallery || crmData.gallery.length === 0 ? (
-                  <div className="text-center py-5 bg-light rounded-xl text-muted small border">
-                    No se han registrado fotografías de tratamiento para este cliente.
+            {activeTab === "historial_visual" && (() => {
+              const marketingConsent = crmData?.client?.marketingConsent === true || client?.marketingConsent === true;
+              return (
+                <Card className="border-0 border bg-white p-4 rounded-2xl shadow-sm">
+                  <div className="d-flex justify-content-between align-items-center mb-3 border-bottom pb-3 flex-wrap gap-2">
+                    <h3 className="h6 fw-bold m-0 d-flex align-items-center gap-2 text-gray-900">
+                      <Camera size={18} className="text-purple-500" />
+                      <span>{t("clients.visualHistory.title")}</span>
+                    </h3>
+                    {marketingConsent && crmData?.gallery?.length > 0 && (
+                      <Button 
+                        variant="purple" 
+                        className="rounded-xl px-4 py-2 text-white bg-purple-600 border-0 hover-bg-purple-700 fw-bold shadow-sm d-flex align-items-center gap-1.5"
+                        onClick={handleInstagramCreate}
+                        style={{ fontSize: "13px" }}
+                      >
+                        <Sparkles size={14} />
+                        <span>{t("clients.visualHistory.createInstagram")}</span>
+                      </Button>
+                    )}
                   </div>
+
+                  {!marketingConsent && (
+                    <Alert variant="warning" className="rounded-2xl mb-4 border-0 shadow-sm bg-warning bg-opacity-10 text-warning-800">
+                      {t("clients.visualHistory.consentWarning")}
+                    </Alert>
+                  )}
+
+                  {!crmData?.gallery || crmData.gallery.length === 0 ? (
+                    <div className="text-center py-5 bg-light rounded-xl text-muted small border">
+                      {t("clients.visualHistory.noPhotos")}
+                    </div>
                 ) : (
                   <div className="client-visual-gallery animate-fade-in">
                     {(() => {
@@ -2393,18 +2444,48 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
                                           className="position-absolute top-2.5 start-2.5 px-2 py-1 text-uppercase"
                                           style={{ fontSize: "9px", background: "rgba(17, 24, 39, 0.75)", letterSpacing: "0.5px" }}
                                         >
-                                          {p.photoType === "before" ? "Antes" :
-                                           p.photoType === "during" ? "Durante" :
-                                           p.photoType === "after" ? "Después" :
-                                           p.photoType === "final" ? "Resultado Final" : "Otro"}
+                                          {p.photoType === "before" ? t("clients.visualHistory.photoTypeBefore") :
+                                           p.photoType === "during" ? t("clients.visualHistory.photoTypeDuring") :
+                                           p.photoType === "after" ? t("clients.visualHistory.photoTypeAfter") :
+                                           p.photoType === "final" ? t("clients.visualHistory.photoTypeFinal") : t("clients.visualHistory.photoTypeOther")}
                                         </Badge>
                                       </div>
                                       <Card.Body className="p-3 d-flex flex-column gap-2 text-start small">
                                         {p.note && (
                                           <div className="p-2 rounded bg-light border border-purple-opacity text-secondary mb-1">
-                                            <strong>Nota:</strong> {p.note}
+                                            <strong>{t("clients.visualHistory.note")}</strong> {p.note}
                                           </div>
                                         )}
+
+                                        <div className="mt-2 pt-2 border-top">
+                                          <div className="d-flex flex-column gap-1.5">
+                                            <Form.Check
+                                              type="checkbox"
+                                              id={`use-insta-${p.id}`}
+                                              label={`✓ ${t("clients.visualHistory.useForInstagram")}`}
+                                              checked={p.useForInstagram || false}
+                                              disabled={!marketingConsent}
+                                              onChange={(e) => handleUpdatePhotoFlag(p.id, "useForInstagram", e.target.checked)}
+                                              className="smaller text-secondary font-bold"
+                                            />
+                                            <Form.Check
+                                              type="checkbox"
+                                              id={`show-portfolio-${p.id}`}
+                                              label={`✓ ${t("clients.visualHistory.showInPortfolio")}`}
+                                              checked={p.showInPortfolio || false}
+                                              onChange={(e) => handleUpdatePhotoFlag(p.id, "showInPortfolio", e.target.checked)}
+                                              className="smaller text-secondary"
+                                            />
+                                            <Form.Check
+                                              type="checkbox"
+                                              id={`highlight-result-${p.id}`}
+                                              label={`✓ ${t("clients.visualHistory.highlightResult")}`}
+                                              checked={p.highlightResult || false}
+                                              onChange={(e) => handleUpdatePhotoFlag(p.id, "highlightResult", e.target.checked)}
+                                              className="smaller text-secondary"
+                                            />
+                                          </div>
+                                        </div>
                                         
                                         <div className="d-flex align-items-center gap-2 mt-auto border-top pt-2">
                                           <div 
@@ -2449,8 +2530,7 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
                                                   setCrmData(res.data);
                                                 }
                                               } catch (err) {
-                                                console.error("Error deleting photo:", err);
-                                                alert(err.response?.data?.error || "Error al eliminar la foto.");
+                                                console.error(err);
                                               }
                                             }}
                                           >
@@ -2470,7 +2550,7 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
                   </div>
                 )}
               </Card>
-            )}
+            )})}
           </div>
         )}
       </Modal.Body>

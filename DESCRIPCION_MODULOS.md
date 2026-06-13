@@ -281,3 +281,42 @@ Administración de la identidad del negocio y permisos de seguridad del personal
     *   `[Checkboxes de la Matriz]`: Permite tildar o destildar permisos individuales para un rol.
     *   `[Crear Rol Personalizado]`: Permite crear un nuevo rol (ej: "Estilista Junior") y definir sus accesos desde cero.
     *   `[Guardar Cambios de Seguridad]`: Aplica los cambios de permisos en caliente de manera que impacten inmediatamente en las sesiones activas del equipo.
+
+---
+
+## 📢 11. Módulo: Generador de Contenido de Marketing e Instagram
+Permite diseñar y automatizar publicaciones para Instagram utilizando las fotos de evolución tomadas durante los servicios.
+
+### A. Control de Privacidad y Consentimiento CRM
+*   **Información / Formulario**:
+    *   *Consentimiento de Privacidad*: Selector de Sí/No en la ficha de cliente (`ClientModal`) para autorizar el uso de sus imágenes en marketing.
+    *   *Advertencias de Cumplimiento*: Avisos en `ClientDetailModal` si el cliente no autorizó marketing, deshabilitando la selección de imágenes.
+    *   *Checkboxes de Autorización por Imagen*: Configuración individual para cada foto:
+        *   *Usar para Instagram* (requiere consentimiento general).
+        *   *Mostrar en Portfolio* (para catálogo público).
+        *   *Destacar Resultado* (para destacar la evolución).
+*   **Funcionalidades / Botones**:
+    *   `[Crear contenido para Instagram]`: Recopila fotos autorizadas marcadas en el CRM y las abre en el wizard de diseño.
+
+### B. Asistente de Creación Visual (Wizard 4 Pasos)
+*   **Información / Formulario**:
+    *   *Paso 1 (Organización)*: Modos de visualización: Una Imagen, Antes y Después (layout comparativo) y Carrusel Multi Imagen.
+    *   *Paso 2 (Formato)*: Lienzos adaptados para redes sociales (1:1 Post, 9:16 Story, Portada de Reel).
+    *   *Paso 3 (Personalización)*: Controles interactivos para:
+        *   Rotar imágenes individualmente 90 grados.
+        *   Superponer el logo oficial de la marca.
+        *   Añadir nombre de negocio o marca de agua personalizada.
+        *   Superponer textos flotantes editables (tipografías clásica, moderna, script; alineación superior, media, inferior).
+    *   *Paso 4 (Copilot IA - Pie de Foto)*: Selector de servicio, rubro del negocio, tono de comunicación (profesional, divertido, cercano, promocional) y llamada a la acción (CTA).
+*   **Funcionalidades / Botones**:
+    *   `[Generar Copy con IA]`: Invoca la inteligencia artificial para redactar el pie de foto, hashtags recomendados e información del profesional.
+    *   `[Copiar Post]`: Copia la descripción completa en el portapapeles.
+    *   `[Descargar ZIP]`: Empaqueta todo el carrusel en un archivo ZIP listo para publicar.
+    *   `[Guardar Publicación]`: Guarda el post como Borrador, Listo o Programado con fecha/hora futura.
+
+### C. Biblioteca y Gestión de Contenido
+*   **Información en Pantalla**:
+    *   Listado de contenidos filtrados por pestañas: Contenido Generado (fotos listas), Programados (fecha planificada), Borradores y Publicados.
+*   **Funcionalidades / Botones**:
+    *   `[Copiar Caption]` y `[Eliminar]` en cada tarjeta de post de la biblioteca.
+

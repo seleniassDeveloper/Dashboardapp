@@ -101,7 +101,11 @@ const PERMISSIONS = [
   { key: "permissions_edit", module: "usuarios", action: "permissions.edit", description: "Modificar casillas de permisos asignados en la matriz" },
 
   // Auditoría
-  { key: "audit_view", module: "auditoría", action: "audit.view", description: "Visualizar bitácora completa de eventos críticos del negocio" }
+  { key: "audit_view", module: "auditoría", action: "audit.view", description: "Visualizar bitácora completa de eventos críticos del negocio" },
+
+  // Marketing e Instagram
+  { key: "marketing_view", module: "marketing", action: "marketing.view", description: "Ver panel de control de marketing y posts" },
+  { key: "marketing_edit", module: "marketing", action: "marketing.edit", description: "Crear, editar, borrar y programar publicaciones de Instagram" }
 ];
 
 const ROLES = [
@@ -128,7 +132,8 @@ const ROLES = [
       "services.view", "services.create", "services.edit",
       "team.view", "team.create", "team.edit",
       "inventory.view", "inventory.create", "inventory.edit", "inventory.movements.view",
-      "settings.view"
+      "settings.view",
+      "marketing.view", "marketing.edit"
     ]
   },
   {

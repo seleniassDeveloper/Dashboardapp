@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Container, Card, Button, Spinner, Alert } from "react-bootstrap";
 import { Shield, Sparkles, AlertTriangle, CheckCircle, LogIn } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import api from "../lib/api.js";
 import { useAuth } from "../auth/AuthProvider.jsx";
 
@@ -9,6 +10,7 @@ export default function AcceptInviteView() {
   const { token } = useParams();
   const navigate = useNavigate();
   const { user, switchBusiness } = useAuth();
+  const { t } = useTranslation("views");
 
   const [loading, setLoading] = useState(true);
   const [invitation, setInvitation] = useState(null);
@@ -27,7 +29,7 @@ export default function AcceptInviteView() {
         }
       } catch (err) {
         console.error("Error loading invite details:", err);
-        setError(err.response?.data?.error || "La invitación no es válida o ya ha expirado.");
+        setError(err.response?.data?.error || t("acceptInvite.invalidLinkDesc"));
       } finally {
         setLoading(false);
       }
@@ -36,7 +38,7 @@ export default function AcceptInviteView() {
     if (token) {
       fetchInviteDetails();
     }
-  }, [token]);
+  }, [token, t]);
 
   const handleAccept = async () => {
     if (!token) return;
@@ -46,7 +48,7 @@ export default function AcceptInviteView() {
     try {
       const res = await api.post("/invitations/accept", { token });
       if (res.data?.success) {
-        setSuccess("¡Invitación aceptada con éxito! Redirigiéndote al panel...");
+        setSuccess(t("acceptInvite.acceptSuccess"));
         // Cambiar de empresa al instante
         if (res.data.businessId) {
           await switchBusiness(res.data.businessId);
@@ -57,7 +59,7 @@ export default function AcceptInviteView() {
       }
     } catch (err) {
       console.error("Error accepting invite:", err);
-      setError(err.response?.data?.error || "No se pudo aceptar la invitación.");
+      setError(err.response?.data?.error || t("acceptInvite.acceptError"));
     } finally {
       setSubmitting(false);
     }
@@ -77,7 +79,7 @@ export default function AcceptInviteView() {
       >
         <div className="text-center">
           <Spinner animation="border" variant="primary" className="mb-3" />
-          <p className="text-muted small">Cargando detalles de tu invitación...</p>
+          <p className="text-muted small">{t("acceptInvite.loadingDetails")}</p>
         </div>
       </div>
     );
@@ -122,10 +124,10 @@ export default function AcceptInviteView() {
               >
                 <AlertTriangle size={32} className="text-danger" />
               </div>
-              <h2 className="fw-bold h4 mb-2">Enlace no Válido</h2>
+              <h2 className="fw-bold h4 mb-2">{t("acceptInvite.invalidLinkTitle")}</h2>
               <p className="text-muted small mb-4">{error}</p>
               <Button onClick={() => navigate("/")} className="rounded-pill px-4" variant="secondary">
-                Ir a Inicio
+                {t("acceptInvite.goHomeBtn")}
               </Button>
             </div>
           ) : (
@@ -153,10 +155,10 @@ export default function AcceptInviteView() {
                   </div>
                 )}
                 <h1 className="fw-black h3 text-dark mb-1" style={{ letterSpacing: "-0.02em" }}>
-                  ¡Te invitaron a {invitation?.business?.name}!
+                  {t("acceptInvite.invitedToTitle", { name: invitation?.business?.name })}
                 </h1>
                 <p className="text-muted small">
-                  Unite a su espacio de trabajo y empezá a operar en el equipo.
+                  {t("acceptInvite.invitedToDesc")}
                 </p>
               </div>
 
@@ -175,7 +177,7 @@ export default function AcceptInviteView() {
                       <Shield size={20} />
                     </div>
                     <div>
-                      <div className="text-muted smaller">Rol Asignado</div>
+                      <div className="text-muted smaller">{t("acceptInvite.assignedRole")}</div>
                       <div className="fw-bold text-dark text-capitalize" style={{ fontSize: "15px" }}>
                         {invitation?.role}
                       </div>
@@ -199,12 +201,12 @@ export default function AcceptInviteView() {
                       {submitting ? (
                         <>
                           <Spinner size="sm" animation="border" />
-                          <span>Procesando...</span>
+                          <span>{t("acceptInvite.processing")}</span>
                         </>
                       ) : (
                         <>
                           <Sparkles size={16} />
-                          <span>Aceptar Invitación y Unirme</span>
+                          <span>{t("acceptInvite.acceptBtn")}</span>
                         </>
                       )}
                     </Button>
@@ -217,7 +219,7 @@ export default function AcceptInviteView() {
                       }}
                     >
                       <LogIn size={16} />
-                      <span>Iniciar Sesión para Unirme</span>
+                      <span>{t("acceptInvite.loginToJoinBtn")}</span>
                     </Button>
                   )}
 
@@ -227,7 +229,7 @@ export default function AcceptInviteView() {
                     className="rounded-pill border-opacity-25"
                     disabled={submitting}
                   >
-                    Rechazar
+                    {t("acceptInvite.declineBtn")}
                   </Button>
                 </div>
               )}

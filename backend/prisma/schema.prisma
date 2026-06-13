@@ -28,6 +28,8 @@ model Client {
   medicalNotes      String?
   businessId        String?
   business          Business?          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  marketingConsent  Boolean            @default(false)
+  marketingPosts    MarketingPost[]
 }
 
 model Service {
@@ -284,6 +286,7 @@ model Business {
   statusHistories            AppointmentStatusHistory[]
   slaConfigs                 ServiceSlaConfig[]
   slas                       ServiceSla[]
+  marketingPosts             MarketingPost[]
 }
 
 model ScheduleBlock {
@@ -315,6 +318,9 @@ model AppointmentPhoto {
   client         Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
   worker         Worker?     @relation(fields: [professionalId], references: [id], onDelete: Cascade)
   service        Service?    @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  useForInstagram Boolean    @default(false)
+  showInPortfolio Boolean    @default(false)
+  highlightResult Boolean    @default(false)
 }
 
 model ClinicalNote {
@@ -810,5 +816,24 @@ model ServiceSla {
   @@index([appointmentId])
   @@index([status])
 }
+
+model MarketingPost {
+  id          String   @id @default(cuid())
+  businessId  String
+  clientId    String?
+  caption     String?  @db.Text
+  hashtags    String?  @db.Text
+  cta         String?
+  format      String   // e.g. "POST_1X1" | "STORY_9X16" | "REEL_COVER" | "CAROUSEL_BEFORE_AFTER" | "CAROUSEL_MULTI" | "SERVICE_PROMO" | "TESTIMONIAL"
+  status      String   @default("DRAFT") // "DRAFT" | "READY" | "PUBLISHED" | "SCHEDULED"
+  imageUrls   Json     // List of image URLs
+  scheduledAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  client      Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+}
+
 
 

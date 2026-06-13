@@ -126,6 +126,7 @@
       <li><a href="#m8">Copilot Aura IA</a></li>
       <li><a href="#m9">Sincronizador de Sheets</a></li>
       <li><a href="#m10">Configuración y Roles</a></li>
+      <li><a href="#m11">Marketing e Instagram</a></li>
     </ol>
   </div>
 
@@ -661,6 +662,85 @@
           </ul>
         </div>
         <div class="tip"><b>Sugerencia de Uso:</b> Usá subcampos cuando requieras agrupar datos relacionados (como dimensiones, detalles de contacto extra o selecciones jerárquicas) para mantener los formularios limpios y estructurados.</div>
+      </div>
+      <a class="top" href="#top">↑ Volver al índice</a>
+    </div>
+  </section>
+
+  <!-- 11 -->
+  <section class="module" id="m11">
+    <header><div class="num">Módulo 11</div><h2>📢 Generador de Contenido de Marketing e Instagram</h2></header>
+    <div class="module-body">
+      <div class="goal"><b>Para qué sirve:</b> convertir el historial visual (fotos tomadas a tus clientes durante el checkout) en contenido publicitario profesional listo para publicar en Instagram (posts, historias, carruseles), redactando copys persuasivos con IA sin salir de la Suite.</div>
+
+      <div class="screen"><h3>A. Gestión de Consentimiento y Visualización CRM</h3>
+        <div class="block info"><span class="tag">Información en Pantalla</span>
+          <ul>
+            <li><span class="term">Consentimiento de Marketing (ClientModal):</span> Conmutador de Sí/No que autoriza el uso de la imagen del cliente.</li>
+            <li><span class="term">Banners preventivos (ClientDetailModal):</span> Al ingresar al historial visual de un cliente, si no cuenta con la casilla habilitada, se muestra una alerta advirtiendo que no posee autorización de privacidad.</li>
+            <li><span class="term">Galería y Checkboxes de Selección:</span> Cada foto cuenta con tres selectores clave:
+              <ul>
+                <li><span class="term">Utilizar para Instagram:</span> Habilita la foto para el diseñador (deshabilitado si no hay consentimiento).</li>
+                <li><span class="term">Mostrar en Portfolio:</span> Visualiza la foto en el formulario de agendamiento público.</li>
+                <li><span class="term">Destacar Resultado:</span> Prioriza visualmente el trabajo sobre otros.</li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+        <div class="block func"><span class="tag">Funcionalidades / Botones</span>
+          <ul>
+            <li><span class="btn">Crear contenido para Instagram</span> recopila de forma automática las imágenes seleccionadas que tengan el check de Instagram y abre el asistente de marketing con esas fotos pre-cargadas.</li>
+          </ul>
+        </div>
+        <div class="warn"><b>Importante:</b> respeta la privacidad de tus clientes. Nunca marques fotos de uso público ni las uses para Instagram si el cliente no dio el consentimiento explícito. El sistema bloqueará la acción por seguridad.</div>
+      </div>
+
+      <div class="screen"><h3>B. Asistente Paso a Paso (Wizard de 4 Etapas)</h3>
+        <div class="block info"><span class="tag">Detalles de las Etapas</span>
+          <ol class="steps">
+            <li><span class="term">Paso 1: Organización y Selección.</span> Define el modo de la publicación según la cantidad de fotos: Una Imagen, Antes y Después (coloca las fotos de inicio y fin en un layout comparativo), o Carrusel (para publicaciones deslizables de múltiples imágenes).</li>
+            <li><span class="term">Paso 2: Formato / Ratios.</span> Selecciona la relación de aspecto de salida para redes sociales: Instagram Post (1:1), Story (9:16) o Portada de Reel. Muestra una vista previa en tiempo real.</li>
+            <li><span class="term">Paso 3: Personalización Estética.</span> Editor visual interactivo. Te permite:
+              <ul>
+                <li>Rotar las imágenes 90° con un botón rápido.</li>
+                <li>Superponer el logotipo oficial cargado en la Suite.</li>
+                <li>Colocar el nombre de tu salón o una marca de agua traslúcida editable.</li>
+                <li>Escribir texto libre sobre la imagen con opciones de alineación (arriba, al medio, abajo) y estilo de fuente (clásico, moderno, manuscrita).</li>
+              </ul>
+            </li>
+            <li><span class="term">Paso 4: Copilot Aura IA - Generador de Copy.</span> Generación automatizada de pies de foto para redes sociales. Seleccionás el servicio realizado, el rubro del salón, el tono deseado (profesional, divertido, cercano, persuasivo) y la llamada a la acción (CTA, ej: "¡Agenda tu turno! Link en bio").</li>
+          </ol>
+        </div>
+        <div class="block func"><span class="tag">Funcionalidades / Botones</span>
+          <ul>
+            <li><span class="btn">Generar Copy con IA</span> llama a la API de OpenAI (con fallbacks estáticos si no está configurada) para redactar el texto, hashtags recomendados e información del estilista a cargo.</li>
+            <li><span class="btn">Copiar Post</span> copia el texto generado y hashtags con un solo clic.</li>
+            <li><span class="btn">Descargar ZIP</span> comprime y descarga en el navegador del usuario todas las imágenes personalizadas en un archivo ZIP (usando JSZip).</li>
+            <li><span class="btn">Guardar Publicación</span> almacena el post en la base de datos con estado Borrador, Listo o Programado (con fecha y hora de publicación futura).</li>
+          </ul>
+        </div>
+        <div class="tip"><b>Tip:</b> usá el layout "Antes y Después" para tratamientos de coloración o manicuría; tiene un alto impacto visual y conversión en Instagram.</div>
+      </div>
+
+      <div class="screen"><h3>C. Biblioteca y Gestión de Contenidos</h3>
+        <div class="block info"><span class="tag">Información y Estados</span>
+          <ul>
+            <li>Pestaña <span class="term">Resumen/Generados:</span> Galería de imágenes autorizadas por el cliente y listado de todas las fotos listas para ser diseñadas.</li>
+            <li>Pestañas de Estado: Filtra tus contenidos guardados bajo los siguientes estados:
+              <ul>
+                <li><span class="term">Borradores:</span> Publicaciones incompletas guardadas para edición futura.</li>
+                <li><span class="term">Programados:</span> Muestra posts guardados con una fecha y hora futura planificada para recordar al equipo cuándo subirlos.</li>
+                <li><span class="term">Publicados:</span> Historial completo de contenidos ya compartidos o descargados.</li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+        <div class="block func"><span class="tag">Funcionalidades / Botones</span>
+          <ul>
+            <li><span class="btn">Copiar</span> en las tarjetas copia los datos del caption.</li>
+            <li><span class="btn">Eliminar (Tacho de basura)</span> borra permanentemente el post de la biblioteca.</li>
+          </ul>
+        </div>
       </div>
       <a class="top" href="#top">↑ Volver al índice</a>
     </div>

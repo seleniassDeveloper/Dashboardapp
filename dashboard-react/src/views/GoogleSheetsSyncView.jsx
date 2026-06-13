@@ -9,7 +9,7 @@ import { useTranslation, Trans } from "react-i18next";
 import api from "../lib/api.js";
 import * as XLSX from "xlsx";
 
-const ENTITY_FIELDS = {
+const INITIAL_ENTITY_FIELDS = {
   clients: [
     { key: "firstName", label: "Nombre / Nombre Completo", required: true },
     { key: "lastName", label: "Apellido", required: false },
@@ -69,6 +69,15 @@ export default function GoogleSheetsSyncView() {
   // STATE FOR IMPORT
   const [sheetUrl, setSheetUrl] = useState("");
   const [entityType, setEntityType] = useState("appointments"); // "clients" | "services" | "workers" | "appointments"
+  const [entityFields, setEntityFields] = useState(INITIAL_ENTITY_FIELDS);
+  const [newFieldName, setNewFieldName] = useState("");
+  const [showNewFieldForm, setShowNewFieldForm] = useState(false);
+  const [enabledFields, setEnabledFields] = useState({
+    clients: { firstName: true, lastName: true, phone: true, email: true, notes: true },
+    services: { name: true, price: true, duration: true },
+    workers: { firstName: true, lastName: true, email: true, phone: true, roleTitle: true },
+    appointments: { clientName: true, phone: true, email: true, serviceName: true, workerName: true, startsAt: true, time: true, price: true, status: true, notes: true }
+  });
   const [sheetHeaders, setSheetHeaders] = useState([]);
   const [mapping, setMapping] = useState({});
   const [step, setStep] = useState(1); // 1: URL & Mapping, 2: Preview, 3: Syncing, 4: Done
@@ -81,6 +90,45 @@ export default function GoogleSheetsSyncView() {
   const [totalRows, setTotalRows] = useState(0);
   const [importMethod, setImportMethod] = useState("google"); // "google" | "file"
   const [parsedRows, setParsedRows] = useState([]);
+
+  const handleToggleField = (entity, fieldKey) => {
+    setEnabledFields(prev => ({
+      ...prev,
+      [entity]: {
+        ...prev[entity],
+        [fieldKey]: !prev[entity][fieldKey]
+      }
+    }));
+  };
+
+  const handleAddCustomField = () => {
+    if (!newFieldName.trim()) return;
+    const keyName = newFieldName.trim();
+    const exists = entityFields[entityType].some(f => f.key === keyName);
+    if (exists) {
+      alert(t("sheetsSync.errors.fieldExists", { defaultValue: "Este campo ya existe." }));
+      return;
+    }
+
+    setEntityFields(prev => ({
+      ...prev,
+      [entityType]: [
+        ...prev[entityType],
+        { key: keyName, label: keyName, required: false, custom: true }
+      ]
+    }));
+
+    setEnabledFields(prev => ({
+      ...prev,
+      [entityType]: {
+        ...prev[entityType],
+        [keyName]: true
+      }
+    }));
+
+    setNewFieldName("");
+    setShowNewFieldForm(false);
+  };
 
   // STATE FOR EXPORT (NEW FEATURE)
   const [exportType, setExportType] = useState("clients"); // "clients" | "inventory" | "appointments" | "expenses"
@@ -335,7 +383,7 @@ export default function GoogleSheetsSyncView() {
   };
 
   const autoDetectMappings = (headers, type) => {
-    const fields = ENTITY_FIELDS[type];
+    const fields = entityFields[type].filter(f => enabledFields[type][f.key]);
     const newMapping = {};
     fields.forEach(field => {
       const lowerKey = field.key.toLowerCase();
@@ -591,7 +639,7 @@ export default function GoogleSheetsSyncView() {
 
   const executeRealSync = async () => {
     // Check if required mappings are selected
-    const requiredFields = ENTITY_FIELDS[entityType].filter(f => f.required);
+    const requiredFields = entityFields[entityType].filter(f => f.required && enabledFields[entityType][f.key]);
     const missing = mapping ? requiredFields.filter(f => !mapping[f.key]) : requiredFields;
     if (missing.length > 0) {
       const missingLabels = missing.map(f => t("sheetsSync.columns." + f.key, { defaultValue: f.label })).join(", ");
@@ -610,9 +658,16 @@ export default function GoogleSheetsSyncView() {
         ? t("sheetsSync.progressText.import2")
         : t("sheetsSync.progressText.import3"));
 
+      const filteredMapping = Object.keys(mapping)
+        .filter(key => enabledFields[entityType][key])
+        .reduce((obj, key) => {
+          obj[key] = mapping[key];
+          return obj;
+        }, {});
+
       const payload = {
         entityType,
-        mapping
+        mapping: filteredMapping
       };
 
       if (importMethod === "google") {
@@ -751,6 +806,98 @@ export default function GoogleSheetsSyncView() {
                             {t("sheetsSync.dataTypePlaceholder")}
                           </Form.Text>
                         </Form.Group>
+
+                        <div className="mt-2 p-3 bg-light rounded-4 border">
+                          <label className="fw-bold small text-gray-700 mb-1 d-block">
+                            {t("sheetsSync.fieldsToImportLabel", { defaultValue: "Campos a Importar (Configurables)" })}
+                          </label>
+                          <p className="text-muted smaller mb-3" style={{ lineHeight: "1.4" }}>
+                            {t("sheetsSync.fieldsToImportDesc", { defaultValue: "Seleccioná qué campos querés extraer de tu planilla. Los campos obligatorios no se pueden deseleccionar." })}
+                          </p>
+                          <div className="d-flex flex-wrap gap-2">
+                            {entityFields[entityType].map(f => {
+                              const isRequired = f.required;
+                              const isChecked = enabledFields[entityType][f.key];
+                              return (
+                                <div 
+                                  key={f.key} 
+                                  className={`d-flex align-items-center gap-2 px-3 py-2 rounded-xl border transition-all ${
+                                    isChecked 
+                                      ? "bg-purple-500 bg-opacity-10 border-purple-300 text-purple-900" 
+                                      : "bg-white border-gray-200 text-muted"
+                                  }`}
+                                  style={{ cursor: isRequired ? "not-allowed" : "pointer" }}
+                                  onClick={() => !isRequired && handleToggleField(entityType, f.key)}
+                                >
+                                  <input 
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    disabled={isRequired}
+                                    readOnly
+                                    className="cursor-pointer form-check-input m-0"
+                                    style={{ width: "16px", height: "16px" }}
+                                  />
+                                  <span className="small fw-semibold">
+                                    {t("sheetsSync.columns." + f.key, { defaultValue: f.label })}
+                                  </span>
+                                  {isRequired && (
+                                    <Badge bg="danger-soft" className="text-danger-600 px-2 py-0.5 rounded-pill smaller fw-bold ms-1" style={{ fontSize: "9px" }}>
+                                      {t("sheetsSync.requiredFieldBadge", { defaultValue: "Obligatorio" })}
+                                    </Badge>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          {/* New Custom Field Form */}
+                          <div className="mt-3 pt-3 border-top">
+                            {!showNewFieldForm ? (
+                              <Button 
+                                variant="outline-primary" 
+                                size="sm" 
+                                className="rounded-pill px-3" 
+                                onClick={() => setShowNewFieldForm(true)}
+                              >
+                                {t("sheetsSync.createCustomFieldBtn", { defaultValue: "+ Crear Columna Personalizada" })}
+                              </Button>
+                            ) : (
+                              <div className="d-flex gap-2 align-items-center" style={{ maxWidth: "420px" }}>
+                                <Form.Control
+                                  type="text"
+                                  size="sm"
+                                  placeholder={t("sheetsSync.customFieldPlaceholder", { defaultValue: "Ej. Dirección, Cumpleaños..." })}
+                                  value={newFieldName}
+                                  onChange={(e) => setNewFieldName(e.target.value)}
+                                  className="modern-input py-1.5"
+                                  autoFocus
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                      e.preventDefault();
+                                      handleAddCustomField();
+                                    }
+                                  }}
+                                />
+                                <Button 
+                                  variant="primary" 
+                                  size="sm" 
+                                  className="px-3 py-1.5 fw-bold"
+                                  onClick={handleAddCustomField}
+                                >
+                                  {t("sheetsSync.addBtn", { defaultValue: "Agregar" })}
+                                </Button>
+                                <Button 
+                                  variant="outline-secondary" 
+                                  size="sm" 
+                                  className="px-3 py-1.5"
+                                  onClick={() => { setShowNewFieldForm(false); setNewFieldName(""); }}
+                                >
+                                  ✖
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
 
                         {importMethod === "google" ? (
                           <Form onSubmit={handleAnalyze} className="d-grid gap-3 p-0 m-0">
@@ -904,7 +1051,7 @@ export default function GoogleSheetsSyncView() {
                     </h4>
 
                     <Row className="g-3 mb-4">
-                      {ENTITY_FIELDS[entityType].map(f => (
+                      {entityFields[entityType].filter(f => enabledFields[entityType][f.key]).map(f => (
                         <Col md={4} key={f.key}>
                           <Form.Group>
                             <Form.Label className="smaller text-gray-700 fw-bold">
@@ -924,14 +1071,14 @@ export default function GoogleSheetsSyncView() {
                         </Col>
                       ))}
                     </Row>
-
+ 
                     <h4 className="h6 fw-bold mb-3 text-secondary">{t("sheetsSync.mappedPreviewTitle")}</h4>
                     <div className="table-responsive rounded-3 border">
                       <Table hover striped className="mb-0 align-middle">
                         <thead>
                           <tr className="bg-light table-header-small" style={{ fontSize: "11px" }}>
                             <th className="ps-3">{t("sheetsSync.excelRowHeader")}</th>
-                            {ENTITY_FIELDS[entityType].map(f => (
+                            {entityFields[entityType].filter(f => enabledFields[entityType][f.key]).map(f => (
                               <th key={f.key}>
                                 {t("sheetsSync.columns." + f.key, { defaultValue: f.label })}
                                 <div className="text-muted smaller fw-normal">
@@ -945,7 +1092,7 @@ export default function GoogleSheetsSyncView() {
                           {previewRows.map((r, idx) => (
                             <tr key={idx}>
                               <td className="ps-3 text-muted fw-bold">#{idx + 2}</td>
-                              {ENTITY_FIELDS[entityType].map(f => {
+                              {entityFields[entityType].filter(f => enabledFields[entityType][f.key]).map(f => {
                                 const colName = mapping[f.key];
                                 const cellVal = colName ? r[colName] : "";
                                 return (
@@ -959,7 +1106,7 @@ export default function GoogleSheetsSyncView() {
                           {totalRows > 10 && (
                             <tr style={{ background: "#fafafa" }}>
                               <td className="ps-3 text-muted fw-bold">...</td>
-                              <td colSpan={ENTITY_FIELDS[entityType].length} className="text-muted smaller italic">
+                              <td colSpan={entityFields[entityType].filter(f => enabledFields[entityType][f.key]).length} className="text-muted smaller italic">
                                 {t("sheetsSync.otherRecordsProcessed", { count: totalRows - 10 })}
                               </td>
                             </tr>

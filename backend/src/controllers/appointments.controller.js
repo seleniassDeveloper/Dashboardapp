@@ -1031,5 +1031,45 @@ export async function deleteAppointmentPhoto(req, res) {
   }
 }
 
+/**
+ * Actualiza los metadatos de una foto de cita (flags de marketing, portafolio y notas).
+ */
+export async function updateAppointmentPhotoMetadata(req, res) {
+  try {
+    const { photoId } = req.params;
+    const { useForInstagram, showInPortfolio, highlightResult, note, photoType } = req.body;
+
+    const photo = await prisma.appointmentPhoto.findUnique({
+      where: { id: photoId },
+      include: { appointment: true }
+    });
+
+    if (!photo || photo.appointment.businessId !== req.businessId) {
+      return res.status(404).json({ error: "Foto no encontrada." });
+    }
+
+    const updated = await prisma.appointmentPhoto.update({
+      where: { id: photoId },
+      data: {
+        useForInstagram: useForInstagram !== undefined ? Boolean(useForInstagram) : undefined,
+        showInPortfolio: showInPortfolio !== undefined ? Boolean(showInPortfolio) : undefined,
+        highlightResult: highlightResult !== undefined ? Boolean(highlightResult) : undefined,
+        note: note !== undefined ? note : undefined,
+        photoType: photoType !== undefined ? photoType : undefined,
+        type: photoType !== undefined ? photoType : undefined, // Sync with type
+      }
+    });
+
+    return res.json(updated);
+  } catch (error) {
+    console.error("Error al actualizar metadatos de la foto:", error);
+    return res.status(500).json({
+      error: "Error interno al actualizar los metadatos de la foto.",
+      detail: error?.message || "Unknown error"
+    });
+  }
+}
+
+
 
 

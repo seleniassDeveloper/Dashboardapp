@@ -30,6 +30,7 @@ import rolesRoutes from "./routes/roles.routes.js";
 import meRoutes from "./routes/me.routes.js";
 import auditRoutes from "./routes/audit.routes.js";
 import consentRoutes from "./routes/consent.routes.js";
+import marketingRoutes from "./routes/marketing.routes.js";
 import requireAuth from "./middleware/requireAuth.js";
 import { checkTenant } from "./middleware/tenant.middleware.js";
 import { getCorsOptions } from "./config/cors.js";
@@ -102,6 +103,7 @@ app.use("/api/permission-matrix", requireAuth, checkTenant, (req, res, next) => 
   req.url = "/permission-matrix";
   rolesRoutes(req, res, next);
 });
+app.use("/api/marketing", requireAuth, checkTenant, marketingRoutes);
 app.use("/api/me", requireAuth, meRoutes);
 app.use("/api/audit-logs", requireAuth, checkTenant, auditRoutes);
 

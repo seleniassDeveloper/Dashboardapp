@@ -498,6 +498,23 @@ router.post("/import", async (req, res) => {
           const email = mapping.email && row[mapping.email] ? row[mapping.email].trim() : null;
           const notes = mapping.notes && row[mapping.notes] ? row[mapping.notes].trim() : null;
 
+          const standardKeys = ["firstName", "lastName", "phone", "email", "notes"];
+          const customKeys = Object.keys(mapping).filter(k => !standardKeys.includes(k));
+          const customValues = [];
+          for (const key of customKeys) {
+            const colName = mapping[key];
+            if (colName && row[colName] !== undefined && row[colName] !== null) {
+              const val = String(row[colName]).trim();
+              if (val) {
+                customValues.push(`${key}: ${val}`);
+              }
+            }
+          }
+          let finalNotes = notes;
+          if (customValues.length > 0) {
+            finalNotes = (finalNotes ? finalNotes + "\n" : "") + customValues.join("\n");
+          }
+
           let existing = null;
           if (email) {
             existing = await prisma.client.findFirst({ where: { email, businessId } });
@@ -515,7 +532,7 @@ router.post("/import", async (req, res) => {
                 lastName,
                 phone,
                 email,
-                notes,
+                notes: finalNotes,
                 businessId
               }
             });
@@ -545,11 +562,29 @@ router.post("/import", async (req, res) => {
           if (existing) {
             reusedCount++;
           } else {
+            const standardKeys = ["name", "price", "duration"];
+            const customKeys = Object.keys(mapping).filter(k => !standardKeys.includes(k));
+            const customValues = [];
+            for (const key of customKeys) {
+              const colName = mapping[key];
+              if (colName && row[colName] !== undefined && row[colName] !== null) {
+                const val = String(row[colName]).trim();
+                if (val) {
+                  customValues.push(`${key}: ${val}`);
+                }
+              }
+            }
+            let description = null;
+            if (customValues.length > 0) {
+              description = customValues.join("\n");
+            }
+
             await prisma.service.create({
               data: {
                 name: name.trim(),
                 price,
                 duration,
+                description,
                 businessId,
                 isActive: true,
                 availableOnline: true
@@ -599,6 +634,19 @@ router.post("/import", async (req, res) => {
               { dayOfWeek: 5, startTime: "09:00", endTime: "19:00" }
             ];
 
+            const standardKeys = ["firstName", "lastName", "email", "phone", "roleTitle"];
+            const customKeys = Object.keys(mapping).filter(k => !standardKeys.includes(k));
+            const customFields = {};
+            for (const key of customKeys) {
+              const colName = mapping[key];
+              if (colName && row[colName] !== undefined && row[colName] !== null) {
+                const val = String(row[colName]).trim();
+                if (val) {
+                  customFields[key] = val;
+                }
+              }
+            }
+
             await prisma.worker.create({
               data: {
                 firstName,
@@ -606,6 +654,7 @@ router.post("/import", async (req, res) => {
                 email: email || `${firstName.toLowerCase()}@salonaura.com`,
                 phone,
                 roleTitle: roleTitle || "Profesional",
+                customFields,
                 businessId,
                 branchId,
                 schedules: {
@@ -786,13 +835,30 @@ router.post("/import", async (req, res) => {
           }
           const finalStatus = statusVal ? statusVal.trim().toUpperCase() : defaultStatus;
 
+          const standardKeys = ["clientName", "phone", "email", "serviceName", "workerName", "startsAt", "time", "price", "status", "notes"];
+          const customKeys = Object.keys(mapping).filter(k => !standardKeys.includes(k));
+          const customValues = [];
+          for (const key of customKeys) {
+            const colName = mapping[key];
+            if (colName && row[colName] !== undefined && row[colName] !== null) {
+              const val = String(row[colName]).trim();
+              if (val) {
+                customValues.push(`${key}: ${val}`);
+              }
+            }
+          }
+          let finalNotes = notesVal || "Importado históricamente";
+          if (customValues.length > 0) {
+            finalNotes = (finalNotes ? finalNotes + "\n" : "") + customValues.join("\n");
+          }
+
           await prisma.appointment.create({
             data: {
               clientId: client.id,
               serviceId: service.id,
               workerId: worker.id,
               startsAt,
-              notes: notesVal || "Importado históricamente",
+              notes: finalNotes,
               status: finalStatus,
               businessId,
               branchId

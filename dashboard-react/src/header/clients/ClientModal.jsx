@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Modal, Button, Form, Row, Col, Alert, Spinner } from "react-bootstrap";
 import api from "../../lib/api.js";
 import { useFormSchema } from "../../hooks/useFormSchema.js";
+import { useTranslation } from "react-i18next";
 
 export default function ClientModal({
   show,
@@ -13,6 +14,7 @@ export default function ClientModal({
 }) {
   const isEdit = mode === "edit" && Boolean(initialData?.id);
   const schemaKey = isEdit ? "assign.client.form.edit" : "assign.client.form.create";
+  const { t } = useTranslation("views");
 
   const { enabledFields, loading: schemaLoading, error: schemaError } = useFormSchema(schemaKey, {
     enabled: show,
@@ -27,6 +29,7 @@ export default function ClientModal({
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [notes, setNotes] = useState("");
+  const [marketingConsent, setMarketingConsent] = useState(false);
 
   const firstNameField = useMemo(() => enabledFields.find((f) => f.id === "firstName"), [enabledFields]);
   const lastNameField = useMemo(() => enabledFields.find((f) => f.id === "lastName"), [enabledFields]);
@@ -47,12 +50,14 @@ export default function ClientModal({
       setPhone((initialData?.phone === "—" ? "" : initialData?.phone) || "");
       setEmail((initialData?.email === "—" ? "" : initialData?.email) || "");
       setNotes((initialData?.notes === "—" ? "" : initialData?.notes) || "");
+      setMarketingConsent(initialData?.marketingConsent ?? false);
     } else {
       setFirstName("");
       setLastName("");
       setPhone("");
       setEmail("");
       setNotes("");
+      setMarketingConsent(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [show, isEdit, initialData?.id]);
@@ -116,6 +121,7 @@ export default function ClientModal({
         phone: phoneField ? (phone.trim() || null) : null,
         email: emailField ? (email.trim() || null) : null,
         notes: notesField ? (notes.trim() || null) : null,
+        marketingConsent,
       };
 
       const url = isEdit ? `/clients/${initialData.id}` : `/clients`;
@@ -253,9 +259,38 @@ export default function ClientModal({
                     </Col>
                   );
                 }
-
                 return null;
               })}
+            </Row>
+
+            <Row className="mt-3">
+              <Col md={12}>
+                <Form.Group className="p-3 rounded-xl border" style={{ backgroundColor: "#f8f9fa" }}>
+                  <Form.Label className="fw-bold d-block mb-2" style={{ fontSize: "13px" }}>
+                    {t("clients.marketingConsentLabel", { defaultValue: "Permite uso de imágenes para marketing" })}
+                  </Form.Label>
+                  <div className="d-flex gap-3">
+                    <Form.Check
+                      type="radio"
+                      id="marketing-consent-yes"
+                      name="marketingConsent"
+                      label={t("common.yes", { defaultValue: "Sí" })}
+                      checked={marketingConsent === true}
+                      onChange={() => setMarketingConsent(true)}
+                      className="small"
+                    />
+                    <Form.Check
+                      type="radio"
+                      id="marketing-consent-no"
+                      name="marketingConsent"
+                      label={t("common.no", { defaultValue: "No" })}
+                      checked={marketingConsent === false}
+                      onChange={() => setMarketingConsent(false)}
+                      className="small"
+                    />
+                  </div>
+                </Form.Group>
+              </Col>
             </Row>
           </Form>
         )}

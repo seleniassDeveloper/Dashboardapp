@@ -12,6 +12,7 @@ import {
   getSlaStats,
   uploadAppointmentPhoto,
   deleteAppointmentPhoto,
+  updateAppointmentPhotoMetadata,
 } from "../controllers/appointments.controller.js";
 import {
   getServiceSlaStats,
@@ -49,5 +50,6 @@ router.post("/:id/finalize", requirePermission("agenda.edit"), finalizeAppointme
 // Fotos de citas
 router.post("/:id/photos", requirePermission("agenda.view"), uploadAppointmentPhoto);
 router.delete("/photos/:photoId", requirePermission("agenda.edit"), deleteAppointmentPhoto);
+router.put("/photos/:photoId", requirePermission("agenda.edit"), updateAppointmentPhotoMetadata);
 
 export default router;

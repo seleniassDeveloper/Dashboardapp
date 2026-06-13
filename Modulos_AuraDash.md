@@ -23,3 +23,6 @@
 **Integraciones** — Conexión con apps externas (WhatsApp, Google, pagos, etc.).
 
 **Configuración** — Ajustes generales de la cuenta y del negocio.
+
+**Marketing** — Generación de contenido para Instagram y redes sociales a partir del historial visual del cliente y Copilot IA.
+

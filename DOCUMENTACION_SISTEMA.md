@@ -43,7 +43,7 @@ Hemos optimizado el sistema para que las citas puedan ingresarse de dos maneras 
 
 ## 🛠️ 3. Funcionamiento General y Alcance de la Aplicación
 
-El sistema está diseñado específicamente para resolver las complejidades de salones de belleza y estética a través de **8 módulos operativos** completamente interconectados.
+El sistema está diseñado específicamente para resolver las complejidades de salones de belleza y estética a través de **9 módulos operativos** completamente interconectados.
 
 ### Módulos del Sistema y sus Capacidades
 
@@ -90,6 +90,15 @@ El sistema está diseñado específicamente para resolver las complejidades de s
     *   *Día lento detectado (Jueves)*: Botón directo para lanzar una promoción 2x1.
     *   *Baja de facturación semanal*: Botón para abrir campaña de reactivación.
     *   *Fugas de Clientes*: Notificación directa con link de WhatsApp sobre las clientes en riesgo de abandono.
+
+#### 📢 9. Generador de Contenido de Marketing e Instagram
+*   **Reutilización del Historial Visual**: Permite aprovechar las fotografías del "Antes" y "Después" tomadas en el checkout de los servicios de clientes que hayan autorizado el uso de imagen.
+*   **Asistente de Diseño (Wizard)**: Interfaz de 4 pasos para configurar:
+    *   *Layout*: Una sola foto, Before/After comparativo o Carrusel Multi Imagen.
+    *   *Formato*: Dimensiones optimizadas (1:1 Post, 9:16 Story, Portada Reel).
+    *   *Personalización*: Inserción del logotipo del salón, nombre del negocio, marcas de agua translúcidas y textos flotantes con tipografías y alineaciones personalizadas. También soporta rotación 90° e reordenamiento de fotos.
+*   **Generador de Copy por IA (Copilot IA)**: Redacta el pie de foto de Instagram con inteligencia artificial basado en el tipo de servicio, rubro y tono (profesional, divertido, promocional), e incluye hashtags relevantes y llamada a la acción (CTA).
+*   **Exportación Directa**: Permite copiar el caption al portapapeles y empaquetar el carrusel completo en un ZIP del lado del cliente.
 
 ---
 

@@ -20,6 +20,7 @@ import SettingsView from "./views/SettingsView";
 import UnauthorizedView from "./views/UnauthorizedView";
 import RolesPermissionsPage from "./views/RolesPermissionsPage";
 import FinanceProtectedRoute from "./auth/FinanceProtectedRoute";
+import MarketingView from "./views/MarketingView";
 
 export default function App() {
   const { brand } = useBrand();
@@ -142,10 +143,19 @@ export default function App() {
           }
         />
 
+        <Route
+          path="/marketing"
+          element={
+            isModuleActive("marketing") ? (
+              <Can permission="marketing.view" fallback={<UnauthorizedView />}>
+                <MarketingView />
+              </Can>
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
 
-
-
-        
         <Route path="/guide" element={<HowItWorks />} />
         
         <Route 

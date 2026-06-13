@@ -25,7 +25,7 @@ function isValidPhone(phone) {
 ========================= */
 export async function createClient(req, res) {
   try {
-    const { firstName, lastName, phone, email, notes, allergies, medicalNotes, photoUrl } = req.body;
+    const { firstName, lastName, phone, email, notes, allergies, medicalNotes, photoUrl, marketingConsent } = req.body;
     const businessId = req.businessId;
 
     if (!firstName?.trim() || !lastName?.trim()) {
@@ -57,6 +57,7 @@ export async function createClient(req, res) {
         allergies: allergies ? encryptData(allergies) : null,
         medicalNotes: medicalNotes ? encryptData(medicalNotes) : null,
         businessId: businessId || null,
+        marketingConsent: marketingConsent === true || marketingConsent === "true",
       },
     });
 
@@ -76,7 +77,7 @@ export async function createClient(req, res) {
 export async function updateClient(req, res) {
   try {
     const { id } = req.params;
-    const { firstName, lastName, phone, email, notes, allergies, medicalNotes, photoUrl } = req.body;
+    const { firstName, lastName, phone, email, notes, allergies, medicalNotes, photoUrl, marketingConsent } = req.body;
 
     if (!firstName?.trim() || !lastName?.trim()) {
       return res
@@ -107,6 +108,7 @@ export async function updateClient(req, res) {
         photoUrl: photoUrl !== undefined ? photoUrl : undefined,
         allergies: allergies ? encryptData(allergies) : null,
         medicalNotes: medicalNotes ? encryptData(medicalNotes) : null,
+        marketingConsent: marketingConsent !== undefined ? (marketingConsent === true || marketingConsent === "true") : undefined,
       },
     });
 

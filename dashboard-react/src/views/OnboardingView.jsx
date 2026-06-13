@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { Container, Card, Form, Button, Row, Col, Alert, Spinner } from "react-bootstrap";
+import { Container, Card, Form, Button, Row, Col, Alert, Spinner, Badge } from "react-bootstrap";
 import { 
   Scissors, Heart, Plus, Sparkles, Layout, Globe, Image, 
-  User, Calendar, Check, AlertCircle, Trash2, ArrowLeft, Clock, DollarSign, Briefcase
+  User, Calendar, Check, AlertCircle, Trash2, ArrowLeft, Clock, DollarSign
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import api from "../lib/api.js";
 import { useAuth } from "../auth/AuthProvider.jsx";
 
@@ -15,7 +16,7 @@ const RUBROS = [
   { id: "Otro", label: "Otro Rubro de Servicios", icon: Layout, color: "#6b7280" }
 ];
 
-const SERVICE_TEMPLATES = {
+const SERVICE_TEMPLATES_ES = {
   "Estética": [
     { name: "Manicuría Básica", duration: 40, price: 12000, category: "Manicuría" },
     { name: "Limpieza Facial Profunda", duration: 60, price: 25000, category: "Facial" },
@@ -44,7 +45,36 @@ const SERVICE_TEMPLATES = {
   ]
 };
 
-const DEFAULT_SCHEDULES = [
+const SERVICE_TEMPLATES_EN = {
+  "Estética": [
+    { name: "Basic Manicure", duration: 40, price: 15, category: "Manicure" },
+    { name: "Deep Facial Cleansing", duration: 60, price: 35, category: "Facial" },
+    { name: "Decontracting Massage", duration: 60, price: 45, category: "Massage" },
+    { name: "Eyebrow Shaping", duration: 20, price: 12, category: "Brows & Lashes" }
+  ],
+  "Barbería": [
+    { name: "Classic Haircut", duration: 45, price: 20, category: "Hair" },
+    { name: "Shave & Beard Trim", duration: 30, price: 12, category: "Beard" },
+    { name: "Premium Cut + Beard Combo", duration: 75, price: 30, category: "Combos" },
+    { name: "Full Hair Coloring", duration: 90, price: 50, category: "Color" }
+  ],
+  "Clínica": [
+    { name: "General Medical Consultation", duration: 30, price: 40, category: "Consultation" },
+    { name: "Full Preventive Checkup", duration: 45, price: 55, category: "Evaluation" },
+    { name: "Specialized Consultation", duration: 30, price: 70, category: "Specialty" }
+  ],
+  "Gimnasio": [
+    { name: "Personal Trainer Session", duration: 60, price: 25, category: "Training" },
+    { name: "Initial Physical Evaluation", duration: 45, price: 20, category: "Evaluation" },
+    { name: "Pilates Reformer Class", duration: 60, price: 15, category: "Classes" }
+  ],
+  "Otro": [
+    { name: "Standard Service", duration: 30, price: 15, category: "General" },
+    { name: "Premium Service", duration: 60, price: 25, category: "General" }
+  ]
+};
+
+const DEFAULT_SCHEDULES_ES = [
   { dayOfWeek: 1, dayName: "Lunes", enabled: true, startTime: "09:00", endTime: "18:00" },
   { dayOfWeek: 2, dayName: "Martes", enabled: true, startTime: "09:00", endTime: "18:00" },
   { dayOfWeek: 3, dayName: "Miércoles", enabled: true, startTime: "09:00", endTime: "18:00" },
@@ -54,8 +84,20 @@ const DEFAULT_SCHEDULES = [
   { dayOfWeek: 7, dayName: "Domingo", enabled: false, startTime: "09:00", endTime: "18:00" }
 ];
 
+const DEFAULT_SCHEDULES_EN = [
+  { dayOfWeek: 1, dayName: "Monday", enabled: true, startTime: "09:00", endTime: "18:00" },
+  { dayOfWeek: 2, dayName: "Tuesday", enabled: true, startTime: "09:00", endTime: "18:00" },
+  { dayOfWeek: 3, dayName: "Wednesday", enabled: true, startTime: "09:00", endTime: "18:00" },
+  { dayOfWeek: 4, dayName: "Thursday", enabled: true, startTime: "09:00", endTime: "18:00" },
+  { dayOfWeek: 5, dayName: "Friday", enabled: true, startTime: "09:00", endTime: "18:00" },
+  { dayOfWeek: 6, dayName: "Saturday", enabled: true, startTime: "09:00", endTime: "13:00" },
+  { dayOfWeek: 7, dayName: "Sunday", enabled: false, startTime: "09:00", endTime: "18:00" }
+];
+
 export default function OnboardingView() {
   const { user, switchBusiness } = useAuth();
+  const { t, i18n } = useTranslation("views");
+  const isEn = i18n.language === "en";
   
   const [step, setStep] = useState(1);
   const [error, setError] = useState("");
@@ -82,11 +124,12 @@ export default function OnboardingView() {
   // --- PASO 2: Servicios ---
   const [services, setServices] = useState([]);
 
-  // Cargar plantilla por defecto al cambiar rubro
+  // Cargar plantilla por defecto al cambiar rubro o idioma
   useEffect(() => {
-    const templates = SERVICE_TEMPLATES[rubro] || SERVICE_TEMPLATES["Otro"];
-    setServices(templates.map(s => ({ ...s, checked: true, id: Math.random().toString() })));
-  }, [rubro]);
+    const templates = isEn ? SERVICE_TEMPLATES_EN : SERVICE_TEMPLATES_ES;
+    const currentTemplates = templates[rubro] || templates["Otro"];
+    setServices(currentTemplates.map(s => ({ ...s, checked: true, id: Math.random().toString() })));
+  }, [rubro, isEn]);
 
   const handleToggleService = (id) => {
     setServices(prev => prev.map(s => s.id === id ? { ...s, checked: !s.checked } : s));
@@ -101,10 +144,10 @@ export default function OnboardingView() {
       ...prev,
       {
         id: Math.random().toString(),
-        name: "Servicio Nuevo",
+        name: t("onboarding.customServiceDefaultName", { defaultValue: "Servicio Nuevo" }),
         duration: 30,
-        price: 5000,
-        category: "Personalizado",
+        price: isEn ? 15 : 5000,
+        category: t("onboarding.customServiceCategory", { defaultValue: "Personalizado" }),
         checked: true
       }
     ]);
@@ -124,14 +167,14 @@ export default function OnboardingView() {
       setWorkers([
         {
           id: "owner-worker",
-          firstName: parts[0] || "Mi",
-          lastName: parts.slice(1).join(" ") || "Nombre",
-          roleTitle: "Dueño / Profesional",
+          firstName: parts[0] || (isEn ? "My" : "Mi"),
+          lastName: parts.slice(1).join(" ") || (isEn ? "Name" : "Nombre"),
+          roleTitle: isEn ? "Owner / Professional" : "Dueño / Profesional",
           services: [] // se asocian abajo
         }
       ]);
     }
-  }, [user]);
+  }, [user, isEn]);
 
   const handleAddWorker = () => {
     setWorkers(prev => [
@@ -140,7 +183,7 @@ export default function OnboardingView() {
         id: Math.random().toString(),
         firstName: "",
         lastName: "",
-        roleTitle: "Profesional",
+        roleTitle: t("onboarding.errorWorkerDefault", { defaultValue: "Profesional" }),
         services: []
       }
     ]);
@@ -169,7 +212,16 @@ export default function OnboardingView() {
   };
 
   // --- PASO 4: Horarios ---
-  const [schedules, setSchedules] = useState(DEFAULT_SCHEDULES);
+  const [schedules, setSchedules] = useState(isEn ? DEFAULT_SCHEDULES_EN : DEFAULT_SCHEDULES_ES);
+
+  // Cargar horarios al cambiar el idioma
+  useEffect(() => {
+    const defaultSchedules = isEn ? DEFAULT_SCHEDULES_EN : DEFAULT_SCHEDULES_ES;
+    setSchedules(prev => prev.map(s => {
+      const match = defaultSchedules.find(ds => ds.dayOfWeek === s.dayOfWeek);
+      return match ? { ...s, dayName: match.dayName } : s;
+    }));
+  }, [isEn]);
 
   const handleScheduleToggle = (dayOfWeek) => {
     setSchedules(prev => prev.map(s => s.dayOfWeek === dayOfWeek ? { ...s, enabled: !s.enabled } : s));
@@ -184,18 +236,18 @@ export default function OnboardingView() {
     setError("");
     if (step === 1) {
       if (!bizName.trim()) {
-        setError("Por favor ingresa el nombre de tu negocio.");
+        setError(t("onboarding.errorNameRequired"));
         return;
       }
       if (!slug.trim()) {
-        setError("El slug de reservas es obligatorio.");
+        setError(t("onboarding.errorSlugRequired"));
         return;
       }
     }
     if (step === 2) {
       const selectedCount = services.filter(s => s.checked).length;
       if (selectedCount === 0) {
-        setError("Por favor selecciona al menos un servicio para continuar.");
+        setError(t("onboarding.errorServiceRequired"));
         return;
       }
     }
@@ -203,7 +255,7 @@ export default function OnboardingView() {
       // Validar nombres de trabajadores
       const invalidWorker = workers.some(w => !w.firstName.trim());
       if (invalidWorker) {
-        setError("Todos los profesionales deben tener al menos un nombre.");
+        setError(t("onboarding.errorWorkerNameRequired"));
         return;
       }
       
@@ -244,7 +296,7 @@ export default function OnboardingView() {
       const activeWorkers = workers.map(w => ({
         firstName: w.firstName.trim(),
         lastName: w.lastName.trim(),
-        roleTitle: w.roleTitle.trim() || "Profesional",
+        roleTitle: w.roleTitle.trim() || t("onboarding.errorWorkerDefault"),
         services: w.services
       }));
 
@@ -277,8 +329,7 @@ export default function OnboardingView() {
     } catch (err) {
       console.error("Error completando el setup:", err);
       setError(
-        err.response?.data?.error || 
-        "Ocurrió un error al configurar tu espacio de trabajo. Por favor intenta de nuevo."
+        err.response?.data?.error || t("onboarding.errorGeneralSetup")
       );
     } finally {
       setLoading(false);
@@ -364,11 +415,11 @@ export default function OnboardingView() {
             <div className="animate-fade-in">
               <div className="text-center mb-5">
                 <span className="badge px-3 py-2 rounded-pill fw-bold mb-2.5" style={{ backgroundColor: "rgba(124, 58, 237, 0.1)", color: "#7c3aed" }}>
-                  Paso 1 de 5
+                  {t("onboarding.stepBadge", { step: 1 })}
                 </span>
-                <h2 className="fw-black text-dark tracking-tight mb-2 h3">Contanos sobre tu Negocio</h2>
+                <h2 className="fw-black text-dark tracking-tight mb-2 h3">{t("onboarding.step1Title")}</h2>
                 <p className="text-secondary small max-w-500 mx-auto">
-                  Configura los detalles básicos de tu marca para crear un espacio de trabajo único.
+                  {t("onboarding.step1Desc")}
                 </p>
               </div>
 
@@ -376,10 +427,10 @@ export default function OnboardingView() {
                 <Row className="g-4">
                   <Col md={12}>
                     <Form.Group>
-                      <Form.Label className="fw-semibold small text-dark mb-1.5">Nombre del Negocio *</Form.Label>
+                      <Form.Label className="fw-semibold small text-dark mb-1.5">{t("onboarding.businessNameLabel")}</Form.Label>
                       <Form.Control
                         type="text"
-                        placeholder="Ej: Aura Studio Estética"
+                        placeholder={t("onboarding.businessNamePlaceholder")}
                         value={bizName}
                         onChange={(e) => setBizName(e.target.value)}
                         className="py-2.5 px-3 border border-opacity-25 rounded-3 bg-white"
@@ -389,7 +440,7 @@ export default function OnboardingView() {
                   </Col>
 
                   <Col md={12}>
-                    <Form.Label className="fw-semibold small text-dark mb-2.5">Rubro Comercial *</Form.Label>
+                    <Form.Label className="fw-semibold small text-dark mb-2.5">{t("onboarding.industryLabel")}</Form.Label>
                     <div className="d-flex flex-wrap gap-2">
                       {RUBROS.map((r) => {
                         const Icon = r.icon;
@@ -410,7 +461,7 @@ export default function OnboardingView() {
                             }}
                           >
                             <Icon size={15} style={{ color: active ? "#fff" : r.color }} />
-                            {r.label}
+                            {t("onboarding.rubros." + r.id, { defaultValue: r.label })}
                           </button>
                         );
                       })}
@@ -421,7 +472,7 @@ export default function OnboardingView() {
                     <Form.Group>
                       <Form.Label className="fw-semibold small text-dark mb-1.5 d-flex align-items-center gap-1.5">
                         <Globe size={15} className="text-primary" />
-                        Slug de Reservas Online *
+                        {t("onboarding.slugLabel")}
                       </Form.Label>
                       <Form.Control
                         type="text"
@@ -432,7 +483,7 @@ export default function OnboardingView() {
                         style={{ fontSize: "14px" }}
                       />
                       <Form.Text className="text-muted smaller mt-1.5 d-block">
-                        Tus clientes reservarán en: <code style={{ color: "#7c3aed" }}>/booking/{slug || "slug-negocio"}</code>
+                        {t("onboarding.slugHint")}<code style={{ color: "#7c3aed" }}>/booking/{slug || "slug-negocio"}</code>
                       </Form.Text>
                     </Form.Group>
                   </Col>
@@ -441,11 +492,11 @@ export default function OnboardingView() {
                     <Form.Group>
                       <Form.Label className="fw-semibold small text-dark mb-1.5 d-flex align-items-center gap-1.5">
                         <Image size={15} className="text-primary" />
-                        Logo URL (Opcional)
+                        {t("onboarding.logoUrlLabel")}
                       </Form.Label>
                       <Form.Control
                         type="url"
-                        placeholder="https://ejemplo.com/logo.png"
+                        placeholder={t("onboarding.logoUrlPlaceholder")}
                         value={logo}
                         onChange={(e) => setLogo(e.target.value)}
                         className="py-2.5 px-3 border border-opacity-25 rounded-3 bg-white"
@@ -463,11 +514,11 @@ export default function OnboardingView() {
             <div className="animate-fade-in">
               <div className="text-center mb-4">
                 <span className="badge px-3 py-2 rounded-pill fw-bold mb-2.5" style={{ backgroundColor: "rgba(124, 58, 237, 0.1)", color: "#7c3aed" }}>
-                  Paso 2 de 5
+                  {t("onboarding.stepBadge", { step: 2 })}
                 </span>
-                <h2 className="fw-black text-dark tracking-tight mb-2 h3">Tus Servicios Iniciales</h2>
+                <h2 className="fw-black text-dark tracking-tight mb-2 h3">{t("onboarding.step2Title")}</h2>
                 <p className="text-secondary small max-w-500 mx-auto">
-                  Selecciona y personaliza los servicios que ofreces. Podrás cambiarlos o agregar más luego.
+                  {t("onboarding.step2Desc")}
                 </p>
               </div>
 
@@ -524,7 +575,9 @@ export default function OnboardingView() {
 
                         <Col xs={4} sm={3}>
                           <div className="input-group input-group-sm">
-                            <span className="input-group-text bg-white border-end-0 text-muted"><DollarSign size={13} /></span>
+                            <span className="input-group-text bg-white border-end-0 text-muted">
+                              {isEn ? "$" : "$"}
+                            </span>
                             <Form.Control 
                               type="number"
                               value={s.price}
@@ -559,7 +612,7 @@ export default function OnboardingView() {
                   style={{ fontSize: "13px" }}
                 >
                   <Plus size={16} />
-                  <span>Añadir Servicio Personalizado</span>
+                  <span>{t("onboarding.addCustomServiceBtn")}</span>
                 </Button>
               </div>
             </div>
@@ -570,11 +623,11 @@ export default function OnboardingView() {
             <div className="animate-fade-in">
               <div className="text-center mb-4">
                 <span className="badge px-3 py-2 rounded-pill fw-bold mb-2.5" style={{ backgroundColor: "rgba(124, 58, 237, 0.1)", color: "#7c3aed" }}>
-                  Paso 3 de 5
+                  {t("onboarding.stepBadge", { step: 3 })}
                 </span>
-                <h2 className="fw-black text-dark tracking-tight mb-2 h3">Tu Equipo de Profesionales</h2>
+                <h2 className="fw-black text-dark tracking-tight mb-2 h3">{t("onboarding.step3Title")}</h2>
                 <p className="text-secondary small max-w-500 mx-auto">
-                  Registra quiénes realizan los servicios. Te hemos agregado por defecto para comenzar.
+                  {t("onboarding.step3Desc")}
                 </p>
               </div>
 
@@ -585,7 +638,7 @@ export default function OnboardingView() {
                       <div className="d-flex align-items-center gap-2">
                         <User size={16} className="text-primary" />
                         <span className="fw-bold text-dark small">
-                          {index === 0 ? "Vos (Propietario)" : `Profesional #${index + 1}`}
+                          {index === 0 ? t("onboarding.ownerLabel") : t("onboarding.workerLabel", { number: index + 1 })}
                         </span>
                       </div>
                       {index > 0 && (
@@ -602,10 +655,10 @@ export default function OnboardingView() {
                     <Row className="g-3">
                       <Col md={5}>
                         <Form.Group>
-                          <Form.Label className="smaller text-muted mb-1">Nombre *</Form.Label>
+                          <Form.Label className="smaller text-muted mb-1">{t("onboarding.firstNameLabel")}</Form.Label>
                           <Form.Control
                             type="text"
-                            placeholder="Nombre"
+                            placeholder={t("onboarding.firstNameLabel").replace(" *", "")}
                             value={w.firstName}
                             onChange={(e) => handleWorkerChange(w.id, "firstName", e.target.value)}
                             className="py-1.5 px-2.5 border border-opacity-25 rounded bg-white text-dark small"
@@ -614,10 +667,10 @@ export default function OnboardingView() {
                       </Col>
                       <Col md={4}>
                         <Form.Group>
-                          <Form.Label className="smaller text-muted mb-1">Apellido</Form.Label>
+                          <Form.Label className="smaller text-muted mb-1">{t("onboarding.lastNameLabel")}</Form.Label>
                           <Form.Control
                             type="text"
-                            placeholder="Apellido"
+                            placeholder={t("onboarding.lastNameLabel")}
                             value={w.lastName}
                             onChange={(e) => handleWorkerChange(w.id, "lastName", e.target.value)}
                             className="py-1.5 px-2.5 border border-opacity-25 rounded bg-white text-dark small"
@@ -626,10 +679,10 @@ export default function OnboardingView() {
                       </Col>
                       <Col md={3}>
                         <Form.Group>
-                          <Form.Label className="smaller text-muted mb-1">Rol / Puesto</Form.Label>
+                          <Form.Label className="smaller text-muted mb-1">{t("onboarding.roleTitleLabel")}</Form.Label>
                           <Form.Control
                             type="text"
-                            placeholder="Ej: Esteticista"
+                            placeholder={t("onboarding.roleTitlePlaceholder")}
                             value={w.roleTitle}
                             onChange={(e) => handleWorkerChange(w.id, "roleTitle", e.target.value)}
                             className="py-1.5 px-2.5 border border-opacity-25 rounded bg-white text-dark small"
@@ -638,7 +691,7 @@ export default function OnboardingView() {
                       </Col>
 
                       <Col md={12}>
-                        <Form.Label className="smaller text-muted mb-1.5 d-block">Servicios que realiza:</Form.Label>
+                        <Form.Label className="smaller text-muted mb-1.5 d-block">{t("onboarding.servicesPerformedLabel")}</Form.Label>
                         <div className="d-flex flex-wrap gap-2">
                           {services.filter(s => s.checked).map(s => {
                             const selected = w.services.includes(s.name) || w.services.length === 0;
@@ -663,7 +716,7 @@ export default function OnboardingView() {
                         </div>
                         {w.services.length === 0 && (
                           <Form.Text className="text-muted smaller d-block mt-1">
-                            💡 Si no seleccionas ninguno, se le asignarán todos los servicios por defecto.
+                            {t("onboarding.allServicesAssignedHint")}
                           </Form.Text>
                         )}
                       </Col>
@@ -680,7 +733,7 @@ export default function OnboardingView() {
                   style={{ fontSize: "13px" }}
                 >
                   <Plus size={16} />
-                  <span>Añadir Profesional del Equipo</span>
+                  <span>{t("onboarding.addWorkerBtn")}</span>
                 </Button>
               </div>
             </div>
@@ -691,11 +744,11 @@ export default function OnboardingView() {
             <div className="animate-fade-in">
               <div className="text-center mb-4">
                 <span className="badge px-3 py-2 rounded-pill fw-bold mb-2.5" style={{ backgroundColor: "rgba(124, 58, 237, 0.1)", color: "#7c3aed" }}>
-                  Paso 4 de 5
+                  {t("onboarding.stepBadge", { step: 4 })}
                 </span>
-                <h2 className="fw-black text-dark tracking-tight mb-2 h3">Horarios de Apertura Base</h2>
+                <h2 className="fw-black text-dark tracking-tight mb-2 h3">{t("onboarding.step4Title")}</h2>
                 <p className="text-secondary small max-w-500 mx-auto">
-                  Define las horas de atención de tu espacio. Estos horarios se asignarán por defecto a tu equipo.
+                  {t("onboarding.step4Desc")}
                 </p>
               </div>
 
@@ -740,7 +793,7 @@ export default function OnboardingView() {
                         />
                       </div>
                     ) : (
-                      <span className="text-muted smaller italic">Cerrado</span>
+                      <span className="text-muted smaller italic">{t("onboarding.closedLabel")}</span>
                     )}
                   </div>
                 ))}
@@ -753,11 +806,11 @@ export default function OnboardingView() {
             <div className="animate-fade-in text-center">
               <div className="mb-4">
                 <span className="badge px-3 py-2 rounded-pill fw-bold mb-2.5" style={{ backgroundColor: "rgba(16, 185, 129, 0.1)", color: "#10b981" }}>
-                  ¡Todo Listo!
+                  {t("onboarding.allSetBadge")}
                 </span>
-                <h2 className="fw-black text-dark tracking-tight mb-2 h3">¡Tu Configuración Inicial!</h2>
+                <h2 className="fw-black text-dark tracking-tight mb-2 h3">{t("onboarding.step5Title")}</h2>
                 <p className="text-secondary small max-w-500 mx-auto">
-                  Verifica que la información sea correcta antes de lanzar tu espacio de trabajo.
+                  {t("onboarding.step5Desc")}
                 </p>
               </div>
 
@@ -769,36 +822,44 @@ export default function OnboardingView() {
                   border: "1px solid rgba(255, 255, 255, 0.6)"
                 }}
               >
-                <h4 className="fw-bold h6 text-uppercase tracking-wider text-muted mb-3.5">Resumen de Cuenta</h4>
+                <h4 className="fw-bold h6 text-uppercase tracking-wider text-muted mb-3.5">{t("onboarding.summaryTitle")}</h4>
                 
                 <div className="d-flex justify-content-between align-items-center mb-2.5 pb-2.5 border-bottom border-purple-opacity">
-                  <span className="text-secondary small fw-medium">Nombre comercial:</span>
+                  <span className="text-secondary small fw-medium">{t("onboarding.bizNameSummary")}</span>
                   <span className="fw-bold text-dark small">{bizName}</span>
                 </div>
 
                 <div className="d-flex justify-content-between align-items-center mb-2.5 pb-2.5 border-bottom border-purple-opacity">
-                  <span className="text-secondary small fw-medium">Rubro:</span>
-                  <span className="fw-bold text-dark small">{rubro}</span>
+                  <span className="text-secondary small fw-medium">{t("onboarding.industrySummary")}</span>
+                  <span className="fw-bold text-dark small">
+                    {t("onboarding.rubros." + rubro, { defaultValue: rubro })}
+                  </span>
                 </div>
 
                 <div className="d-flex justify-content-between align-items-center mb-2.5 pb-2.5 border-bottom border-purple-opacity">
-                  <span className="text-secondary small fw-medium">Slug de Reserva:</span>
+                  <span className="text-secondary small fw-medium">{t("onboarding.slugSummary")}</span>
                   <span className="fw-bold text-primary small font-monospace">/booking/{slug}</span>
                 </div>
 
                 <div className="d-flex justify-content-between align-items-center mb-2.5 pb-2.5 border-bottom border-purple-opacity">
-                  <span className="text-secondary small fw-medium">Servicios configurados:</span>
-                  <span className="fw-bold text-dark small">{services.filter(s => s.checked).length} servicios</span>
+                  <span className="text-secondary small fw-medium">{t("onboarding.servicesSummary")}</span>
+                  <span className="fw-bold text-dark small">
+                    {t("onboarding.servicesCount", { count: services.filter(s => s.checked).length })}
+                  </span>
                 </div>
 
                 <div className="d-flex justify-content-between align-items-center mb-2.5 pb-2.5 border-bottom border-purple-opacity">
-                  <span className="text-secondary small fw-medium">Equipo inicial:</span>
-                  <span className="fw-bold text-dark small">{workers.length} profesionales</span>
+                  <span className="text-secondary small fw-medium">{t("onboarding.workersSummary")}</span>
+                  <span className="fw-bold text-dark small">
+                    {t("onboarding.workersCount", { count: workers.length })}
+                  </span>
                 </div>
 
                 <div className="d-flex justify-content-between align-items-center">
-                  <span className="text-secondary small fw-medium">Días hábiles de atención:</span>
-                  <span className="fw-bold text-dark small">{schedules.filter(s => s.enabled).length} días</span>
+                  <span className="text-secondary small fw-medium">{t("onboarding.daysSummary")}</span>
+                  <span className="fw-bold text-dark small">
+                    {t("onboarding.daysCount", { count: schedules.filter(s => s.enabled).length })}
+                  </span>
                 </div>
               </div>
 
@@ -815,11 +876,11 @@ export default function OnboardingView() {
                 {loading ? (
                   <>
                     <Spinner size="sm" animation="border" />
-                    <span>Lanzando tu espacio...</span>
+                    <span>{t("onboarding.launchingLoading")}</span>
                   </>
                 ) : (
                   <>
-                    <span>Lanzar mi Espacio</span>
+                    <span>{t("onboarding.launchBtn")}</span>
                     <span>🚀</span>
                   </>
                 )}
@@ -839,7 +900,7 @@ export default function OnboardingView() {
                   style={{ fontSize: "13px" }}
                 >
                   <ArrowLeft size={14} />
-                  <span>Atrás</span>
+                  <span>{t("onboarding.backBtn")}</span>
                 </Button>
               ) : (
                 <div />
@@ -852,7 +913,7 @@ export default function OnboardingView() {
                 className="rounded-pill px-4 py-2 text-white bg-purple-600 hover-bg-purple-700 border-0 shadow-sm fw-bold d-flex align-items-center gap-1.5"
                 style={{ fontSize: "13px" }}
               >
-                <span>Siguiente</span>
+                <span>{t("onboarding.nextBtn")}</span>
                 <span>→</span>
               </Button>
             </div>
