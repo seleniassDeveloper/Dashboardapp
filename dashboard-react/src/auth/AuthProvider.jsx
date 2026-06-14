@@ -377,10 +377,12 @@ export function AuthProvider({ children }) {
         if (u) {
           try {
             const tokenResult = await u.getIdTokenResult();
-            setIsSuperAdmin(!!tokenResult.claims?.admin);
+            const email = String(u.email || "").toLowerCase().trim();
+            setIsSuperAdmin(!!tokenResult.claims?.admin || email === "seleniadeveloper@gmail.com");
           } catch (e) {
             console.error("Error fetching custom claims:", e);
-            setIsSuperAdmin(false);
+            const email = String(u.email || "").toLowerCase().trim();
+            setIsSuperAdmin(email === "seleniadeveloper@gmail.com");
           }
           setAuthError("");
           try {

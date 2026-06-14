@@ -176,8 +176,6 @@ service cloud.firestore {
       : new Date(new Date(business.createdAt || Date.now()).getTime() + 14 * 24 * 60 * 60 * 1000);
     const isTrialValid = business.subscriptionStatus !== "trialing" || (trialEnds > new Date());
     
-    // BYPASS TEMPORAL: No bloquear en frontend por falta de pago/suscripción
-    /*
     if (!ALLOWED.includes(business.subscriptionStatus) || !isTrialValid) {
       const PricingView = React.lazy(() => import("../views/PricingView.jsx"));
       return (
@@ -193,7 +191,6 @@ service cloud.firestore {
         </React.Suspense>
       );
     }
-    */
   }
 
   return children;
