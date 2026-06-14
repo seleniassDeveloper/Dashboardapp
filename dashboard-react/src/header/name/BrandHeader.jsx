@@ -15,10 +15,10 @@ const ClientsABMModal = lazy(() => import("../clients/ClientsABMModal.jsx"));
 
 export default function BrandHeader() {
   const { brand } = useBrand();
-  const { logout, isAdmin } = useAuth();
+  const { logout, isAdmin, business } = useAuth();
   const navigate = useNavigate();
 
-  const hasCompanyName = Boolean(brand.companyName?.trim());
+  const hasCompanyName = Boolean(brand.companyName?.trim() || business?.name?.trim());
   const [showBrandModal, setShowBrandModal] = useState(!hasCompanyName);
 
 
@@ -63,7 +63,7 @@ export default function BrandHeader() {
 
         <div className="brandHeader__bar d-flex align-items-center justify-content-between">
           <h1 className="brandHeader__title m-0" style={{ color: brand.textColor, fontFamily: brand.fontFamily }}>
-            {hasCompanyName ? brand.companyName : " "}
+            {hasCompanyName ? (brand.companyName || business?.name) : " "}
           </h1>
 
           <div className="brandHeader__actions d-flex align-items-center gap-2" ref={menuRef}>

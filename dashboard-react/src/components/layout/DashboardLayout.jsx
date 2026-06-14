@@ -23,7 +23,7 @@ const ClientsABMModal = lazy(() => import("../../header/clients/ClientsABMModal.
 export default function DashboardLayout({ children }) {
   const { brand } = useBrand();
   const { business } = useAuth();
-  const hasCompanyName = Boolean(brand.companyName?.trim());
+  const hasCompanyName = Boolean(brand.companyName?.trim() || business?.name?.trim());
 
   let trialDaysLeft = null;
   if (business?.subscriptionStatus === "trialing" && business?.trialEndsAt) {

@@ -10,7 +10,7 @@ import LanguageSwitcher from "../language/LanguageSwitcher.jsx";
 export default function TopBar({ onMenuClick, onEditBrand, onSearchClick }) {
   const { t } = useTranslation("nav");
   const { brand } = useBrand();
-  const { logout } = useAuth();
+  const { logout, business } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -32,8 +32,8 @@ export default function TopBar({ onMenuClick, onEditBrand, onSearchClick }) {
         <button className="topbar__menu-btn" onClick={onMenuClick} aria-label={t("topbar.openMenu")}>
           <Menu size={20} />
         </button>
-        <div className="topbar__brand-wrap">
-          <h2 className="topbar__brand-name" translate="no">{brand.companyName || t("topbar.myBusiness")}</h2>
+        <div className="topbar__brand-wrap" onClick={onEditBrand}>
+          <h2 className="topbar__brand-name" translate="no">{brand.companyName || business?.name || t("topbar.myBusiness")}</h2>
           {brand.slogan && <p className="topbar__brand-slogan" translate="no">{brand.slogan}</p>}
         </div>
       </div>
