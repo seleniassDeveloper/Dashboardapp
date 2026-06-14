@@ -15,12 +15,15 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ success: false, error: "El nombre y el slug del negocio son obligatorios." });
     }
 
-    // Verificar si el slug ya existe
-    const existing = await prisma.business.findUnique({
-      where: { slug: slug.toLowerCase().trim() }
+    let finalSlug = slug.toLowerCase().trim();
+
+    // Verificar si el slug ya existe, si es así, agregar un sufijo aleatorio para evitar errores al usuario
+    let existing = await prisma.business.findUnique({
+      where: { slug: finalSlug }
     });
     if (existing) {
-      return res.status(400).json({ success: false, error: "El slug seleccionado ya está en uso. Por favor elige otro." });
+      const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+      finalSlug = `${finalSlug}-${randomSuffix}`;
     }
 
     // Buscar rol 'owner'
@@ -43,7 +46,7 @@ router.post("/", async (req, res) => {
       const biz = await tx.business.create({
         data: {
           name,
-          slug: slug.toLowerCase().trim(),
+          slug: finalSlug,
           ownerId: firebaseUid,
           logo: logo || null,
           industry: rubro || null,
@@ -89,12 +92,15 @@ router.post("/setup", async (req, res) => {
       return res.status(400).json({ success: false, error: "El nombre y el slug del negocio son obligatorios." });
     }
 
-    // Verificar si el slug ya existe
-    const existing = await prisma.business.findUnique({
-      where: { slug: slug.toLowerCase().trim() }
+    let finalSlug = slug.toLowerCase().trim();
+
+    // Verificar si el slug ya existe, si es así, agregar un sufijo aleatorio
+    let existing = await prisma.business.findUnique({
+      where: { slug: finalSlug }
     });
     if (existing) {
-      return res.status(400).json({ success: false, error: "El slug seleccionado ya está en uso. Por favor elige otro." });
+      const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+      finalSlug = `${finalSlug}-${randomSuffix}`;
     }
 
     // Buscar rol 'owner'
@@ -118,7 +124,7 @@ router.post("/setup", async (req, res) => {
       const biz = await tx.business.create({
         data: {
           name,
-          slug: slug.toLowerCase().trim(),
+          slug: finalSlug,
           ownerId: firebaseUid,
           logo: logo || null,
           industry: rubro || null,
