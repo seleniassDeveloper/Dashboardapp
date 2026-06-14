@@ -252,7 +252,7 @@ export default function PricingView({ blocked = false, subscriptionStatus = "" }
                       className="w-100 rounded-pill py-2.5 fw-bold d-flex align-items-center justify-content-center gap-2 border-purple-opacity shadow-sm"
                       style={p.popular ? { backgroundColor: "#7c3aed", color: "#fff", border: 0 } : { fontSize: "13px" }}
                     >
-                      {isLoading ? "Cargando..." : (blocked ? "Reactivar Cuenta" : "Empezar Plan")}
+                      {isLoading ? "Procesando, esto puede tardar unos segundos..." : (blocked ? "Reactivar Cuenta" : "Empezar Plan")}
                       <ArrowRight size={15} />
                     </Button>
                   </Card.Body>

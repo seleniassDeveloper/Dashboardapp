@@ -92,3 +92,21 @@ Para que este flujo funcione y los correos lleguen correctamente, debes configur
 5. Revisa la bandeja de entrada de `auradash.digital@gmail.com`. Te llegará un correo.
 6. Haz clic en **✅ Aprobar Acceso Ahora** en el correo para otorgar acceso inmediato al negocio.
 7. *Si el correo falla, revisa los "Logs" en el panel de Render, donde ahora se mostrará el error exacto (no fallará silenciosamente).*
+
+---
+
+## 6. Evitar Timeouts y Cold Starts (Render Free + Neon)
+
+En planes gratuitos, tanto Render como Neon "duermen" tu servicio tras inactividad. Esto causa que la primera visita tarde hasta 30-50 segundos, lo que resulta en un Error 500 (Timeout).
+
+**Para la Base de Datos (Neon DB):**
+Debes usar el "Pooled Endpoint" (el enlace que termina en `-pooler`) en Render para gestionar mejor las conexiones serverless y evitar bloqueos (timeouts y `P1002`).
+Asegúrate de que tu `DATABASE_URL` en Render tenga este formato exacto:
+`postgres://user:pass@ep-nombredb-pooler.region.aws.neon.tech/neondb?sslmode=require&pgbouncer=true&connection_limit=1`
+
+**Para el Servidor (Render):**
+Para evitar que Render apague tu backend, configura un Uptime Cron.
+1. Crea una cuenta gratuita en [cron-job.org](https://cron-job.org/) o similar.
+2. Crea un nuevo cron job apuntando a la ruta de salud del backend:
+   `https://dashboard-api-r6j9.onrender.com/health`
+3. Configúralo para que se ejecute cada **10 minutos**. Esto mantendrá tu backend siempre despierto y los checkout responderán en menos de 2 segundos.
