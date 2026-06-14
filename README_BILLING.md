@@ -67,3 +67,28 @@ Para correr las pruebas, ejecuta en la terminal del backend:
 ```bash
 node src/tests/test_billing.js
 ```
+
+---
+
+## 5. Solicitud de Planes por Correo (Magic Link)
+
+Al hacer clic en "Empezar Plan" en Pro o Business, el sistema enviará un correo con un "Magic Link" para aprobar el acceso con un solo clic.
+
+**Requisitos en Render.com (Environment Variables):**
+Para que este flujo funcione y los correos lleguen correctamente, debes configurar las siguientes variables en la pestaña **Environment** de tu Web Service en Render:
+- `EMAIL_HOST` = `smtp.gmail.com`
+- `EMAIL_PORT` = `465`
+- `EMAIL_SECURE` = `true`
+- `EMAIL_USER` = `auradash.digital@gmail.com`
+- `EMAIL_PASS` = `[TU_CONTRASEÑA_DE_APLICACION_DE_GOOGLE]` (sin espacios)
+- `EMAIL_FROM` = `AuraDash <auradash.digital@gmail.com>`
+- `API_URL` = `https://dashboard-api-r6j9.onrender.com` (o la URL de tu backend en producción)
+
+**Cómo probar el flujo:**
+1. Ve al panel del Frontend.
+2. Navega a **Configuración -> Facturación y Planes**.
+3. Haz clic en **Empezar Plan** en Pro o Business.
+4. Confirma que la UI muestre el mensaje de éxito.
+5. Revisa la bandeja de entrada de `auradash.digital@gmail.com`. Te llegará un correo.
+6. Haz clic en **✅ Aprobar Acceso Ahora** en el correo para otorgar acceso inmediato al negocio.
+7. *Si el correo falla, revisa los "Logs" en el panel de Render, donde ahora se mostrará el error exacto (no fallará silenciosamente).*

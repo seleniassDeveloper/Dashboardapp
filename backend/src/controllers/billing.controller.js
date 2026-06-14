@@ -79,8 +79,9 @@ export async function checkout(req, res) {
 
     // INTERCEPT PRO AND BUSINESS FOR MANUAL ACCESS NOTIFICATION
     if (planCode === "pro" || planCode === "business") {
+      let approvalToken;
       try {
-        const approvalToken = crypto.randomBytes(32).toString("hex");
+        approvalToken = crypto.randomBytes(32).toString("hex");
         // Guardar solicitud en la DB
         await prisma.planRequest.create({
           data: {
@@ -89,7 +90,13 @@ export async function checkout(req, res) {
             approvalToken
           }
         });
+      } catch (err) {
+        console.error("[Billing] Error crítico guardando la solicitud en la base de datos:", err);
+        return res.status(500).json({ success: false, error: "No se pudo registrar la solicitud en la base de datos." });
+      }
 
+      let emailSent = false;
+      try {
         const baseUrl = process.env.API_URL || "https://dashboard-api-r6j9.onrender.com";
         const magicLink = `${baseUrl}/api/billing/quick-approve?token=${approvalToken}`;
 
@@ -109,12 +116,17 @@ export async function checkout(req, res) {
             </div>
           `,
         });
+        emailSent = true;
       } catch (err) {
-        console.warn("Error al registrar o enviar la solicitud de acceso:", err);
+        console.error("[Billing] Error crítico enviando el correo electrónico:", err);
+        // NO retornamos error HTTP 500 porque la solicitud SÍ se guardó en BD.
+        // Pero marcamos emailSent = false para el diagnostico.
       }
+
       return res.status(200).json({
         success: true,
         isRequest: true,
+        emailSent,
         message: "Tu solicitud ha sido enviada. Nos pondremos en contacto pronto para habilitar tu acceso."
       });
     }

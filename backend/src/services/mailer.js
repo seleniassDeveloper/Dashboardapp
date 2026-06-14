@@ -11,6 +11,10 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+if (!process.env.EMAIL_HOST || !process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+  console.warn("[mailer] ADVERTENCIA: Faltan credenciales SMTP (EMAIL_HOST, EMAIL_USER, EMAIL_PASS) en el entorno. Los correos fallarán.");
+}
+
 
 export async function sendReminderEmail({ to, subject, html }) {
   if (!to) throw new Error("Email destino vacío");
