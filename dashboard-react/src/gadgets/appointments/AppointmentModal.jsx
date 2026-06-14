@@ -778,9 +778,19 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
       keyboard={!saving}
     >
       <Modal.Header className="border-0 pb-0" closeButton={!saving}>
-        <Modal.Title className="fw-black h4 brand-title">
-          {isEdit ? "Refinar Cita" : "Nueva Reserva"}
-        </Modal.Title>
+        <div className="d-flex flex-column w-100">
+          <Modal.Title className="fw-black h4 brand-title">
+            {isEdit ? "Refinar Cita" : "Nueva Reserva"}
+          </Modal.Title>
+          {isEdit && initialData?.createdAt && (
+            <div className="small text-muted fw-normal mt-1">
+              Creada el: {new Date(initialData.createdAt).toLocaleString("es-AR", {
+                dateStyle: "medium",
+                timeStyle: "short"
+              })}
+            </div>
+          )}
+        </div>
       </Modal.Header>
 
       <Modal.Body className="pt-4">

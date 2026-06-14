@@ -596,10 +596,20 @@ export default function AppointmentModal({
   return (
     <Modal show={show} onHide={onHide} centered size="lg" className="hegemonic-modal">
       <Form onSubmit={handleSubmit}>
-        <Modal.Header closeButton className="border-0">
-          <Modal.Title className="fw-black h4 text-dark">
-            {isEdit ? "Edición Avanzada de Cita" : "Nueva Reserva en Agenda"}
-          </Modal.Title>
+        <Modal.Header closeButton className="border-0 pb-0">
+          <div className="d-flex flex-column w-100">
+            <Modal.Title className="fw-black h4 text-dark">
+              {isEdit ? "Refinar Cita en Agenda" : "Nueva Reserva Rápida"}
+            </Modal.Title>
+            {isEdit && appointment?.createdAt && (
+              <div className="small text-muted fw-normal mt-1">
+                Creada el: {new Date(appointment.createdAt).toLocaleString("es-AR", {
+                  dateStyle: "medium",
+                  timeStyle: "short"
+                })}
+              </div>
+            )}
+          </div>
         </Modal.Header>
 
         <Modal.Body className="pt-2">
