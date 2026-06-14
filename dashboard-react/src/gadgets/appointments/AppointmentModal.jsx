@@ -952,6 +952,9 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
                           isInvalid={Boolean(errors.workerId)}
                         >
                           <option value="">Seleccionar...</option>
+                          {workers.length === 0 && (
+                            <option value="" disabled>⚠️ No hay profesionales. Debes agregar uno en la sección Equipo.</option>
+                          )}
                           {workers.map((w) => (
                             <option key={w.id} value={w.id}>{w.name}</option>
                           ))}
@@ -1008,7 +1011,13 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
                             disabled={!form.workerId}
                             isInvalid={Boolean(errors.serviceId)}
                           >
-                            <option value="">{form.workerId ? "+ Agregar servicio..." : "Elige trabajador primero"}</option>
+                            <option value="">
+                              {!form.workerId
+                                ? "Elige trabajador primero"
+                                : workerServices.length === 0
+                                ? "⚠️ Este trabajador no tiene servicios asignados"
+                                : "+ Agregar servicio..."}
+                            </option>
                             {workerServices
                               .filter((s) => !selServiceIds.includes(s.id))
                               .map((s) => (

@@ -756,6 +756,9 @@ export default function AppointmentModal({
                   required
                 >
                   <option value="">Seleccionar...</option>
+                  {workers.length === 0 && (
+                    <option value="" disabled>⚠️ No hay profesionales. Debes agregar uno en la sección Equipo.</option>
+                  )}
                   {workers.map(w => (
                     <option key={w.id} value={w.id}>
                       {w.firstName} {w.lastName} ({w.roleTitle})
@@ -796,6 +799,11 @@ export default function AppointmentModal({
             <Col lg={6}>
               <h6 className="form-section-title">Servicios a Realizar * (Selección Múltiple)</h6>
               <div className="d-grid gap-2 border p-3 rounded-4 bg-light overflow-auto mb-3" style={{ maxHeight: "175px" }}>
+                {services.length === 0 && (
+                   <div className="text-center p-3 text-danger fw-medium small">
+                     ⚠️ No hay servicios agregados. Debes agregar uno en la sección Servicios.
+                   </div>
+                )}
                 {services.map(s => {
                   const active = selectedServiceIds.includes(s.id);
                   return (
