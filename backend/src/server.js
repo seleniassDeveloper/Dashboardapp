@@ -18,14 +18,17 @@ const server = app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
 
   if (process.env.DATABASE_URL) {
-    console.log("[server] prisma migrate deploy (background)…");
-    const migrate = spawn("npx", ["prisma", "migrate", "deploy"], {
+    // Usamos `db push` en vez de `migrate deploy` porque la base de producción
+    // se creó con db push (sin baseline de migraciones) y `migrate deploy` da P3005.
+    // db push sincroniza el schema (crea tablas/columnas faltantes) de forma aditiva.
+    console.log("[server] prisma db push (background)…");
+    const migrate = spawn("npx", ["prisma", "db", "push", "--skip-generate"], {
       stdio: "inherit",
       detached: true,
     });
     migrate.unref();
     migrate.on("exit", (code) => {
-      console.log(`[server] migrations finished code=${code}`);
+      console.log(`[server] db push finished code=${code}`);
     });
   } else {
     console.log("[server] DATABASE_URL not set — skip migrations");
