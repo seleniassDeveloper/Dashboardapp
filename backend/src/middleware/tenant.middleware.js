@@ -205,6 +205,8 @@ export async function checkTenant(req, res, next) {
         ? new Date(b.trialEndsAt) 
         : new Date(new Date(b.createdAt).getTime() + 14 * 24 * 60 * 60 * 1000);
       const isTrialValid = b.subscriptionStatus !== "trialing" || (trialEnds > new Date());
+      // BYPASS TEMPORAL: Permitir acceso libre sin bloquear por falta de suscripción
+      /*
       if (!ALLOWED.includes(b.subscriptionStatus) || !isTrialValid) {
         return res.status(402).json({
           error: "subscription_required",
@@ -212,6 +214,7 @@ export async function checkTenant(req, res, next) {
           message: "Tu suscripción no está activa."
         });
       }
+      */
     }
     
     // Cargar rol y matriz de permisos
