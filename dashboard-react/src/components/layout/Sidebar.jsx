@@ -21,7 +21,8 @@ import {
   Lock,
   Sparkles,
   Clock,
-  HelpCircle
+  HelpCircle,
+  Shield
 } from "lucide-react";
 import { useAuth } from "../../auth/AuthProvider";
 import { useBrand } from "../../header/name/BrandProvider";
@@ -73,6 +74,12 @@ const MENU_ITEM_PERMISSIONS = {
   config: ["manage_settings", "manage_users"],
 };
 
+const PLAN_RESTRICTIONS = {
+  starter: ["finances", "inventory", "sheets_sync", "workflows", "automations", "marketing"],
+  pro: ["sheets_sync", "automations", "marketing"],
+  business: []
+};
+
 export default function Sidebar({ 
   isCollapsed, 
   onToggle, 
@@ -85,7 +92,7 @@ export default function Sidebar({
 }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { logout, user, role } = useAuth();
+  const { logout, user, role, isSuperAdmin, business } = useAuth();
 
   const handleLogout = async () => {
     await logout();
@@ -159,7 +166,12 @@ export default function Sidebar({
         }).map((item, idx, arr) => {
           const requiredPermission = MENU_ITEM_PERMISSIONS[item.id];
           const hasItemPermission = requiredPermission ? hasPermission(requiredPermission) : true;
-          const isActive = location.pathname === item.path || (item.path !== "/app" && location.pathname.startsWith(item.path));
+          
+          const activePlan = business?.plan || "starter";
+          const isPlanLocked = PLAN_RESTRICTIONS[activePlan]?.includes(item.id);
+          const linkPath = isPlanLocked ? "/app/pricing" : item.path;
+          
+          const isActive = !isPlanLocked && (location.pathname === item.path || (item.path !== "/app" && location.pathname.startsWith(item.path)));
           
           const handleClick = () => {
             onClose();
@@ -178,13 +190,15 @@ export default function Sidebar({
                 </div>
               )}
               <Link
-                to={item.path}
-                className={`sidebar__item ${isActive ? "sidebar__item--active" : ""} ${!hasItemPermission ? "sidebar__item--locked" : ""}`}
+                to={linkPath}
+                className={`sidebar__item ${isActive ? "sidebar__item--active" : ""} ${isPlanLocked ? "sidebar__item--plan-locked" : !hasItemPermission ? "sidebar__item--locked" : ""}`}
                 onClick={handleClick}
-                style={!hasItemPermission ? { opacity: 0.8 } : {}}
+                style={isPlanLocked || !hasItemPermission ? { opacity: 0.8 } : {}}
               >
                 <div className="sidebar__item-icon">
-                  {hasItemPermission ? (
+                  {isPlanLocked ? (
+                    <Lock size={18} className="text-warning animate-pulse" strokeWidth={2} />
+                  ) : hasItemPermission ? (
                     <item.icon size={20} strokeWidth={isActive ? 2.5 : 2} />
                   ) : (
                     <Lock size={18} className="text-secondary" strokeWidth={2} />
@@ -199,7 +213,12 @@ export default function Sidebar({
                       exit={{ opacity: 0, x: -10 }}
                     >
                       <span>{t(`menu.${item.id}`)}</span>
-                      {!hasItemPermission && (
+                      {isPlanLocked && (
+                        <span className="badge bg-warning-subtle text-warning border border-warning-subtle ms-1" style={{ fontSize: "8px", padding: "1px 5px", borderRadius: "4px", fontWeight: 700 }}>
+                          {item.id === "finances" || item.id === "inventory" || item.id === "workflows" ? "PRO" : "BIZ"}
+                        </span>
+                      )}
+                      {!isPlanLocked && !hasItemPermission && (
                         <Lock size={12} className="text-secondary opacity-75 ms-1" />
                       )}
                     </motion.span>
@@ -251,6 +270,40 @@ export default function Sidebar({
             </React.Fragment>
           );
         })}
+
+        {isSuperAdmin && (
+          <>
+            {!isCollapsed && (
+              <div 
+                className="sidebar__section-title px-3 pt-3 pb-1 text-uppercase fw-bold text-danger" 
+                style={{ fontSize: "9px", letterSpacing: "1.2px", opacity: 0.8 }}
+              >
+                SaaS Admin
+              </div>
+            )}
+            <Link
+              to="/app/superadmin/billing"
+              className={`sidebar__item ${location.pathname === "/app/superadmin/billing" ? "sidebar__item--active" : ""}`}
+              onClick={() => onClose()}
+            >
+              <div className="sidebar__item-icon">
+                <Shield size={20} className="text-danger" strokeWidth={2.5} />
+              </div>
+              <AnimatePresence>
+                {!isCollapsed && (
+                  <motion.span
+                    className="sidebar__item-label"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -10 }}
+                  >
+                    Control Billing
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </Link>
+          </>
+        )}
       </nav>
 
       {/* Premium Profile Box */}

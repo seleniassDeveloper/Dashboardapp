@@ -287,6 +287,12 @@ model Business {
   slaConfigs                 ServiceSlaConfig[]
   slas                       ServiceSla[]
   marketingPosts             MarketingPost[]
+  plan                       String                     @default("starter") // starter | pro | business
+  subscriptionStatus         String                     @default("trialing") // trialing | active | past_due | canceled | suspended
+  trialEndsAt                DateTime?
+  currentPeriodEnd           DateTime?
+  gracePeriodEndsAt          DateTime?
+  subscription               Subscription?
 }
 
 model ScheduleBlock {
@@ -833,6 +839,56 @@ model MarketingPost {
   
   business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
   client      Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+}
+
+model Plan {
+  id          String   @id @default(cuid())
+  code        String   @unique               // starter | pro | business
+  name        String
+  priceMonth  Int                            // en centavos
+  priceYear   Int
+  currency    String   @default("USD")
+  maxUsers    Int?
+  maxBranches Int?
+  features    Json?
+  isActive    Boolean  @default(true)
+}
+
+model Subscription {
+  id                 String   @id @default(cuid())
+  businessId         String   @unique
+  business           Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  planCode           String
+  status             String   @default("trialing")
+  interval           String   @default("month")   // month | year
+  provider           String   @default("mercadopago")
+  providerSubId      String?                       // id de preapproval / subscription
+  currentPeriodEnd   DateTime?
+  cancelAtPeriodEnd  Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  payments           Payment[]
+}
+
+model Payment {
+  id             String   @id @default(cuid())
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  amount         Int
+  currency       String
+  status         String   // approved | rejected | pending | refunded
+  providerPayId  String?
+  paidAt         DateTime?
+  createdAt      DateTime @default(now())
+}
+
+model WebhookEvent {
+  id          String   @id @default(cuid())
+  provider    String
+  eventId     String   @unique
+  type        String
+  payload     Json
+  processedAt DateTime @default(now())
 }
 
 

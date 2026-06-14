@@ -31,6 +31,8 @@ import meRoutes from "./routes/me.routes.js";
 import auditRoutes from "./routes/audit.routes.js";
 import consentRoutes from "./routes/consent.routes.js";
 import marketingRoutes from "./routes/marketing.routes.js";
+import billingRoutes from "./routes/billing.routes.js";
+import adminBillingRoutes from "./routes/adminBilling.routes.js";
 import requireAuth from "./middleware/requireAuth.js";
 import { checkTenant } from "./middleware/tenant.middleware.js";
 import { getCorsOptions } from "./config/cors.js";
@@ -70,6 +72,8 @@ app.use("/health", healthRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminUsersRoutes);
 app.use("/api/public", publicRoutes);
+app.use("/api/billing", billingRoutes);
+app.use("/api/admin/billing", adminBillingRoutes);
 
 app.use("/api/appointments", requireAuth, checkTenant, appointmentsRoutes);
 app.use("/api/clients", requireAuth, checkTenant, clientsRoutes);

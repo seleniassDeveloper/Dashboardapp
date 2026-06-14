@@ -86,6 +86,7 @@ function googleProvider() {
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState("");
 
@@ -279,7 +280,7 @@ export function AuthProvider({ children }) {
           setIsUnauthorized(false);
           
           const isDemo = localStorage.getItem("auradash_demo_session") === "true";
-          if (AUTH_DISABLED || isDemo || email === "seleniadeveloper@gmail.com") {
+          if (AUTH_DISABLED || isDemo) {
             setBusiness({ id: "business-default", name: "Aura Studio" });
             localStorage.setItem("active_business_id", "business-default");
           } else {
@@ -374,12 +375,19 @@ export function AuthProvider({ children }) {
         if (cancelled) return;
         setUser(u);
         if (u) {
+          try {
+            const tokenResult = await u.getIdTokenResult();
+            setIsSuperAdmin(!!tokenResult.claims?.admin);
+          } catch (e) {
+            console.error("Error fetching custom claims:", e);
+            setIsSuperAdmin(false);
+          }
           setAuthError("");
           try {
             await fetchSession(u);
             
             const isDemo = localStorage.getItem("auradash_demo_session") === "true";
-            if (!AUTH_DISABLED && !isDemo && u.email !== "seleniadeveloper@gmail.com") {
+            if (!AUTH_DISABLED && !isDemo) {
               try {
                 const res = await api.get("/me/businesses");
                 const list = res.data?.userBusinesses || [];
@@ -522,6 +530,7 @@ export function AuthProvider({ children }) {
     setBusiness(null);
     setRole(null);
     setPermissions([]);
+    setIsSuperAdmin(false);
     setIsUnauthorized(false);
     setFirestoreError("");
     if (firebaseAuth) await signOut(firebaseAuth);
@@ -532,6 +541,7 @@ export function AuthProvider({ children }) {
       user,
       authLoading,
       isAdmin: role === "owner",
+      isSuperAdmin,
       authDisabled: AUTH_DISABLED,
       authError,
       clearAuthError: () => setAuthError(""),
@@ -570,6 +580,7 @@ export function AuthProvider({ children }) {
       userBusinesses,
       switchBusiness,
       loginDemo,
+      isSuperAdmin,
     ]
   );
 

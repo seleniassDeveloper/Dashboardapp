@@ -188,6 +188,31 @@ export async function checkTenant(req, res, next) {
     // 6. Inyectar variables relacionales en Express
     req.businessId = membership.businessId;
     req.businessSlug = membership.business.slug;
+
+    // 7. CONTROL DE ACCESO POR FACTURACIÓN / SUSCRIPCIÓN (Trial / Active check)
+    const originalUrl = req.originalUrl || "";
+    const isBillingPath = originalUrl.includes("/api/billing");
+    const isPublicPath = originalUrl.includes("/api/public");
+    const isAuthPath = originalUrl.includes("/api/auth");
+    const isHealthPath = originalUrl.includes("/health");
+
+    const isDevBypass = process.env.AUTH_DISABLED === "true" || firebaseUid === "dev-user" || firebaseUid === "quick-booking-user";
+
+    if (!isDevBypass && !isBillingPath && !isPublicPath && !isAuthPath && !isHealthPath) {
+      const b = membership.business;
+      const ALLOWED = ["trialing", "active"];
+      const trialEnds = b.trialEndsAt 
+        ? new Date(b.trialEndsAt) 
+        : new Date(new Date(b.createdAt).getTime() + 14 * 24 * 60 * 60 * 1000);
+      const isTrialValid = b.subscriptionStatus !== "trialing" || (trialEnds > new Date());
+      if (!ALLOWED.includes(b.subscriptionStatus) || !isTrialValid) {
+        return res.status(402).json({
+          error: "subscription_required",
+          status: b.subscriptionStatus,
+          message: "Tu suscripción no está activa."
+        });
+      }
+    }
     
     // Cargar rol y matriz de permisos
     const roleKey = membership.roleRel.key;

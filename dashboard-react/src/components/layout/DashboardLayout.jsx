@@ -7,6 +7,7 @@ import ServiceModal from "../../header/services/ServiceModal";
 import WorkerModal from "../../header/workers/WorkerModal";
 import UsersAdminModal from "../../admin/UsersAdminModal.jsx";
 import { useBrand } from "../../header/name/BrandProvider";
+import { useAuth } from "../../auth/AuthProvider";
 import ProductionApiBanner from "./ProductionApiBanner.jsx";
 
 import CommandPalette from "./CommandPalette";
@@ -21,7 +22,14 @@ const ClientsABMModal = lazy(() => import("../../header/clients/ClientsABMModal.
 
 export default function DashboardLayout({ children }) {
   const { brand } = useBrand();
+  const { business } = useAuth();
   const hasCompanyName = Boolean(brand.companyName?.trim());
+
+  let trialDaysLeft = null;
+  if (business?.subscriptionStatus === "trialing" && business?.trialEndsAt) {
+    const diffTime = new Date(business.trialEndsAt) - new Date();
+    trialDaysLeft = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+  }
 
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -144,6 +152,24 @@ export default function DashboardLayout({ children }) {
         />
         <motion.div className="content-inner">
           <ProductionApiBanner />
+          {trialDaysLeft !== null && (
+            <div className="alert alert-info border-0 rounded-4 px-4 py-3 mb-4 d-flex align-items-center justify-content-between shadow-sm" style={{ background: "linear-gradient(135deg, rgba(124, 58, 237, 0.08) 0%, rgba(124, 58, 237, 0.02) 100%)", color: "#6d28d9" }}>
+              <div className="d-flex align-items-center gap-2.5">
+                <span style={{ fontSize: "18px" }}>🎁</span>
+                <span className="small fw-semibold">Te quedan <strong>{trialDaysLeft}</strong> días de prueba gratuita para configurar y probar tu salón.</span>
+              </div>
+              <a href="/app/pricing" className="btn btn-purple btn-sm rounded-pill px-3 py-1.5 fw-bold" style={{ fontSize: "11px", border: 0, backgroundColor: "#7c3aed", color: "#fff" }}>Contratar Plan</a>
+            </div>
+          )}
+          {business?.subscriptionStatus === "past_due" && (
+            <div className="alert alert-warning border-0 rounded-4 px-4 py-3 mb-4 d-flex align-items-center justify-content-between shadow-sm" style={{ background: "linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(245, 158, 11, 0.02) 100%)", color: "#b45309" }}>
+              <div className="d-flex align-items-center gap-2.5">
+                <span style={{ fontSize: "18px" }}>⚠️</span>
+                <span className="small fw-semibold">El cobro de tu suscripción falló. Por favor, regulariza tu situación de pago para evitar la suspensión.</span>
+              </div>
+              <a href="/app/settings?tab=subscription" className="btn btn-warning btn-sm rounded-pill px-3 py-1.5 fw-bold text-white" style={{ fontSize: "11px", border: 0, backgroundColor: "#d97706" }}>Ver Detalles</a>
+            </div>
+          )}
           {children}
         </motion.div>
       </motion.main>

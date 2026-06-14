@@ -36,6 +36,9 @@
     "@types/node": "^25.2.0",
     "nodemon": "^3.1.11"
   },
+  "prisma": {
+    "seed": "node scripts/seed-plans.js"
+  },
   "engines": {
     "node": ">=20"
   }

@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import DashboardLayout from "./components/layout/DashboardLayout";
 import { useBrand } from "./header/name/BrandProvider";
 import { Can } from "./auth/PermissionProvider";
+import { useAuth } from "./auth/AuthProvider";
 
 // Vistas
 import DashboardView from "./views/DashboardView";
@@ -21,12 +22,26 @@ import UnauthorizedView from "./views/UnauthorizedView";
 import RolesPermissionsPage from "./views/RolesPermissionsPage";
 import FinanceProtectedRoute from "./auth/FinanceProtectedRoute";
 import MarketingView from "./views/MarketingView";
+import PricingView from "./views/PricingView";
+import SuperAdminBillingView from "./views/SuperAdminBillingView";
+
+const PLAN_RESTRICTIONS = {
+  starter: ["finances", "inventory", "sheets_sync", "workflows", "automations", "marketing"],
+  pro: ["sheets_sync", "automations", "marketing"],
+  business: []
+};
 
 export default function App() {
   const { brand } = useBrand();
+  const { isSuperAdmin, business } = useAuth();
 
   const isModuleActive = (moduleId) => {
     return brand.activeModules?.[moduleId] ?? true;
+  };
+
+  const activePlan = business?.plan || "starter";
+  const isLocked = (moduleId) => {
+    return PLAN_RESTRICTIONS[activePlan]?.includes(moduleId);
   };
 
   return (
@@ -81,7 +96,9 @@ export default function App() {
         <Route
           path="/finances"
           element={
-            isModuleActive("finances") ? (
+            isLocked("finances") ? (
+              <Navigate to="/app/pricing" replace />
+            ) : isModuleActive("finances") ? (
               <FinanceProtectedRoute>
                 <FinancesView />
               </FinanceProtectedRoute>
@@ -94,7 +111,9 @@ export default function App() {
         <Route
           path="/inventory"
           element={
-            isModuleActive("inventory") ? (
+            isLocked("inventory") ? (
+              <Navigate to="/app/pricing" replace />
+            ) : isModuleActive("inventory") ? (
               <Can permission="inventory.view" fallback={<UnauthorizedView />}>
                 <InventoryView />
               </Can>
@@ -107,7 +126,9 @@ export default function App() {
         <Route
           path="/sheets-sync"
           element={
-            isModuleActive("sheets_sync") ? (
+            isLocked("sheets_sync") ? (
+              <Navigate to="/app/pricing" replace />
+            ) : isModuleActive("sheets_sync") ? (
               <Can permission="settings.view" fallback={<UnauthorizedView />}>
                 <GoogleSheetsSyncView />
               </Can>
@@ -120,7 +141,9 @@ export default function App() {
         <Route
           path="/workflows"
           element={
-            isModuleActive("workflows") ? (
+            isLocked("workflows") ? (
+              <Navigate to="/app/pricing" replace />
+            ) : isModuleActive("workflows") ? (
               <Can permission="workflows.view" fallback={<UnauthorizedView />}>
                 <WorkflowsView />
               </Can>
@@ -133,7 +156,9 @@ export default function App() {
         <Route
           path="/automations"
           element={
-            isModuleActive("automations") ? (
+            isLocked("automations") ? (
+              <Navigate to="/app/pricing" replace />
+            ) : isModuleActive("automations") ? (
               <Can permission="automations.view" fallback={<UnauthorizedView />}>
                 <AutomationsView />
               </Can>
@@ -146,7 +171,9 @@ export default function App() {
         <Route
           path="/marketing"
           element={
-            isModuleActive("marketing") ? (
+            isLocked("marketing") ? (
+              <Navigate to="/app/pricing" replace />
+            ) : isModuleActive("marketing") ? (
               <Can permission="marketing.view" fallback={<UnauthorizedView />}>
                 <MarketingView />
               </Can>
@@ -176,6 +203,19 @@ export default function App() {
           } 
         />
         
+        <Route path="/pricing" element={<PricingView />} />
+        
+        <Route 
+          path="/superadmin/billing" 
+          element={
+            isSuperAdmin ? (
+              <SuperAdminBillingView />
+            ) : (
+              <Navigate to="/unauthorized" replace />
+            )
+          } 
+        />
+
         <Route path="/unauthorized" element={<UnauthorizedView />} />
         
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -193,3 +193,35 @@
 .sidebar__submenu-item--inactive {
   color: var(--text-secondary) !important;
 }
+
+/* Gating premium features styling */
+.sidebar__item--plan-locked {
+  position: relative;
+  background: rgba(245, 158, 11, 0.02);
+  border: 1px dashed rgba(245, 158, 11, 0.15) !important;
+  margin: 1px 0;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar__item--plan-locked:hover {
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.35) !important;
+  color: #d97706 !important;
+}
+
+.sidebar__item--plan-locked .sidebar__item-label {
+  color: var(--text-secondary);
+}
+
+.sidebar__item--plan-locked:hover .sidebar__item-label {
+  color: #d97706;
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.animate-pulse {
+  animation: pulse-soft 2s infinite ease-in-out;
+}

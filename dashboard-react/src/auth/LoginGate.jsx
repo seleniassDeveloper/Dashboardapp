@@ -168,5 +168,30 @@ service cloud.firestore {
     );
   }
 
+  // Si está autenticado y tiene negocio, pero la suscripción no está activa/prueba vigente
+  if (user && business && !isDemo && !import.meta.env.VITE_AUTH_DISABLED && !import.meta.env.AUTH_DISABLED) {
+    const ALLOWED = ["trialing", "active"];
+    const trialEnds = business.trialEndsAt 
+      ? new Date(business.trialEndsAt) 
+      : new Date(new Date(business.createdAt || Date.now()).getTime() + 14 * 24 * 60 * 60 * 1000);
+    const isTrialValid = business.subscriptionStatus !== "trialing" || (trialEnds > new Date());
+    
+    if (!ALLOWED.includes(business.subscriptionStatus) || !isTrialValid) {
+      const PricingView = React.lazy(() => import("../views/PricingView.jsx"));
+      return (
+        <React.Suspense fallback={
+          <div className="auth-loading-screen d-flex min-vh-100 flex-column align-items-center justify-content-center gap-3"
+               style={{ background: "radial-gradient(circle at 50% 50%, #fcfbff 0%, #f3ebff 100%)" }}>
+            <Spinner animation="border" variant="secondary" role="status" style={{ color: "#7c3aed" }}>
+              <span className="visually-hidden">Cargando...</span>
+            </Spinner>
+          </div>
+        }>
+          <PricingView blocked={true} subscriptionStatus={business.subscriptionStatus} />
+        </React.Suspense>
+      );
+    }
+  }
+
   return children;
 }

@@ -1,0 +1,69 @@
+# Módulo de Suscripciones y Facturación (SaaS Billing) - MercadoPago
+
+Este módulo permite monetizar tu SaaS cobrando suscripciones recurrentes a los salones (inquilinos) mediante MercadoPago, con soporte para planes Starter, Pro y Business, y suspensión automática de cuentas.
+
+---
+
+## 1. Configuración de Variables de Entorno (`.env`)
+
+Para habilitar la facturación en producción, agrega las siguientes claves en los archivos de entorno correspondiente:
+
+### Backend (`backend/.env`)
+```env
+# Token de acceso privado de MercadoPago (Modo Producción o Sandbox)
+# Si no se define o comienza con "mock_", el backend entrará en MOCK MODE (simulado)
+MP_ACCESS_TOKEN=APP_USR-xxxxxx-xxxxxx
+
+# URL base de tu frontend react
+APP_BASE_URL=https://tu-dashboard.com
+
+# Habilitar o deshabilitar el cron job de facturación en el servidor
+ENABLE_BILLING_JOB=true
+```
+
+### Frontend (`dashboard-react/.env`)
+```env
+# URL base de la API del Backend (asegúrate de que apunte a tu backend de producción)
+VITE_API_URL=https://api.tu-dashboard.com/api
+```
+
+---
+
+## 2. Flujo de Sandbox / Simulación Local (Mock Mode)
+
+Para facilitar el desarrollo local sin necesidad de crear credenciales reales de MercadoPago:
+1. **Inicia sin configurar** `MP_ACCESS_TOKEN` (o ponle un valor como `mock_token`).
+2. Ve al panel de control en **Precios** o a la pestaña **Suscripción** dentro de **Configuración**.
+3. Selecciona un plan (Starter, Pro o Business) y haz clic en **Contratar Plan**.
+4. Serás redirigido a una página simulada en tu propio frontend que tiene el parámetro `mock_checkout=true`.
+5. Se abrirá una ventana emergente: **MercadoPago Sandbox Simulator**.
+6. Haz clic en **Simular Pago Exitoso**. Esto enviará peticiones webhook simuladas al backend de forma segura y actualizará tu salón a estado `active` con tu plan seleccionado de forma inmediata.
+
+---
+
+## 3. Configuración del Webhook en MercadoPago (Producción)
+
+Cuando estés listo para salir a producción con pagos reales:
+1. Entra a tu panel de desarrollador en [MercadoPago Developers](https://www.mercadopago.com.ar/developers).
+2. Ve a **Webhooks** o **Notificaciones IPN**.
+3. Configura la URL de notificaciones apuntando al endpoint público de tu backend:
+   `https://api.tu-dashboard.com/api/billing/webhook`
+4. Selecciona los eventos que deseas recibir:
+   * **Suscripciones / Preapprovals** (`subscription_preapproval` / `preapproval`)
+   * **Pagos** (`payment`)
+
+El backend verificará automáticamente cada transacción consultando directamente a la API de MercadoPago usando tu `MP_ACCESS_TOKEN` privado antes de otorgar o bloquear accesos, asegurando una seguridad infranqueable.
+
+---
+
+## 4. Ejecución de Pruebas Unitarias Automatizadas
+
+El sistema incluye pruebas automatizadas para validar:
+1. Gating del middleware `checkTenant` (bloqueo `402` en cuentas suspendidas).
+2. Idempotencia y registro de pagos mediante Webhook.
+3. Transición de estados en cron jobs (pruebas vencidas y períodos de gracia).
+
+Para correr las pruebas, ejecuta en la terminal del backend:
+```bash
+node src/tests/test_billing.js
+```

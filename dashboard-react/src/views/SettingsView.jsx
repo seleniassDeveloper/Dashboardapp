@@ -12,6 +12,7 @@ import GoogleSyncSettings from "../components/configurable-fields/GoogleSyncSett
 import ConsentSettings from "../components/configurable-fields/ConsentSettings.jsx";
 import AppointmentStatesSettings from "../components/configurable-fields/AppointmentStatesSettings.jsx";
 import { usePermissions } from "../auth/PermissionProvider.jsx";
+import SubscriptionSettingsView from "../components/configurable-fields/SubscriptionSettingsView.jsx";
 
 export default function SettingsView() {
   const { t, i18n } = useTranslation("views");
@@ -101,6 +102,11 @@ export default function SettingsView() {
                   {isEs ? "Estados de Cita" : "Appointment States"}
                 </Nav.Link>
               </Nav.Item>
+              <Nav.Item>
+                <Nav.Link eventKey="subscription" className="rounded-pill px-4">
+                  {isEs ? "Suscripción" : "Subscription"}
+                </Nav.Link>
+              </Nav.Item>
             </>
           )}
           {canManageUsers && (
@@ -138,6 +144,9 @@ export default function SettingsView() {
               </Tab.Pane>
               <Tab.Pane eventKey="appointment-states">
                 <AppointmentStatesSettings />
+              </Tab.Pane>
+              <Tab.Pane eventKey="subscription">
+                <SubscriptionSettingsView />
               </Tab.Pane>
             </>
           )}
