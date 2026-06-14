@@ -6,6 +6,7 @@ import api from "../lib/api.js";
 export default function SuperAdminBillingView() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({ businesses: [], estimatedMRR: 0 });
+  const [requests, setRequests] = useState([]);
   const [error, setError] = useState("");
 
   // Override modal state
@@ -24,9 +25,15 @@ export default function SuperAdminBillingView() {
     setLoading(true);
     setError("");
     try {
-      const res = await api.get("/admin/billing/businesses");
-      if (res.data?.success) {
-        setData(res.data);
+      const [bizRes, reqsRes] = await Promise.all([
+        api.get("/admin/billing/businesses"),
+        api.get("/admin/billing/requests")
+      ]);
+      if (bizRes.data?.success) {
+        setData(bizRes.data);
+      }
+      if (reqsRes.data?.success) {
+        setRequests(reqsRes.data.requests);
       }
     } catch (err) {
       console.error("Error fetching superadmin billing data:", err);
@@ -73,6 +80,25 @@ export default function SuperAdminBillingView() {
       setError(err.response?.data?.error || "Error al aplicar la modificación manual.");
     } finally {
       setOverrideLoading(false);
+    }
+  };
+
+  const handleApproveRequest = async (id) => {
+    try {
+      await api.post(`/admin/billing/requests/${id}/approve`);
+      await fetchAdminBillingData();
+    } catch (err) {
+      setError(err.response?.data?.error || "Error al aprobar la solicitud.");
+    }
+  };
+
+  const handleRejectRequest = async (id) => {
+    if (!window.confirm("¿Seguro que deseas rechazar esta solicitud?")) return;
+    try {
+      await api.post(`/admin/billing/requests/${id}/reject`);
+      await fetchAdminBillingData();
+    } catch (err) {
+      setError(err.response?.data?.error || "Error al rechazar la solicitud.");
     }
   };
 
@@ -152,6 +178,59 @@ export default function SuperAdminBillingView() {
           </Card>
         </Col>
       </Row>
+
+      {requests.length > 0 && (
+        <Card className="border-0 shadow-sm rounded-4 mb-4 border-warning" style={{ background: "#fff", borderLeft: "4px solid #f59e0b" }}>
+          <Card.Body className="p-4">
+            <div className="d-flex align-items-center gap-2 mb-3">
+              <AlertCircle className="text-warning" size={20} />
+              <h2 className="fw-bold h6 mb-0 text-dark">Solicitudes de Acceso Pendientes ({requests.length})</h2>
+            </div>
+            
+            <Table responsive className="mb-0">
+              <thead>
+                <tr className="border-bottom text-muted smaller uppercase">
+                  <th className="py-2.5">Fecha</th>
+                  <th className="py-2.5">Negocio</th>
+                  <th className="py-2.5">Plan Actual</th>
+                  <th className="py-2.5">Plan Solicitado</th>
+                  <th className="py-2.5 text-end">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {requests.map((r) => (
+                  <tr key={r.id} className="border-bottom small align-middle">
+                    <td className="py-3 text-muted">{new Date(r.createdAt).toLocaleDateString()}</td>
+                    <td className="py-3 fw-bold text-dark">{r.business?.name}</td>
+                    <td className="py-3"><Badge bg="secondary" className="uppercase">{r.business?.plan}</Badge></td>
+                    <td className="py-3"><Badge bg="primary" className="uppercase">{r.requestedPlan}</Badge></td>
+                    <td className="py-3 text-end">
+                      <div className="d-flex justify-content-end gap-2">
+                        <Button 
+                          variant="outline-danger" 
+                          size="sm" 
+                          className="rounded-pill px-3"
+                          onClick={() => handleRejectRequest(r.id)}
+                        >
+                          Rechazar
+                        </Button>
+                        <Button 
+                          variant="success" 
+                          size="sm" 
+                          className="rounded-pill px-3 text-white border-0"
+                          onClick={() => handleApproveRequest(r.id)}
+                        >
+                          Aprobar Acceso
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </Card.Body>
+        </Card>
+      )}
 
       {/* List Card */}
       <Card className="border-0 shadow-sm rounded-4" style={{ background: "#fff" }}>

@@ -79,14 +79,22 @@ export async function checkout(req, res) {
     // INTERCEPT PRO AND BUSINESS FOR MANUAL ACCESS NOTIFICATION
     if (planCode === "pro" || planCode === "business") {
       try {
+        // Guardar solicitud en la DB
+        await prisma.planRequest.create({
+          data: {
+            businessId,
+            requestedPlan: planCode
+          }
+        });
+
         const { sendReminderEmail } = await import("../services/mailer.js");
         await sendReminderEmail({
           to: "auradash.digital@gmail.com",
           subject: `Solicitud de Acceso a Módulo ${planCode.toUpperCase()}`,
-          html: `<p>El negocio con ID <b>${business.id}</b> y correo de contacto <b>${email}</b> ha solicitado acceso al plan <b>${planCode.toUpperCase()}</b>.</p><p>Por favor, revisa y aprueba el acceso.</p>`,
+          html: `<p>El negocio con ID <b>${business.id}</b> y correo de contacto <b>${email}</b> ha solicitado acceso al plan <b>${planCode.toUpperCase()}</b>.</p><p>Por favor, revisa y aprueba el acceso en el Panel de Administrador.</p>`,
         });
       } catch (err) {
-        console.warn("No se pudo enviar el correo de solicitud de acceso:", err);
+        console.warn("Error al registrar o enviar la solicitud de acceso:", err);
       }
       return res.status(200).json({
         success: true,

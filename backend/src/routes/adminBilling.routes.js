@@ -95,4 +95,89 @@ router.post("/businesses/:id/override", async (req, res) => {
   }
 });
 
+// GET pending plan requests
+router.get("/requests", async (req, res) => {
+  try {
+    const requests = await prisma.planRequest.findMany({
+      where: { status: "PENDING" },
+      include: {
+        business: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            subscriptionStatus: true,
+            plan: true
+          }
+        }
+      },
+      orderBy: { createdAt: "desc" }
+    });
+    return res.json({ success: true, requests });
+  } catch (error) {
+    console.error("Error fetching plan requests:", error);
+    return res.status(500).json({ success: false, error: "No se pudieron obtener las solicitudes de planes." });
+  }
+});
+
+// POST approve request
+router.post("/requests/:id/approve", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const request = await prisma.planRequest.findUnique({ where: { id } });
+    if (!request || request.status !== "PENDING") {
+      return res.status(404).json({ success: false, error: "Solicitud no encontrada o ya procesada." });
+    }
+
+    // Aprobar solicitud y actualizar negocio en transacción
+    await prisma.$transaction(async (tx) => {
+      await tx.planRequest.update({
+        where: { id },
+        data: { status: "APPROVED" }
+      });
+      await tx.business.update({
+        where: { id: request.businessId },
+        data: {
+          plan: request.requestedPlan,
+          subscriptionStatus: "active"
+        }
+      });
+      // Optionally update subscription if exists
+      const sub = await tx.subscription.findUnique({ where: { businessId: request.businessId } });
+      if (sub) {
+        await tx.subscription.update({
+          where: { id: sub.id },
+          data: { planCode: request.requestedPlan, status: "active" }
+        });
+      }
+    });
+
+    return res.json({ success: true, message: "Solicitud aprobada con éxito." });
+  } catch (error) {
+    console.error("Error approving plan request:", error);
+    return res.status(500).json({ success: false, error: "No se pudo aprobar la solicitud." });
+  }
+});
+
+// POST reject request
+router.post("/requests/:id/reject", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const request = await prisma.planRequest.findUnique({ where: { id } });
+    if (!request || request.status !== "PENDING") {
+      return res.status(404).json({ success: false, error: "Solicitud no encontrada o ya procesada." });
+    }
+
+    await prisma.planRequest.update({
+      where: { id },
+      data: { status: "REJECTED" }
+    });
+
+    return res.json({ success: true, message: "Solicitud rechazada." });
+  } catch (error) {
+    console.error("Error rejecting plan request:", error);
+    return res.status(500).json({ success: false, error: "No se pudo rechazar la solicitud." });
+  }
+});
+
 export default router;

@@ -293,6 +293,7 @@ model Business {
   currentPeriodEnd           DateTime?
   gracePeriodEndsAt          DateTime?
   subscription               Subscription?
+  planRequests               PlanRequest[]
 }
 
 model ScheduleBlock {
@@ -891,5 +892,15 @@ model WebhookEvent {
   processedAt DateTime @default(now())
 }
 
+model PlanRequest {
+  id            String   @id @default(cuid())
+  businessId    String
+  business      Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  requestedPlan String
+  status        String   @default("PENDING") // PENDING | APPROVED | REJECTED
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-
+  @@index([businessId])
+  @@index([status])
+}
