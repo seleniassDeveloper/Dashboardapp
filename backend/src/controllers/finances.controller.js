@@ -422,11 +422,11 @@ export async function listBankMovements(req, res) {
     if (count === 0) {
       await prisma.bankMovement.createMany({
         data: [
-          { date: new Date(), description: "MercadoPago Liquidación diaria", amount: 21000, type: "deposit", status: "pending", reference: "MP-345091" },
-          { date: new Date(Date.now() - 24 * 60 * 60 * 1000), description: "Visa Débito Aura Studio", amount: 15000, type: "deposit", status: "conciliated", reference: "VS-823901" },
-          { date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), description: "Transf Selenia Sanchez seña reserva", amount: 9000, type: "deposit", status: "conciliated", reference: "TR-928102" },
-          { date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), description: "Cobro tarjeta Mastercard Víctor Xu", amount: 15500, type: "deposit", status: "pending", reference: "MC-789012" },
-          { date: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000), description: "Pago Alquiler Mayo Aura", amount: -150000, type: "withdrawal", status: "conciliated", reference: "DEB-ALQ01" }
+          { businessId: req.businessId, date: new Date(), description: "MercadoPago Liquidación diaria", amount: 21000, type: "deposit", status: "pending", reference: "MP-345091" },
+          { businessId: req.businessId, date: new Date(Date.now() - 24 * 60 * 60 * 1000), description: "Visa Débito Aura Studio", amount: 15000, type: "deposit", status: "conciliated", reference: "VS-823901" },
+          { businessId: req.businessId, date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), description: "Transf Selenia Sanchez seña reserva", amount: 9000, type: "deposit", status: "conciliated", reference: "TR-928102" },
+          { businessId: req.businessId, date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), description: "Cobro tarjeta Mastercard Víctor Xu", amount: 15500, type: "deposit", status: "pending", reference: "MC-789012" },
+          { businessId: req.businessId, date: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000), description: "Pago Alquiler Mayo Aura", amount: -150000, type: "withdrawal", status: "conciliated", reference: "DEB-ALQ01" }
         ]
       });
     }

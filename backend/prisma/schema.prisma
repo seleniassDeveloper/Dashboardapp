@@ -295,6 +295,7 @@ model Business {
   gracePeriodEndsAt          DateTime?
   subscription               Subscription?
   planRequests               PlanRequest[]
+  bankMovements              BankMovement[]
 }
 
 model ScheduleBlock {
@@ -411,6 +412,8 @@ model SalaryPayment {
 
 model BankMovement {
   id             String   @id @default(cuid())
+  businessId     String?
+  business       Business? @relation(fields: [businessId], references: [id], onDelete: Cascade)
   date           DateTime
   description    String
   amount         Int
