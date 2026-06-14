@@ -7,6 +7,7 @@ export default function SuperAdminBillingView() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({ businesses: [], estimatedMRR: 0 });
   const [requests, setRequests] = useState([]);
+  const [pendingUsers, setPendingUsers] = useState([]);
   const [error, setError] = useState("");
 
   // Override modal state
@@ -25,15 +26,19 @@ export default function SuperAdminBillingView() {
     setLoading(true);
     setError("");
     try {
-      const [bizRes, reqsRes] = await Promise.all([
+      const [bizRes, reqsRes, usersRes] = await Promise.all([
         api.get("/admin/billing/businesses"),
-        api.get("/admin/billing/requests")
+        api.get("/admin/billing/requests"),
+        api.get("/admin/users/pending")
       ]);
       if (bizRes.data?.success) {
         setData(bizRes.data);
       }
       if (reqsRes.data?.success) {
         setRequests(reqsRes.data.requests);
+      }
+      if (usersRes.data?.success) {
+        setPendingUsers(usersRes.data.users);
       }
     } catch (err) {
       console.error("Error fetching superadmin billing data:", err);
@@ -99,6 +104,25 @@ export default function SuperAdminBillingView() {
       await fetchAdminBillingData();
     } catch (err) {
       setError(err.response?.data?.error || "Error al rechazar la solicitud.");
+    }
+  };
+
+  const handleApproveUser = async (uid) => {
+    try {
+      await api.post(`/admin/users/${uid}/approve`);
+      await fetchAdminBillingData();
+    } catch (err) {
+      setError(err.response?.data?.error || "Error al aprobar usuario.");
+    }
+  };
+
+  const handleRejectUser = async (uid) => {
+    if (!window.confirm("¿Seguro que deseas rechazar este usuario? No podrá ingresar al dashboard.")) return;
+    try {
+      await api.post(`/admin/users/${uid}/reject`);
+      await fetchAdminBillingData();
+    } catch (err) {
+      setError(err.response?.data?.error || "Error al rechazar usuario.");
     }
   };
 
@@ -219,6 +243,63 @@ export default function SuperAdminBillingView() {
                           size="sm" 
                           className="rounded-pill px-3 text-white border-0"
                           onClick={() => handleApproveRequest(r.id)}
+                        >
+                          Aprobar Acceso
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </Card.Body>
+        </Card>
+      )}
+
+      {pendingUsers.length > 0 && (
+        <Card className="border-0 shadow-sm rounded-4 mb-4 border-primary" style={{ background: "#fff", borderLeft: "4px solid #3b82f6" }}>
+          <Card.Body className="p-4">
+            <div className="d-flex align-items-center gap-2 mb-3">
+              <Users className="text-primary" size={20} />
+              <h2 className="fw-bold h6 mb-0 text-dark">Nuevos Usuarios (Pendientes de Aprobación) ({pendingUsers.filter(u => u.status === "pending").length})</h2>
+            </div>
+            
+            <Table responsive className="mb-0">
+              <thead>
+                <tr className="border-bottom text-muted smaller uppercase">
+                  <th className="py-2.5">Fecha</th>
+                  <th className="py-2.5">Email</th>
+                  <th className="py-2.5">Nombre</th>
+                  <th className="py-2.5">Estado</th>
+                  <th className="py-2.5 text-end">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pendingUsers.map((u) => (
+                  <tr key={u.id} className="border-bottom small align-middle">
+                    <td className="py-3 text-muted">{new Date(u.createdAt).toLocaleDateString()}</td>
+                    <td className="py-3 fw-bold text-dark">{u.email}</td>
+                    <td className="py-3">{u.name || `${u.firstName || ""} ${u.lastName || ""}`.trim() || "-"}</td>
+                    <td className="py-3">
+                      <Badge bg={u.status === "pending" ? "warning" : "danger"} className="uppercase">{u.status}</Badge>
+                    </td>
+                    <td className="py-3 text-end">
+                      <div className="d-flex justify-content-end gap-2">
+                        {u.status !== "rejected" && (
+                          <Button 
+                            variant="outline-danger" 
+                            size="sm" 
+                            className="rounded-pill px-3"
+                            onClick={() => handleRejectUser(u.id)}
+                          >
+                            Rechazar
+                          </Button>
+                        )}
+                        <Button 
+                          variant="success" 
+                          size="sm" 
+                          className="rounded-pill px-3 text-white border-0"
+                          onClick={() => handleApproveUser(u.id)}
                         >
                           Aprobar Acceso
                         </Button>

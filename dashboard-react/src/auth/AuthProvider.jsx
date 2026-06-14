@@ -92,6 +92,7 @@ export function AuthProvider({ children }) {
   const [role, setRole] = useState(null);
   const [permissions, setPermissions] = useState([]);
   const [isUnauthorized, setIsUnauthorized] = useState(false);
+  const [userStatus, setUserStatus] = useState("active");
   const [firestoreError, setFirestoreError] = useState("");
 
   const [financeUnlocked, setFinanceUnlocked] = useState(() => {
@@ -231,7 +232,7 @@ export function AuthProvider({ children }) {
           displayName: firebaseUser.displayName || "Usuario SaaS",
           role: defaultRole,
           permissions: defaultPermissions,
-          active: true, // Let anyone see and test the system immediately
+          active: false, // Ahora es false por defecto para requerir aprobación manual
           createdAt: new Date(),
           lastAccess: new Date()
         };
@@ -389,8 +390,24 @@ export function AuthProvider({ children }) {
             const isDemo = localStorage.getItem("auradash_demo_session") === "true";
             if (!AUTH_DISABLED && !isDemo) {
               try {
-                const res = await api.get("/me/businesses");
-                const list = res.data?.userBusinesses || [];
+                // Obtenemos perfil relacional completo
+                const meRes = await api.get("/me");
+                
+                if (meRes.data?.user?.status === "pending") {
+                  setUserStatus("pending");
+                  setIsUnauthorized(true);
+                  setBusiness(null);
+                  return;
+                } else if (meRes.data?.user?.status === "rejected") {
+                  setUserStatus("rejected");
+                  setIsUnauthorized(true);
+                  setBusiness(null);
+                  return;
+                }
+
+                setUserStatus("active");
+
+                const list = meRes.data?.userBusinesses || [];
                 setUserBusinesses(list);
 
                 if (list.length > 0) {
@@ -526,6 +543,7 @@ export function AuthProvider({ children }) {
     localStorage.removeItem("active_business_id");
     sessionStorage.removeItem("finance_bypass_token");
     setFinanceUnlocked(false);
+    setUserStatus("active");
     setUser(null);
     setBusiness(null);
     setRole(null);
@@ -555,6 +573,7 @@ export function AuthProvider({ children }) {
       apiHost: API_HOST,
       business,
       role,
+      userStatus,
       permissions,
       financeUnlocked,
       unlockFinance,
@@ -571,6 +590,7 @@ export function AuthProvider({ children }) {
       logout,
       business,
       permissions,
+      userStatus,
       isUnauthorized,
       firestoreError,
       fetchSession,

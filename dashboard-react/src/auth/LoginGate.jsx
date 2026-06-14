@@ -18,7 +18,8 @@ export default function LoginGate({ children }) {
     role,
     firestoreError,
     loginDemo,
-    business
+    business,
+    userStatus
   } = useAuth();
 
   const googleRedirectPending =
@@ -117,9 +118,19 @@ service cloud.firestore {
               </div>
             )}
 
-            <div className="alert alert-warning border-0 p-3 rounded-4 smaller mb-4" style={{ backgroundColor: "rgba(245, 158, 11, 0.08)", color: "#9a3412" }}>
-              El correo <strong className="font-monospace text-dark d-block my-1 small">{user.email}</strong> no está registrado o fue desactivado temporalmente en la base de datos de Firestore.
-            </div>
+            {userStatus === "pending" ? (
+              <div className="alert alert-warning border-0 p-3 rounded-4 smaller mb-4" style={{ backgroundColor: "rgba(245, 158, 11, 0.08)", color: "#9a3412" }}>
+                <strong>Tu cuenta está pendiente de activación.</strong> Un administrador debe aprobar tu acceso.
+              </div>
+            ) : userStatus === "rejected" ? (
+              <div className="alert alert-danger border-0 p-3 rounded-4 smaller mb-4" style={{ backgroundColor: "rgba(239, 68, 68, 0.08)", color: "#991b1b" }}>
+                Tu solicitud de acceso ha sido denegada por un administrador.
+              </div>
+            ) : (
+              <div className="alert alert-warning border-0 p-3 rounded-4 smaller mb-4" style={{ backgroundColor: "rgba(245, 158, 11, 0.08)", color: "#9a3412" }}>
+                El correo <strong className="font-monospace text-dark d-block my-1 small">{user.email}</strong> no está registrado o fue desactivado temporalmente en la base de datos de Firestore.
+              </div>
+            )}
 
             <p className="text-muted smaller px-2 mb-4.5" style={{ lineHeight: "1.6" }}>
               Comunícate con el Propietario o Administrador de Aura Studio para solicitar el alta de tu cuenta y asignación de permisos correspondientes.

@@ -584,6 +584,7 @@ model User {
   firstName   String?
   lastName    String?
   avatar      String?
+  status      String           @default("pending") // "pending" | "active" | "rejected"
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
   memberships BusinessMember[]

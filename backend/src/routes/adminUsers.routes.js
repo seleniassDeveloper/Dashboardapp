@@ -3,6 +3,7 @@ import { z } from "zod";
 import requireAuth from "../middleware/requireAuth.js";
 import requireAdmin from "../middleware/requireAdmin.js";
 import { getFirebaseAuth } from "../services/firebaseAdmin.js";
+import prisma from "../prisma.js";
 
 const router = Router();
 
@@ -25,6 +26,78 @@ router.get("/users", async (_req, res) => {
   } catch (e) {
     console.error(e);
     return res.status(500).json({ success: false, error: "No se pudieron listar usuarios." });
+  }
+});
+
+// NUEVO: Obtener usuarios con status 'pending' (y opcionalmente 'rejected') desde PostgreSQL
+router.get("/users/pending", async (_req, res) => {
+  try {
+    const users = await prisma.user.findMany({
+      where: {
+        status: { in: ["pending", "rejected"] }
+      },
+      orderBy: { createdAt: "desc" }
+    });
+    return res.json({ success: true, users });
+  } catch (e) {
+    console.error("Error fetching pending users:", e);
+    return res.status(500).json({ success: false, error: "No se pudieron listar los usuarios pendientes." });
+  }
+});
+
+// NUEVO: Aprobar usuario
+router.post("/users/:uid/approve", async (req, res) => {
+  try {
+    const uid = String(req.params.uid || "").trim();
+    if (!uid) return res.status(400).json({ success: false, error: "uid inválido." });
+
+    // Actualizar PostgreSQL
+    await prisma.user.update({
+      where: { id: uid },
+      data: { status: "active" }
+    });
+
+    // Actualizar Firestore (para que el frontend desbloquee instantáneamente la próxima vez que revise)
+    try {
+      const { getFirestore } = await import("firebase-admin/firestore");
+      const db = getFirestore();
+      await db.collection("users").doc(uid).update({ active: true });
+    } catch (firestoreErr) {
+      console.warn("No se pudo sincronizar Firestore para", uid, firestoreErr);
+      // No fallamos la request porque la validación final se hace con PostgreSQL ahora
+    }
+
+    return res.json({ success: true, message: "Usuario aprobado con éxito." });
+  } catch (e) {
+    console.error("Error approving user:", e);
+    return res.status(500).json({ success: false, error: "No se pudo aprobar el usuario." });
+  }
+});
+
+// NUEVO: Rechazar usuario
+router.post("/users/:uid/reject", async (req, res) => {
+  try {
+    const uid = String(req.params.uid || "").trim();
+    if (!uid) return res.status(400).json({ success: false, error: "uid inválido." });
+
+    await prisma.user.update({
+      where: { id: uid },
+      data: { status: "rejected" }
+    });
+
+    // Opcional: sincronizar Firestore si se desea, aunque status = rejected bloquea en AuthProvider
+    try {
+      const { getFirestore } = await import("firebase-admin/firestore");
+      const db = getFirestore();
+      await db.collection("users").doc(uid).update({ active: false });
+    } catch (firestoreErr) {
+      console.warn("No se pudo sincronizar Firestore para", uid, firestoreErr);
+    }
+
+    return res.json({ success: true, message: "Usuario rechazado." });
+  } catch (e) {
+    console.error("Error rejecting user:", e);
+    return res.status(500).json({ success: false, error: "No se pudo rechazar el usuario." });
   }
 });
 
