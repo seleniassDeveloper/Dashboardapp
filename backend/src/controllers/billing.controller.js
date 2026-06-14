@@ -76,6 +76,25 @@ export async function checkout(req, res) {
 
     const email = req.user?.email || `${businessId}@auradash.com`;
 
+    // INTERCEPT PRO AND BUSINESS FOR MANUAL ACCESS NOTIFICATION
+    if (planCode === "pro" || planCode === "business") {
+      try {
+        const { sendReminderEmail } = await import("../services/mailer.js");
+        await sendReminderEmail({
+          to: "auradash.digital@gmail.com",
+          subject: `Solicitud de Acceso a Módulo ${planCode.toUpperCase()}`,
+          html: `<p>El negocio con ID <b>${business.id}</b> y correo de contacto <b>${email}</b> ha solicitado acceso al plan <b>${planCode.toUpperCase()}</b>.</p><p>Por favor, revisa y aprueba el acceso.</p>`,
+        });
+      } catch (err) {
+        console.warn("No se pudo enviar el correo de solicitud de acceso:", err);
+      }
+      return res.status(200).json({
+        success: true,
+        isRequest: true,
+        message: "Tu solicitud ha sido enviada. Nos pondremos en contacto pronto para habilitar tu acceso."
+      });
+    }
+
     const { providerSubId, checkoutUrl } = await paymentProvider.createSubscription(
       business,
       plan,

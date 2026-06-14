@@ -9,6 +9,7 @@ export default function PricingView({ blocked = false, subscriptionStatus = "" }
   const [billingCycle, setBillingCycle] = useState("month"); // 'month' | 'year'
   const [loadingPlan, setLoadingPlan] = useState(null);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const plans = [
     {
@@ -69,17 +70,23 @@ export default function PricingView({ blocked = false, subscriptionStatus = "" }
   const handleSelectPlan = async (planCode) => {
     setLoadingPlan(planCode);
     setError("");
+    setSuccess("");
     try {
       const res = await api.post("/billing/checkout", {
         planCode,
         interval: billingCycle
       });
 
-      if (res.data?.success && res.data.checkoutUrl) {
-        // Redirect user to MercadoPago checkout or Mock payment simulator
-        window.location.href = res.data.checkoutUrl;
+      if (res.data?.success) {
+        if (res.data.isRequest) {
+          setSuccess(res.data.message);
+        } else if (res.data.checkoutUrl) {
+          window.location.href = res.data.checkoutUrl;
+        } else {
+          throw new Error("No se recibió la URL de pago.");
+        }
       } else {
-        throw new Error("No se recibió la URL de pago.");
+        throw new Error("Error desconocido al procesar el plan.");
       }
     } catch (err) {
       console.error("Error setting up payment checkout:", err);
@@ -162,6 +169,17 @@ export default function PricingView({ blocked = false, subscriptionStatus = "" }
             <Col lg={8}>
               <Alert variant="danger" className="border-0 shadow-sm rounded-3 py-2.5 px-3 small">
                 {error}
+              </Alert>
+            </Col>
+          </Row>
+        )}
+
+        {success && (
+          <Row className="justify-content-center mb-4">
+            <Col lg={8}>
+              <Alert variant="success" className="border-0 shadow-sm rounded-3 py-2.5 px-3 small fw-semibold text-center">
+                <Sparkles size={16} className="me-2" />
+                {success}
               </Alert>
             </Col>
           </Row>
