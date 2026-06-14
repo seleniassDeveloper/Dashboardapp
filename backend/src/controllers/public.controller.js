@@ -1,5 +1,6 @@
 import prisma from "../prisma.js";
 import { sendReminderEmail } from "../services/mailer.js";
+import { getTzMinutes, getDayRangeInTz, getCurrentTimeInTz } from "../utils/timezone.util.js";
 
 // Helper para convertir hora HH:MM a minutos desde las 00:00
 function timeToMinutes(timeStr) {
@@ -23,28 +24,6 @@ function addMinutes(date, minutes) {
 // Helper para verificar solapamiento
 function overlaps(aStart, aEnd, bStart, bEnd) {
   return aStart < bEnd && aEnd > bStart;
-}
-
-// Helper para obtener fecha actual y minutos del día actual en la zona de Argentina
-function getArgentinaTimeParts() {
-  const formatter = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Argentina/Buenos_Aires",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false
-  });
-  const parts = formatter.formatToParts(new Date());
-  const partMap = {};
-  for (const p of parts) {
-    partMap[p.type] = p.value;
-  }
-  // YYYY-MM-DD
-  const todayStr = `${partMap.year}-${partMap.month}-${partMap.day}`;
-  const currentMins = Number(partMap.hour) * 60 + Number(partMap.minute);
-  return { todayStr, currentMins };
 }
 
 // Obtener info pública del negocio
@@ -157,9 +136,8 @@ async function checkWorkerAvailability(workerId, date, time, totalDuration, bizI
     return { available: false, reason: "El horario está fuera de la jornada laboral del profesional." };
   }
 
-  // 2. Validar citas existentes (en la zona horaria de Argentina)
-  const startOfDay = new Date(`${date}T00:00:00-03:00`);
-  const endOfDay = new Date(`${date}T23:59:59.999-03:00`);
+  // 2. Validar citas existentes (en la zona horaria del negocio)
+  const { start: startOfDay, end: endOfDay } = getDayRangeInTz(date, biz.timezone);
 
   const appts = await prisma.appointment.findMany({
     where: {
@@ -174,15 +152,7 @@ async function checkWorkerAvailability(workerId, date, time, totalDuration, bizI
   });
 
   for (const appt of appts) {
-    const apptDate = new Date(appt.startsAt);
-    const timeString = apptDate.toLocaleTimeString("es-AR", {
-      timeZone: "America/Argentina/Buenos_Aires",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false
-    });
-    const [apptH, apptM] = timeString.split(":").map(Number);
-    const apptStartM = apptH * 60 + apptM;
+    const apptStartM = getTzMinutes(appt.startsAt, biz.timezone);
     const apptEndM = apptStartM + (appt.service?.duration || 30);
 
     if (targetStartMins < apptEndM && targetEndMins > apptStartM) {
@@ -290,8 +260,8 @@ export async function getPublicAvailability(req, res) {
 
     const allAvailableSlots = new Set();
 
-    // Verificación de hoy en tiempo real (evitar reservar en el pasado) usando la zona de Argentina
-    const { todayStr, currentMins } = getArgentinaTimeParts();
+    // Verificación de hoy en tiempo real (evitar reservar en el pasado) usando la zona del negocio
+    const { todayStr, currentMins } = getCurrentTimeInTz(biz.timezone);
 
     // Recorrer cada profesional para calcular su disponibilidad
     for (const w of workers) {
@@ -301,9 +271,8 @@ export async function getPublicAvailability(req, res) {
       });
       if (!schedule) continue;
 
-      // Cargar citas existentes del profesional para ese día (en la zona horaria de Argentina)
-      const startOfDay = new Date(`${date}T00:00:00-03:00`);
-      const endOfDay = new Date(`${date}T23:59:59.999-03:00`);
+      // Cargar citas existentes del profesional para ese día (en la zona horaria del negocio)
+      const { start: startOfDay, end: endOfDay } = getDayRangeInTz(date, biz.timezone);
 
       const appts = await prisma.appointment.findMany({
         where: {
@@ -336,18 +305,10 @@ export async function getPublicAvailability(req, res) {
           if (m < currentMins + 60) continue;
         }
 
-        // Validar overlap con citas de la base de datos (en la zona horaria de Argentina)
+        // Validar overlap con citas de la base de datos
         let overlaps = false;
         for (const appt of appts) {
-          const apptDate = new Date(appt.startsAt);
-          const timeString = apptDate.toLocaleTimeString("es-AR", {
-            timeZone: "America/Argentina/Buenos_Aires",
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false
-          });
-          const [apptH, apptM] = timeString.split(":").map(Number);
-          const apptStartM = apptH * 60 + apptM;
+          const apptStartM = getTzMinutes(appt.startsAt, biz.timezone);
           const apptEndM = apptStartM + (appt.service?.duration || 30);
 
           if (m < apptEndM && m + svcDuration > apptStartM) {
@@ -443,7 +404,7 @@ export async function createPublicBooking(req, res) {
       // Encontrar uno que esté libre en la fecha y hora seleccionada para el bloque completo
       let foundWorker = null;
       for (const w of eligibleWorkers) {
-        const check = await checkWorkerAvailability(w.id, date, time, totalDuration, biz.id);
+        const check = await checkWorkerAvailability(w.id, date, time, totalDuration, biz);
         if (check.available) {
           foundWorker = w;
           break;
@@ -473,7 +434,7 @@ export async function createPublicBooking(req, res) {
       }
 
       // Validar disponibilidad real del profesional seleccionado
-      const check = await checkWorkerAvailability(worker.id, date, time, totalDuration, biz.id);
+      const check = await checkWorkerAvailability(worker.id, date, time, totalDuration, biz);
       if (!check.available) {
         // Buscar profesionales alternativos que sí estén libres a esa hora
         const allWorkers = await prisma.worker.findMany({
@@ -488,7 +449,7 @@ export async function createPublicBooking(req, res) {
 
         const alternativeWorkers = [];
         for (const w of eligibleWorkers) {
-          const checkAlt = await checkWorkerAvailability(w.id, date, time, totalDuration, biz.id);
+          const checkAlt = await checkWorkerAvailability(w.id, date, time, totalDuration, biz);
           if (checkAlt.available) {
             alternativeWorkers.push(w);
           }
@@ -534,50 +495,76 @@ export async function createPublicBooking(req, res) {
       });
     }
 
-    // 4. Calcular fecha/hora de inicio en la zona horaria de Argentina
-    const startsAt = new Date(`${date}T${time}:00-03:00`);
+    // 4. Calcular fecha/hora de inicio en la zona horaria del negocio
+    // Usamos getDayRangeInTz con la hora deseada
+    const { start: dayStartInUTC } = getDayRangeInTz(date, biz.timezone);
+    // Convertimos la hora (HH:MM) a milisegundos y se la sumamos al inicio del día UTC
+    const [startH, startM] = time.split(":").map(Number);
+    const startsAt = new Date(dayStartInUTC.getTime() + (startH * 60 + startM) * 60 * 1000);
 
-    // 5. Crear las citas (Appointments) secuencialmente
-    let currentStartsAt = startsAt;
-    const createdAppointments = [];
-
-    for (let i = 0; i < orderedServices.length; i++) {
-      const svc = orderedServices[i];
+    // 5. Crear las citas (Appointments) secuencialmente y con revalidación atómica
+    const createdAppointments = await prisma.$transaction(async (tx) => {
+      // Re-validar solapamiento justo antes de crear para prevenir colisiones
+      const { start: txDayStart, end: txDayEnd } = getDayRangeInTz(date, biz.timezone);
+      const sameDayAppts = await tx.appointment.findMany({
+        where: {
+          workerId: workerIdToAssign,
+          startsAt: { gte: txDayStart, lte: txDayEnd },
+          status: { not: "CANCELLED" }
+        },
+        include: { service: true }
+      });
       
-      // Dividir proporcionalmente el pago de la seña si aplica
-      let apptDpPaid = null;
-      if (downpaymentPaid) {
-        if (i === orderedServices.length - 1) {
-          apptDpPaid = Number(downpaymentPaid) - createdAppointments.reduce((sum, a) => sum + (a.downpaymentPaid || 0), 0);
-        } else {
-          apptDpPaid = Math.round(Number(downpaymentPaid) * (svc.price / totalPrice));
+      const newTotalEnd = addMinutes(startsAt, totalDuration);
+      for (const appt of sameDayAppts) {
+        const apptEnd = addMinutes(new Date(appt.startsAt), appt.service?.duration || 30);
+        if (overlaps(new Date(appt.startsAt), apptEnd, startsAt, newTotalEnd)) {
+          throw new Error("El horario seleccionado acaba de ser reservado. Por favor, elige otro.");
         }
       }
 
-      const appointment = await prisma.appointment.create({
-        data: {
-          clientId: client.id,
-          serviceId: svc.id,
-          workerId: workerIdToAssign,
-          startsAt: currentStartsAt,
-          notes: notes ? `${notes} (${i + 1}/${orderedServices.length})` : `Reserva múltiple (${i + 1}/${orderedServices.length})`,
-          status: "PENDING",
-          source: "online_booking",
-          businessId: biz.id,
-          downpaymentPaid: apptDpPaid,
-          downpaymentStatus: downpaymentStatus || null,
-          downpaymentTransactionId: downpaymentTransactionId || null,
-        },
-        include: {
-          client: true,
-          service: true,
-          worker: true,
-        },
-      });
+      let currentStartsAt = startsAt;
+      const created = [];
 
-      createdAppointments.push(appointment);
-      currentStartsAt = addMinutes(currentStartsAt, svc.duration || 30);
-    }
+      for (let i = 0; i < orderedServices.length; i++) {
+        const svc = orderedServices[i];
+        
+        let apptDpPaid = null;
+        if (downpaymentPaid) {
+          if (i === orderedServices.length - 1) {
+            apptDpPaid = Number(downpaymentPaid) - created.reduce((sum, a) => sum + (a.downpaymentPaid || 0), 0);
+          } else {
+            apptDpPaid = Math.round(Number(downpaymentPaid) * (svc.price / totalPrice));
+          }
+        }
+
+        const appointment = await tx.appointment.create({
+          data: {
+            clientId: client.id,
+            serviceId: svc.id,
+            workerId: workerIdToAssign,
+            startsAt: currentStartsAt,
+            notes: notes ? `${notes} (${i + 1}/${orderedServices.length})` : `Reserva múltiple (${i + 1}/${orderedServices.length})`,
+            status: "PENDING",
+            source: "online_booking",
+            businessId: biz.id,
+            downpaymentPaid: apptDpPaid,
+            downpaymentStatus: downpaymentStatus || null,
+            downpaymentTransactionId: downpaymentTransactionId || null,
+          },
+          include: {
+            client: true,
+            service: true,
+            worker: true,
+          },
+        });
+
+        created.push(appointment);
+        currentStartsAt = addMinutes(currentStartsAt, svc.duration || 30);
+      }
+      
+      return created;
+    });
 
     // Sincronizar con Google Calendar en segundo plano
     for (const appt of createdAppointments) {
@@ -598,10 +585,10 @@ export async function createPublicBooking(req, res) {
             year: "numeric",
             month: "long",
             day: "numeric",
-            timeZone: "America/Argentina/Buenos_Aires"
+            timeZone: biz.timezone
           });
           const formattedTime = apptDate.toLocaleTimeString("es-AR", {
-            timeZone: "America/Argentina/Buenos_Aires",
+            timeZone: biz.timezone,
             hour: "2-digit",
             minute: "2-digit",
             hour12: false
@@ -675,6 +662,9 @@ export async function createPublicBooking(req, res) {
     });
   } catch (error) {
     console.error("Error creando reserva pública:", error);
+    if (error.message && error.message.includes("acaba de ser reservado")) {
+      return res.status(409).json({ error: error.message });
+    }
     return res.status(500).json({ error: "Error interno al guardar tu reserva." });
   }
 }

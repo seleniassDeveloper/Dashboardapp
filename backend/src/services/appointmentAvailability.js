@@ -1,4 +1,5 @@
 import prisma from "../prisma.js";
+import { getTzMinutes, getDayRangeInTz } from "../utils/timezone.util.js";
 
 export function addMinutes(date, minutes) {
   return new Date(date.getTime() + Number(minutes || 0) * 60 * 1000);
@@ -8,34 +9,27 @@ export function overlaps(aStart, aEnd, bStart, bEnd) {
   return aStart < bEnd && aEnd > bStart;
 }
 
-export function dayRange(date) {
-  const d = new Date(date);
-  const start = new Date(d);
-  start.setHours(0, 0, 0, 0);
-
-  const end = new Date(d);
-  end.setHours(23, 59, 59, 999);
-
-  return { start, end };
-}
-
 function parseTimeToMinutes(hhmm) {
   const [h, m] = String(hhmm || "00:00").split(":").map(Number);
   return (h || 0) * 60 + (m || 0);
 }
 
 /** JS: 0=Dom … 6=Sab → WorkerSchedule: 1=Lun … 7=Dom */
-export function jsDayToScheduleDay(date) {
-  const d = new Date(date).getDay();
+export function jsDayToScheduleDay(date, timezone = "America/Argentina/Buenos_Aires") {
+  const formatter = new Intl.DateTimeFormat("en-US", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit" });
+  const parts = formatter.formatToParts(new Date(date));
+  let pMap = {};
+  for (const p of parts) pMap[p.type] = p.value;
+  const d = new Date(pMap.year, Number(pMap.month) - 1, pMap.day).getDay();
   return d === 0 ? 7 : d;
 }
 
-export function isWithinWorkerSchedule(schedules, startsAt, durationMinutes) {
+export function isWithinWorkerSchedule(schedules, startsAt, durationMinutes, timezone = "America/Argentina/Buenos_Aires") {
   const list = Array.isArray(schedules) ? schedules : [];
   if (list.length === 0) return { ok: true, reason: null };
 
   const startDate = new Date(startsAt);
-  const day = jsDayToScheduleDay(startDate);
+  const day = jsDayToScheduleDay(startDate, timezone);
   const dayBlocks = list.filter((s) => Number(s.dayOfWeek) === day);
 
   if (dayBlocks.length === 0) {
@@ -46,7 +40,7 @@ export function isWithinWorkerSchedule(schedules, startsAt, durationMinutes) {
     };
   }
 
-  const startMin = startDate.getHours() * 60 + startDate.getMinutes();
+  const startMin = getTzMinutes(startDate, timezone);
   const endMin = startMin + Number(durationMinutes || 60);
 
   const fits = dayBlocks.some((block) => {
@@ -69,7 +63,7 @@ export function isWithinWorkerSchedule(schedules, startsAt, durationMinutes) {
   return { ok: true, reason: null };
 }
 
-export async function findAvailableWorkers({ serviceId, startsAt, excludeAppointmentId = null }) {
+export async function findAvailableWorkers({ serviceId, startsAt, excludeAppointmentId = null, timezone = "America/Argentina/Buenos_Aires" }) {
   const serviceIds = String(serviceId).split(",");
   const services = await prisma.service.findMany({
     where: { id: { in: serviceIds } },
@@ -82,7 +76,7 @@ export async function findAvailableWorkers({ serviceId, startsAt, excludeAppoint
 
   const newStart = new Date(startsAt);
   const newEnd = addMinutes(newStart, totalDuration);
-  const { start: dayStart, end: dayEnd } = dayRange(newStart);
+  const { start: dayStart, end: dayEnd } = getDayRangeInTz(newStart, timezone);
 
   const workers = await prisma.worker.findMany({
     where: {
@@ -120,7 +114,7 @@ export async function findAvailableWorkers({ serviceId, startsAt, excludeAppoint
   });
 
   const available = eligibleWorkers.filter((w) => {
-    const scheduleCheck = isWithinWorkerSchedule(w.schedules, newStart, totalDuration);
+    const scheduleCheck = isWithinWorkerSchedule(w.schedules, newStart, totalDuration, timezone);
     if (!scheduleCheck.ok) return false;
 
     const busy = (w.appointments || []).some((a) => {
@@ -145,6 +139,7 @@ export async function validateAppointmentSlot({
   serviceId,
   startsAt,
   excludeAppointmentId = null,
+  timezone = "America/Argentina/Buenos_Aires",
 }) {
   const serviceIds = String(serviceId).split(",");
   const services = await prisma.service.findMany({
@@ -185,6 +180,7 @@ export async function validateAppointmentSlot({
       serviceId,
       startsAt: newStart,
       excludeAppointmentId,
+      timezone,
     });
     return {
       available: false,
@@ -194,12 +190,13 @@ export async function validateAppointmentSlot({
     };
   }
 
-  const scheduleCheck = isWithinWorkerSchedule(worker.schedules, newStart, totalDuration);
+  const scheduleCheck = isWithinWorkerSchedule(worker.schedules, newStart, totalDuration, timezone);
   if (!scheduleCheck.ok) {
     const availableWorkers = await findAvailableWorkers({
       serviceId,
       startsAt: newStart,
       excludeAppointmentId,
+      timezone,
     });
     return {
       available: false,
@@ -210,7 +207,7 @@ export async function validateAppointmentSlot({
   }
 
   const newEnd = addMinutes(newStart, totalDuration);
-  const { start: dayStart, end: dayEnd } = dayRange(newStart);
+  const { start: dayStart, end: dayEnd } = getDayRangeInTz(newStart, timezone);
 
   const sameDay = await prisma.appointment.findMany({
     where: {
@@ -238,6 +235,7 @@ export async function validateAppointmentSlot({
       serviceId,
       startsAt: newStart,
       excludeAppointmentId,
+      timezone,
     });
 
     const workerName = `${worker.firstName || ""} ${worker.lastName || ""}`.trim();

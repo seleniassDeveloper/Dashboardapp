@@ -4,7 +4,10 @@ import prisma from "../prisma.js";
 import {
   validateAppointmentSlot,
   findAvailableWorkers,
+  overlaps,
+  addMinutes,
 } from "../services/appointmentAvailability.js";
+import { getDayRangeInTz } from "../utils/timezone.util.js";
 import { sendReminderEmail } from "../services/mailer.js";
 import { triggerWorkflows, recordStatusTransition } from "../services/workflowEngine.js";
 import { syncGoogleCalendarToDb } from "../services/googleService.js";
@@ -97,11 +100,18 @@ export async function checkAppointmentAvailability(req, res) {
       });
     }
 
+    // Buscar el timezone del negocio
+    const biz = await prisma.business.findUnique({
+      where: { id: req.businessId },
+      select: { timezone: true }
+    });
+
     const result = await validateAppointmentSlot({
       workerId,
       serviceId,
       startsAt,
       excludeAppointmentId: excludeId || null,
+      timezone: biz?.timezone || "America/Argentina/Buenos_Aires"
     });
 
     return res.status(200).json(result);
@@ -136,11 +146,18 @@ export async function createAppointment(req, res) {
     const isOwner = req.user?.role === "owner" || req.user?.email === "seleniadeveloper@gmail.com";
     const shouldBypass = bypassAvailability === true && isOwner;
 
+    const biz = await prisma.business.findUnique({
+      where: { id: req.businessId },
+      select: { timezone: true }
+    });
+    const tz = biz?.timezone || "America/Argentina/Buenos_Aires";
+
     if (!shouldBypass) {
       const slot = await validateAppointmentSlot({
         workerId,
         serviceId,
         startsAt,
+        timezone: tz
       });
 
       if (!slot.available) {
@@ -158,50 +175,81 @@ export async function createAppointment(req, res) {
     });
     const orderedServices = serviceIds.map(id => services.find(s => s.id === id));
 
-    let currentStartsAt = new Date(startsAt);
-    const createdAppointments = [];
+    const createdAppointments = await prisma.$transaction(async (tx) => {
+      if (!shouldBypass) {
+        // Re-validar solapamiento justo antes de crear
+        const { start: txDayStart, end: txDayEnd } = getDayRangeInTz(startsAt, tz);
+        const sameDayAppts = await tx.appointment.findMany({
+          where: {
+            workerId: String(workerId),
+            startsAt: { gte: txDayStart, lte: txDayEnd },
+            status: { not: "CANCELLED" }
+          },
+          include: { service: true }
+        });
+        
+        const totalDuration = orderedServices.reduce((sum, s) => sum + (s.duration || 30), 0);
+        const newTotalEnd = addMinutes(new Date(startsAt), totalDuration);
+        
+        for (const appt of sameDayAppts) {
+          const apptEnd = addMinutes(new Date(appt.startsAt), appt.service?.duration || 30);
+          if (overlaps(new Date(appt.startsAt), apptEnd, new Date(startsAt), newTotalEnd)) {
+            throw new Error("CONFLICT");
+          }
+        }
+      }
 
-    for (let i = 0; i < orderedServices.length; i++) {
-      const svc = orderedServices[i];
-      const appt = await prisma.appointment.create({
-        data: {
-          clientId: String(clientId),
-          serviceId: svc.id,
-          workerId: String(workerId),
-          startsAt: currentStartsAt,
-          notes: notes ? `${notes} (${i + 1}/${orderedServices.length})` : `Reserva múltiple (${i + 1}/${orderedServices.length})`,
-          status: status || "PENDING",
-          businessId: req.businessId,
-        },
-        include: {
-          client: true,
-          worker: true,
-          service: true,
-          sla: true,
-        },
-      });
+      let currentStartsAt = new Date(startsAt);
+      const created = [];
 
-      createdAppointments.push(appt);
+      for (let i = 0; i < orderedServices.length; i++) {
+        const svc = orderedServices[i];
+        const appt = await tx.appointment.create({
+          data: {
+            clientId: String(clientId),
+            serviceId: svc.id,
+            workerId: String(workerId),
+            startsAt: currentStartsAt,
+            notes: notes ? `${notes} (${i + 1}/${orderedServices.length})` : `Reserva múltiple (${i + 1}/${orderedServices.length})`,
+            status: status || "PENDING",
+            businessId: req.businessId,
+          },
+          include: {
+            client: true,
+            worker: true,
+            service: true,
+            sla: true,
+          },
+        });
 
-      // Sincronizar con Google Calendar en segundo plano
+        created.push(appt);
+
+        // Record transition immediately in transaction or await after
+        await recordStatusTransition(req.businessId, appt.id, "CREATED", appt.status || "PENDING").catch(err => console.error("Error logging initial transition:", err));
+
+        currentStartsAt = new Date(currentStartsAt.getTime() + (svc.duration || 30) * 60 * 1000);
+      }
+      
+      return created;
+    });
+
+    for (const appt of createdAppointments) {
       import("../services/googleService.js")
         .then(({ syncAppointmentToGoogleCalendar }) => {
           syncAppointmentToGoogleCalendar(appt.id);
         })
         .catch((err) => console.error("Error importando googleService:", err));
-
-      // Log status history through SLA/transition system
-      recordStatusTransition(req.businessId, appt.id, "CREATED", appt.status || "PENDING").catch(err => console.error("Error logging initial transition:", err));
-
-      // Trigger workflows in background
+        
       triggerWorkflows(req.businessId, "appointment_created", appt).catch(err => console.error("Error triggering workflows:", err));
-
-      currentStartsAt = new Date(currentStartsAt.getTime() + (svc.duration || 30) * 60 * 1000);
     }
 
     return res.status(201).json(createdAppointments[0]);
   } catch (e) {
     console.error("Error creando la cita:", e);
+
+    if (e.message === "CONFLICT") {
+      return res.status(409).json({ error: "El horario seleccionado acaba de ser reservado por alguien más." });
+    }
 
     return res.status(500).json({
       error: "Error creando la cita.",
@@ -222,6 +270,12 @@ export async function updateAppointment(req, res) {
     if (!clientId || !serviceId || !workerId || !startsAt) {
       return res.status(400).json({
         error: "Faltan datos: clientId, serviceId, workerId, startsAt.",
+      });
+    }
+
+    if (String(serviceId).includes(",")) {
+      return res.status(400).json({
+        error: "No es posible editar una cita para asignarle múltiples servicios simultáneos. Si deseas servicios adicionales, debes crear citas nuevas."
       });
     }
 
@@ -252,11 +306,17 @@ export async function updateAppointment(req, res) {
       return res.status(400).json({ error: "Cliente inválido." });
     }
 
+    const biz = await prisma.business.findUnique({
+      where: { id: req.businessId },
+      select: { timezone: true }
+    });
+
     const slot = await validateAppointmentSlot({
       workerId,
       serviceId,
       startsAt,
       excludeAppointmentId: id,
+      timezone: biz?.timezone || "America/Argentina/Buenos_Aires"
     });
 
     if (!slot.available) {

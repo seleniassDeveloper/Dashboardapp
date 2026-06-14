@@ -260,6 +260,7 @@ model Business {
   bookingEnabled             Boolean  @default(true)
   bookingPrimaryColor        String   @default("#10b981")
   bookingConfirmationMessage String?  @default("¡Tu reserva ha sido confirmada con éxito!")
+  timezone                   String   @default("America/Argentina/Buenos_Aires")
   bookingDownpaymentEnabled  Boolean  @default(false)
   bookingDownpaymentPercent  Int      @default(30)
   bookingDownpaymentAmount   Int?
