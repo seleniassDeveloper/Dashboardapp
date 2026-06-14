@@ -75,8 +75,8 @@ const MENU_ITEM_PERMISSIONS = {
 };
 
 const PLAN_RESTRICTIONS = {
-  starter: ["finances", "inventory", "sheets_sync", "workflows", "automations", "marketing"],
-  pro: ["sheets_sync", "automations", "marketing"],
+  starter: [], // "finances", "inventory", "sheets_sync", "workflows", "automations", "marketing" (Desbloqueado)
+  pro: [], // "sheets_sync", "automations", "marketing" (Desbloqueado)
   business: []
 };
 

@@ -26,8 +26,8 @@ import PricingView from "./views/PricingView";
 import SuperAdminBillingView from "./views/SuperAdminBillingView";
 
 const PLAN_RESTRICTIONS = {
-  starter: ["finances", "inventory", "sheets_sync", "workflows", "automations", "marketing"],
-  pro: ["sheets_sync", "automations", "marketing"],
+  starter: [], // "finances", "inventory", "sheets_sync", "workflows", "automations", "marketing" (Desbloqueado por petición)
+  pro: [], // "sheets_sync", "automations", "marketing" (Desbloqueado por petición)
   business: []
 };
 
