@@ -1,4 +1,5 @@
 import prisma from "../prisma.js";
+import crypto from "crypto";
 import { MercadoPagoProvider } from "../services/billing/mercadopago.provider.js";
 
 const paymentProvider = new MercadoPagoProvider();
@@ -79,19 +80,34 @@ export async function checkout(req, res) {
     // INTERCEPT PRO AND BUSINESS FOR MANUAL ACCESS NOTIFICATION
     if (planCode === "pro" || planCode === "business") {
       try {
+        const approvalToken = crypto.randomBytes(32).toString("hex");
         // Guardar solicitud en la DB
         await prisma.planRequest.create({
           data: {
             businessId,
-            requestedPlan: planCode
+            requestedPlan: planCode,
+            approvalToken
           }
         });
+
+        const baseUrl = process.env.API_URL || "https://dashboard-api-r6j9.onrender.com";
+        const magicLink = `${baseUrl}/api/billing/quick-approve?token=${approvalToken}`;
 
         const { sendReminderEmail } = await import("../services/mailer.js");
         await sendReminderEmail({
           to: "auradash.digital@gmail.com",
-          subject: `Solicitud de Acceso a Módulo ${planCode.toUpperCase()}`,
-          html: `<p>El negocio con ID <b>${business.id}</b> y correo de contacto <b>${email}</b> ha solicitado acceso al plan <b>${planCode.toUpperCase()}</b>.</p><p>Por favor, revisa y aprueba el acceso en el Panel de Administrador.</p>`,
+          subject: `🚀 Solicitud de Acceso a Módulo ${planCode.toUpperCase()}`,
+          html: `
+            <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 10px;">
+              <h2 style="color: #7c3aed;">Nueva Solicitud de Módulo</h2>
+              <p>El negocio con ID <b>${business.id}</b> y correo de contacto <b>${email}</b> ha solicitado acceso al plan <b>${planCode.toUpperCase()}</b>.</p>
+              <p>Puedes aprobar este acceso instantáneamente haciendo clic en el siguiente botón:</p>
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${magicLink}" style="background-color: #10b981; color: white; padding: 14px 28px; text-decoration: none; border-radius: 50px; font-weight: bold; font-size: 16px; display: inline-block;">✅ Aprobar Acceso Ahora</a>
+              </div>
+              <p style="font-size: 12px; color: #888;">También puedes gestionarlo desde el panel SaaS Admin dentro del Dashboard.</p>
+            </div>
+          `,
         });
       } catch (err) {
         console.warn("Error al registrar o enviar la solicitud de acceso:", err);
@@ -293,9 +309,55 @@ export async function webhook(req, res) {
       }
     });
 
-    return res.status(200).json({ success: true });
+    return res.status(200).send("Webhook Processed");
   } catch (error) {
-    console.error("Webhook processing error:", error);
-    return res.status(500).json({ success: false, error: "Internal server error during webhook processing" });
+    console.error("Webhook Error:", error);
+    return res.status(400).send(`Webhook Error: ${error.message}`);
+  }
+}
+
+export async function quickApprove(req, res) {
+  try {
+    const { token } = req.query;
+    if (!token) return res.status(400).send("<h1>Token no proporcionado</h1>");
+
+    const request = await prisma.planRequest.findUnique({ where: { approvalToken: token } });
+    if (!request) return res.status(404).send("<h1>Solicitud no encontrada o enlace inválido</h1>");
+    if (request.status !== "PENDING") return res.status(400).send(`<h1>La solicitud ya ha sido procesada (${request.status}).</h1>`);
+
+    await prisma.$transaction(async (tx) => {
+      await tx.planRequest.update({
+        where: { id: request.id },
+        data: { status: "APPROVED" }
+      });
+      await tx.business.update({
+        where: { id: request.businessId },
+        data: {
+          plan: request.requestedPlan,
+          subscriptionStatus: "active"
+        }
+      });
+      const sub = await tx.subscription.findUnique({ where: { businessId: request.businessId } });
+      if (sub) {
+        await tx.subscription.update({
+          where: { id: sub.id },
+          data: { planCode: request.requestedPlan, status: "active" }
+        });
+      }
+    });
+
+    return res.status(200).send(`
+      <div style="font-family: sans-serif; text-align: center; margin-top: 50px;">
+        <h1 style="color: #10b981;">✅ Acceso Aprobado Exitosamente</h1>
+        <p>El plan <b>${request.requestedPlan.toUpperCase()}</b> se ha otorgado al negocio ID: ${request.businessId}.</p>
+        <p>El usuario ya puede acceder a los módulos de su nuevo plan.</p>
+        <br/><br/>
+        <a href="https://dashboard-api-r6j9.onrender.com" style="text-decoration: none; color: #7c3aed; font-weight: bold;">Cerrar esta ventana</a>
+      </div>
+    `);
+
+  } catch (error) {
+    console.error("Quick Approve Error:", error);
+    return res.status(500).send("<h1>Error Interno del Servidor</h1>");
   }
 }
