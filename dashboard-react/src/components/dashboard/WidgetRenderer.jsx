@@ -128,7 +128,7 @@ export default function WidgetRenderer({
     filteredData.forEach((a) => {
       if (a.status === "CANCELLED") return;
       const start = new Date(a.startsAt);
-      const timeStr = start.toLocaleTimeString(isEs ? "es-AR" : "en-US", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" }) + (isEs ? " hs" : "");
+      const timeStr = start.toLocaleTimeString(isEs ? "es-AR" : "en-US", { hour: "2-digit", minute: "2-digit" }) + (isEs ? " hs" : "");
       peakHoursMap[timeStr] = (peakHoursMap[timeStr] || 0) + 1;
     });
     const peakHours = Object.entries(peakHoursMap)

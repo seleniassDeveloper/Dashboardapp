@@ -65,7 +65,6 @@ export default function BookingSuccess() {
                 const formattedTime = apptDate.toLocaleTimeString(locale, {
                   hour: "2-digit",
                   minute: "2-digit",
-                  timeZone: "UTC",
                 });
 
                 return (

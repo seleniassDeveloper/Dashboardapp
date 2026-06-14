@@ -544,7 +544,7 @@ export default function AppointmentsCalendar() {
                   <span className="fw-semibold text-dark">
                     {new Date(selected.startsAt).toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
                     {" a las "}
-                    {new Date(selected.startsAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" })} {"hs"}
+                    {new Date(selected.startsAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })} {"hs"}
                   </span>
                 </div>
               </div>

@@ -201,8 +201,7 @@ export default function CalendarWidget({
                     const status = statusStyles[a.status] || statusStyles.PENDING;
                     const startTime = new Date(a.startsAt).toLocaleTimeString(isEs ? "es-AR" : "en-US", {
                       hour: "2-digit",
-                      minute: "2-digit",
-                      timeZone: "UTC",
+                      minute: "2-digit"
                     });
 
                     return (
@@ -426,7 +425,7 @@ export default function CalendarWidget({
                           }}
                         >
                           <div className="fw-bold text-dark truncate">
-                            {new Date(a.startsAt).toLocaleTimeString(isEs ? "es-AR" : "en-US", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" })}
+                            {new Date(a.startsAt).toLocaleTimeString(isEs ? "es-AR" : "en-US", { hour: "2-digit", minute: "2-digit" })}
                           </div>
                           <div className="text-muted truncate">{a.client?.firstName}</div>
                         </div>
@@ -564,7 +563,7 @@ export default function CalendarWidget({
                   <span className="fw-semibold text-dark">
                     {new Date(selectedAppt.startsAt).toLocaleDateString(isEs ? "es-AR" : "en-US", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
                     {isEs ? " a las " : " at "}
-                    {new Date(selectedAppt.startsAt).toLocaleTimeString(isEs ? "es-AR" : "en-US", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" })} {isEs ? "hs" : ""}
+                    {new Date(selectedAppt.startsAt).toLocaleTimeString(isEs ? "es-AR" : "en-US", { hour: "2-digit", minute: "2-digit" })} {isEs ? "hs" : ""}
                   </span>
                 </div>
               </div>

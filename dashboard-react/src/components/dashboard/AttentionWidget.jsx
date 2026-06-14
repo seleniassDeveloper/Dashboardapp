@@ -43,8 +43,7 @@ export default function AttentionWidget({
     try {
       return new Date(dateStr).toLocaleTimeString(isEs ? "es-AR" : "en-US", {
         hour: "2-digit",
-        minute: "2-digit",
-        timeZone: "UTC"
+        minute: "2-digit"
       });
     } catch (e) {
       return "";

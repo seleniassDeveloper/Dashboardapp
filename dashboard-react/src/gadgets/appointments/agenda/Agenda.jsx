@@ -264,7 +264,7 @@ export default function Agenda({
       if (checkStart < apptEnd && checkEnd > apptStart) {
         return { 
           valid: false, 
-          reason: `Choque de horario con otra cita de ${appt.client?.firstName} a las ${apptStart.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" })} hs.` 
+          reason: `Choque de horario con otra cita de ${appt.client?.firstName} a las ${apptStart.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })} hs.` 
         };
       }
     }
