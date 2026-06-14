@@ -152,7 +152,7 @@ service cloud.firestore {
 
   // Si está autenticado pero no tiene negocio configurado en PostgreSQL, redirigir a Onboarding
   const isDemo = localStorage.getItem("auradash_demo_session") === "true";
-  if (user && !business && !isDemo && !import.meta.env.VITE_AUTH_DISABLED) {
+  if (user && !business && !isDemo && import.meta.env.VITE_AUTH_DISABLED !== "true") {
     const OnboardingView = React.lazy(() => import("../views/OnboardingView.jsx"));
     return (
       <React.Suspense fallback={
@@ -169,7 +169,7 @@ service cloud.firestore {
   }
 
   // Si está autenticado y tiene negocio, pero la suscripción no está activa/prueba vigente
-  if (user && business && !isDemo && !import.meta.env.VITE_AUTH_DISABLED && !import.meta.env.AUTH_DISABLED) {
+  if (user && business && !isDemo && import.meta.env.VITE_AUTH_DISABLED !== "true" && import.meta.env.AUTH_DISABLED !== "true") {
     const ALLOWED = ["trialing", "active"];
     const trialEnds = business.trialEndsAt 
       ? new Date(business.trialEndsAt) 
