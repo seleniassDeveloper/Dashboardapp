@@ -109,6 +109,17 @@ export default function OnboardingView() {
   const [slug, setSlug] = useState("");
   const [logo, setLogo] = useState("");
 
+  const handleLogoFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !file.type.startsWith("image/")) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setLogo(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
   // Auto-generación de slug dinámico
   useEffect(() => {
     const generated = bizName
@@ -494,14 +505,32 @@ export default function OnboardingView() {
                         <Image size={15} className="text-primary" />
                         {t("onboarding.logoUrlLabel")}
                       </Form.Label>
-                      <Form.Control
-                        type="url"
-                        placeholder={t("onboarding.logoUrlPlaceholder")}
-                        value={logo}
-                        onChange={(e) => setLogo(e.target.value)}
-                        className="py-2.5 px-3 border border-opacity-25 rounded-3 bg-white"
-                        style={{ fontSize: "14px" }}
-                      />
+                      <div className="d-flex gap-2">
+                        <Form.Control
+                          type="url"
+                          placeholder={t("onboarding.logoUrlPlaceholder")}
+                          value={logo}
+                          onChange={(e) => setLogo(e.target.value)}
+                          className="py-2.5 px-3 border border-opacity-25 rounded-3 bg-white flex-grow-1"
+                          style={{ fontSize: "14px" }}
+                        />
+                        <div className="position-relative">
+                          <label className="btn btn-outline-primary d-flex align-items-center justify-content-center m-0 px-3 py-2.5 rounded-3" style={{ cursor: "pointer", fontSize: "14px", height: "100%" }}>
+                            Subir
+                            <input type="file" accept="image/*" onChange={handleLogoFileChange} className="d-none" />
+                          </label>
+                        </div>
+                      </div>
+                      {logo && (
+                        <div className="mt-3">
+                          <img
+                            src={logo}
+                            alt="Logo preview"
+                            style={{ height: "60px", objectFit: "contain", borderRadius: "8px", border: "1px solid #e2e8f0" }}
+                            onError={() => setLogo("")}
+                          />
+                        </div>
+                      )}
                     </Form.Group>
                   </Col>
                 </Row>
