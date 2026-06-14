@@ -1,5 +1,6 @@
 import prisma from "../prisma.js";
 import crypto from "crypto";
+import { sendReminderEmail } from "../services/mailer.js";
 import { MercadoPagoProvider } from "../services/billing/mercadopago.provider.js";
 
 const paymentProvider = new MercadoPagoProvider();
@@ -95,16 +96,12 @@ export async function checkout(req, res) {
         return res.status(500).json({ success: false, error: "No se pudo registrar la solicitud en la base de datos." });
       }
 
-      let emailSent = false;
-      try {
-        const baseUrl = process.env.API_URL || "https://dashboard-api-r6j9.onrender.com";
-        const magicLink = `${baseUrl}/api/billing/quick-approve?token=${approvalToken}`;
-
-        const { sendReminderEmail } = await import("../services/mailer.js");
-        await sendReminderEmail({
-          to: "auradash.digital@gmail.com",
-          subject: `🚀 Solicitud de Acceso a Módulo ${planCode.toUpperCase()}`,
-          html: `
+      // Enviar el correo en SEGUNDO PLANO (fire-and-forget) para no bloquear la
+      // respuesta HTTP. El envío SMTP puede tardar varios segundos y antes
+      // provocaba "timeout of 30000ms" en el navegador. Respondemos de inmediato.
+      const baseUrl = process.env.API_URL || "https://dashboard-api-r6j9.onrender.com";
+      const magicLink = `${baseUrl}/api/billing/quick-approve?token=${approvalToken}`;
+      const emailHtml = `
             <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 10px;">
               <h2 style="color: #7c3aed;">Nueva Solicitud de Módulo</h2>
               <p>El negocio con ID <b>${business.id}</b> y correo de contacto <b>${email}</b> ha solicitado acceso al plan <b>${planCode.toUpperCase()}</b>.</p>
@@ -114,19 +111,18 @@ export async function checkout(req, res) {
               </div>
               <p style="font-size: 12px; color: #888;">También puedes gestionarlo desde el panel SaaS Admin dentro del Dashboard.</p>
             </div>
-          `,
-        });
-        emailSent = true;
-      } catch (err) {
-        console.error("[Billing] Error crítico enviando el correo electrónico:", err);
-        // NO retornamos error HTTP 500 porque la solicitud SÍ se guardó en BD.
-        // Pero marcamos emailSent = false para el diagnostico.
-      }
+          `;
+      sendReminderEmail({
+        to: "auradash.digital@gmail.com",
+        subject: `🚀 Solicitud de Acceso a Módulo ${planCode.toUpperCase()}`,
+        html: emailHtml,
+      })
+      .then(() => console.log("[Billing] Correo de solicitud enviado correctamente."))
+      .catch((err) => console.error("[Billing] Error enviando el correo (no bloqueó la respuesta):", err));
 
       return res.status(200).json({
         success: true,
         isRequest: true,
-        emailSent,
         message: "Tu solicitud ha sido enviada. Nos pondremos en contacto pronto para habilitar tu acceso."
       });
     }
