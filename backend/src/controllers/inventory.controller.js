@@ -234,7 +234,7 @@ export async function getInventoryDashboardData(req, res) {
     const totalUnique = products.length;
 
     // Estimate consumption (monthly estimate based on total treatments done)
-    const appointmentsCount = await prisma.appointment.count({ where: { businessId: req.businessId,  businessId: req.businessId,  status: "DONE" }
+    const appointmentsCount = await prisma.appointment.count({ where: { businessId: req.businessId,  status: "DONE" }
     });
     const estimatedMonthlySpend = 15000 + (appointmentsCount * 1200);
 

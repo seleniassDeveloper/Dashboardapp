@@ -18,7 +18,7 @@ export async function getServiceSlaStats(req, res) {
     }
 
     // Fetch all completed SLAs (status !== 'incompleto')
-    const slas = await prisma.serviceSla.findMany({ where: { businessId: req.businessId,  businessId, NOT: { status: "incompleto" } },
+    const slas = await prisma.serviceSla.findMany({ where: { businessId, NOT: { status: "incompleto" } },
       include: {
         service: true,
         worker: true,
@@ -183,8 +183,7 @@ export async function getLiveSla(req, res) {
     }
 
     // Fetch SLA config
-    const config = await prisma.serviceSlaConfig.findFirst({ where: { businessId: req.businessId, 
-        businessId,
+    const config = await prisma.serviceSlaConfig.findFirst({ where: { businessId,
         OR: [
           { serviceId: appointment.serviceId },
           { serviceId: null }
@@ -200,7 +199,7 @@ export async function getLiveSla(req, res) {
     const hardLimitSec = config?.hardLimitSec || null;
 
     // Fetch histories
-    const histories = await prisma.appointmentStatusHistory.findMany({ where: { businessId: req.businessId,  businessId: req.businessId,  appointmentId },
+    const histories = await prisma.appointmentStatusHistory.findMany({ where: { businessId: req.businessId,  appointmentId },
       orderBy: { transitionedAt: "asc" }
     });
 
@@ -274,7 +273,7 @@ export async function getLiveSla(req, res) {
 export async function getSlaConfig(req, res) {
   try {
     const businessId = req.businessId;
-    const configs = await prisma.serviceSlaConfig.findMany({ where: { businessId: req.businessId,  businessId },
+    const configs = await prisma.serviceSlaConfig.findMany({ where: { businessId },
       include: { service: true }
     });
     return res.json(configs);
@@ -296,7 +295,7 @@ export async function updateSlaConfig(req, res) {
     if (id) {
       existing = await prisma.serviceSlaConfig.findUnique({ where: { id } });
     } else {
-      existing = await prisma.serviceSlaConfig.findFirst({ where: { businessId: req.businessId,  businessId, serviceId: serviceId || null }
+      existing = await prisma.serviceSlaConfig.findFirst({ where: { businessId, serviceId: serviceId || null }
       });
     }
 
@@ -335,7 +334,7 @@ export async function updateSlaConfig(req, res) {
 export async function getProfessionalEstimates(req, res) {
   try {
     const businessId = req.businessId;
-    const estimates = await prisma.serviceProfessionalEstimate.findMany({ where: { businessId: req.businessId,  businessId: req.businessId, 
+    const estimates = await prisma.serviceProfessionalEstimate.findMany({ where: { businessId: req.businessId, 
         service: { businessId }
       },
       include: { service: true, worker: true }

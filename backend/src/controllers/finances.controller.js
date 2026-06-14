@@ -26,7 +26,7 @@ export async function getFinanceDashboardData(req, res) {
     const businessId = req.businessId;
 
     // 1. Fetch data
-    const appointments = await prisma.appointment.findMany({ where: { businessId: req.businessId },  where: businessId ? { businessId } : undefined,
+    const appointments = await prisma.appointment.findMany({ where: businessId ? { businessId } : undefined,
       include: {
         client: true,
         worker: true,
@@ -35,13 +35,13 @@ export async function getFinanceDashboardData(req, res) {
       }
     });
 
-    const expenses = await prisma.expense.findMany({ where: { businessId: req.businessId },  where: businessId ? {
+    const expenses = await prisma.expense.findMany({ where: businessId ? {
         branch: { businessId }
       } : undefined,
       include: { branch: true }
     });
 
-    const branches = await prisma.branch.findMany({ where: { businessId: req.businessId },  where: businessId ? { businessId } : undefined,
+    const branches = await prisma.branch.findMany({ where: businessId ? { businessId } : undefined,
       include: {
         appointments: { include: { service: true } },
         expenses: true,
@@ -218,7 +218,7 @@ export async function getFinanceDashboardData(req, res) {
 export async function listExpenses(req, res) {
   try {
     const businessId = req.businessId;
-    const list = await prisma.expense.findMany({ where: { businessId: req.businessId },  where: businessId ? {
+    const list = await prisma.expense.findMany({ where: businessId ? {
         branch: { businessId }
       } : undefined,
       include: { branch: true },
@@ -240,7 +240,7 @@ export async function createExpense(req, res) {
 
     const businessId = req.businessId;
     if (branchId && businessId) {
-      const br = await prisma.branch.findFirst({ where: { businessId: req.businessId,  businessId: req.businessId,  id: branchId, businessId }
+      const br = await prisma.branch.findFirst({ where: { businessId: req.businessId,  id: branchId, businessId }
       });
       if (!br) {
         return res.status(400).json({ error: "La sucursal seleccionada no pertenece a tu negocio." });
@@ -281,7 +281,7 @@ export async function createExpense(req, res) {
 export async function listCashClosings(req, res) {
   try {
     const businessId = req.businessId;
-    const list = await prisma.cashClosing.findMany({ where: { businessId: req.businessId },  where: businessId ? {
+    const list = await prisma.cashClosing.findMany({ where: businessId ? {
         branch: { businessId }
       } : undefined,
       include: { branch: true },
@@ -303,7 +303,7 @@ export async function createCashClosing(req, res) {
 
     const businessId = req.businessId;
     if (branchId && businessId) {
-      const br = await prisma.branch.findFirst({ where: { businessId: req.businessId,  businessId: req.businessId,  id: branchId, businessId }
+      const br = await prisma.branch.findFirst({ where: { businessId: req.businessId,  id: branchId, businessId }
       });
       if (!br) {
         return res.status(400).json({ error: "La sucursal seleccionada no pertenece a tu negocio." });
@@ -348,7 +348,7 @@ export async function createCashClosing(req, res) {
 export async function listSalaryPayments(req, res) {
   try {
     const businessId = req.businessId;
-    const payments = await prisma.salaryPayment.findMany({ where: { businessId: req.businessId },  where: businessId ? {
+    const payments = await prisma.salaryPayment.findMany({ where: businessId ? {
         worker: { businessId }
       } : undefined,
       include: { worker: true },
@@ -370,7 +370,7 @@ export async function createSalaryPayment(req, res) {
 
     const businessId = req.businessId;
     if (businessId) {
-      const wk = await prisma.worker.findFirst({ where: { businessId: req.businessId,  businessId: req.businessId,  id: workerId, businessId }
+      const wk = await prisma.worker.findFirst({ where: { businessId: req.businessId,  id: workerId, businessId }
       });
       if (!wk) {
         return res.status(400).json({ error: "El colaborador seleccionado no pertenece a tu negocio." });
@@ -467,7 +467,7 @@ export async function reconcileMovement(req, res) {
 // GET /api/finances/audit
 export async function listAuditLogs(req, res) {
   try {
-    const list = await prisma.auditLog.findMany({ where: { businessId: req.businessId },  where: req.businessId ? { businessId: req.businessId } : undefined,
+    const list = await prisma.auditLog.findMany({ where: req.businessId ? { businessId: req.businessId } : undefined,
       orderBy: { createdAt: "desc" },
       take: 50
     });

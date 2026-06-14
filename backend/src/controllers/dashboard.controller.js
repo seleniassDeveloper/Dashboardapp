@@ -4,7 +4,7 @@ import prisma from "../prisma.js";
 export async function getWidgets(req, res) {
   try {
     const userId = req.user.uid;
-    let widgets = await prisma.dashboardWidget.findMany({ where: { businessId: req.businessId,  businessId: req.businessId,  userId },
+    let widgets = await prisma.dashboardWidget.findMany({ where: { businessId: req.businessId,  userId },
       orderBy: { createdAt: "asc" },
     });
 
@@ -66,7 +66,7 @@ export async function getWidgets(req, res) {
       await prisma.dashboardWidget.createMany({ data: defaults });
       
       // Consultar de nuevo para tener los IDs creados por la base de datos
-      widgets = await prisma.dashboardWidget.findMany({ where: { businessId: req.businessId,  businessId: req.businessId,  userId },
+      widgets = await prisma.dashboardWidget.findMany({ where: { businessId: req.businessId,  userId },
         orderBy: { createdAt: "asc" },
       });
     }

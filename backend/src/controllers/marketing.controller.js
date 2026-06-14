@@ -21,7 +21,7 @@ export async function listPosts(req, res) {
       return res.status(400).json({ error: "Contexto de negocio no especificado." });
     }
 
-    const posts = await prisma.marketingPost.findMany({ where: { businessId: req.businessId,  businessId },
+    const posts = await prisma.marketingPost.findMany({ where: { businessId },
       include: {
         client: {
           select: { firstName: true, lastName: true }
