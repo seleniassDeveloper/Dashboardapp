@@ -345,7 +345,7 @@ export default function LandingPage() {
 
   const handleFreeTrial = () => {
     loginDemo();
-    navigate("/app");
+    navigate("/app/pricing");
   };
 
   // Estados del simulador interactivo de Aura AI Copilot
@@ -1010,7 +1010,7 @@ export default function LandingPage() {
                 <div className="pricing-card h-100 p-5 text-start border-0">
                   <h3 className="h5 fw-bold text-dark mb-1">{t("pricing.starter.name")}</h3>
                   <p className="text-muted smaller mb-4">{t("pricing.starter.desc")}</p>
-                  <div className="display-4 fw-black text-dark mb-4">$15<span className="h6 text-muted">{t("pricing.perMonth")}</span></div>
+                  <div className="display-4 fw-black text-dark mb-4">$19<span className="h6 text-muted">{t("pricing.perMonth")}</span></div>
                   
                   <hr className="my-4 border-light" />
                   
@@ -1042,7 +1042,7 @@ export default function LandingPage() {
                   </div>
                   <h3 className="h5 fw-bold text-dark mb-1">{t("pricing.growth.name")}</h3>
                   <p className="text-muted smaller mb-4">{t("pricing.growth.desc")}</p>
-                  <div className="display-4 fw-black text-dark mb-4">$29<span className="h6 text-muted">{t("pricing.perMonth")}</span></div>
+                  <div className="display-4 fw-black text-dark mb-4">$49<span className="h6 text-muted">{t("pricing.perMonth")}</span></div>
                   
                   <hr className="my-4 border-light" />
                   
@@ -1074,7 +1074,7 @@ export default function LandingPage() {
                 <div className="pricing-card h-100 p-5 text-start border-0">
                   <h3 className="h5 fw-bold text-dark mb-1">{t("pricing.aipro.name")}</h3>
                   <p className="text-muted smaller mb-4">{t("pricing.aipro.desc")}</p>
-                  <div className="display-4 fw-black text-dark mb-4">$49<span className="h6 text-muted">{t("pricing.perMonth")}</span></div>
+                  <div className="display-4 fw-black text-dark mb-4">$99<span className="h6 text-muted">{t("pricing.perMonth")}</span></div>
                   
                   <hr className="my-4 border-light" />
                   

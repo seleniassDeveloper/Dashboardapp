@@ -166,7 +166,7 @@
       "f4": "Reportes básicos"
     },
     "growth": {
-      "name": "Growth",
+      "name": "Pro",
       "desc": "Para negocios en crecimiento.",
       "f1": "Todo lo del plan Starter",
       "f2": "Gestión de equipo y comisiones",
@@ -175,7 +175,7 @@
       "f5": "Reportes avanzados"
     },
     "aipro": {
-      "name": "AI Pro",
+      "name": "Business",
       "desc": "Para negocios que quieren escalar.",
       "f1": "Todo lo del plan Growth",
       "f2": "Aura AI Copilot",
