@@ -37,4 +37,6 @@ router.get("/consent/:token", getPublicConsentDetails);
 router.post("/consent/:token/sign", signConsent);
 router.get("/consent/record/:id", getConsentRecordById);
 
+router.get("/version", (req, res) => res.json({ version: "fire-and-forget-fix" }));
+
 export default router;
