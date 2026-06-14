@@ -79,8 +79,6 @@ function firebaseErrorMessage(err) {
 function googleProvider() {
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: "select_account" });
-  provider.addScope("https://www.googleapis.com/auth/gmail.send");
-  provider.addScope("https://www.googleapis.com/auth/calendar.events");
   return provider;
 }
 
