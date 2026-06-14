@@ -33,8 +33,8 @@ export default function TopBar({ onMenuClick, onEditBrand, onSearchClick }) {
           <Menu size={20} />
         </button>
         <div className="topbar__brand-wrap">
-          <h2 className="topbar__brand-name">{brand.companyName || t("topbar.myBusiness")}</h2>
-          {brand.slogan && <p className="topbar__brand-slogan">{brand.slogan}</p>}
+          <h2 className="topbar__brand-name" translate="no">{brand.companyName || t("topbar.myBusiness")}</h2>
+          {brand.slogan && <p className="topbar__brand-slogan" translate="no">{brand.slogan}</p>}
         </div>
       </div>
 

@@ -398,13 +398,13 @@ export default function PublicBookingPage() {
       <Container className="d-flex justify-content-between align-items-center mb-4" style={{ maxWidth: "720px" }}>
         <div className="d-flex align-items-center gap-2">
           {business?.logo ? (
-            <img src={business.logo} alt="Logo" className="rounded-circle border" style={{ width: "36px", height: "36px", objectFit: "cover" }} />
+            <img src={business.logo} alt="Logo" className="rounded-circle border" style={{ width: "36px", height: "36px", objectFit: "cover" }} translate="no" />
           ) : (
-            <div className="rounded-circle d-flex align-items-center justify-content-center fw-bold text-white shadow-sm" style={{ width: "36px", height: "36px", background: `linear-gradient(135deg, ${primaryColor} 0%, #1f2937 100%)`, fontSize: "12px" }}>
+            <div className="rounded-circle d-flex align-items-center justify-content-center fw-bold text-white shadow-sm" translate="no" style={{ width: "36px", height: "36px", background: `linear-gradient(135deg, ${primaryColor} 0%, #1f2937 100%)`, fontSize: "12px" }}>
               {business?.name?.substring(0, 2).toUpperCase() || "BIZ"}
             </div>
           )}
-          <strong className="text-dark small">{business?.name || "Reservas Online"}</strong>
+          <strong className="text-dark small" translate="no">{business?.name || "Reservas Online"}</strong>
         </div>
         <LanguageSwitcher />
       </Container>
@@ -1154,7 +1154,7 @@ export default function PublicBookingPage() {
             </div>
             
             <div className="text-end">
-              <span className="smaller opacity-80 d-block" style={{ fontSize: "10.5px" }}>{isEs ? `Abonarás a ${business?.name || "Establecimiento"}` : `You will pay ${business?.name || "Establishment"}`}</span>
+              <span className="smaller opacity-80 d-block" translate="no" style={{ fontSize: "10.5px" }}>{isEs ? `Abonarás a ${business?.name || "Establecimiento"}` : `You will pay ${business?.name || "Establishment"}`}</span>
               <strong className="fs-5">{currency(getDownpaymentAmount())}</strong>
             </div>
           </header>

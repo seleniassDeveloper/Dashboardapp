@@ -127,13 +127,14 @@ export default function Sidebar({
     >
       <div className="sidebar__header">
         <div className="sidebar__logo">
-          <div className="sidebar__logo-icon" style={{ backgroundColor: brand.accentColor || "var(--text-primary)" }}>
+          <div className="sidebar__logo-icon" translate="no" style={{ backgroundColor: brand.accentColor || "var(--text-primary)" }}>
             {brand.companyName ? brand.companyName.substring(0, 2).toUpperCase() : "SS"}
           </div>
           <AnimatePresence>
             {!isCollapsed && (
               <motion.span 
                 className="sidebar__logo-text"
+                translate="no"
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -10 }}

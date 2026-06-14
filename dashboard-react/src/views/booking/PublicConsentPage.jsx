@@ -220,7 +220,7 @@ export default function PublicConsentPage() {
         <div className="print-only p-5 bg-white text-dark" style={{ display: "none" }}>
           <div style={{ borderBottom: "2px solid #7c3aed", paddingBottom: "15px", marginBottom: "20px" }}>
             <h2>Consentimiento Informado Digital</h2>
-            <p style={{ margin: "5px 0" }}><strong>Establecimiento:</strong> {consentData?.business?.name || "Aura Studio"}</p>
+            <p style={{ margin: "5px 0" }} translate="no"><strong>Establecimiento:</strong> {consentData?.business?.name || "Aura Studio"}</p>
             <p style={{ margin: "5px 0" }}><strong>Procedimiento:</strong> {consentData?.template?.name}</p>
             <p style={{ margin: "5px 0" }}><strong>Fecha de firma:</strong> {new Date().toLocaleDateString("es-AR")} {new Date().toLocaleTimeString("es-AR")} hs</p>
           </div>
@@ -284,7 +284,7 @@ export default function PublicConsentPage() {
             {business?.name?.substring(0, 2).toUpperCase() || "AS"}
           </div>
         )}
-        <h4 className="text-muted smaller m-0 uppercase tracking-wider">{business?.name || "Aura Studio"}</h4>
+        <h4 className="text-muted smaller m-0 uppercase tracking-wider" translate="no">{business?.name || "Aura Studio"}</h4>
         <h2 className="fw-black text-purple-900 mt-1">{template.name}</h2>
         <span className="badge bg-purple-50 text-purple-700 px-3 py-1.5 rounded-pill fw-bold border border-purple-100 mt-2">
           Consentimiento Obligatorio v{consentData.templateVersion}
