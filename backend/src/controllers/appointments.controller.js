@@ -49,8 +49,7 @@ export async function getAppointments(req, res) {
     if (req.user.role === "professional") {
       const emailToFind = req.user.email?.toLowerCase().trim();
       if (emailToFind) {
-        const worker = await prisma.worker.findFirst({
-          where: {
+        const worker = await prisma.worker.findFirst({ where: { businessId: req.businessId, 
             businessId: req.businessId,
             email: {
               equals: emailToFind,
@@ -68,8 +67,7 @@ export async function getAppointments(req, res) {
       }
     }
 
-    const appointments = await prisma.appointment.findMany({
-      where: whereClause,
+    const appointments = await prisma.appointment.findMany({ where: { businessId: req.businessId },  where: whereClause,
       orderBy: { startsAt: "asc" },
       include: {
         client: true,
@@ -157,8 +155,7 @@ export async function createAppointment(req, res) {
     }
 
     const serviceIds = String(serviceId).split(",");
-    const services = await prisma.service.findMany({
-      where: { id: { in: serviceIds }, businessId: req.businessId }
+    const services = await prisma.service.findMany({ where: { businessId: req.businessId,  businessId: req.businessId,  id: { in: serviceIds }, businessId: req.businessId }
     });
     const orderedServices = serviceIds.map(id => services.find(s => s.id === id));
 
@@ -230,8 +227,7 @@ export async function updateAppointment(req, res) {
     }
 
     // Seguridad Multi-Tenant
-    const existing = await prisma.appointment.findFirst({
-      where: { id, businessId: req.businessId }
+    const existing = await prisma.appointment.findFirst({ where: { businessId: req.businessId,  businessId: req.businessId,  id, businessId: req.businessId }
     });
     if (!existing) {
       return res.status(404).json({ error: "Cita no encontrada en tu negocio." });
@@ -240,8 +236,7 @@ export async function updateAppointment(req, res) {
     // Filtro Profesional
     if (req.user.role === "professional") {
       const emailToFind = req.user.email?.toLowerCase().trim();
-      const worker = await prisma.worker.findFirst({
-        where: { businessId: req.businessId, email: { equals: emailToFind, mode: "insensitive" } }
+      const worker = await prisma.worker.findFirst({ where: { businessId: req.businessId,  businessId: req.businessId, email: { equals: emailToFind, mode: "insensitive" } }
       });
       // No puede cambiar la cita si no es de él, o si intenta reasignarla a otro
       if (!worker || existing.workerId !== worker.id || workerId !== worker.id) {
@@ -328,8 +323,7 @@ export async function deleteAppointment(req, res) {
     }
 
     // Seguridad Multi-Tenant
-    const existing = await prisma.appointment.findFirst({
-      where: { id, businessId: req.businessId }
+    const existing = await prisma.appointment.findFirst({ where: { businessId: req.businessId,  businessId: req.businessId,  id, businessId: req.businessId }
     });
     if (!existing) {
       return res.status(404).json({ error: "Cita no encontrada en tu negocio." });
@@ -338,8 +332,7 @@ export async function deleteAppointment(req, res) {
     // Filtro Profesional
     if (req.user.role === "professional") {
       const emailToFind = req.user.email?.toLowerCase().trim();
-      const worker = await prisma.worker.findFirst({
-        where: { businessId: req.businessId, email: { equals: emailToFind, mode: "insensitive" } }
+      const worker = await prisma.worker.findFirst({ where: { businessId: req.businessId,  businessId: req.businessId, email: { equals: emailToFind, mode: "insensitive" } }
       });
       if (!worker || existing.workerId !== worker.id) {
         return res.status(403).json({ error: "No tienes permisos para cancelar citas de otros profesionales." });
@@ -405,8 +398,7 @@ export async function updateBusinessConfig(req, res) {
     const cleanedSlug = slug.toLowerCase().trim().replace(/[^a-z0-9-_]/g, "");
 
     // Check if slug is unique (excluding our own business)
-    const existingWithSlug = await prisma.business.findFirst({
-      where: {
+    const existingWithSlug = await prisma.business.findFirst({ where: { businessId: req.businessId,  businessId: req.businessId, 
         slug: cleanedSlug,
         NOT: { id: req.businessId }
       }
@@ -712,8 +704,7 @@ export async function finalizeAppointment(req, res) {
 
     // 3. Descuento automático de insumos del inventario (Consumo por Servicio con estrategia FIFO)
     try {
-      const rules = await prisma.serviceConsumptionRule.findMany({
-        where: { serviceId: appt.serviceId },
+      const rules = await prisma.serviceConsumptionRule.findMany({ where: { businessId: req.businessId,  businessId: req.businessId,  serviceId: appt.serviceId },
         include: { product: true }
       });
 
@@ -722,8 +713,7 @@ export async function finalizeAppointment(req, res) {
         if (qtyToDeduct <= 0) continue;
 
         // FIFO: Descontar de lotes activos con stock > 0, ordenados por vencimiento ascendente
-        const activeBatches = await prisma.productBatch.findMany({
-          where: {
+        const activeBatches = await prisma.productBatch.findMany({ where: { businessId: req.businessId,  businessId: req.businessId, 
             productId: rule.productId,
             actualQty: { gt: 0 }
           },
@@ -849,8 +839,7 @@ export async function getSlaStats(req, res) {
     }
 
     // 1. Fetch all transition histories for this business
-    const histories = await prisma.appointmentStatusHistory.findMany({
-      where: { businessId },
+    const histories = await prisma.appointmentStatusHistory.findMany({ where: { businessId: req.businessId,  businessId },
       include: {
         appointment: {
           include: {
@@ -929,8 +918,7 @@ export async function uploadAppointmentPhoto(req, res) {
     const isOwnerOrAdmin = userRole === "owner" || userRole === "admin" || userEmail === "seleniadeveloper@gmail.com";
 
     if (!isOwnerOrAdmin) {
-      const worker = await prisma.worker.findFirst({
-        where: {
+      const worker = await prisma.worker.findFirst({ where: { businessId: req.businessId, 
           businessId: req.businessId,
           email: { equals: userEmail, mode: "insensitive" }
         }

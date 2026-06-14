@@ -144,8 +144,7 @@ export async function listClients(req, res) {
         : {})
     };
 
-    const clients = await prisma.client.findMany({
-      where,
+    const clients = await prisma.client.findMany({ where: { businessId: req.businessId }, where,
       orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
       take: 50,
     });
@@ -196,8 +195,7 @@ export async function getClientAppointments(req, res) {
   try {
     const { id } = req.params;
 
-    const appts = await prisma.appointment.findMany({
-      where: { clientId: id },
+    const appts = await prisma.appointment.findMany({ where: { businessId: req.businessId,  businessId: req.businessId,  clientId: id },
       orderBy: { startsAt: "desc" },
       include: {
         service: true,
@@ -229,8 +227,7 @@ export async function getClientClinicalHistory(req, res) {
     }
 
     // Validar relación de cliente con el negocio (auto-curar si no tiene asignado)
-    const client = await prisma.client.findFirst({
-      where: {
+    const client = await prisma.client.findFirst({ where: { businessId: req.businessId,  businessId: req.businessId, 
         id,
         OR: [
           { businessId },
@@ -250,8 +247,7 @@ export async function getClientClinicalHistory(req, res) {
       });
     }
 
-    const history = await prisma.clinicalHistory.findMany({
-      where: {
+    const history = await prisma.clinicalHistory.findMany({ where: { businessId: req.businessId,  businessId: req.businessId, 
         clientId: id,
         businessId
       },
@@ -291,8 +287,7 @@ export async function createClientClinicalHistory(req, res) {
     }
 
     // Validar relación de cliente con el negocio (auto-curar si no tiene asignado)
-    const client = await prisma.client.findFirst({
-      where: {
+    const client = await prisma.client.findFirst({ where: { businessId: req.businessId,  businessId: req.businessId, 
         id,
         OR: [
           { businessId },
@@ -356,8 +351,7 @@ export async function updateClientClinicalHistory(req, res) {
     }
 
     // Validar relación de cliente con el negocio
-    const client = await prisma.client.findFirst({
-      where: {
+    const client = await prisma.client.findFirst({ where: { businessId: req.businessId,  businessId: req.businessId, 
         id,
         OR: [
           { businessId },
@@ -371,8 +365,7 @@ export async function updateClientClinicalHistory(req, res) {
     }
 
     // Validar que la entrada clínica exista y pertenezca al cliente y negocio
-    const entry = await prisma.clinicalHistory.findFirst({
-      where: {
+    const entry = await prisma.clinicalHistory.findFirst({ where: { businessId: req.businessId,  businessId: req.businessId, 
         id: entryId,
         clientId: id,
         businessId
@@ -424,8 +417,7 @@ export async function deleteClientClinicalHistory(req, res) {
     }
 
     // Validar que la entrada clínica exista y pertenezca al cliente y negocio
-    const entry = await prisma.clinicalHistory.findFirst({
-      where: {
+    const entry = await prisma.clinicalHistory.findFirst({ where: { businessId: req.businessId,  businessId: req.businessId, 
         id: entryId,
         clientId: id,
         businessId
@@ -460,8 +452,7 @@ export async function uploadClientPhoto(req, res) {
       return res.status(400).json({ error: "La foto en base64 es obligatoria." });
     }
 
-    const client = await prisma.client.findFirst({
-      where: {
+    const client = await prisma.client.findFirst({ where: { businessId: req.businessId,  businessId: req.businessId, 
         id,
         OR: [
           { businessId },

@@ -2,8 +2,9 @@ import prisma from "../prisma.js";
 
 // Helper to seed initial products & suppliers if catalog is empty
 async function seedInventoryIfNeeded() {
+  return; // Disabled for multi-tenant isolation
   try {
-    const productCount = await prisma.product.count();
+    const productCount = await prisma.product.count({ where: { businessId: req.businessId } });
     if (productCount === 0) {
       // 1. Seed default suppliers
       const supplier1 = await prisma.supplier.create({
@@ -139,7 +140,7 @@ async function seedInventoryIfNeeded() {
       });
 
       // 3. Seed default batches to support FIFO
-      const branches = await prisma.branch.findMany();
+      const branches = await prisma.branch.findMany({ where: { businessId: req.businessId } });
       const defaultBranchId = branches[0]?.id || null;
 
       const productsList = [p1, p2, p3, p4, p5];
@@ -186,7 +187,7 @@ async function seedInventoryIfNeeded() {
       }
 
       // 4. Seed default service consumption rules if services exist
-      const services = await prisma.service.findMany();
+      const services = await prisma.service.findMany({ where: { businessId: req.businessId } });
       const coloracion = services.find(s => s.name.toLowerCase().includes("color"));
       const keratina = services.find(s => s.name.toLowerCase().includes("keratina") || s.name.toLowerCase().includes("tratamiento"));
       const manicuria = services.find(s => s.name.toLowerCase().includes("manicur"));
@@ -222,8 +223,7 @@ export async function getInventoryDashboardData(req, res) {
   try {
     await seedInventoryIfNeeded();
 
-    const products = await prisma.product.findMany({
-      include: { provider: true }
+    const products = await prisma.product.findMany({ where: { businessId: req.businessId }, include: { provider: true }
     });
 
     // 1. Calculations
@@ -234,8 +234,7 @@ export async function getInventoryDashboardData(req, res) {
     const totalUnique = products.length;
 
     // Estimate consumption (monthly estimate based on total treatments done)
-    const appointmentsCount = await prisma.appointment.count({
-      where: { status: "DONE" }
+    const appointmentsCount = await prisma.appointment.count({ where: { businessId: req.businessId,  businessId: req.businessId,  status: "DONE" }
     });
     const estimatedMonthlySpend = 15000 + (appointmentsCount * 1200);
 
@@ -262,8 +261,7 @@ export async function getInventoryDashboardData(req, res) {
 export async function listProducts(req, res) {
   try {
     await seedInventoryIfNeeded();
-    const list = await prisma.product.findMany({
-      include: { provider: true, branchInventories: { include: { branch: true } }, batches: true },
+    const list = await prisma.product.findMany({ where: { businessId: req.businessId }, include: { provider: true, branchInventories: { include: { branch: true } }, batches: true },
       orderBy: { name: "asc" }
     });
     return res.status(200).json(list);
@@ -314,7 +312,7 @@ export async function createProduct(req, res) {
     });
 
     // Initialize branch inventories
-    const branches = await prisma.branch.findMany();
+    const branches = await prisma.branch.findMany({ where: { businessId: req.businessId } });
     const firstBranchId = branches[0]?.id || null;
     for (const b of branches) {
       await prisma.branchInventory.create({
@@ -412,7 +410,7 @@ export async function updateProduct(req, res) {
     // Create adjustment log if stock was edited manually
     if (newStockVal !== prevStock) {
       const diff = newStockVal - prevStock;
-      const branches = await prisma.branch.findMany();
+      const branches = await prisma.branch.findMany({ where: { businessId: req.businessId } });
       const firstBranchId = branches[0]?.id || null;
 
       await prisma.stockMovement.create({
@@ -457,8 +455,7 @@ export async function deleteProduct(req, res) {
 // GET /api/inventory/suppliers & CRUD
 export async function listSuppliers(req, res) {
   try {
-    const list = await prisma.supplier.findMany({
-      include: { products: true },
+    const list = await prisma.supplier.findMany({ where: { businessId: req.businessId }, include: { products: true },
       orderBy: { name: "asc" }
     });
     return res.status(200).json(list);
@@ -529,8 +526,7 @@ export async function deleteSupplier(req, res) {
 // GET /api/inventory/movements & creation
 export async function listMovements(req, res) {
   try {
-    const list = await prisma.stockMovement.findMany({
-      include: { product: true, branch: true },
+    const list = await prisma.stockMovement.findMany({ where: { businessId: req.businessId }, include: { product: true, branch: true },
       orderBy: { createdAt: "desc" },
       take: 100
     });
@@ -603,8 +599,7 @@ export async function createMovement(req, res) {
 // GET /api/inventory/batches & creation
 export async function listBatches(req, res) {
   try {
-    const list = await prisma.productBatch.findMany({
-      include: { product: true, supplier: true, branch: true },
+    const list = await prisma.productBatch.findMany({ where: { businessId: req.businessId }, include: { product: true, supplier: true, branch: true },
       orderBy: { expirationDate: "asc" }
     });
     return res.status(200).json(list);
@@ -683,8 +678,7 @@ export async function createBatch(req, res) {
 // GET /api/inventory/rules & CRUD
 export async function listRules(req, res) {
   try {
-    const list = await prisma.serviceConsumptionRule.findMany({
-      include: { service: true, product: true }
+    const list = await prisma.serviceConsumptionRule.findMany({ where: { businessId: req.businessId }, include: { service: true, product: true }
     });
     return res.status(200).json(list);
   } catch (error) {
@@ -736,8 +730,7 @@ export async function deleteRule(req, res) {
 // GET /api/inventory/orders & CRUD
 export async function listPurchaseOrders(req, res) {
   try {
-    const list = await prisma.purchaseOrder.findMany({
-      include: { supplier: true, branch: true, items: { include: { product: true } } },
+    const list = await prisma.purchaseOrder.findMany({ where: { businessId: req.businessId }, include: { supplier: true, branch: true, items: { include: { product: true } } },
       orderBy: { createdAt: "desc" }
     });
     return res.status(200).json(list);
@@ -805,7 +798,7 @@ export async function updateOrderStatus(req, res) {
 
     // If order status is RECEIVED, load actual stock items as new batches (FIFO)
     if (status === "RECEIVED") {
-      const branches = await prisma.branch.findMany();
+      const branches = await prisma.branch.findMany({ where: { businessId: req.businessId } });
       const firstBranchId = order.branchId || branches[0]?.id || null;
 
       for (const item of order.items) {

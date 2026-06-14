@@ -3,7 +3,7 @@ import prisma from "../prisma.js";
 // Helper to seed branches if empty
 async function seedBranchesIfNeeded() {
   try {
-    const count = await prisma.branch.count();
+    const count = await prisma.branch.count({ where: { businessId: req.businessId } });
     if (count === 0) {
       await prisma.branch.createMany({
         data: [
@@ -26,8 +26,7 @@ export async function getFinanceDashboardData(req, res) {
     const businessId = req.businessId;
 
     // 1. Fetch data
-    const appointments = await prisma.appointment.findMany({
-      where: businessId ? { businessId } : undefined,
+    const appointments = await prisma.appointment.findMany({ where: { businessId: req.businessId },  where: businessId ? { businessId } : undefined,
       include: {
         client: true,
         worker: true,
@@ -36,15 +35,13 @@ export async function getFinanceDashboardData(req, res) {
       }
     });
 
-    const expenses = await prisma.expense.findMany({
-      where: businessId ? {
+    const expenses = await prisma.expense.findMany({ where: { businessId: req.businessId },  where: businessId ? {
         branch: { businessId }
       } : undefined,
       include: { branch: true }
     });
 
-    const branches = await prisma.branch.findMany({
-      where: businessId ? { businessId } : undefined,
+    const branches = await prisma.branch.findMany({ where: { businessId: req.businessId },  where: businessId ? { businessId } : undefined,
       include: {
         appointments: { include: { service: true } },
         expenses: true,
@@ -170,7 +167,7 @@ export async function getFinanceDashboardData(req, res) {
     });
 
     // Seed mock audit log or reconciliation if empty
-    const auditCount = await prisma.auditLog.count();
+    const auditCount = await prisma.auditLog.count({ where: { businessId: req.businessId } });
     if (auditCount === 0) {
       await prisma.auditLog.create({
         data: {
@@ -221,8 +218,7 @@ export async function getFinanceDashboardData(req, res) {
 export async function listExpenses(req, res) {
   try {
     const businessId = req.businessId;
-    const list = await prisma.expense.findMany({
-      where: businessId ? {
+    const list = await prisma.expense.findMany({ where: { businessId: req.businessId },  where: businessId ? {
         branch: { businessId }
       } : undefined,
       include: { branch: true },
@@ -244,8 +240,7 @@ export async function createExpense(req, res) {
 
     const businessId = req.businessId;
     if (branchId && businessId) {
-      const br = await prisma.branch.findFirst({
-        where: { id: branchId, businessId }
+      const br = await prisma.branch.findFirst({ where: { businessId: req.businessId,  businessId: req.businessId,  id: branchId, businessId }
       });
       if (!br) {
         return res.status(400).json({ error: "La sucursal seleccionada no pertenece a tu negocio." });
@@ -286,8 +281,7 @@ export async function createExpense(req, res) {
 export async function listCashClosings(req, res) {
   try {
     const businessId = req.businessId;
-    const list = await prisma.cashClosing.findMany({
-      where: businessId ? {
+    const list = await prisma.cashClosing.findMany({ where: { businessId: req.businessId },  where: businessId ? {
         branch: { businessId }
       } : undefined,
       include: { branch: true },
@@ -309,8 +303,7 @@ export async function createCashClosing(req, res) {
 
     const businessId = req.businessId;
     if (branchId && businessId) {
-      const br = await prisma.branch.findFirst({
-        where: { id: branchId, businessId }
+      const br = await prisma.branch.findFirst({ where: { businessId: req.businessId,  businessId: req.businessId,  id: branchId, businessId }
       });
       if (!br) {
         return res.status(400).json({ error: "La sucursal seleccionada no pertenece a tu negocio." });
@@ -355,8 +348,7 @@ export async function createCashClosing(req, res) {
 export async function listSalaryPayments(req, res) {
   try {
     const businessId = req.businessId;
-    const payments = await prisma.salaryPayment.findMany({
-      where: businessId ? {
+    const payments = await prisma.salaryPayment.findMany({ where: { businessId: req.businessId },  where: businessId ? {
         worker: { businessId }
       } : undefined,
       include: { worker: true },
@@ -378,8 +370,7 @@ export async function createSalaryPayment(req, res) {
 
     const businessId = req.businessId;
     if (businessId) {
-      const wk = await prisma.worker.findFirst({
-        where: { id: workerId, businessId }
+      const wk = await prisma.worker.findFirst({ where: { businessId: req.businessId,  businessId: req.businessId,  id: workerId, businessId }
       });
       if (!wk) {
         return res.status(400).json({ error: "El colaborador seleccionado no pertenece a tu negocio." });
@@ -427,7 +418,7 @@ export async function createSalaryPayment(req, res) {
 export async function listBankMovements(req, res) {
   try {
     // Seed mock movements if database table is empty for reconciliation visual demo
-    const count = await prisma.bankMovement.count();
+    const count = await prisma.bankMovement.count({ where: { businessId: req.businessId } });
     if (count === 0) {
       await prisma.bankMovement.createMany({
         data: [
@@ -440,8 +431,7 @@ export async function listBankMovements(req, res) {
       });
     }
 
-    const list = await prisma.bankMovement.findMany({
-      orderBy: { date: "desc" }
+    const list = await prisma.bankMovement.findMany({ where: { businessId: req.businessId }, orderBy: { date: "desc" }
     });
     return res.status(200).json(list);
   } catch (error) {
@@ -477,8 +467,7 @@ export async function reconcileMovement(req, res) {
 // GET /api/finances/audit
 export async function listAuditLogs(req, res) {
   try {
-    const list = await prisma.auditLog.findMany({
-      where: req.businessId ? { businessId: req.businessId } : undefined,
+    const list = await prisma.auditLog.findMany({ where: { businessId: req.businessId },  where: req.businessId ? { businessId: req.businessId } : undefined,
       orderBy: { createdAt: "desc" },
       take: 50
     });
@@ -494,8 +483,7 @@ export async function listBranches(req, res) {
   try {
     await seedBranchesIfNeeded();
     const where = req.businessId ? { businessId: req.businessId } : {};
-    const list = await prisma.branch.findMany({
-      where,
+    const list = await prisma.branch.findMany({ where: { businessId: req.businessId }, where,
       orderBy: { name: "asc" }
     });
     return res.status(200).json(list);

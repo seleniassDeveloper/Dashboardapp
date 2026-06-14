@@ -42,7 +42,7 @@ function currency(n) {
 
 export default function DashboardView() {
   const { brand } = useBrand();
-  const { role } = useAuth();
+  const { role, business, isSuperAdmin } = useAuth();
   const { t, i18n } = useTranslation(["dashboard", "common"]);
   const isEs = i18n && i18n.language ? i18n.language === "es" : true;
 
@@ -75,6 +75,11 @@ export default function DashboardView() {
 
   // --- Carga unificada de datos del negocio y widgets ---
   const fetchData = useCallback(async () => {
+    if (!business && isSuperAdmin) {
+      setLoading(false);
+      return;
+    }
+    
     try {
       setLoading(true);
       setError("");
@@ -98,13 +103,13 @@ export default function DashboardView() {
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, [t, business, isSuperAdmin]);
 
   useEffect(() => {
-    if (role !== "professional") {
+    if (role !== "professional" && (!isSuperAdmin || business)) {
       fetchData();
     }
-  }, [fetchData, role]);
+  }, [fetchData, role, isSuperAdmin, business]);
 
   // --- Saludo Dinámico y Fecha ---
   const getGreeting = () => {

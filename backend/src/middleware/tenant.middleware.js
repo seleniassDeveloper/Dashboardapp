@@ -198,7 +198,12 @@ export async function checkTenant(req, res, next) {
 
     const isDevBypass = process.env.AUTH_DISABLED === "true" || firebaseUid === "dev-user" || firebaseUid === "quick-booking-user";
 
-    if (!isDevBypass && !isBillingPath && !isPublicPath && !isAuthPath && !isHealthPath) {
+    // INTERRUPTOR GLOBAL DE LANZAMIENTO:
+    // Mientras BILLING_ENFORCED !== "true", NADIE recibe el muro de pago (etapa piloto).
+    // El día del lanzamiento público se pone BILLING_ENFORCED=true y se activa el cobro.
+    const billingEnforced = process.env.BILLING_ENFORCED === "true";
+
+    if (billingEnforced && !isDevBypass && !isBillingPath && !isPublicPath && !isAuthPath && !isHealthPath) {
       const b = membership.business;
       const ALLOWED = ["trialing", "active"];
       const trialEnds = b.trialEndsAt 

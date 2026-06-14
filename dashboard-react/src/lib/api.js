@@ -49,7 +49,7 @@ api.interceptors.response.use(
     // Se excluyen los códigos de error 4xx (400, 401, 403, 404, 409) que deben manejarse localmente
     const status = error.response?.status;
     const method = error.config?.method?.toLowerCase() || "";
-    const isAllowedMethod = ["get", "post", "put"].includes(method);
+    const isAllowedMethod = ["get", "post", "put", "patch", "delete"].includes(method);
     const isSystemError = !status || status >= 500;
     if (isSystemError && isAllowedMethod && errorListener) {
       errorListener(error);

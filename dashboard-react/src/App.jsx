@@ -47,7 +47,13 @@ export default function App() {
   return (
     <DashboardLayout>
       <Routes>
-        <Route path="/" element={<DashboardView />} />
+        <Route path="/" element={
+          isSuperAdmin && !business ? (
+            <Navigate to="/superadmin/billing" replace />
+          ) : (
+            <DashboardView />
+          )
+        } />
         
         <Route 
           path="/calendar" 

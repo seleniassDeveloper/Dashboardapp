@@ -1,5 +1,6 @@
 import { google } from "googleapis";
 import prisma from "../prisma.js";
+import { sendReminderEmail } from "./mailer.js";
 
 /**
  * Obtiene las variables de entorno de Google OAuth y construye el redirect URI personalizado con el slug del negocio.
@@ -10,7 +11,9 @@ function getOAuth2ClientInstance(businessSlug) {
   
   // URL base de redirección. Si tiene un slug de negocio, lo agregamos al final
   const baseRedirect = process.env.GOOGLE_REDIRECT_URI || "http://localhost:3001/api/public/google/oauth-callback";
-  const redirectUri = businessSlug ? `${baseRedirect}/${businessSlug}` : baseRedirect;
+  // Redirect ESTÁTICO: Google exige coincidencia exacta y no admite comodines en el path.
+  // El negocio se identifica por `state` (businessId) en el callback, no por el slug en la URL.
+  const redirectUri = baseRedirect;
 
   return new google.auth.OAuth2(clientId, clientSecret, redirectUri);
 }
@@ -36,8 +39,7 @@ export function getAuthUrl(businessId, businessSlug) {
     access_type: "offline",
     prompt: "consent",
     scope: [
-      "https://www.googleapis.com/auth/calendar",
-      "https://www.googleapis.com/auth/gmail.send"
+      "https://www.googleapis.com/auth/calendar"
     ],
     state: businessId
   });
@@ -90,34 +92,14 @@ export async function getAuthenticatedClient(businessId) {
 }
 
 /**
- * Envía un correo de confirmación de cita utilizando la Gmail API.
- * El remitente será la misma cuenta ("me") dueña del accessToken.
+ * Envía un correo de confirmación de cita.
+ * NOTA: Antes usaba la Gmail API (scope restringido `gmail.send`), lo que obligaba
+ * a pasar la verificación de seguridad de Google. Ahora delega en el SMTP propio
+ * (mailer.js) para evitar la pantalla "Google no ha verificado esta aplicación".
+ * Se conserva la firma por compatibilidad; `googleAccessToken` se ignora.
  */
-export async function sendConfirmationEmailWithGmail({ googleAccessToken, to, subject, html }) {
-  const auth = getOAuth2Client(googleAccessToken);
-  const gmail = google.gmail({ version: "v1", auth });
-
-  const str = [
-    `To: ${to}`,
-    "Content-Type: text/html; charset=utf-8",
-    "MIME-Version: 1.0",
-    `Subject: ${subject}`,
-    "",
-    html
-  ].join("\n");
-
-  const raw = Buffer.from(str)
-    .toString("base64")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
-
-  await gmail.users.messages.send({
-    userId: "me",
-    requestBody: {
-      raw: raw
-    }
-  });
+export async function sendConfirmationEmailWithGmail({ to, subject, html }) {
+  await sendReminderEmail({ to, subject, html });
 }
 
 /**

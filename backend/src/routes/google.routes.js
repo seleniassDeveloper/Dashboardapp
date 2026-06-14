@@ -177,7 +177,9 @@ router.post("/send-confirmation-email", async (req, res) => {
       return res.status(404).json({ error: "Cita no encontrada." });
     }
 
-    const biz = (await prisma.business.findFirst()) || { name: "Aura Studio" };
+    const biz = appointment.businessId 
+      ? await prisma.business.findUnique({ where: { id: appointment.businessId } })
+      : { name: "Aura Studio" };
 
     // Formatear fecha y hora
     const formattedDate = new Date(appointment.startsAt).toLocaleDateString("es-AR", {
