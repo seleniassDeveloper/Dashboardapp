@@ -1540,17 +1540,7 @@ export default function GoogleSheetsSyncView() {
                   </div>
                   <h4 className="fw-black text-gray-900 mb-2">{t("sheetsSync.syncingOutTitle")}</h4>
                   
-          <Form.Group className="mb-4">
-            <Form.Label className="fw-bold small text-dark">Nombre del Registro de Importación <span className="text-danger">*</span></Form.Label>
-            <Form.Control 
-              type="text" 
-              placeholder="Ej. Migración Clientes Abril 2026"
-              value={importName}
-              onChange={(e) => setImportName(e.target.value)}
-              className="modern-input"
-            />
-          </Form.Group>
-          <p className="text-muted small mb-4">{t("sheetsSync.syncingOutDesc")}</p>
+                  <p className="text-muted small mb-4">{t("sheetsSync.syncingOutDesc")}</p>
                   <ProgressBar now={syncProgressOut} variant="purple" className="mb-2 rounded-pill mx-auto" style={{ width: "80%", height: "8px" }} />
                   <span className="smaller text-purple-600 fw-bold">{syncProgressOut}% {t("sheetsSync.progressCompleted")}</span>
                 </Card>
@@ -1659,6 +1649,16 @@ export default function GoogleSheetsSyncView() {
           </Modal.Title>
         </Modal.Header>
         <Modal.Body className="pt-2">
+          <Form.Group className="mb-4">
+            <Form.Label className="fw-bold small text-dark">Nombre del Registro de Importación <span className="text-danger">*</span></Form.Label>
+            <Form.Control 
+              type="text" 
+              placeholder="Ej. Migración Clientes Abril 2026"
+              value={importName}
+              onChange={(e) => setImportName(e.target.value)}
+              className="modern-input"
+            />
+          </Form.Group>
           <p className="text-muted small mb-4">
             A continuación se muestra el resumen de cómo quedará repartida la información en la base de datos según lo que has asignado. Revisa que todo esté correcto antes de confirmar.
           </p>
