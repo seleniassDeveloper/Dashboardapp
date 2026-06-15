@@ -147,6 +147,7 @@ async function seedInventoryIfNeeded() {
       for (const p of productsList) {
         await prisma.productBatch.create({
           data: {
+            businessId: req.businessId,
             productId: p.id,
             batchNumber: `LOTE-${Math.floor(1000 + Math.random() * 9000)}`,
             supplierId: p.providerId,
@@ -174,6 +175,7 @@ async function seedInventoryIfNeeded() {
         // Initialize legacy movements
         await prisma.stockMovement.create({
           data: {
+            businessId: req.businessId,
             productId: p.id,
             prevQty: 0,
             newQty: p.stock,
@@ -330,6 +332,7 @@ export async function createProduct(req, res) {
     if (Number(stock || 0) > 0) {
       await prisma.productBatch.create({
         data: {
+          businessId: req.businessId,
           productId: product.id,
           batchNumber: `LOTE-NEW-${Math.floor(100 + Math.random() * 900)}`,
           initialQty: Number(stock),
@@ -344,6 +347,7 @@ export async function createProduct(req, res) {
       // Audit movement
       await prisma.stockMovement.create({
         data: {
+          businessId: req.businessId,
           productId: product.id,
           prevQty: 0,
           newQty: Number(product.stock),
@@ -415,6 +419,7 @@ export async function updateProduct(req, res) {
 
       await prisma.stockMovement.create({
         data: {
+          businessId: req.businessId,
           productId: product.id,
           prevQty: prevStock,
           newQty: newStockVal,
@@ -577,6 +582,7 @@ export async function createMovement(req, res) {
     // Register movement log
     const mov = await prisma.stockMovement.create({
       data: {
+        businessId: req.businessId,
         productId,
         prevQty,
         newQty,
@@ -618,6 +624,7 @@ export async function createBatch(req, res) {
 
     const batch = await prisma.productBatch.create({
       data: {
+        businessId: req.businessId,
         productId,
         batchNumber,
         supplierId: supplierId || null,
@@ -657,6 +664,7 @@ export async function createBatch(req, res) {
       // Log movement
       await prisma.stockMovement.create({
         data: {
+          businessId: req.businessId,
           productId,
           prevQty: prevStock,
           newQty: newStock,
@@ -804,6 +812,7 @@ export async function updateOrderStatus(req, res) {
       for (const item of order.items) {
         await prisma.productBatch.create({
           data: {
+            businessId: req.businessId,
             productId: item.productId,
             batchNumber: `LOTE-COMPRA-${Math.floor(100 + Math.random() * 900)}`,
             supplierId: order.supplierId,
@@ -839,6 +848,7 @@ export async function updateOrderStatus(req, res) {
         // Log movement
         await prisma.stockMovement.create({
           data: {
+            businessId: req.businessId,
             productId: item.productId,
             prevQty: prevStock,
             newQty: newStock,

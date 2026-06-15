@@ -10,7 +10,7 @@ router.get("/", requirePermission("workflows.view"), async (req, res) => {
   try {
     await ensureBusinessModels();
     const { businessModelId, status } = req.query;
-    const where = {};
+    const where = { businessId: req.businessId };
     if (businessModelId) where.businessModelId = String(businessModelId);
     if (status) where.status = String(status);
 
@@ -30,9 +30,9 @@ router.get("/", requirePermission("workflows.view"), async (req, res) => {
 router.get("/stats/summary", requirePermission("workflows.view"), async (_req, res) => {
   try {
     const [totalRuns, activeCount, total] = await Promise.all([
-      prisma.workflow.aggregate({ _sum: { runCount: true } }),
-      prisma.workflow.count({ where: { status: "ACTIVE" } }),
-      prisma.workflow.count(),
+      prisma.workflow.aggregate({ _sum: { runCount: true }, where: { businessId: req.businessId } }),
+      prisma.workflow.count({ where: { status: "ACTIVE", businessId: req.businessId } }),
+      prisma.workflow.count({ where: { businessId: req.businessId } }),
     ]);
     res.json({
       totalWorkflows: total,
@@ -60,6 +60,7 @@ router.post("/from-template", requirePermission("workflows.create"), async (req,
         name: tpl.name,
         description: tpl.description || null,
         status: "DRAFT",
+        businessId: req.businessId,
         businessModelId: model.id,
         trigger: tpl.trigger,
         steps: tpl.steps || [],
@@ -95,6 +96,7 @@ router.post("/", requirePermission("workflows.create"), async (req, res) => {
         name: name.trim(),
         description: description?.trim() || null,
         status: status || "DRAFT",
+        businessId: req.businessId,
         businessModelId: actualModelId,
         trigger,
         steps: steps.map((s, i) => ({ ...s, id: s.id || `step_${i + 1}` })),
@@ -163,6 +165,7 @@ router.patch("/:id/status", requirePermission("workflows.edit"), async (req, res
 router.get("/executions", requirePermission("workflows.logs.view"), async (req, res) => {
   try {
     const list = await prisma.workflowExecution.findMany({
+      where: { businessId: req.businessId },
       include: { workflow: true, logs: true },
       orderBy: { createdAt: "desc" },
       take: 50
@@ -184,6 +187,7 @@ router.post("/executions", requirePermission("workflows.run"), async (req, res) 
 
     const execution = await prisma.workflowExecution.create({
       data: {
+        businessId: req.businessId,
         workflowId,
         status,
         triggerType,

@@ -156,6 +156,8 @@ model BusinessModel {
 
 model Workflow {
   id              String              @id @default(cuid())
+  businessId      String?
+  business        Business?           @relation(fields: [businessId], references: [id], onDelete: Cascade)
   name            String
   description     String?
   status          String              @default("DRAFT")
@@ -177,6 +179,8 @@ model Workflow {
 
 model WorkflowExecution {
   id          String        @id @default(cuid())
+  businessId  String?
+  business    Business?     @relation(fields: [businessId], references: [id], onDelete: Cascade)
   workflowId  String
   status      String        @default("PENDING") // SUCCESS | FAILED | RUNNING
   triggerType String
@@ -277,6 +281,10 @@ model Business {
   clients                    Client[]
   products                   Product[]
   branches                   Branch[]
+  stockMovements             StockMovement[]
+  productBatches             ProductBatch[]
+  workflows                  Workflow[]
+  workflowExecutions         WorkflowExecution[]
   members                    BusinessMember[]
   invitations                Invitation[]
   clinicalHistories          ClinicalHistory[]
@@ -496,6 +504,8 @@ model Supplier {
 
 model StockMovement {
   id          String   @id @default(cuid())
+  businessId  String?
+  business    Business? @relation(fields: [businessId], references: [id], onDelete: Cascade)
   productId   String
   product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   prevQty     Int
@@ -512,6 +522,8 @@ model StockMovement {
 
 model ProductBatch {
   id             String    @id @default(cuid())
+  businessId     String?
+  business       Business? @relation(fields: [businessId], references: [id], onDelete: Cascade)
   productId      String
   product        Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
   batchNumber    String
