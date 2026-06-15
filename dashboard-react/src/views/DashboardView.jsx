@@ -13,6 +13,8 @@ import {
   LayoutGrid,
   Sparkles,
   Bell,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import api from "../lib/api.js";
 import { useBrand } from "../header/name/BrandProvider";
@@ -79,6 +81,7 @@ export default function DashboardView() {
   
   // Base URL para el link de reservas
   const bookingUrl = business?.slug ? `${window.location.origin}/booking/${business.slug}` : "";
+  const [isBookingLinkExpanded, setIsBookingLinkExpanded] = useState(false);
 
   // --- Carga unificada de datos del negocio y widgets ---
   const fetchData = useCallback(async () => {
@@ -596,52 +599,85 @@ export default function DashboardView() {
 
       {/* TARJETA DE ENLACE DE RESERVAS */}
       {business?.slug && (
-        <div className="mb-4 bg-white rounded-4 p-4 border shadow-sm d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-4" style={{ borderColor: "#e2e8f0" }}>
-          <div className="d-flex align-items-start gap-3">
-            <div className="p-3 bg-primary bg-opacity-10 rounded-4 text-primary d-flex align-items-center justify-content-center">
-              <Sparkles size={28} />
+        <div className="mb-4">
+          {!isBookingLinkExpanded ? (
+            <div 
+              className="bg-white rounded-4 p-3 border shadow-sm d-flex justify-content-between align-items-center cursor-pointer transition-all hover-scale" 
+              onClick={() => setIsBookingLinkExpanded(true)} 
+              style={{ borderColor: "#e2e8f0", cursor: "pointer" }}
+            >
+              <div className="d-flex align-items-center gap-3">
+                <div className="p-2 bg-primary bg-opacity-10 rounded-circle text-primary d-flex align-items-center justify-content-center">
+                  <Sparkles size={18} />
+                </div>
+                <div>
+                  <span className="fw-bold text-dark d-block">Tu enlace de reservas online</span>
+                  <span className="text-muted" style={{ fontSize: "12px" }}>Haz clic para ver y compartir tu link o código QR</span>
+                </div>
+              </div>
+              <Button variant="light" size="sm" className="rounded-circle p-2 d-flex align-items-center justify-content-center border" onClick={(e) => { e.stopPropagation(); setIsBookingLinkExpanded(true); }}>
+                <ChevronDown size={18} className="text-secondary" />
+              </Button>
             </div>
-            <div>
-              <h3 className="h5 fw-bold text-dark mb-1">Tu enlace de reservas</h3>
-              <p className="text-muted small mb-3">
-                Comparte este enlace con tus clientes para que reserven online (gratis).
-              </p>
-              <div className="d-flex flex-wrap align-items-center gap-2">
-                <InputGroup style={{ maxWidth: "350px" }} className="shadow-sm">
-                  <Form.Control
-                    readOnly
-                    value={bookingUrl}
-                    className="bg-light border-gray-200 fw-medium font-monospace text-primary"
-                    style={{ fontSize: "13px" }}
-                  />
-                  <Button 
-                    variant="primary" 
-                    onClick={() => {
-                      navigator.clipboard.writeText(bookingUrl);
-                      setCopiedLink(true);
-                      setTimeout(() => setCopiedLink(false), 2000);
-                    }}
-                    className="d-flex align-items-center gap-2 px-3 fw-bold"
-                  >
-                    {copiedLink ? "¡Copiado!" : "Copiar"}
-                  </Button>
-                </InputGroup>
-                <Button 
-                  variant="outline-secondary" 
-                  onClick={() => window.open(bookingUrl, '_blank')}
-                  className="d-flex align-items-center gap-2 px-3 fw-bold bg-white"
-                >
-                  Abrir <span className="d-none d-sm-inline">Página</span>
-                </Button>
+          ) : (
+            <div className="bg-white rounded-4 p-4 border shadow-sm position-relative d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-4 animate-fade-in" style={{ borderColor: "#e2e8f0" }}>
+              <Button 
+                variant="white" 
+                size="sm" 
+                className="position-absolute top-0 end-0 m-3 rounded-circle p-2 d-flex align-items-center justify-content-center border bg-light hover-bg-gray-200"
+                onClick={() => setIsBookingLinkExpanded(false)}
+                title="Ocultar"
+              >
+                <ChevronUp size={16} className="text-secondary" />
+              </Button>
+              
+              <div className="d-flex align-items-start gap-3 mt-2 mt-md-0">
+                <div className="p-3 bg-primary bg-opacity-10 rounded-4 text-primary d-flex align-items-center justify-content-center">
+                  <Sparkles size={28} />
+                </div>
+                <div>
+                  <h3 className="h5 fw-bold text-dark mb-1">Tu enlace de reservas</h3>
+                  <p className="text-muted small mb-3">
+                    Comparte este enlace con tus clientes para que reserven online (gratis).
+                  </p>
+                  <div className="d-flex flex-wrap align-items-center gap-2">
+                    <InputGroup style={{ maxWidth: "350px" }} className="shadow-sm">
+                      <Form.Control
+                        readOnly
+                        value={bookingUrl}
+                        className="bg-light border-gray-200 fw-medium font-monospace text-primary"
+                        style={{ fontSize: "13px" }}
+                      />
+                      <Button 
+                        variant="primary" 
+                        onClick={() => {
+                          navigator.clipboard.writeText(bookingUrl);
+                          setCopiedLink(true);
+                          setTimeout(() => setCopiedLink(false), 2000);
+                        }}
+                        className="d-flex align-items-center gap-2 px-3 fw-bold"
+                      >
+                        {copiedLink ? "¡Copiado!" : "Copiar"}
+                      </Button>
+                    </InputGroup>
+                    <Button 
+                      variant="outline-secondary" 
+                      onClick={() => window.open(bookingUrl, '_blank')}
+                      className="d-flex align-items-center gap-2 px-3 fw-bold bg-white"
+                    >
+                      Abrir <span className="d-none d-sm-inline">Página</span>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              <div className="text-center d-flex flex-column align-items-center" style={{ minWidth: "120px" }}>
+                <div className="bg-white p-2 border rounded-3 shadow-sm mb-2" style={{ width: "fit-content" }}>
+                  <QRCodeSVG value={bookingUrl} size={90} level="M" />
+                </div>
+                <span className="text-muted" style={{ fontSize: "11px", fontWeight: "600" }}>CÓDIGO QR</span>
               </div>
             </div>
-          </div>
-          <div className="text-center d-flex flex-column align-items-center" style={{ minWidth: "120px" }}>
-            <div className="bg-white p-2 border rounded-3 shadow-sm mb-2" style={{ width: "fit-content" }}>
-              <QRCodeSVG value={bookingUrl} size={90} level="M" />
-            </div>
-            <span className="text-muted" style={{ fontSize: "11px", fontWeight: "600" }}>CÓDIGO QR</span>
-          </div>
+          )}
         </div>
       )}
 
