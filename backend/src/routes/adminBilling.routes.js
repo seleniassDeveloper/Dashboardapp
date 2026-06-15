@@ -5,8 +5,21 @@ import requireAdmin from "../middleware/requireAdmin.js";
 
 const router = Router();
 
-// Require both auth and global admin custom claim role
-router.use(requireAuth, requireAdmin);
+// Middleware para restringir modificaciones (POST, PUT, DELETE) solo a seleniadeveloper@gmail.com
+const requireSeleniaAdmin = (req, res, next) => {
+  if (req.method !== "GET") {
+    if (req.user?.email !== "seleniadeveloper@gmail.com") {
+      return res.status(403).json({ 
+        success: false, 
+        error: "Acceso denegado. Solo seleniadeveloper@gmail.com tiene permisos para modificar suscripciones y accesos." 
+      });
+    }
+  }
+  next();
+};
+
+// Require auth, global admin custom claim role, and the Selenia restriction
+router.use(requireAuth, requireAdmin, requireSeleniaAdmin);
 
 router.get("/businesses", async (req, res) => {
   try {
