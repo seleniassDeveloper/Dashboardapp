@@ -304,6 +304,7 @@ model Business {
   subscription               Subscription?
   planRequests               PlanRequest[]
   bankMovements              BankMovement[]
+  dataImports                DataImportHistory[]
 }
 
 model ScheduleBlock {
@@ -921,4 +922,17 @@ model PlanRequest {
 
   @@index([businessId])
   @@index([status])
+}
+
+model DataImportHistory {
+  id          String   @id @default(cuid())
+  businessId  String
+  name        String
+  status      String   @default("COMPLETED")
+  details     Json     
+  createdAt   DateTime @default(now())
+  
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
 }

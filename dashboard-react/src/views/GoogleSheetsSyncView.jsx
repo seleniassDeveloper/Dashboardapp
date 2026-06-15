@@ -81,8 +81,23 @@ export default function GoogleSheetsSyncView() {
   const [sheetsData, setSheetsData] = useState([]);
   const [activeSheetId, setActiveSheetId] = useState(null); // Which sheet's column mapping is currently open
   const [newFieldName, setNewFieldName] = useState("");
+  const [importHistory, setImportHistory] = useState([]);
+  const [importName, setImportName] = useState("");
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showNewFieldForm, setShowNewFieldForm] = useState(false);
+
+
+  useEffect(() => {
+    const fetchHistory = async () => {
+      try {
+        const res = await api.get("/google/import-history");
+        setImportHistory(res.data);
+      } catch (e) {
+        console.error("Error fetching history:", e);
+      }
+    };
+    fetchHistory();
+  }, [step]); // Refetch when step changes (e.g. going back to step 1)
 
   const getInitialEnabledFields = (type) => ({
     clients: { firstName: true, lastName: true, phone: true, email: true, notes: true },
@@ -788,6 +803,13 @@ export default function GoogleSheetsSyncView() {
         }
       }
 
+
+      try {
+        await api.post("/google/import-history", { name: importName, summary: combinedSummary });
+      } catch (err) {
+        console.error("No se pudo guardar el historial", err);
+      }
+
       setProgress(100);
       setStatusText(t("sheetsSync.progressCompleted"));
       setSummary(combinedSummary);
@@ -1023,6 +1045,47 @@ export default function GoogleSheetsSyncView() {
                           <p className="text-muted smaller mb-0">Podés subir un Excel con múltiples pestañas y asignar cada pestaña a una sección distinta de la base de datos.</p>
                         </div>
                       </div>
+                    </Card.Body>
+                  </Card>
+                </Col>
+
+                <Col lg={12} className="mt-4">
+                  <Card className="card-premium border-0 shadow-sm">
+                    <Card.Body className="p-4">
+                      <h3 className="h6 fw-bold mb-3 d-flex align-items-center gap-2">
+                        <History size={18} className="text-primary" />
+                        <span>Historial de Importaciones</span>
+                      </h3>
+                      {importHistory.length === 0 ? (
+                        <div className="text-center py-4 text-muted small bg-light rounded-3 border">
+                          No hay importaciones registradas todavía.
+                        </div>
+                      ) : (
+                        <div className="table-responsive rounded-3 border">
+                          <Table hover striped size="sm" className="mb-0 align-middle bg-white">
+                            <thead className="bg-light table-header-small">
+                              <tr>
+                                <th className="ps-3">Nombre del Registro</th>
+                                <th>Fecha y Hora</th>
+                                <th>Resultados</th>
+                              </tr>
+                            </thead>
+                            <tbody style={{ fontSize: "13px" }}>
+                              {importHistory.map(hist => (
+                                <tr key={hist.id}>
+                                  <td className="ps-3 fw-bold text-dark">{hist.name}</td>
+                                  <td className="text-muted">{new Date(hist.createdAt).toLocaleString()}</td>
+                                  <td>
+                                    <Badge bg="success" className="me-1">{(hist.details?.created) || 0} Creados</Badge>
+                                    <Badge bg="primary" className="me-1">{(hist.details?.reused) || 0} Actualizados</Badge>
+                                    <Badge bg="danger">{(hist.details?.failed) || 0} Fallidos</Badge>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </Table>
+                        </div>
+                      )}
                     </Card.Body>
                   </Card>
                 </Col>
@@ -1471,7 +1534,18 @@ export default function GoogleSheetsSyncView() {
                     <RefreshCw size={32} />
                   </div>
                   <h4 className="fw-black text-gray-900 mb-2">{t("sheetsSync.syncingOutTitle")}</h4>
-                  <p className="text-muted small mb-4">{t("sheetsSync.syncingOutDesc")}</p>
+                  
+          <Form.Group className="mb-4">
+            <Form.Label className="fw-bold small text-dark">Nombre del Registro de Importación <span className="text-danger">*</span></Form.Label>
+            <Form.Control 
+              type="text" 
+              placeholder="Ej. Migración Clientes Abril 2026"
+              value={importName}
+              onChange={(e) => setImportName(e.target.value)}
+              className="modern-input"
+            />
+          </Form.Group>
+          <p className="text-muted small mb-4">{t("sheetsSync.syncingOutDesc")}</p>
                   <ProgressBar now={syncProgressOut} variant="purple" className="mb-2 rounded-pill mx-auto" style={{ width: "80%", height: "8px" }} />
                   <span className="smaller text-purple-600 fw-bold">{syncProgressOut}% {t("sheetsSync.progressCompleted")}</span>
                 </Card>
@@ -1609,6 +1683,7 @@ export default function GoogleSheetsSyncView() {
           </Button>
           <Button 
             variant="success" 
+            disabled={!importName.trim()}
             onClick={() => {
               setShowConfirmModal(false);
               executeRealSync();
