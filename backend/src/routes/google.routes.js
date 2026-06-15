@@ -479,8 +479,39 @@ router.post("/import", async (req, res) => {
     const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     const cleanPhone = (phone) => phone ? phone.replace(/[^0-9+]/g, '') : null;
 
-    const CHUNK_SIZE = 50;
-    
+    // --- IN-MEMORY CACHE OPTIMIZATION ---
+    // Fetch all existing entities to memory
+    const allClients = await prisma.client.findMany({ where: { businessId } });
+    const allServices = await prisma.service.findMany({ where: { businessId } });
+    const allWorkers = await prisma.worker.findMany({ where: { businessId } });
+
+    const clientCache = {
+      byEmail: new Map(),
+      byPhone: new Map(),
+      byName: new Map() // key: firstName + " " + lastName
+    };
+    allClients.forEach(c => {
+      if (c.email) clientCache.byEmail.set(c.email, c);
+      if (c.phone) clientCache.byPhone.set(c.phone, c);
+      clientCache.byName.set(`${c.firstName} ${c.lastName}`.trim(), c);
+    });
+
+    const serviceCache = new Map();
+    allServices.forEach(s => serviceCache.set(s.name.trim(), s));
+
+    const workerCache = new Map();
+    allWorkers.forEach(w => workerCache.set(`${w.firstName} ${w.lastName}`.trim(), w));
+
+    let appointmentCache = null;
+    if (entityType === "appointments") {
+      const allAppts = await prisma.appointment.findMany({ where: { businessId } });
+      appointmentCache = new Map();
+      allAppts.forEach(a => {
+        const key = `${a.clientId}_${new Date(a.startsAt).getTime()}`;
+        appointmentCache.set(key, a);
+      });
+    }
+
     const getOrCreateClient = async (nameVal, phoneVal, emailVal) => {
       if (!nameVal) return null;
       let firstName = nameVal.trim();
@@ -494,29 +525,33 @@ router.post("/import", async (req, res) => {
       let email = emailVal ? emailVal.trim() : null;
       if (email && !isValidEmail(email)) email = null;
 
-      let existing = null;
-      if (email) existing = await prisma.client.findFirst({ where: { email, businessId } });
-      if (!existing && phone) existing = await prisma.client.findFirst({ where: { phone, businessId } });
-      if (!existing) existing = await prisma.client.findFirst({ where: { firstName, lastName, businessId } });
-      if (existing) return existing;
+      if (email && clientCache.byEmail.has(email)) return clientCache.byEmail.get(email);
+      if (phone && clientCache.byPhone.has(phone)) return clientCache.byPhone.get(phone);
+      const nameKey = `${firstName} ${lastName}`.trim();
+      if (clientCache.byName.has(nameKey)) return clientCache.byName.get(nameKey);
 
-      return await prisma.client.create({
+      const newClient = await prisma.client.create({
         data: { firstName, lastName, phone, email, businessId }
       });
+      if (email) clientCache.byEmail.set(email, newClient);
+      if (phone) clientCache.byPhone.set(phone, newClient);
+      clientCache.byName.set(nameKey, newClient);
+      return newClient;
     };
 
     const getOrCreateService = async (serviceName, priceVal) => {
       if (!serviceName) return null;
       const name = serviceName.trim();
-      let existing = await prisma.service.findFirst({ where: { name, businessId } });
-      if (existing) return existing;
+      if (serviceCache.has(name)) return serviceCache.get(name);
 
       let priceStr = priceVal ? String(priceVal).replace(/[^0-9]/g, "") : "";
       let price = parseInt(priceStr, 10) || 12000;
 
-      return await prisma.service.create({
+      const newService = await prisma.service.create({
         data: { name, price, duration: 60, businessId }
       });
+      serviceCache.set(name, newService);
+      return newService;
     };
 
     const getOrCreateWorker = async (workerName, serviceId) => {
@@ -529,9 +564,10 @@ router.post("/import", async (req, res) => {
         firstName = parts[0];
         lastName = parts.slice(1).join(" ");
       }
+      const nameKey = `${firstName} ${lastName}`.trim();
 
-      let existing = await prisma.worker.findFirst({ where: { firstName, lastName, businessId } });
-      if (existing) {
+      if (workerCache.has(nameKey)) {
+        const existing = workerCache.get(nameKey);
         if (serviceId) {
           const relation = await prisma.workerService.findUnique({
             where: { workerId_serviceId: { workerId: existing.id, serviceId } }
@@ -553,228 +589,231 @@ router.post("/import", async (req, res) => {
         }
       });
       if (serviceId) await prisma.workerService.create({ data: { workerId: newWorker.id, serviceId } });
+      workerCache.set(nameKey, newWorker);
       return newWorker;
     };
 
-    for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
-      const chunk = rows.slice(i, i + CHUNK_SIZE);
+    // Procesamiento secuencial para aprovechar el caché en memoria
+    for (let idx = 0; idx < rows.length; idx++) {
+      const row = rows[idx];
+      const rowNum = idx + 2;
       
-      await Promise.all(chunk.map(async (row, chunkIndex) => {
-        const rowNum = i + chunkIndex + 2;
-        
-        try {
-          if (entityType === "clients") {
-            const nameVal = mapping.firstName && row[mapping.firstName] ? row[mapping.firstName] : "";
-            let firstName = nameVal ? nameVal.trim() : "Cliente";
-            let lastName = nameVal ? "" : "Anónimo";
-            if (nameVal) {
-              if (mapping.lastName && row[mapping.lastName]) {
-                lastName = row[mapping.lastName].trim();
-              } else {
-                const parts = nameVal.trim().split(/\s+/);
-                if (parts.length > 1) {
-                  firstName = parts[0];
-                  lastName = parts.slice(1).join(" ");
-                }
-              }
-            }
-
-            let phone = cleanPhone(mapping.phone && row[mapping.phone] ? row[mapping.phone].trim() : null);
-            let emailRaw = mapping.email && row[mapping.email] ? row[mapping.email].trim() : null;
-            let email = null;
-            let invalidEmailNote = null;
-            
-            if (emailRaw) {
-              if (isValidEmail(emailRaw)) {
-                email = emailRaw;
-              } else {
-                invalidEmailNote = `Email inválido en origen: ${emailRaw}`;
-              }
-            }
-
-            let notes = mapping.notes && row[mapping.notes] ? row[mapping.notes].trim() : null;
-
-            const standardKeys = ["firstName", "lastName", "phone", "email", "notes"];
-            const customKeys = Object.keys(mapping).filter(k => !standardKeys.includes(k));
-            const customValues = [];
-            for (const key of customKeys) {
-              const colName = mapping[key];
-              if (colName && row[colName] !== undefined && row[colName] !== null) {
-                const val = String(row[colName]).trim();
-                if (val) customValues.push(`${key}: ${val}`);
-              }
-            }
-            if (invalidEmailNote) customValues.push(invalidEmailNote);
-            
-            let finalNotes = notes;
-            if (customValues.length > 0) {
-              finalNotes = (finalNotes ? finalNotes + "\n" : "") + customValues.join("\n");
-            }
-
-            let existing = null;
-            if (email) existing = await prisma.client.findFirst({ where: { email, businessId } });
-            if (!existing && phone) existing = await prisma.client.findFirst({ where: { phone, businessId } });
-            if (!existing) existing = await prisma.client.findFirst({ where: { firstName, lastName, businessId } });
-
-            if (existing) {
-              reusedCount++;
-              if (finalNotes && !existing.notes?.includes(finalNotes)) {
-                await prisma.client.update({
-                  where: { id: existing.id },
-                  data: { notes: (existing.notes ? existing.notes + "\n" : "") + finalNotes }
-                });
-              }
+      try {
+        if (entityType === "clients") {
+          const nameVal = mapping.firstName && row[mapping.firstName] ? row[mapping.firstName] : "";
+          let firstName = nameVal ? nameVal.trim() : "Cliente";
+          let lastName = nameVal ? "" : "Anónimo";
+          if (nameVal) {
+            if (mapping.lastName && row[mapping.lastName]) {
+              lastName = row[mapping.lastName].trim();
             } else {
-              await prisma.client.create({
-                data: { firstName, lastName, phone, email, notes: finalNotes, businessId }
-              });
-              createdCount++;
+              const parts = nameVal.trim().split(/\s+/);
+              if (parts.length > 1) {
+                firstName = parts[0];
+                lastName = parts.slice(1).join(" ");
+              }
             }
-          } 
-          else if (entityType === "services") {
-            const nameVal = mapping.name && row[mapping.name] ? row[mapping.name] : "";
-            const name = nameVal ? nameVal.trim() : "Servicio Importado";
+          }
 
-            let priceStr = mapping.price ? String(row[mapping.price]).replace(/[^0-9]/g, "") : "";
-            let price = parseInt(priceStr, 10) || 0;
-            let durationStr = mapping.duration ? String(row[mapping.duration]).replace(/[^0-9]/g, "") : "";
-            let duration = parseInt(durationStr, 10) || 60;
-
-            let existing = await prisma.service.findFirst({ where: { name: name.trim(), businessId } });
-            if (existing) {
-              reusedCount++;
+          let phone = cleanPhone(mapping.phone && row[mapping.phone] ? row[mapping.phone].trim() : null);
+          let emailRaw = mapping.email && row[mapping.email] ? row[mapping.email].trim() : null;
+          let email = null;
+          let invalidEmailNote = null;
+          
+          if (emailRaw) {
+            if (isValidEmail(emailRaw)) {
+              email = emailRaw;
             } else {
-              const standardKeys = ["name", "price", "duration"];
-              const customKeys = Object.keys(mapping).filter(k => !standardKeys.includes(k));
-              const customValues = [];
-              for (const key of customKeys) {
-                const colName = mapping[key];
-                if (colName && row[colName] !== undefined && row[colName] !== null) {
-                  const val = String(row[colName]).trim();
-                  if (val) customValues.push(`${key}: ${val}`);
-                }
-              }
-              let description = customValues.length > 0 ? customValues.join("\n") : null;
+              invalidEmailNote = `Email inválido en origen: ${emailRaw}`;
+            }
+          }
 
-              await prisma.service.create({
-                data: { name: name.trim(), price, duration, description, businessId, isActive: true, availableOnline: true }
+          let notes = mapping.notes && row[mapping.notes] ? row[mapping.notes].trim() : null;
+
+          const standardKeys = ["firstName", "lastName", "phone", "email", "notes"];
+          const customKeys = Object.keys(mapping).filter(k => !standardKeys.includes(k));
+          const customValues = [];
+          for (const key of customKeys) {
+            const colName = mapping[key];
+            if (colName && row[colName] !== undefined && row[colName] !== null) {
+              const val = String(row[colName]).trim();
+              if (val) customValues.push(`${key}: ${val}`);
+            }
+          }
+          if (invalidEmailNote) customValues.push(invalidEmailNote);
+          
+          let finalNotes = notes;
+          if (customValues.length > 0) {
+            finalNotes = (finalNotes ? finalNotes + "\n" : "") + customValues.join("\n");
+          }
+
+          let existing = null;
+          if (email && clientCache.byEmail.has(email)) existing = clientCache.byEmail.get(email);
+          if (!existing && phone && clientCache.byPhone.has(phone)) existing = clientCache.byPhone.get(phone);
+          const nameKey = `${firstName} ${lastName}`.trim();
+          if (!existing && clientCache.byName.has(nameKey)) existing = clientCache.byName.get(nameKey);
+
+          if (existing) {
+            reusedCount++;
+            if (finalNotes && !existing.notes?.includes(finalNotes)) {
+              await prisma.client.update({
+                where: { id: existing.id },
+                data: { notes: (existing.notes ? existing.notes + "\n" : "") + finalNotes }
               });
-              createdCount++;
+              existing.notes = (existing.notes ? existing.notes + "\n" : "") + finalNotes; // Update cache
             }
-          } 
-          else if (entityType === "workers") {
-            const nameVal = mapping.firstName && row[mapping.firstName] ? row[mapping.firstName] : "";
-            let firstName = nameVal ? nameVal.trim() : "Profesional";
-            let lastName = nameVal ? "" : "Importado";
-            if (nameVal) {
-              if (mapping.lastName && row[mapping.lastName]) {
-                lastName = row[mapping.lastName].trim();
-              } else {
-                const parts = nameVal.trim().split(/\s+/);
-                if (parts.length > 1) {
-                  firstName = parts[0];
-                  lastName = parts.slice(1).join(" ");
-                }
-              }
-            }
-
-            let emailRaw = mapping.email && row[mapping.email] ? row[mapping.email].trim() : null;
-            let email = isValidEmail(emailRaw) ? emailRaw : `${firstName.toLowerCase()}.${Date.now()}@salonaura.com`;
-            let phone = cleanPhone(mapping.phone && row[mapping.phone] ? row[mapping.phone].trim() : null);
-            const roleTitle = mapping.roleTitle && row[mapping.roleTitle] ? row[mapping.roleTitle].trim() : null;
-
-            let existing = await prisma.worker.findFirst({ where: { firstName, lastName, businessId } });
-            if (existing) {
-              reusedCount++;
-            } else {
-              const defaultSchedules = [1,2,3,4,5].map(dayOfWeek => ({ dayOfWeek, startTime: "09:00", endTime: "19:00" }));
-              const standardKeys = ["firstName", "lastName", "email", "phone", "roleTitle"];
-              const customKeys = Object.keys(mapping).filter(k => !standardKeys.includes(k));
-              const customFields = {};
-              for (const key of customKeys) {
-                const colName = mapping[key];
-                if (colName && row[colName] !== undefined && row[colName] !== null) {
-                  const val = String(row[colName]).trim();
-                  if (val) customFields[key] = val;
-                }
-              }
-
-              await prisma.worker.create({
-                data: {
-                  firstName, lastName, email, phone, roleTitle: roleTitle || "Profesional",
-                  customFields, businessId, branchId, schedules: { create: defaultSchedules }
-                }
-              });
-              createdCount++;
-            }
-          } 
-          else if (entityType === "appointments") {
-            const clientName = mapping.clientName && row[mapping.clientName] ? row[mapping.clientName] : "Cliente Anónimo";
-            const serviceName = mapping.serviceName && row[mapping.serviceName] ? row[mapping.serviceName] : "Servicio General";
-            const workerName = mapping.workerName && row[mapping.workerName] ? row[mapping.workerName] : "Profesional Asignado";
-            let dateVal = mapping.startsAt && row[mapping.startsAt] ? row[mapping.startsAt] : null;
-            if (!dateVal) {
-              dateVal = new Date().toISOString();
-            }
-
-            const phoneVal = mapping.phone ? row[mapping.phone] : null;
-            const emailVal = mapping.email ? row[mapping.email] : null;
-            const priceVal = mapping.price ? row[mapping.price] : null;
-            const timeVal = mapping.time ? row[mapping.time] : null;
-            const notesVal = mapping.notes ? row[mapping.notes] : null;
-            const statusVal = mapping.status ? row[mapping.status] : null;
-
-            const client = await getOrCreateClient(clientName, phoneVal, emailVal);
-            const service = await getOrCreateService(serviceName, priceVal);
-            const worker = await getOrCreateWorker(workerName, service?.id);
-            const startsAt = parseDateTime(dateVal, timeVal);
-
-            if (!client || !service || !worker || !startsAt) {
-              failedCount++;
-              skippedDetails.push({ row: rowNum, motive: "No se pudo vincular cliente, servicio, profesional o fecha inválida" });
-              return;
-            }
-
-            const existingAppt = await prisma.appointment.findFirst({
-              where: { clientId: client.id, startsAt, businessId }
+          } else {
+            const newClient = await prisma.client.create({
+              data: { firstName, lastName, phone, email, notes: finalNotes, businessId }
             });
-
-            if (existingAppt) {
-              reusedCount++;
-              return;
-            }
-
-            let defaultStatus = "CONFIRMED";
-            if (startsAt < new Date()) defaultStatus = "DONE";
-            const finalStatus = statusVal ? statusVal.trim().toUpperCase() : defaultStatus;
-
-            const standardKeys = ["clientName", "phone", "email", "serviceName", "workerName", "startsAt", "time", "price", "status", "notes"];
-            const customKeys = Object.keys(mapping).filter(k => !standardKeys.includes(k));
-            const customValues = [];
-            for (const key of customKeys) {
-              const colName = mapping[key];
-              if (colName && row[colName] !== undefined && row[colName] !== null) {
-                const val = String(row[colName]).trim();
-                if (val) customValues.push(`${key}: ${val}`);
-              }
-            }
-            let finalNotes = notesVal || "Importado históricamente";
-            if (customValues.length > 0) finalNotes = (finalNotes ? finalNotes + "\n" : "") + customValues.join("\n");
-
-            await prisma.appointment.create({
-              data: {
-                clientId: client.id, serviceId: service.id, workerId: worker.id,
-                startsAt, notes: finalNotes, status: finalStatus, businessId, branchId
-              }
-            });
+            if (email) clientCache.byEmail.set(email, newClient);
+            if (phone) clientCache.byPhone.set(phone, newClient);
+            clientCache.byName.set(nameKey, newClient);
             createdCount++;
           }
-        } catch (e) {
-          console.error(`Error importando fila ${rowNum}:`, e);
-          failedCount++;
-          skippedDetails.push({ row: rowNum, motive: e.message || "Error interno de base de datos" });
+        } 
+        else if (entityType === "services") {
+          const nameVal = mapping.name && row[mapping.name] ? row[mapping.name] : "";
+          const name = nameVal ? nameVal.trim() : "Servicio Importado";
+
+          let priceStr = mapping.price ? String(row[mapping.price]).replace(/[^0-9]/g, "") : "";
+          let price = parseInt(priceStr, 10) || 0;
+          let durationStr = mapping.duration ? String(row[mapping.duration]).replace(/[^0-9]/g, "") : "";
+          let duration = parseInt(durationStr, 10) || 60;
+
+          if (serviceCache.has(name.trim())) {
+            reusedCount++;
+          } else {
+            const standardKeys = ["name", "price", "duration"];
+            const customKeys = Object.keys(mapping).filter(k => !standardKeys.includes(k));
+            const customValues = [];
+            for (const key of customKeys) {
+              const colName = mapping[key];
+              if (colName && row[colName] !== undefined && row[colName] !== null) {
+                const val = String(row[colName]).trim();
+                if (val) customValues.push(`${key}: ${val}`);
+              }
+            }
+            let description = customValues.length > 0 ? customValues.join("\n") : null;
+
+            const newSvc = await prisma.service.create({
+              data: { name: name.trim(), price, duration, description, businessId, isActive: true, availableOnline: true }
+            });
+            serviceCache.set(name.trim(), newSvc);
+            createdCount++;
+          }
+        } 
+        else if (entityType === "workers") {
+          const nameVal = mapping.firstName && row[mapping.firstName] ? row[mapping.firstName] : "";
+          let firstName = nameVal ? nameVal.trim() : "Profesional";
+          let lastName = nameVal ? "" : "Importado";
+          if (nameVal) {
+            if (mapping.lastName && row[mapping.lastName]) {
+              lastName = row[mapping.lastName].trim();
+            } else {
+              const parts = nameVal.trim().split(/\s+/);
+              if (parts.length > 1) {
+                firstName = parts[0];
+                lastName = parts.slice(1).join(" ");
+              }
+            }
+          }
+
+          let emailRaw = mapping.email && row[mapping.email] ? row[mapping.email].trim() : null;
+          let email = isValidEmail(emailRaw) ? emailRaw : `${firstName.toLowerCase()}.${Date.now()}@salonaura.com`;
+          let phone = cleanPhone(mapping.phone && row[mapping.phone] ? row[mapping.phone].trim() : null);
+          const roleTitle = mapping.roleTitle && row[mapping.roleTitle] ? row[mapping.roleTitle].trim() : null;
+
+          const nameKey = `${firstName} ${lastName}`.trim();
+          if (workerCache.has(nameKey)) {
+            reusedCount++;
+          } else {
+            const defaultSchedules = [1,2,3,4,5].map(dayOfWeek => ({ dayOfWeek, startTime: "09:00", endTime: "19:00" }));
+            const standardKeys = ["firstName", "lastName", "email", "phone", "roleTitle"];
+            const customKeys = Object.keys(mapping).filter(k => !standardKeys.includes(k));
+            const customFields = {};
+            for (const key of customKeys) {
+              const colName = mapping[key];
+              if (colName && row[colName] !== undefined && row[colName] !== null) {
+                const val = String(row[colName]).trim();
+                if (val) customFields[key] = val;
+              }
+            }
+
+            const newWorker = await prisma.worker.create({
+              data: {
+                firstName, lastName, email, phone, roleTitle: roleTitle || "Profesional",
+                customFields, businessId, branchId, schedules: { create: defaultSchedules }
+              }
+            });
+            workerCache.set(nameKey, newWorker);
+            createdCount++;
+          }
+        } 
+        else if (entityType === "appointments") {
+          const clientName = mapping.clientName && row[mapping.clientName] ? row[mapping.clientName] : "Cliente Anónimo";
+          const serviceName = mapping.serviceName && row[mapping.serviceName] ? row[mapping.serviceName] : "Servicio General";
+          const workerName = mapping.workerName && row[mapping.workerName] ? row[mapping.workerName] : "Profesional Asignado";
+          let dateVal = mapping.startsAt && row[mapping.startsAt] ? row[mapping.startsAt] : null;
+          if (!dateVal) {
+            dateVal = new Date().toISOString();
+          }
+
+          const phoneVal = mapping.phone ? row[mapping.phone] : null;
+          const emailVal = mapping.email ? row[mapping.email] : null;
+          const priceVal = mapping.price ? row[mapping.price] : null;
+          const timeVal = mapping.time ? row[mapping.time] : null;
+          const notesVal = mapping.notes ? row[mapping.notes] : null;
+          const statusVal = mapping.status ? row[mapping.status] : null;
+
+          const client = await getOrCreateClient(clientName, phoneVal, emailVal);
+          const service = await getOrCreateService(serviceName, priceVal);
+          const worker = await getOrCreateWorker(workerName, service?.id);
+          const startsAt = parseDateTime(dateVal, timeVal);
+
+          if (!client || !service || !worker || !startsAt) {
+            failedCount++;
+            skippedDetails.push({ row: rowNum, motive: "No se pudo vincular cliente, servicio, profesional o fecha inválida" });
+            continue;
+          }
+
+          const apptKey = `${client.id}_${startsAt.getTime()}`;
+          if (appointmentCache.has(apptKey)) {
+            reusedCount++;
+            continue;
+          }
+
+          let defaultStatus = "CONFIRMED";
+          if (startsAt < new Date()) defaultStatus = "DONE";
+          const finalStatus = statusVal ? statusVal.trim().toUpperCase() : defaultStatus;
+
+          const standardKeys = ["clientName", "phone", "email", "serviceName", "workerName", "startsAt", "time", "price", "status", "notes"];
+          const customKeys = Object.keys(mapping).filter(k => !standardKeys.includes(k));
+          const customValues = [];
+          for (const key of customKeys) {
+            const colName = mapping[key];
+            if (colName && row[colName] !== undefined && row[colName] !== null) {
+              const val = String(row[colName]).trim();
+              if (val) customValues.push(`${key}: ${val}`);
+            }
+          }
+          let finalNotes = notesVal || "Importado históricamente";
+          if (customValues.length > 0) finalNotes = (finalNotes ? finalNotes + "\n" : "") + customValues.join("\n");
+
+          const newAppt = await prisma.appointment.create({
+            data: {
+              clientId: client.id, serviceId: service.id, workerId: worker.id,
+              startsAt, notes: finalNotes, status: finalStatus, businessId, branchId
+            }
+          });
+          appointmentCache.set(apptKey, newAppt);
+          createdCount++;
         }
-      }));
+      } catch (e) {
+        console.error(`Error importando fila ${rowNum}:`, e);
+        failedCount++;
+        skippedDetails.push({ row: rowNum, motive: e.message || "Error interno de base de datos" });
+      }
     }
 
     res.json({
