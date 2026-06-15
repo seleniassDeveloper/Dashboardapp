@@ -3,7 +3,7 @@ import { Container, Row, Col, Card, Form, Button, Table, ProgressBar, Alert, Bad
 import {
   FileSpreadsheet, Link2, Settings, ArrowRight, RefreshCw,
   CheckCircle2, AlertTriangle, Sparkles, HelpCircle, Download,
-  Database, Check, FileText, FileJson
+  Database, Check, FileText, FileJson, History
 } from "lucide-react";
 import { useTranslation, Trans } from "react-i18next";
 import api from "../lib/api.js";
@@ -91,9 +91,14 @@ export default function GoogleSheetsSyncView() {
     const fetchHistory = async () => {
       try {
         const res = await api.get("/google/import-history");
-        setImportHistory(res.data);
+        if (Array.isArray(res.data)) {
+          setImportHistory(res.data);
+        } else {
+          setImportHistory([]);
+        }
       } catch (e) {
         console.error("Error fetching history:", e);
+        setImportHistory([]);
       }
     };
     fetchHistory();
@@ -1071,7 +1076,7 @@ export default function GoogleSheetsSyncView() {
                               </tr>
                             </thead>
                             <tbody style={{ fontSize: "13px" }}>
-                              {importHistory.map(hist => (
+                              {(importHistory || []).map(hist => (
                                 <tr key={hist.id}>
                                   <td className="ps-3 fw-bold text-dark">{hist.name}</td>
                                   <td className="text-muted">{new Date(hist.createdAt).toLocaleString()}</td>
