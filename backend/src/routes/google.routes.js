@@ -751,25 +751,32 @@ router.post("/import", async (req, res) => {
           }
         } 
         else if (entityType === "appointments") {
-          const clientName = mapping.clientName && row[mapping.clientName] ? row[mapping.clientName] : "Cliente Anónimo";
-          const serviceName = mapping.serviceName && row[mapping.serviceName] ? row[mapping.serviceName] : "Servicio General";
-          const workerName = mapping.workerName && row[mapping.workerName] ? row[mapping.workerName] : "Profesional Asignado";
-          let dateVal = mapping.startsAt && row[mapping.startsAt] ? row[mapping.startsAt] : null;
-          if (!dateVal) {
-            dateVal = new Date().toISOString();
-          }
+          let clientName = mapping.clientName && row[mapping.clientName] ? String(row[mapping.clientName]).trim() : "";
+          if (!clientName) clientName = "Cliente Anónimo";
+
+          let serviceName = mapping.serviceName && row[mapping.serviceName] ? String(row[mapping.serviceName]).trim() : "";
+          if (!serviceName) serviceName = "Servicio General";
+
+          let workerName = mapping.workerName && row[mapping.workerName] ? String(row[mapping.workerName]).trim() : "";
+          if (!workerName) workerName = "Profesional Asignado";
+
+          let dateVal = mapping.startsAt && row[mapping.startsAt] ? String(row[mapping.startsAt]).trim() : "";
+          let timeVal = mapping.time && row[mapping.time] ? String(row[mapping.time]).trim() : "";
 
           const phoneVal = mapping.phone ? row[mapping.phone] : null;
           const emailVal = mapping.email ? row[mapping.email] : null;
           const priceVal = mapping.price ? row[mapping.price] : null;
-          const timeVal = mapping.time ? row[mapping.time] : null;
           const notesVal = mapping.notes ? row[mapping.notes] : null;
           const statusVal = mapping.status ? row[mapping.status] : null;
 
           const client = await getOrCreateClient(clientName, phoneVal, emailVal);
           const service = await getOrCreateService(serviceName, priceVal);
           const worker = await getOrCreateWorker(workerName, service?.id);
-          const startsAt = parseDateTime(dateVal, timeVal);
+          
+          let startsAt = dateVal ? parseDateTime(dateVal, timeVal) : null;
+          if (!startsAt) {
+            startsAt = new Date();
+          }
 
           if (!client || !service || !worker || !startsAt) {
             failedCount++;
