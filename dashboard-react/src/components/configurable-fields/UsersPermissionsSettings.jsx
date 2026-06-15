@@ -143,6 +143,7 @@ export default function UsersPermissionsSettings() {
   const [inviteStep, setInviteStep] = useState(1);
   const [activeTabColumn3, setActiveTabColumn3] = useState("members");
   const [selectedExistingUserToTransfer, setSelectedExistingUserToTransfer] = useState("");
+  const [activeRoleTab, setActiveRoleTab] = useState("permissions"); // "permissions" | "users"
 
   useEffect(() => {
     setInvitePermissions(DEFAULT_ROLE_PERMISSIONS[inviteRole] || []);
@@ -790,7 +791,7 @@ export default function UsersPermissionsSettings() {
         
         .three-column-grid {
           display: grid;
-          grid-template-columns: minmax(320px, 380px) 1fr minmax(300px, 360px);
+          grid-template-columns: minmax(320px, 380px) 1fr;
           gap: 24px;
           align-items: stretch;
         }
@@ -1255,10 +1256,47 @@ export default function UsersPermissionsSettings() {
           </div>
         </div>
 
-        {/* COLUMN 2: PERMISSIONS ACCORDION */}
-        <div className="editor-column-wrap">
+        {/* MASTER-DETAIL RIGHT PANEL */}
+        <div className="premium-card rounded-4 bg-white p-0 h-100 d-flex flex-column overflow-hidden" style={{ minHeight: "750px", border: "1px solid rgba(124, 58, 237, 0.15)", boxShadow: "0 10px 40px -10px rgba(124, 58, 237, 0.08)" }}>
           {selectedRoleForEdit ? (
-            <div className="premium-card rounded-4 bg-white p-4 h-100 d-flex flex-column">
+            <>
+              {/* TABS AT TOP */}
+              <div className="d-flex border-bottom px-4 pt-3 gap-4" style={{ fontSize: "14px", backgroundColor: "#fcfcff" }}>
+                <button
+                  type="button"
+                  onClick={() => setActiveRoleTab("permissions")}
+                  className="btn pb-3 px-2 rounded-0 border-0 text-start font-semibold d-flex align-items-center gap-2 transition-all hover-scale-subtle"
+                  style={{
+                    color: activeRoleTab === "permissions" ? "#7c3aed" : "#6b7280",
+                    borderBottom: activeRoleTab === "permissions" ? "3px solid #7c3aed" : "3px solid transparent",
+                    fontWeight: activeRoleTab === "permissions" ? "700" : "500",
+                    background: "none",
+                    boxShadow: "none"
+                  }}
+                >
+                  <Shield size={16} />
+                  Permisos del Rol
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveRoleTab("users")}
+                  className="btn pb-3 px-2 rounded-0 border-0 text-start font-semibold d-flex align-items-center gap-2 transition-all hover-scale-subtle"
+                  style={{
+                    color: activeRoleTab === "users" ? "#7c3aed" : "#6b7280",
+                    borderBottom: activeRoleTab === "users" ? "3px solid #7c3aed" : "3px solid transparent",
+                    fontWeight: activeRoleTab === "users" ? "700" : "500",
+                    background: "none",
+                    boxShadow: "none"
+                  }}
+                >
+                  <Users size={16} />
+                  Usuarios Asignados
+                </button>
+              </div>
+
+              {/* RENDER ACTIVE TAB */}
+              <div className="p-4 flex-grow-1 overflow-auto bg-white d-flex flex-column position-relative">
+                <div style={{ display: activeRoleTab === "permissions" ? "flex" : "none" }} className="flex-column h-100 animate-fade-in">
               <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-3 pb-2 border-bottom">
                 <div>
                   <h3 className="h6 fw-black text-dark mb-0 text-uppercase" style={{ letterSpacing: "0.03em" }}>Permisos del rol</h3>
@@ -1484,19 +1522,8 @@ export default function UsersPermissionsSettings() {
                 <span className="d-flex align-items-center gap-1.5"><span className="bullet-legend rounded-circle" style={{ width: "7px", height: "7px", backgroundColor: "#ef4444", display: "inline-block" }}></span> Sin acceso (0 - 29%)</span>
               </div>
             </div>
-          ) : (
-            <div className="premium-card rounded-4 bg-white p-5 text-center d-flex flex-column align-items-center justify-content-center h-100">
-              <ShieldQuestion size={48} className="text-muted mb-3" />
-              <div className="fw-bold text-dark">No se ha seleccionado ningún rol</div>
-              <p className="text-secondary smaller mt-1">Elegí un rol comercial de la columna izquierda para auditar o configurar sus permisos.</p>
-            </div>
-          )}
-        </div>
-
-        {/* COLUMN 3: USERS WITH THIS ROLE */}
-        <div className="resumen-column-wrap">
-          {selectedRoleForEdit ? (
-            <div className="premium-card rounded-4 bg-white p-4 h-100 d-flex flex-column">
+                </div>
+                <div style={{ display: activeRoleTab === "users" ? "flex" : "none" }} className="flex-column h-100 animate-fade-in">
               <div className="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
                 <div>
                   <h3 className="h6 fw-black text-dark mb-0 text-uppercase" style={{ letterSpacing: "0.03em" }}>
@@ -1733,11 +1760,14 @@ export default function UsersPermissionsSettings() {
                 )}
               </div>
             </div>
+                </div>
+              </div>
+            </>
           ) : (
-            <div className="premium-card rounded-4 bg-white p-5 text-center d-flex flex-column align-items-center justify-content-center h-100">
-              <Users size={48} className="text-muted mb-3" />
-              <div className="fw-bold text-dark">Sin rol activo</div>
-              <p className="text-secondary smaller mt-1">Elegí un rol comercial de la columna izquierda para ver su resumen de seguridad.</p>
+            <div className="p-5 text-center d-flex flex-column align-items-center justify-content-center h-100">
+              <ShieldQuestion size={56} className="text-muted mb-3" />
+              <div className="fw-black h4 text-dark mb-2">No se ha seleccionado ningún rol</div>
+              <p className="text-secondary mt-1" style={{ maxWidth: "400px" }}>Elegí un rol comercial de la columna izquierda para configurar sus permisos o ver los usuarios asignados.</p>
             </div>
           )}
         </div>
