@@ -841,118 +841,106 @@ export default function RolesPermissionsPage() {
 
           {/* TAB 2: STAFF ROLE ASSOCIATION */}
           {activeTab === "staff" && (
-            <Card className="card-premium border-0 shadow-sm p-4 bg-white">
-              <div className="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
+            <div className="d-flex flex-column gap-4 animate-fade-in">
+              <div className="d-flex justify-content-between align-items-center mb-2">
                 <div>
-                  <h2 className="fw-bold h5 mb-1 text-dark">{t("rolesPermissions.staff.title")}</h2>
-                  <span className="text-muted smaller">{t("rolesPermissions.staff.desc")}</span>
+                  <h2 className="fw-black h4 mb-2 text-dark">{t("rolesPermissions.staff.title")}</h2>
+                  <p className="text-secondary mb-0" style={{ fontSize: "15px" }}>{t("rolesPermissions.staff.desc")}</p>
                 </div>
                 <Button 
-                  variant="light"
-                  size="sm"
+                  variant="white"
                   onClick={fetchMembers}
-                  className="d-flex align-items-center gap-1.5 px-3 border"
+                  className="d-flex align-items-center gap-2 px-4 py-2.5 border rounded-pill shadow-sm hover-bg-light transition-all fw-bold text-dark"
                   disabled={membersLoading}
                 >
-                  <RefreshCw size={14} className={membersLoading ? "animate-spin" : ""} />
-                  {t("rolesPermissions.staff.refreshBtn", { defaultValue: "Actualizar Lista" })}
+                  <RefreshCw size={18} className={membersLoading ? "animate-spin" : "text-purple-600"} />
+                  {t("rolesPermissions.staff.refreshBtn", { defaultValue: "Actualizar" })}
                 </Button>
               </div>
 
               {membersError && (
-                <Alert variant="danger" className="rounded-3">{membersError}</Alert>
+                <Alert variant="danger" className="rounded-4 border-0 shadow-sm">{membersError}</Alert>
               )}
 
               {membersLoading ? (
-                <div className="text-center py-5">
+                <Card className="border-0 shadow-sm rounded-4 p-5 text-center bg-white">
                   <Spinner animation="border" variant="purple" />
-                  <p className="text-muted small mt-2">{t("rolesPermissions.staff.loading", { defaultValue: "Cargando colaboradores del negocio..." })}</p>
-                </div>
+                  <p className="text-muted fw-medium mt-3 mb-0">{t("rolesPermissions.staff.loading", { defaultValue: "Cargando colaboradores del negocio..." })}</p>
+                </Card>
+              ) : members.length === 0 ? (
+                <Card className="border-0 shadow-sm rounded-4 p-5 text-center bg-white">
+                  <div className="p-4 bg-light rounded-circle d-inline-flex mx-auto mb-3">
+                    <Users size={32} className="text-muted" />
+                  </div>
+                  <h3 className="h5 fw-bold text-dark">{t("rolesPermissions.staff.noStaff")}</h3>
+                </Card>
               ) : (
-                <div className="table-responsive rounded-3 border">
-                  <Table hover align="middle" className="mb-0">
-                    <thead className="bg-light">
-                      <tr>
-                        <th className="px-4 py-3 text-muted fw-bold small text-uppercase">{t("rolesPermissions.staff.table.name")}</th>
-                        <th className="py-3 text-muted fw-bold small text-uppercase">{t("rolesPermissions.staff.table.email")}</th>
-                        <th className="py-3 text-muted fw-bold small text-uppercase text-center">{t("rolesPermissions.staff.table.assignedRole")}</th>
-                        <th className="py-3 text-muted fw-bold small text-uppercase text-center">{t("rolesPermissions.staff.table.status", { defaultValue: "Estado" })}</th>
-                        <th className="px-4 py-3 text-muted fw-bold small text-uppercase text-center" style={{ width: "240px" }}>{t("rolesPermissions.staff.table.actions")}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {members.length === 0 ? (
-                        <tr>
-                          <td colSpan={5} className="text-center py-5 text-muted small">
-                            {t("rolesPermissions.staff.noStaff")}
-                          </td>
-                        </tr>
-                      ) : (
-                        members.map((member) => {
-                          const userProfile = member.user || {};
-                          const currentRoleKey = member.role || "viewer";
-                          const isSelf = member.userId === api.defaults.headers.common["x-user-id"] || false; // Simple check (usually handled securely on back)
-                          
-                          // Owners are protected from demotion/role change
-                          const isProtectedOwner = currentRoleKey === "owner";
+                <div className="d-flex flex-column gap-3">
+                  {members.map((member) => {
+                    const userProfile = member.user || {};
+                    const currentRoleKey = member.role || "viewer";
+                    const isProtectedOwner = currentRoleKey === "owner";
 
-                          return (
-                            <tr key={member.id}>
-                              <td className="px-4 py-3">
-                                <div className="d-flex align-items-center gap-3">
-                                  {userProfile.avatar ? (
-                                    <img 
-                                      src={userProfile.avatar} 
-                                      alt={userProfile.name || "Colaborador"} 
-                                      className="rounded-circle border"
-                                      style={{ width: "38px", height: "38px", objectFit: "cover" }}
-                                    />
-                                  ) : (
-                                    <div 
-                                      className="rounded-circle bg-purple-50 text-purple-600 d-flex align-items-center justify-content-center fw-bold"
-                                      style={{ width: "38px", height: "38px", fontSize: "14px" }}
-                                    >
-                                      {(userProfile.firstName || "U").charAt(0).toUpperCase()}
-                                    </div>
-                                  )}
-                                  <div>
-                                    <div className="fw-bold text-dark">
-                                      {userProfile.name || `${userProfile.firstName || ""} ${userProfile.lastName || ""}`.trim() || "Usuario SaaS"}
-                                    </div>
-                                    <span className="text-muted smaller d-block mt-0.5">ID: {member.id}</span>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="py-3 text-secondary small">
-                                {userProfile.email}
-                              </td>
-                              <td className="py-3 text-center">
-                                <Badge 
-                                  bg={isProtectedOwner ? "dark" : "purple"} 
-                                  className="px-3 py-1.5 rounded-pill text-white text-capitalize"
-                                  style={{ background: isProtectedOwner ? "#111827" : "#7c3aed" }}
+                    return (
+                      <Card key={member.id} className="border-0 shadow-sm rounded-4 overflow-hidden hover-lift transition-all bg-white" style={{ borderLeft: isProtectedOwner ? "4px solid #111827" : "4px solid #7c3aed" }}>
+                        <Card.Body className="p-4">
+                          <Row className="align-items-center g-4">
+                            <Col xs={12} md={5} className="d-flex align-items-center gap-3">
+                              {userProfile.avatar ? (
+                                <img 
+                                  src={userProfile.avatar} 
+                                  alt={userProfile.name || "Colaborador"} 
+                                  className="rounded-circle border border-2 border-light shadow-sm"
+                                  style={{ width: "64px", height: "64px", objectFit: "cover" }}
+                                />
+                              ) : (
+                                <div 
+                                  className="rounded-circle d-flex align-items-center justify-content-center shadow-sm fw-bold text-white"
+                                  style={{ width: "64px", height: "64px", fontSize: "22px", background: isProtectedOwner ? "linear-gradient(135deg, #374151 0%, #111827 100%)" : "linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)" }}
                                 >
-                                  {member.roleRel?.name || member.role || "Viewer"}
+                                  {(userProfile.firstName || "U").charAt(0).toUpperCase()}
+                                </div>
+                              )}
+                              <div>
+                                <h5 className="fw-black text-dark mb-1" style={{ fontSize: "1.1rem" }}>
+                                  {userProfile.name || `${userProfile.firstName || ""} ${userProfile.lastName || ""}`.trim() || "Usuario SaaS"}
+                                </h5>
+                                <div className="text-secondary small d-flex align-items-center gap-1">
+                                  {userProfile.email}
+                                </div>
+                              </div>
+                            </Col>
+                            
+                            <Col xs={12} md={2} className="d-flex flex-column align-items-start align-items-md-center">
+                              <span className="text-uppercase text-muted fw-bold mb-2" style={{ fontSize: "11px", letterSpacing: "1px" }}>
+                                {t("rolesPermissions.staff.table.status", { defaultValue: "Estado" })}
+                              </span>
+                              {member.status === "ACTIVE" ? (
+                                <Badge bg="success" className="bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-2 rounded-pill fw-bold" style={{ fontSize: "12px" }}>
+                                  <div className="d-flex align-items-center gap-2">
+                                    <div className="rounded-circle bg-success" style={{ width: "6px", height: "6px" }}></div>
+                                    {t("rolesPermissions.table.statusActive")}
+                                  </div>
                                 </Badge>
-                              </td>
-                              <td className="py-3 text-center">
-                                {member.status === "ACTIVE" ? (
-                                  <Badge bg="success-50" className="text-success border border-success px-3 py-1.5 rounded-pill">{t("rolesPermissions.table.statusActive")}</Badge>
-                                ) : member.status === "SUSPENDED" || member.status === "INACTIVE" || member.status === "INACTIVO" ? (
-                                  <Badge bg="danger-50" className="text-danger border border-danger px-3 py-1.5 rounded-pill">{t("rolesPermissions.table.statusInactive")}</Badge>
-                                ) : (
-                                  <Badge bg="warning-50" className="text-warning border border-warning px-3 py-1.5 rounded-pill">{member.status}</Badge>
-                                )}
-                              </td>
-                              <td className="px-4 py-3 text-center">
-                                <div className="d-flex align-items-center justify-content-center">
+                              ) : (
+                                <Badge bg="danger" className="bg-opacity-10 text-danger border border-danger border-opacity-25 px-3 py-2 rounded-pill fw-bold" style={{ fontSize: "12px" }}>
+                                  {t("rolesPermissions.table.statusInactive")}
+                                </Badge>
+                              )}
+                            </Col>
+
+                            <Col xs={12} md={5} className="d-flex flex-column align-items-start align-items-md-end">
+                               <span className="text-uppercase text-muted fw-bold mb-2" style={{ fontSize: "11px", letterSpacing: "1px" }}>
+                                {t("rolesPermissions.staff.table.assignedRole", { defaultValue: "Rol Asignado" })}
+                               </span>
+                               <div className="d-flex align-items-center gap-3 w-100 justify-content-md-end">
                                   <Form.Select
-                                    size="sm"
+                                    size="lg"
                                     value={currentRoleKey}
                                     disabled={updatingMemberId === member.id || isProtectedOwner || !hasPermission("members.manage")}
                                     onChange={(e) => handleRoleChange(member.id, e.target.value)}
-                                    className="rounded-3 bg-light border-0 py-1.5 px-3 font-semibold text-dark shadow-xs"
-                                    style={{ maxWidth: "200px", fontSize: "12.5px", cursor: isProtectedOwner ? "not-allowed" : "pointer" }}
+                                    className={`rounded-pill py-2 px-4 fw-bold shadow-sm ${isProtectedOwner ? 'bg-dark text-white border-dark' : 'bg-light text-dark border-0'}`}
+                                    style={{ maxWidth: "260px", fontSize: "14px", cursor: isProtectedOwner ? "not-allowed" : "pointer" }}
                                   >
                                     {roles.map((r) => (
                                       <option key={r.id} value={r.key} disabled={!r.isActive}>
@@ -961,19 +949,18 @@ export default function RolesPermissionsPage() {
                                     ))}
                                   </Form.Select>
                                   {updatingMemberId === member.id && (
-                                    <Spinner size="sm" animation="border" className="ms-2 text-purple-600" />
+                                    <Spinner size="sm" animation="border" className="text-purple-600" />
                                   )}
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })
-                      )}
-                    </tbody>
-                  </Table>
+                               </div>
+                            </Col>
+                          </Row>
+                        </Card.Body>
+                      </Card>
+                    );
+                  })}
                 </div>
               )}
-            </Card>
+            </div>
           )}
 
           {/* TAB 3: CREATE DYNAMIC CUSTOM PERMISSION */}

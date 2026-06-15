@@ -27,7 +27,7 @@ router.get("/", requirePermission("workflows.view"), async (req, res) => {
 });
 
 // GET /api/workflows/stats
-router.get("/stats/summary", requirePermission("workflows.view"), async (_req, res) => {
+router.get("/stats/summary", requirePermission("workflows.view"), async (req, res) => {
   try {
     const [totalRuns, activeCount, total] = await Promise.all([
       prisma.workflow.aggregate({ _sum: { runCount: true }, where: { businessId: req.businessId } }),
