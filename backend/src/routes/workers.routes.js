@@ -10,7 +10,7 @@ const workerInclude = {
 };
 
 // GET /api/workers
-router.get("/", async (_req, res) => {
+router.get("/", async (req, res) => {
   try {
     const workers = await prisma.worker.findMany({
       where: { businessId: req.businessId },
