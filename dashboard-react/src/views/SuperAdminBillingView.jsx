@@ -107,6 +107,27 @@ export default function SuperAdminBillingView() {
     }
   };
 
+  const handleDeleteRequest = async (id) => {
+    if (!window.confirm("¿Seguro que deseas eliminar esta solicitud de la lista?")) return;
+    try {
+      await api.delete(`/admin/billing/requests/${id}`);
+      await fetchAdminBillingData();
+    } catch (err) {
+      setError(err.response?.data?.error || "Error al eliminar la solicitud.");
+    }
+  };
+
+  const handleCleanProcessed = async () => {
+    if (!window.confirm("¿Seguro que deseas eliminar todas las solicitudes procesadas (Aprobadas o Rechazadas)?")) return;
+    try {
+      const res = await api.delete(`/admin/billing/requests/processed`);
+      alert(res.data.message || "Solicitudes procesadas eliminadas.");
+      await fetchAdminBillingData();
+    } catch (err) {
+      setError(err.response?.data?.error || "Error al limpiar solicitudes.");
+    }
+  };
+
   const handleApproveUser = async (uid) => {
     try {
       await api.post(`/admin/users/${uid}/approve`);
@@ -206,9 +227,19 @@ export default function SuperAdminBillingView() {
       {requests.length > 0 && (
         <Card className="border-0 shadow-sm rounded-4 mb-4 border-warning" style={{ background: "#fff", borderLeft: "4px solid #f59e0b" }}>
           <Card.Body className="p-4">
-            <div className="d-flex align-items-center gap-2 mb-3">
-              <AlertCircle className="text-warning" size={20} />
-              <h2 className="fw-bold h6 mb-0 text-dark">Solicitudes de Acceso Pendientes ({requests.length})</h2>
+            <div className="d-flex align-items-center justify-content-between mb-3">
+              <div className="d-flex align-items-center gap-2">
+                <AlertCircle className="text-warning" size={20} />
+                <h2 className="fw-bold h6 mb-0 text-dark">Solicitudes de Acceso Pendientes ({requests.length})</h2>
+              </div>
+              <Button 
+                variant="outline-secondary" 
+                size="sm" 
+                className="rounded-pill px-3"
+                onClick={handleCleanProcessed}
+              >
+                Limpiar procesadas
+              </Button>
             </div>
             
             <Table responsive className="mb-0">
@@ -245,6 +276,15 @@ export default function SuperAdminBillingView() {
                           onClick={() => handleApproveRequest(r.id)}
                         >
                           Aprobar Acceso
+                        </Button>
+                        <Button 
+                          variant="outline-secondary" 
+                          size="sm" 
+                          className="rounded-circle p-1"
+                          onClick={() => handleDeleteRequest(r.id)}
+                          title="Eliminar solicitud"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                         </Button>
                       </div>
                     </td>

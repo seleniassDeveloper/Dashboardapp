@@ -180,4 +180,33 @@ router.post("/requests/:id/reject", async (req, res) => {
   }
 });
 
+// DELETE processed requests
+router.delete("/requests/processed", async (req, res) => {
+  try {
+    const result = await prisma.planRequest.deleteMany({
+      where: {
+        status: {
+          in: ["APPROVED", "REJECTED"]
+        }
+      }
+    });
+    return res.json({ success: true, message: `Se eliminaron ${result.count} solicitudes procesadas.` });
+  } catch (error) {
+    console.error("Error deleting processed plan requests:", error);
+    return res.status(500).json({ success: false, error: "No se pudieron limpiar las solicitudes." });
+  }
+});
+
+// DELETE single request
+router.delete("/requests/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    await prisma.planRequest.delete({ where: { id } });
+    return res.json({ success: true, message: "Solicitud eliminada con éxito." });
+  } catch (error) {
+    console.error("Error deleting plan request:", error);
+    return res.status(500).json({ success: false, error: "No se pudo eliminar la solicitud." });
+  }
+});
+
 export default router;

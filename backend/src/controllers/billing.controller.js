@@ -82,6 +82,20 @@ export async function checkout(req, res) {
     if (planCode === "pro" || planCode === "business") {
       let approvalToken;
       try {
+        const existingReq = await prisma.planRequest.findFirst({
+          where: { businessId, requestedPlan: planCode, status: "PENDING" }
+        });
+
+        if (existingReq) {
+          approvalToken = existingReq.approvalToken;
+          // No enviar correo repetido si ya existe, solo avisar al usuario.
+          return res.status(200).json({
+            success: true,
+            isRequest: true,
+            message: "Ya tienes una solicitud pendiente para este plan. Nos pondremos en contacto pronto."
+          });
+        }
+
         approvalToken = crypto.randomBytes(32).toString("hex");
         // Guardar solicitud en la DB
         await prisma.planRequest.create({
@@ -112,8 +126,9 @@ export async function checkout(req, res) {
               <p style="font-size: 12px; color: #888;">También puedes gestionarlo desde el panel SaaS Admin dentro del Dashboard.</p>
             </div>
           `;
+      const adminEmail = process.env.ADMIN_EMAIL || "seleniadeveloper@gmail.com";
       sendReminderEmail({
-        to: "auradash.digital@gmail.com",
+        to: adminEmail,
         subject: `🚀 Solicitud de Acceso a Módulo ${planCode.toUpperCase()}`,
         html: emailHtml,
       })
