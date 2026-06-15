@@ -82,6 +82,7 @@ export default function GoogleSheetsSyncView() {
   const [activeSheetId, setActiveSheetId] = useState(null); // Which sheet's column mapping is currently open
   const [newFieldName, setNewFieldName] = useState("");
   const [importHistory, setImportHistory] = useState([]);
+  const [selectedHistory, setSelectedHistory] = useState(null);
   const [importName, setImportName] = useState("");
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showNewFieldForm, setShowNewFieldForm] = useState(false);
@@ -1077,7 +1078,7 @@ export default function GoogleSheetsSyncView() {
                             </thead>
                             <tbody style={{ fontSize: "13px" }}>
                               {(importHistory || []).map(hist => (
-                                <tr key={hist.id}>
+                                <tr key={hist.id} onClick={() => setSelectedHistory(hist)} className="cursor-pointer hover-bg-gray-50 transition-all" title="Ver detalles de la importación">
                                   <td className="ps-3 fw-bold text-dark">{hist.name}</td>
                                   <td className="text-muted">{new Date(hist.createdAt).toLocaleString()}</td>
                                   <td>
@@ -1699,6 +1700,95 @@ export default function GoogleSheetsSyncView() {
           </Button>
         </Modal.Footer>
       </Modal>
+
+      {/* MODAL DETALLES DE HISTORIAL */}
+      <Modal show={!!selectedHistory} onHide={() => setSelectedHistory(null)} centered size="lg">
+        <Modal.Header closeButton className="border-0 pb-0">
+          <Modal.Title className="fw-black h5 d-flex align-items-center gap-2">
+            <History className="text-primary" size={20} />
+            {selectedHistory?.name || "Detalle de Importación"}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="pt-3">
+          {selectedHistory?.details && (
+            <>
+              <div className="d-flex align-items-center justify-content-between mb-3 border-bottom pb-3">
+                <span className="text-muted small">Fecha: {new Date(selectedHistory.createdAt).toLocaleString()}</span>
+                <Badge bg={selectedHistory.status === "COMPLETED" ? "success" : "warning"} className="px-3 py-1 rounded-pill">
+                  {selectedHistory.status}
+                </Badge>
+              </div>
+
+              <Row className="g-3 mb-4 text-center">
+                <Col xs={4}>
+                  <div className="p-3 bg-light rounded-3 border">
+                    <div className="h4 fw-black text-success m-0">{selectedHistory.details.created || 0}</div>
+                    <div className="text-muted smaller">Registros Creados</div>
+                  </div>
+                </Col>
+                <Col xs={4}>
+                  <div className="p-3 bg-light rounded-3 border">
+                    <div className="h4 fw-black text-primary m-0">{selectedHistory.details.reused || 0}</div>
+                    <div className="text-muted smaller">Reutilizados / Actualizados</div>
+                  </div>
+                </Col>
+                <Col xs={4}>
+                  <div className="p-3 bg-light rounded-3 border">
+                    <div className="h4 fw-black text-danger m-0">{selectedHistory.details.failed || 0}</div>
+                    <div className="text-muted smaller">Filas Omitidas</div>
+                  </div>
+                </Col>
+              </Row>
+
+              {selectedHistory.details.skippedDetails && selectedHistory.details.skippedDetails.length > 0 && (
+                <div className="mt-4">
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <h5 className="fw-bold text-danger h6 mb-0">Detalle de filas omitidas</h5>
+                    <Button 
+                      variant="outline-danger" 
+                      size="sm" 
+                      className="rounded-pill px-3 py-1 d-flex align-items-center gap-1"
+                      onClick={() => {
+                        const data = [["Fila Original", "Motivo del Error"], ...selectedHistory.details.skippedDetails.map(d => [d.row, d.motive])];
+                        const ws = XLSX.utils.aoa_to_sheet(data);
+                        const wb = XLSX.utils.book_new();
+                        XLSX.utils.book_append_sheet(wb, ws, "Errores");
+                        XLSX.writeFile(wb, `errores_${selectedHistory.name}.xlsx`);
+                      }}
+                    >
+                      <Download size={12} /> Descargar Errores
+                    </Button>
+                  </div>
+                  <div className="table-responsive border rounded-3" style={{ maxHeight: "250px" }}>
+                    <Table hover size="sm" className="mb-0">
+                      <thead className="bg-light sticky-top">
+                        <tr>
+                          <th>Fila</th>
+                          <th>Motivo</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedHistory.details.skippedDetails.map((skipped, idx) => (
+                          <tr key={idx}>
+                            <td className="text-muted">#{skipped.row}</td>
+                            <td className="text-danger small">{skipped.motive}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </Table>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer className="border-0">
+          <Button variant="light" onClick={() => setSelectedHistory(null)} className="rounded-pill px-4">
+            Cerrar
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
     </Container>
   );
 }
