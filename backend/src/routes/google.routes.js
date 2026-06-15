@@ -474,404 +474,307 @@ router.post("/import", async (req, res) => {
     let createdCount = 0;
     let reusedCount = 0;
     let failedCount = 0;
+    const skippedDetails = [];
 
-    if (entityType === "clients") {
-      for (const row of rows) {
-        try {
-          const nameVal = row[mapping.firstName];
-          if (!nameVal) {
-            failedCount++;
-            continue;
-          }
+    const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    const cleanPhone = (phone) => phone ? phone.replace(/[^0-9+]/g, '') : null;
 
-          let firstName = nameVal.trim();
-          let lastName = "";
-          if (mapping.lastName && row[mapping.lastName]) {
-            lastName = row[mapping.lastName].trim();
-          } else {
-            const parts = nameVal.trim().split(/\s+/);
-            if (parts.length > 1) {
-              firstName = parts[0];
-              lastName = parts.slice(1).join(" ");
-            }
-          }
-
-          const phone = mapping.phone && row[mapping.phone] ? row[mapping.phone].trim() : null;
-          const email = mapping.email && row[mapping.email] ? row[mapping.email].trim() : null;
-          const notes = mapping.notes && row[mapping.notes] ? row[mapping.notes].trim() : null;
-
-          const standardKeys = ["firstName", "lastName", "phone", "email", "notes"];
-          const customKeys = Object.keys(mapping).filter(k => !standardKeys.includes(k));
-          const customValues = [];
-          for (const key of customKeys) {
-            const colName = mapping[key];
-            if (colName && row[colName] !== undefined && row[colName] !== null) {
-              const val = String(row[colName]).trim();
-              if (val) {
-                customValues.push(`${key}: ${val}`);
-              }
-            }
-          }
-          let finalNotes = notes;
-          if (customValues.length > 0) {
-            finalNotes = (finalNotes ? finalNotes + "\n" : "") + customValues.join("\n");
-          }
-
-          let existing = null;
-          if (email) {
-            existing = await prisma.client.findFirst({ where: { email, businessId } });
-          }
-          if (!existing && phone) {
-            existing = await prisma.client.findFirst({ where: { phone, businessId } });
-          }
-
-          if (existing) {
-            reusedCount++;
-          } else {
-            await prisma.client.create({
-              data: {
-                firstName,
-                lastName,
-                phone,
-                email,
-                notes: finalNotes,
-                businessId
-              }
-            });
-            createdCount++;
-          }
-        } catch (e) {
-          console.error("Error importando fila cliente:", e);
-          failedCount++;
-        }
+    const CHUNK_SIZE = 50;
+    
+    const getOrCreateClient = async (nameVal, phoneVal, emailVal) => {
+      if (!nameVal) return null;
+      let firstName = nameVal.trim();
+      let lastName = "";
+      const parts = nameVal.trim().split(/\s+/);
+      if (parts.length > 1) {
+        firstName = parts[0];
+        lastName = parts.slice(1).join(" ");
       }
-    } else if (entityType === "services") {
-      for (const row of rows) {
-        try {
-          const name = row[mapping.name];
-          if (!name) {
-            failedCount++;
-            continue;
+      const phone = cleanPhone(phoneVal);
+      let email = emailVal ? emailVal.trim() : null;
+      if (email && !isValidEmail(email)) email = null;
+
+      let existing = null;
+      if (email) existing = await prisma.client.findFirst({ where: { email, businessId } });
+      if (!existing && phone) existing = await prisma.client.findFirst({ where: { phone, businessId } });
+      if (!existing) existing = await prisma.client.findFirst({ where: { firstName, lastName, businessId } });
+      if (existing) return existing;
+
+      return await prisma.client.create({
+        data: { firstName, lastName, phone, email, businessId }
+      });
+    };
+
+    const getOrCreateService = async (serviceName, priceVal) => {
+      if (!serviceName) return null;
+      const name = serviceName.trim();
+      let existing = await prisma.service.findFirst({ where: { name, businessId } });
+      if (existing) return existing;
+
+      let priceStr = priceVal ? String(priceVal).replace(/[^0-9]/g, "") : "";
+      let price = parseInt(priceStr, 10) || 12000;
+
+      return await prisma.service.create({
+        data: { name, price, duration: 60, businessId }
+      });
+    };
+
+    const getOrCreateWorker = async (workerName, serviceId) => {
+      if (!workerName) return null;
+      const nameVal = workerName.trim();
+      let firstName = nameVal;
+      let lastName = "";
+      const parts = nameVal.split(/\s+/);
+      if (parts.length > 1) {
+        firstName = parts[0];
+        lastName = parts.slice(1).join(" ");
+      }
+
+      let existing = await prisma.worker.findFirst({ where: { firstName, lastName, businessId } });
+      if (existing) {
+        if (serviceId) {
+          const relation = await prisma.workerService.findUnique({
+            where: { workerId_serviceId: { workerId: existing.id, serviceId } }
+          });
+          if (!relation) {
+            await prisma.workerService.create({ data: { workerId: existing.id, serviceId } });
           }
+        }
+        return existing;
+      }
 
-          let priceStr = mapping.price ? String(row[mapping.price]).replace(/[^0-9]/g, "") : "";
-          let price = parseInt(priceStr, 10) || 0;
+      const defaultSchedules = [1,2,3,4,5].map(dayOfWeek => ({ dayOfWeek, startTime: "09:00", endTime: "19:00" }));
 
-          let durationStr = mapping.duration ? String(row[mapping.duration]).replace(/[^0-9]/g, "") : "";
-          let duration = parseInt(durationStr, 10) || 60;
+      const newWorker = await prisma.worker.create({
+        data: {
+          firstName, lastName, email: `${firstName.toLowerCase()}@salonaura.com`,
+          phone: "1123456789", roleTitle: "Estilista", businessId, branchId,
+          schedules: { create: defaultSchedules }
+        }
+      });
+      if (serviceId) await prisma.workerService.create({ data: { workerId: newWorker.id, serviceId } });
+      return newWorker;
+    };
 
-          let existing = await prisma.service.findFirst({ where: { name: name.trim(), businessId } });
-          if (existing) {
-            reusedCount++;
-          } else {
-            const standardKeys = ["name", "price", "duration"];
+    for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
+      const chunk = rows.slice(i, i + CHUNK_SIZE);
+      
+      await Promise.all(chunk.map(async (row, chunkIndex) => {
+        const rowNum = i + chunkIndex + 2;
+        
+        try {
+          if (entityType === "clients") {
+            const nameVal = mapping.firstName && row[mapping.firstName] ? row[mapping.firstName] : "";
+            let firstName = nameVal ? nameVal.trim() : "Cliente";
+            let lastName = nameVal ? "" : "Anónimo";
+            if (nameVal) {
+              if (mapping.lastName && row[mapping.lastName]) {
+                lastName = row[mapping.lastName].trim();
+              } else {
+                const parts = nameVal.trim().split(/\s+/);
+                if (parts.length > 1) {
+                  firstName = parts[0];
+                  lastName = parts.slice(1).join(" ");
+                }
+              }
+            }
+
+            let phone = cleanPhone(mapping.phone && row[mapping.phone] ? row[mapping.phone].trim() : null);
+            let emailRaw = mapping.email && row[mapping.email] ? row[mapping.email].trim() : null;
+            let email = null;
+            let invalidEmailNote = null;
+            
+            if (emailRaw) {
+              if (isValidEmail(emailRaw)) {
+                email = emailRaw;
+              } else {
+                invalidEmailNote = `Email inválido en origen: ${emailRaw}`;
+              }
+            }
+
+            let notes = mapping.notes && row[mapping.notes] ? row[mapping.notes].trim() : null;
+
+            const standardKeys = ["firstName", "lastName", "phone", "email", "notes"];
             const customKeys = Object.keys(mapping).filter(k => !standardKeys.includes(k));
             const customValues = [];
             for (const key of customKeys) {
               const colName = mapping[key];
               if (colName && row[colName] !== undefined && row[colName] !== null) {
                 const val = String(row[colName]).trim();
-                if (val) {
-                  customValues.push(`${key}: ${val}`);
+                if (val) customValues.push(`${key}: ${val}`);
+              }
+            }
+            if (invalidEmailNote) customValues.push(invalidEmailNote);
+            
+            let finalNotes = notes;
+            if (customValues.length > 0) {
+              finalNotes = (finalNotes ? finalNotes + "\n" : "") + customValues.join("\n");
+            }
+
+            let existing = null;
+            if (email) existing = await prisma.client.findFirst({ where: { email, businessId } });
+            if (!existing && phone) existing = await prisma.client.findFirst({ where: { phone, businessId } });
+            if (!existing) existing = await prisma.client.findFirst({ where: { firstName, lastName, businessId } });
+
+            if (existing) {
+              reusedCount++;
+              if (finalNotes && !existing.notes?.includes(finalNotes)) {
+                await prisma.client.update({
+                  where: { id: existing.id },
+                  data: { notes: (existing.notes ? existing.notes + "\n" : "") + finalNotes }
+                });
+              }
+            } else {
+              await prisma.client.create({
+                data: { firstName, lastName, phone, email, notes: finalNotes, businessId }
+              });
+              createdCount++;
+            }
+          } 
+          else if (entityType === "services") {
+            const nameVal = mapping.name && row[mapping.name] ? row[mapping.name] : "";
+            const name = nameVal ? nameVal.trim() : "Servicio Importado";
+
+            let priceStr = mapping.price ? String(row[mapping.price]).replace(/[^0-9]/g, "") : "";
+            let price = parseInt(priceStr, 10) || 0;
+            let durationStr = mapping.duration ? String(row[mapping.duration]).replace(/[^0-9]/g, "") : "";
+            let duration = parseInt(durationStr, 10) || 60;
+
+            let existing = await prisma.service.findFirst({ where: { name: name.trim(), businessId } });
+            if (existing) {
+              reusedCount++;
+            } else {
+              const standardKeys = ["name", "price", "duration"];
+              const customKeys = Object.keys(mapping).filter(k => !standardKeys.includes(k));
+              const customValues = [];
+              for (const key of customKeys) {
+                const colName = mapping[key];
+                if (colName && row[colName] !== undefined && row[colName] !== null) {
+                  const val = String(row[colName]).trim();
+                  if (val) customValues.push(`${key}: ${val}`);
+                }
+              }
+              let description = customValues.length > 0 ? customValues.join("\n") : null;
+
+              await prisma.service.create({
+                data: { name: name.trim(), price, duration, description, businessId, isActive: true, availableOnline: true }
+              });
+              createdCount++;
+            }
+          } 
+          else if (entityType === "workers") {
+            const nameVal = mapping.firstName && row[mapping.firstName] ? row[mapping.firstName] : "";
+            let firstName = nameVal ? nameVal.trim() : "Profesional";
+            let lastName = nameVal ? "" : "Importado";
+            if (nameVal) {
+              if (mapping.lastName && row[mapping.lastName]) {
+                lastName = row[mapping.lastName].trim();
+              } else {
+                const parts = nameVal.trim().split(/\s+/);
+                if (parts.length > 1) {
+                  firstName = parts[0];
+                  lastName = parts.slice(1).join(" ");
                 }
               }
             }
-            let description = null;
-            if (customValues.length > 0) {
-              description = customValues.join("\n");
-            }
 
-            await prisma.service.create({
-              data: {
-                name: name.trim(),
-                price,
-                duration,
-                description,
-                businessId,
-                isActive: true,
-                availableOnline: true
+            let emailRaw = mapping.email && row[mapping.email] ? row[mapping.email].trim() : null;
+            let email = isValidEmail(emailRaw) ? emailRaw : `${firstName.toLowerCase()}.${Date.now()}@salonaura.com`;
+            let phone = cleanPhone(mapping.phone && row[mapping.phone] ? row[mapping.phone].trim() : null);
+            const roleTitle = mapping.roleTitle && row[mapping.roleTitle] ? row[mapping.roleTitle].trim() : null;
+
+            let existing = await prisma.worker.findFirst({ where: { firstName, lastName, businessId } });
+            if (existing) {
+              reusedCount++;
+            } else {
+              const defaultSchedules = [1,2,3,4,5].map(dayOfWeek => ({ dayOfWeek, startTime: "09:00", endTime: "19:00" }));
+              const standardKeys = ["firstName", "lastName", "email", "phone", "roleTitle"];
+              const customKeys = Object.keys(mapping).filter(k => !standardKeys.includes(k));
+              const customFields = {};
+              for (const key of customKeys) {
+                const colName = mapping[key];
+                if (colName && row[colName] !== undefined && row[colName] !== null) {
+                  const val = String(row[colName]).trim();
+                  if (val) customFields[key] = val;
+                }
               }
-            });
-            createdCount++;
-          }
-        } catch (e) {
-          console.error("Error importando fila servicio:", e);
-          failedCount++;
-        }
-      }
-    } else if (entityType === "workers") {
-      for (const row of rows) {
-        try {
-          const nameVal = row[mapping.firstName];
-          if (!nameVal) {
-            failedCount++;
-            continue;
-          }
 
-          let firstName = nameVal.trim();
-          let lastName = "";
-          if (mapping.lastName && row[mapping.lastName]) {
-            lastName = row[mapping.lastName].trim();
-          } else {
-            const parts = nameVal.trim().split(/\s+/);
-            if (parts.length > 1) {
-              firstName = parts[0];
-              lastName = parts.slice(1).join(" ");
+              await prisma.worker.create({
+                data: {
+                  firstName, lastName, email, phone, roleTitle: roleTitle || "Profesional",
+                  customFields, businessId, branchId, schedules: { create: defaultSchedules }
+                }
+              });
+              createdCount++;
             }
-          }
+          } 
+          else if (entityType === "appointments") {
+            const clientName = mapping.clientName && row[mapping.clientName] ? row[mapping.clientName] : "Cliente Anónimo";
+            const serviceName = mapping.serviceName && row[mapping.serviceName] ? row[mapping.serviceName] : "Servicio General";
+            const workerName = mapping.workerName && row[mapping.workerName] ? row[mapping.workerName] : "Profesional Asignado";
+            let dateVal = mapping.startsAt && row[mapping.startsAt] ? row[mapping.startsAt] : null;
+            if (!dateVal) {
+              dateVal = new Date().toISOString();
+            }
 
-          const email = mapping.email && row[mapping.email] ? row[mapping.email].trim() : null;
-          const phone = mapping.phone && row[mapping.phone] ? row[mapping.phone].trim() : null;
-          const roleTitle = mapping.roleTitle && row[mapping.roleTitle] ? row[mapping.roleTitle].trim() : null;
+            const phoneVal = mapping.phone ? row[mapping.phone] : null;
+            const emailVal = mapping.email ? row[mapping.email] : null;
+            const priceVal = mapping.price ? row[mapping.price] : null;
+            const timeVal = mapping.time ? row[mapping.time] : null;
+            const notesVal = mapping.notes ? row[mapping.notes] : null;
+            const statusVal = mapping.status ? row[mapping.status] : null;
 
-          let existing = await prisma.worker.findFirst({ where: { firstName, lastName, businessId } });
-          if (existing) {
-            reusedCount++;
-          } else {
-            const defaultSchedules = [
-              { dayOfWeek: 1, startTime: "09:00", endTime: "19:00" },
-              { dayOfWeek: 2, startTime: "09:00", endTime: "19:00" },
-              { dayOfWeek: 3, startTime: "09:00", endTime: "19:00" },
-              { dayOfWeek: 4, startTime: "09:00", endTime: "19:00" },
-              { dayOfWeek: 5, startTime: "09:00", endTime: "19:00" }
-            ];
+            const client = await getOrCreateClient(clientName, phoneVal, emailVal);
+            const service = await getOrCreateService(serviceName, priceVal);
+            const worker = await getOrCreateWorker(workerName, service?.id);
+            const startsAt = parseDateTime(dateVal, timeVal);
 
-            const standardKeys = ["firstName", "lastName", "email", "phone", "roleTitle"];
+            if (!client || !service || !worker || !startsAt) {
+              failedCount++;
+              skippedDetails.push({ row: rowNum, motive: "No se pudo vincular cliente, servicio, profesional o fecha inválida" });
+              return;
+            }
+
+            const existingAppt = await prisma.appointment.findFirst({
+              where: { clientId: client.id, startsAt, businessId }
+            });
+
+            if (existingAppt) {
+              reusedCount++;
+              return;
+            }
+
+            let defaultStatus = "CONFIRMED";
+            if (startsAt < new Date()) defaultStatus = "DONE";
+            const finalStatus = statusVal ? statusVal.trim().toUpperCase() : defaultStatus;
+
+            const standardKeys = ["clientName", "phone", "email", "serviceName", "workerName", "startsAt", "time", "price", "status", "notes"];
             const customKeys = Object.keys(mapping).filter(k => !standardKeys.includes(k));
-            const customFields = {};
+            const customValues = [];
             for (const key of customKeys) {
               const colName = mapping[key];
               if (colName && row[colName] !== undefined && row[colName] !== null) {
                 const val = String(row[colName]).trim();
-                if (val) {
-                  customFields[key] = val;
-                }
+                if (val) customValues.push(`${key}: ${val}`);
               }
             }
+            let finalNotes = notesVal || "Importado históricamente";
+            if (customValues.length > 0) finalNotes = (finalNotes ? finalNotes + "\n" : "") + customValues.join("\n");
 
-            await prisma.worker.create({
+            await prisma.appointment.create({
               data: {
-                firstName,
-                lastName,
-                email: email || `${firstName.toLowerCase()}@salonaura.com`,
-                phone,
-                roleTitle: roleTitle || "Profesional",
-                customFields,
-                businessId,
-                branchId,
-                schedules: {
-                  create: defaultSchedules
-                }
+                clientId: client.id, serviceId: service.id, workerId: worker.id,
+                startsAt, notes: finalNotes, status: finalStatus, businessId, branchId
               }
             });
             createdCount++;
           }
         } catch (e) {
-          console.error("Error importando fila colaborador:", e);
+          console.error(`Error importando fila ${rowNum}:`, e);
           failedCount++;
+          skippedDetails.push({ row: rowNum, motive: e.message || "Error interno de base de datos" });
         }
-      }
-    } else if (entityType === "appointments") {
-      // Helpers to resolve ids dynamically
-      const getOrCreateClient = async (nameVal, phoneVal, emailVal) => {
-        if (!nameVal) return null;
-        let firstName = nameVal.trim();
-        let lastName = "";
-        const parts = nameVal.trim().split(/\s+/);
-        if (parts.length > 1) {
-          firstName = parts[0];
-          lastName = parts.slice(1).join(" ");
-        }
-        const phone = phoneVal ? phoneVal.trim() : null;
-        const email = emailVal ? emailVal.trim() : null;
-
-        let existing = null;
-        if (email) {
-          existing = await prisma.client.findFirst({ where: { email, businessId } });
-        }
-        if (!existing && phone) {
-          existing = await prisma.client.findFirst({ where: { phone, businessId } });
-        }
-        if (!existing) {
-          existing = await prisma.client.findFirst({ where: { firstName, lastName, businessId } });
-        }
-
-        if (existing) return existing;
-
-        return await prisma.client.create({
-          data: {
-            firstName,
-            lastName,
-            phone,
-            email,
-            businessId
-          }
-        });
-      };
-
-      const getOrCreateService = async (serviceName, priceVal) => {
-        if (!serviceName) return null;
-        const name = serviceName.trim();
-        let existing = await prisma.service.findFirst({ where: { name, businessId } });
-        if (existing) return existing;
-
-        let priceStr = priceVal ? String(priceVal).replace(/[^0-9]/g, "") : "";
-        let price = parseInt(priceStr, 10) || 12000;
-
-        return await prisma.service.create({
-          data: {
-            name,
-            price,
-            duration: 60,
-            businessId
-          }
-        });
-      };
-
-      const getOrCreateWorker = async (workerName, serviceId) => {
-        if (!workerName) return null;
-        const nameVal = workerName.trim();
-        let firstName = nameVal;
-        let lastName = "";
-        const parts = nameVal.split(/\s+/);
-        if (parts.length > 1) {
-          firstName = parts[0];
-          lastName = parts.slice(1).join(" ");
-        }
-
-        let existing = await prisma.worker.findFirst({ where: { firstName, lastName, businessId } });
-        if (existing) {
-          // Verify if relation with service exists, if not save it
-          if (serviceId) {
-            const relation = await prisma.workerService.findUnique({
-              where: { workerId_serviceId: { workerId: existing.id, serviceId } }
-            });
-            if (!relation) {
-              await prisma.workerService.create({
-                data: { workerId: existing.id, serviceId }
-              });
-            }
-          }
-          return existing;
-        }
-
-        const defaultSchedules = [
-          { dayOfWeek: 1, startTime: "09:00", endTime: "19:00" },
-          { dayOfWeek: 2, startTime: "09:00", endTime: "19:00" },
-          { dayOfWeek: 3, startTime: "09:00", endTime: "19:00" },
-          { dayOfWeek: 4, startTime: "09:00", endTime: "19:00" },
-          { dayOfWeek: 5, startTime: "09:00", endTime: "19:00" }
-        ];
-
-        const newWorker = await prisma.worker.create({
-          data: {
-            firstName,
-            lastName,
-            email: `${firstName.toLowerCase()}@salonaura.com`,
-            phone: "1123456789",
-            roleTitle: "Estilista",
-            businessId,
-            branchId,
-            schedules: {
-              create: defaultSchedules
-            }
-          }
-        });
-
-        if (serviceId) {
-          await prisma.workerService.create({
-            data: { workerId: newWorker.id, serviceId }
-          });
-        }
-
-        return newWorker;
-      };
-
-      for (const row of rows) {
-        try {
-          const clientName = row[mapping.clientName];
-          const serviceName = row[mapping.serviceName];
-          const workerName = row[mapping.workerName];
-          const dateVal = row[mapping.startsAt];
-
-          if (!clientName || !serviceName || !workerName || !dateVal) {
-            failedCount++;
-            continue;
-          }
-
-          const phoneVal = mapping.phone ? row[mapping.phone] : null;
-          const emailVal = mapping.email ? row[mapping.email] : null;
-          const priceVal = mapping.price ? row[mapping.price] : null;
-          const timeVal = mapping.time ? row[mapping.time] : null;
-          const notesVal = mapping.notes ? row[mapping.notes] : null;
-          const statusVal = mapping.status ? row[mapping.status] : null;
-
-          const client = await getOrCreateClient(clientName, phoneVal, emailVal);
-          const service = await getOrCreateService(serviceName, priceVal);
-          const worker = await getOrCreateWorker(workerName, service?.id);
-
-          const startsAt = parseDateTime(dateVal, timeVal);
-
-          if (!client || !service || !worker || !startsAt) {
-            failedCount++;
-            continue;
-          }
-
-          // Check if appointment already exists at that exact time for this client
-          const existingAppt = await prisma.appointment.findFirst({
-            where: {
-              clientId: client.id,
-              startsAt,
-              businessId
-            }
-          });
-
-          if (existingAppt) {
-            reusedCount++;
-            continue;
-          }
-
-          let defaultStatus = "CONFIRMED";
-          if (startsAt < new Date()) {
-            defaultStatus = "DONE";
-          }
-          const finalStatus = statusVal ? statusVal.trim().toUpperCase() : defaultStatus;
-
-          const standardKeys = ["clientName", "phone", "email", "serviceName", "workerName", "startsAt", "time", "price", "status", "notes"];
-          const customKeys = Object.keys(mapping).filter(k => !standardKeys.includes(k));
-          const customValues = [];
-          for (const key of customKeys) {
-            const colName = mapping[key];
-            if (colName && row[colName] !== undefined && row[colName] !== null) {
-              const val = String(row[colName]).trim();
-              if (val) {
-                customValues.push(`${key}: ${val}`);
-              }
-            }
-          }
-          let finalNotes = notesVal || "Importado históricamente";
-          if (customValues.length > 0) {
-            finalNotes = (finalNotes ? finalNotes + "\n" : "") + customValues.join("\n");
-          }
-
-          await prisma.appointment.create({
-            data: {
-              clientId: client.id,
-              serviceId: service.id,
-              workerId: worker.id,
-              startsAt,
-              notes: finalNotes,
-              status: finalStatus,
-              businessId,
-              branchId
-            }
-          });
-          createdCount++;
-        } catch (e) {
-          console.error("Error importando fila cita:", e);
-          failedCount++;
-        }
-      }
+      }));
     }
 
     res.json({
@@ -879,7 +782,8 @@ router.post("/import", async (req, res) => {
       summary: {
         created: createdCount,
         reused: reusedCount,
-        failed: failedCount
+        failed: failedCount,
+        skippedDetails
       }
     });
   } catch (err) {

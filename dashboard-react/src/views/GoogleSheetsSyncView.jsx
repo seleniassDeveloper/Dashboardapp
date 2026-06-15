@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Container, Row, Col, Card, Form, Button, Table, ProgressBar, Alert, Badge } from "react-bootstrap";
+import { Container, Row, Col, Card, Form, Button, Table, ProgressBar, Alert, Badge, Modal } from "react-bootstrap";
 import {
   FileSpreadsheet, Link2, Settings, ArrowRight, RefreshCw,
   CheckCircle2, AlertTriangle, Sparkles, HelpCircle, Download,
@@ -11,31 +11,31 @@ import * as XLSX from "xlsx";
 
 const INITIAL_ENTITY_FIELDS = {
   clients: [
-    { key: "firstName", label: "Nombre / Nombre Completo", required: true },
+    { key: "firstName", label: "Nombre / Nombre Completo", required: false },
     { key: "lastName", label: "Apellido", required: false },
     { key: "phone", label: "Teléfono / WhatsApp", required: false },
     { key: "email", label: "Correo Electrónico", required: false },
     { key: "notes", label: "Notas / Origen", required: false }
   ],
   services: [
-    { key: "name", label: "Nombre del Servicio", required: true },
+    { key: "name", label: "Nombre del Servicio", required: false },
     { key: "price", label: "Precio / Importe", required: false },
     { key: "duration", label: "Duración (minutos)", required: false }
   ],
   workers: [
-    { key: "firstName", label: "Nombre / Nombre Completo", required: true },
+    { key: "firstName", label: "Nombre / Nombre Completo", required: false },
     { key: "lastName", label: "Apellido", required: false },
     { key: "email", label: "Correo Electrónico", required: false },
     { key: "phone", label: "Teléfono / WhatsApp", required: false },
     { key: "roleTitle", label: "Cargo / Rol", required: false }
   ],
   appointments: [
-    { key: "clientName", label: "Nombre del Cliente", required: true },
+    { key: "clientName", label: "Nombre del Cliente", required: false },
     { key: "phone", label: "Teléfono del Cliente", required: false },
     { key: "email", label: "Correo del Cliente", required: false },
-    { key: "serviceName", label: "Nombre del Servicio", required: true },
-    { key: "workerName", label: "Nombre del Profesional", required: true },
-    { key: "startsAt", label: "Fecha del Turno", required: true },
+    { key: "serviceName", label: "Nombre del Servicio", required: false },
+    { key: "workerName", label: "Nombre del Profesional", required: false },
+    { key: "startsAt", label: "Fecha del Turno", required: false },
     { key: "time", label: "Hora del Turno (Opcional)", required: false },
     { key: "price", label: "Importe Cobrado", required: false },
     { key: "status", label: "Estado (DONE, CONFIRMED, CANCELLED)", required: false },
@@ -68,64 +68,170 @@ export default function GoogleSheetsSyncView() {
 
   // STATE FOR IMPORT
   const [sheetUrl, setSheetUrl] = useState("");
-  const [entityType, setEntityType] = useState("appointments"); // "clients" | "services" | "workers" | "appointments"
-  const [entityFields, setEntityFields] = useState(INITIAL_ENTITY_FIELDS);
+  const [step, setStep] = useState(1); // 1: URL/File, 2: Map Sheets, 3: Syncing, 4: Done
+  const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [statusText, setStatusText] = useState("");
+  const [error, setError] = useState("");
+  const [summary, setSummary] = useState({ created: 0, reused: 0, failed: 0, skippedDetails: [] });
+  const [importMethod, setImportMethod] = useState("google"); // "google" | "file"
+
+  // MULTI-SHEET STATE
+  // sheetsData: array of { id, name, headers, rows, totalRows, previewRows, entityType, mapping, enabledFields, entityFields }
+  const [sheetsData, setSheetsData] = useState([]);
+  const [activeSheetId, setActiveSheetId] = useState(null); // Which sheet's column mapping is currently open
   const [newFieldName, setNewFieldName] = useState("");
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showNewFieldForm, setShowNewFieldForm] = useState(false);
-  const [enabledFields, setEnabledFields] = useState({
+
+  const getInitialEnabledFields = (type) => ({
     clients: { firstName: true, lastName: true, phone: true, email: true, notes: true },
     services: { name: true, price: true, duration: true },
     workers: { firstName: true, lastName: true, email: true, phone: true, roleTitle: true },
     appointments: { clientName: true, phone: true, email: true, serviceName: true, workerName: true, startsAt: true, time: true, price: true, status: true, notes: true }
-  });
-  const [sheetHeaders, setSheetHeaders] = useState([]);
-  const [mapping, setMapping] = useState({});
-  const [step, setStep] = useState(1); // 1: URL & Mapping, 2: Preview, 3: Syncing, 4: Done
-  const [loading, setLoading] = useState(false);
-  const [previewRows, setPreviewRows] = useState([]);
-  const [progress, setProgress] = useState(0);
-  const [statusText, setStatusText] = useState("");
-  const [error, setError] = useState("");
-  const [summary, setSummary] = useState({ created: 0, reused: 0, failed: 0 });
-  const [totalRows, setTotalRows] = useState(0);
-  const [importMethod, setImportMethod] = useState("google"); // "google" | "file"
-  const [parsedRows, setParsedRows] = useState([]);
+  }[type] || {});
 
-  const handleToggleField = (entity, fieldKey) => {
-    setEnabledFields(prev => ({
-      ...prev,
-      [entity]: {
-        ...prev[entity],
-        [fieldKey]: !prev[entity][fieldKey]
+  const autoDetectMappingsLocal = (headers, type, entityFieldsDef, enabled) => {
+    const newMapping = {};
+    const fields = entityFieldsDef.filter(f => enabled[f.key]);
+    fields.forEach(field => {
+      const lowerKey = field.key.toLowerCase();
+      let match = "";
+      if (lowerKey === "firstname" || lowerKey === "clientname") {
+        match = headers.find(h => {
+          const l = h.toLowerCase();
+          return l.includes("nombre") || l.includes("name") || l.includes("cliente");
+        });
+      } else if (lowerKey === "lastname") {
+        match = headers.find(h => {
+          const l = h.toLowerCase();
+          return l.includes("apellido") || l.includes("last");
+        });
+      } else if (lowerKey === "phone") {
+        match = headers.find(h => {
+          const l = h.toLowerCase();
+          return l.includes("tel") || l.includes("cel") || l.includes("wha") || l.includes("phone");
+        });
+      } else if (lowerKey === "email") {
+        match = headers.find(h => {
+          const l = h.toLowerCase();
+          return l.includes("email") || l.includes("mail") || l.includes("correo");
+        });
+      } else if (lowerKey === "servicename" || lowerKey === "name") {
+        match = headers.find(h => {
+          const l = h.toLowerCase();
+          return l.includes("servicio") || l.includes("service") || l.includes("insumo");
+        });
+      } else if (lowerKey === "workername" || lowerKey === "worker") {
+        match = headers.find(h => {
+          const l = h.toLowerCase();
+          return l.includes("profesional") || l.includes("worker") || l.includes("empleado") || l.includes("estilista") || l.includes("colaborador") || l.includes("atendio");
+        });
+      } else if (lowerKey === "startsat" || lowerKey === "date") {
+        match = headers.find(h => {
+          const l = h.toLowerCase();
+          return l.includes("fecha") || l.includes("date") || l.includes("alta") || l.includes("turno");
+        });
+      } else if (lowerKey === "time") {
+        match = headers.find(h => {
+          const l = h.toLowerCase();
+          return l.includes("hora") || l.includes("time");
+        });
+      } else if (lowerKey === "price") {
+        match = headers.find(h => {
+          const l = h.toLowerCase();
+          return l.includes("precio") || l.includes("importe") || l.includes("monto") || l.includes("cost") || l.includes("total") || l.includes("pagos") || l.includes("cobrado");
+        });
+      } else if (lowerKey === "notes") {
+        match = headers.find(h => {
+          const l = h.toLowerCase();
+          return l.includes("nota") || l.includes("origen") || l.includes("comentario");
+        });
+      } else if (lowerKey === "status") {
+        match = headers.find(h => {
+          const l = h.toLowerCase();
+          return l.includes("estado") || l.includes("status");
+        });
+      } else if (lowerKey === "roletitle") {
+        match = headers.find(h => {
+          const l = h.toLowerCase();
+          return l.includes("cargo") || l.includes("rol") || l.includes("puesto");
+        });
       }
+      newMapping[field.key] = match || "";
+    });
+    return newMapping;
+  };
+
+  const updateSheetState = (sheetId, updates) => {
+    setSheetsData(prev => prev.map(s => s.id === sheetId ? { ...s, ...updates } : s));
+  };
+
+  const handleAssignSheetType = (sheetId, type) => {
+    if (type === "ignore" || !type) {
+      updateSheetState(sheetId, { entityType: type || "", mapping: {}, entityFields: [], enabledFields: {} });
+      if (activeSheetId === sheetId) setActiveSheetId(null);
+      return;
+    }
+    const entityFieldsDef = [...INITIAL_ENTITY_FIELDS[type]];
+    const enabledFields = getInitialEnabledFields(type);
+    setSheetsData(prev => prev.map(s => {
+      if (s.id === sheetId) {
+        return {
+          ...s,
+          entityType: type,
+          entityFields: entityFieldsDef,
+          enabledFields,
+          mapping: autoDetectMappingsLocal(s.headers, type, entityFieldsDef, enabledFields)
+        };
+      }
+      return s;
+    }));
+    setActiveSheetId(sheetId);
+  };
+
+  const handleMapChange = (sheetId, field, val) => {
+    setSheetsData(prev => prev.map(s => {
+      if (s.id === sheetId) {
+        return { ...s, mapping: { ...s.mapping, [field]: val } };
+      }
+      return s;
     }));
   };
 
-  const handleAddCustomField = () => {
+  const handleToggleField = (sheetId, fieldKey) => {
+    setSheetsData(prev => prev.map(s => {
+      if (s.id === sheetId) {
+        return {
+          ...s,
+          enabledFields: {
+            ...s.enabledFields,
+            [fieldKey]: !s.enabledFields[fieldKey]
+          }
+        };
+      }
+      return s;
+    }));
+  };
+
+  const handleAddCustomField = (sheetId) => {
     if (!newFieldName.trim()) return;
     const keyName = newFieldName.trim();
-    const exists = entityFields[entityType].some(f => f.key === keyName);
-    if (exists) {
-      alert(t("sheetsSync.errors.fieldExists", { defaultValue: "Este campo ya existe." }));
-      return;
-    }
-
-    setEntityFields(prev => ({
-      ...prev,
-      [entityType]: [
-        ...prev[entityType],
-        { key: keyName, label: keyName, required: false, custom: true }
-      ]
-    }));
-
-    setEnabledFields(prev => ({
-      ...prev,
-      [entityType]: {
-        ...prev[entityType],
-        [keyName]: true
+    setSheetsData(prev => prev.map(s => {
+      if (s.id === sheetId) {
+        const exists = s.entityFields.some(f => f.key === keyName);
+        if (exists) {
+          alert(t("sheetsSync.errors.fieldExists", { defaultValue: "Este campo ya existe." }));
+          return s;
+        }
+        return {
+          ...s,
+          entityFields: [...s.entityFields, { key: keyName, label: keyName, required: false, custom: true }],
+          enabledFields: { ...s.enabledFields, [keyName]: true }
+        };
       }
+      return s;
     }));
-
     setNewFieldName("");
     setShowNewFieldForm(false);
   };
@@ -149,11 +255,6 @@ export default function GoogleSheetsSyncView() {
   const [syncSuccessOut, setSyncSuccessOut] = useState(false);
   const [syncOutUrl, setSyncOutUrl] = useState("");
 
-  const handleMapChange = (field, val) => {
-    setMapping(prev => ({ ...prev, [field]: val }));
-  };
-
-  // LOAD PREVIEW DATA FROM REAL BACKEND
   const fetchLivePreview = async (type) => {
     try {
       setPreviewLoading(true);
@@ -164,7 +265,6 @@ export default function GoogleSheetsSyncView() {
         const list = Array.isArray(res.data) ? res.data : [];
         let mappedFull = [];
         if (list.length === 0) {
-          // Fallback to salon samples if database is empty
           mappedFull = SAMPLE_SALON_DATA.map(d => ({ 
             id: d.firstName + d.lastName, 
             firstName: d.firstName, 
@@ -261,7 +361,6 @@ export default function GoogleSheetsSyncView() {
     }
   }, [exportType, activeDirection]);
 
-  // TOGGLE COLUMN CHECKBOXES
   const handleColumnToggle = (colKey) => {
     setSelectedColumns(prev => ({
       ...prev,
@@ -272,7 +371,6 @@ export default function GoogleSheetsSyncView() {
     }));
   };
 
-  // TRIGGER BROWSER DOWNLOAD (XLS/CSV/JSON)
   const triggerDownload = () => {
     const dataToExport = fullData.length > 0 ? fullData : livePreview;
     if (dataToExport.length === 0) return;
@@ -288,7 +386,6 @@ export default function GoogleSheetsSyncView() {
     let fileName = `salon_aura_${exportType}_export.${exportFormat}`;
 
     if (exportFormat === "json") {
-      // JSON format
       const jsonExport = dataToExport.map(row => {
         const obj = {};
         cols.forEach(c => { obj[c] = row[c]; });
@@ -297,7 +394,6 @@ export default function GoogleSheetsSyncView() {
       fileContent = JSON.stringify(jsonExport, null, 2);
       mimeType = "application/json;charset=utf-8;";
     } else if (exportFormat === "csv") {
-      // CSV format
       const headers = cols.join(",");
       const rows = dataToExport.map(row => 
         cols.map(c => {
@@ -308,7 +404,6 @@ export default function GoogleSheetsSyncView() {
       fileContent = [headers, ...rows].join("\n");
       mimeType = "text/csv;charset=utf-8;";
     } else {
-      // MS Excel friendly HTML format (.xls)
       const headersHTML = cols.map(c => `<th style="background-color: #8b5cf6; color: white; font-weight: bold; padding: 6px; border: 1px solid #ddd;">${c.toUpperCase()}</th>`).join("");
       const rowsHTML = dataToExport.map(row => {
         const cells = cols.map(c => `<td style="padding: 6px; border: 1px solid #ddd;">${row[c] !== undefined ? row[c] : ""}</td>`).join("");
@@ -322,7 +417,6 @@ export default function GoogleSheetsSyncView() {
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
           <meta charset="utf-8">
-          <!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Export Salon Aura</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->
         </head>
         <body>
           <h2 style="color: #8b5cf6; font-family: sans-serif;">${title}</h2>
@@ -355,7 +449,36 @@ export default function GoogleSheetsSyncView() {
     }
   };
 
-  // TRIGGER SIMULATED CLOUD PUSH SYNC TO GOOGLE SHEETS
+  const downloadTemplate = (entityType) => {
+    const fields = INITIAL_ENTITY_FIELDS[entityType];
+    const headers = fields.map(f => f.label);
+    
+    const exampleRows = {
+      clients: [
+        ["Juan", "Pérez", "1122334455", "juan@ejemplo.com", "Cliente frecuente"],
+        ["María", "López", "+5491133445566", "maria@ejemplo.com", ""]
+      ],
+      services: [
+        ["Corte de Pelo", "15000", "45"],
+        ["Tintura", "25000", "90"]
+      ],
+      workers: [
+        ["Ana", "Gómez", "ana@salonaura.com", "1144556677", "Colorista"],
+        ["Pedro", "Sánchez", "pedro@salonaura.com", "1199887766", "Estilista"]
+      ],
+      appointments: [
+        ["Juan Pérez", "1122334455", "juan@ejemplo.com", "Corte de Pelo", "Ana Gómez", "20/12/2026", "14:30", "15000", "CONFIRMED", "Puntual"],
+        ["María López", "+5491133445566", "maria@ejemplo.com", "Tintura", "Pedro Sánchez", "21/12/2026", "10:00", "25000", "DONE", ""]
+      ]
+    };
+
+    const data = [headers, ...exampleRows[entityType]];
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Plantilla");
+    XLSX.writeFile(wb, `plantilla_importacion_${entityType}.xlsx`);
+  };
+
   const triggerGoogleSheetsPushSync = () => {
     setIsSyncingOut(true);
     setSyncProgressOut(10);
@@ -375,86 +498,12 @@ export default function GoogleSheetsSyncView() {
           setIsSyncingOut(false);
           setSyncSuccessOut(true);
           setSyncOutUrl("https://sheets.new");
-          // Automatically trigger download of full detailed data
           triggerDownload();
         }
       }, (index + 1) * 800);
     });
   };
 
-  const autoDetectMappings = (headers, type) => {
-    const fields = entityFields[type].filter(f => enabledFields[type][f.key]);
-    const newMapping = {};
-    fields.forEach(field => {
-      const lowerKey = field.key.toLowerCase();
-      let match = "";
-      if (lowerKey === "firstname" || lowerKey === "clientname") {
-        match = headers.find(h => {
-          const l = h.toLowerCase();
-          return l.includes("nombre") || l.includes("name") || l.includes("cliente");
-        });
-      } else if (lowerKey === "lastname") {
-        match = headers.find(h => {
-          const l = h.toLowerCase();
-          return l.includes("apellido") || l.includes("last");
-        });
-      } else if (lowerKey === "phone") {
-        match = headers.find(h => {
-          const l = h.toLowerCase();
-          return l.includes("tel") || l.includes("cel") || l.includes("wha") || l.includes("phone");
-        });
-      } else if (lowerKey === "email") {
-        match = headers.find(h => {
-          const l = h.toLowerCase();
-          return l.includes("email") || l.includes("mail") || l.includes("correo");
-        });
-      } else if (lowerKey === "servicename" || lowerKey === "name") {
-        match = headers.find(h => {
-          const l = h.toLowerCase();
-          return l.includes("servicio") || l.includes("service") || l.includes("insumo");
-        });
-      } else if (lowerKey === "workername" || lowerKey === "worker") {
-        match = headers.find(h => {
-          const l = h.toLowerCase();
-          return l.includes("profesional") || l.includes("worker") || l.includes("empleado") || l.includes("estilista") || l.includes("colaborador") || l.includes("atendio");
-        });
-      } else if (lowerKey === "startsat" || lowerKey === "date") {
-        match = headers.find(h => {
-          const l = h.toLowerCase();
-          return l.includes("fecha") || l.includes("date") || l.includes("alta") || l.includes("turno");
-        });
-      } else if (lowerKey === "time") {
-        match = headers.find(h => {
-          const l = h.toLowerCase();
-          return l.includes("hora") || l.includes("time");
-        });
-      } else if (lowerKey === "price") {
-        match = headers.find(h => {
-          const l = h.toLowerCase();
-          return l.includes("precio") || l.includes("importe") || l.includes("monto") || l.includes("cost") || l.includes("total") || l.includes("pagos") || l.includes("cobrado");
-        });
-      } else if (lowerKey === "notes") {
-        match = headers.find(h => {
-          const l = h.toLowerCase();
-          return l.includes("nota") || l.includes("origen") || l.includes("comentario");
-        });
-      } else if (lowerKey === "status") {
-        match = headers.find(h => {
-          const l = h.toLowerCase();
-          return l.includes("estado") || l.includes("status");
-        });
-      } else if (lowerKey === "roletitle") {
-        match = headers.find(h => {
-          const l = h.toLowerCase();
-          return l.includes("cargo") || l.includes("rol") || l.includes("puesto");
-        });
-      }
-      newMapping[field.key] = match || "";
-    });
-    setMapping(newMapping);
-  };
-
-  // Helper robust parseCSV inside component
   const parseCSV = (text) => {
     const delimiter = text.includes(';') && !text.includes(',') ? ';' : ',';
     const lines = [];
@@ -516,11 +565,18 @@ export default function GoogleSheetsSyncView() {
             });
             return obj;
           });
-          setSheetHeaders(headers);
-          setPreviewRows(rows.slice(0, 10));
-          setTotalRows(rows.length);
-          setParsedRows(rows);
-          autoDetectMappings(headers, entityType);
+          setSheetsData([{
+            id: "sheet_0",
+            name: "Datos CSV",
+            headers,
+            rows,
+            totalRows: rows.length,
+            previewRows: rows.slice(0, 10),
+            entityType: "",
+            mapping: {},
+            enabledFields: {},
+            entityFields: []
+          }]);
           setStep(2);
         } catch (err) {
           console.error(err);
@@ -535,27 +591,39 @@ export default function GoogleSheetsSyncView() {
         try {
           const data = new Uint8Array(e.target.result);
           const workbook = XLSX.read(data, { type: "array" });
-          const sheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[sheetName];
-          const parsed = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-          if (parsed.length <= 1) {
+          
+          const newSheets = workbook.SheetNames.map((name, idx) => {
+            const worksheet = workbook.Sheets[name];
+            const parsed = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+            if (parsed.length <= 1) return null;
+            const headers = parsed[0].map(h => String(h || "").trim());
+            const rows = parsed.slice(1).map(row => {
+              const obj = {};
+              headers.forEach((h, colIdx) => {
+                obj[h] = row[colIdx] !== undefined ? String(row[colIdx]).trim() : "";
+              });
+              return obj;
+            });
+            return {
+              id: `sheet_${idx}`,
+              name,
+              headers,
+              rows,
+              totalRows: rows.length,
+              previewRows: rows.slice(0, 10),
+              entityType: "",
+              mapping: {},
+              enabledFields: {},
+              entityFields: []
+            };
+          }).filter(Boolean);
+
+          if (newSheets.length === 0) {
             setError(t("sheetsSync.errors.emptyExcel"));
             setLoading(false);
             return;
           }
-          const headers = parsed[0].map(h => String(h || "").trim());
-          const rows = parsed.slice(1).map(row => {
-            const obj = {};
-            headers.forEach((h, idx) => {
-              obj[h] = row[idx] !== undefined ? String(row[idx]).trim() : "";
-            });
-            return obj;
-          });
-          setSheetHeaders(headers);
-          setPreviewRows(rows.slice(0, 10));
-          setTotalRows(rows.length);
-          setParsedRows(rows);
-          autoDetectMappings(headers, entityType);
+          setSheetsData(newSheets);
           setStep(2);
         } catch (err) {
           console.error(err);
@@ -583,11 +651,18 @@ export default function GoogleSheetsSyncView() {
             });
             return obj;
           });
-          setSheetHeaders(headers);
-          setPreviewRows(rows.slice(0, 10));
-          setTotalRows(rows.length);
-          setParsedRows(rows);
-          autoDetectMappings(headers, entityType);
+          setSheetsData([{
+            id: "sheet_0",
+            name: "Datos JSON",
+            headers,
+            rows,
+            totalRows: rows.length,
+            previewRows: rows.slice(0, 10),
+            entityType: "",
+            mapping: {},
+            enabledFields: {},
+            entityFields: []
+          }]);
           setStep(2);
         } catch (err) {
           console.error(err);
@@ -603,15 +678,10 @@ export default function GoogleSheetsSyncView() {
     }
   };
 
-  // HANDLERS FOR IMPORT WORKFLOW
   const handleAnalyze = async (e) => {
     e.preventDefault();
-    if (!sheetUrl.trim()) {
+    if (!sheetUrl.trim() || !sheetUrl.includes("docs.google.com/spreadsheets")) {
       setError(t("sheetsSync.errors.invalidUrl"));
-      return;
-    }
-    if (!sheetUrl.includes("docs.google.com/spreadsheets")) {
-      setError(t("sheetsSync.errors.notGoogleUrl"));
       return;
     }
 
@@ -621,10 +691,22 @@ export default function GoogleSheetsSyncView() {
     try {
       const res = await api.post("/google/fetch-sheet", { sheetUrl });
       if (res.data && res.data.success) {
-        setSheetHeaders(res.data.headers);
-        setPreviewRows(res.data.previewRows);
-        setTotalRows(res.data.totalRows);
-        autoDetectMappings(res.data.headers, entityType);
+        setSheetsData([{
+          id: "sheet_0",
+          name: "Hoja de Google Sheets",
+          headers: res.data.headers,
+          rows: res.data.previewRows, // backend sends all? Wait, fetch-sheet only sends previewRows...
+          // We must ensure backend can import correctly or we pass rows
+          // Wait, backend fetch-sheet only returns previewRows. Real import uses sheetUrl.
+          // Let's pass previewRows to preview and keep sheetUrl to pass to /import
+          totalRows: res.data.totalRows,
+          previewRows: res.data.previewRows,
+          entityType: "",
+          mapping: {},
+          enabledFields: {},
+          entityFields: [],
+          isGoogleSheet: true
+        }]);
         setStep(2);
       } else {
         setError(t("sheetsSync.errors.failedToFetch"));
@@ -638,60 +720,81 @@ export default function GoogleSheetsSyncView() {
   };
 
   const executeRealSync = async () => {
-    // Check if required mappings are selected
-    const requiredFields = entityFields[entityType].filter(f => f.required && enabledFields[entityType][f.key]);
-    const missing = mapping ? requiredFields.filter(f => !mapping[f.key]) : requiredFields;
-    if (missing.length > 0) {
-      const missingLabels = missing.map(f => t("sheetsSync.columns." + f.key, { defaultValue: f.label })).join(", ");
-      setError(t("sheetsSync.errors.missingMapping", { missing: missingLabels }));
+    const mappedSheets = sheetsData.filter(s => s.entityType && s.entityType !== "ignore");
+    if (mappedSheets.length === 0) {
+      setError("Debes asignar al menos una hoja a una tabla para importar.");
       return;
     }
 
+    // Validate mappings
+    for (const sheet of mappedSheets) {
+      const requiredFields = sheet.entityFields.filter(f => f.required && sheet.enabledFields[f.key]);
+      const missing = requiredFields.filter(f => !sheet.mapping[f.key]);
+      if (missing.length > 0) {
+        const missingLabels = missing.map(f => t("sheetsSync.columns." + f.key, { defaultValue: f.label })).join(", ");
+        setError(`Faltan campos obligatorios en la hoja "${sheet.name}": ${missingLabels}`);
+        return;
+      }
+    }
+
     setStep(3);
-    setProgress(10);
+    setProgress(5);
     setStatusText(t("sheetsSync.progressText.import1"));
     setError("");
 
+    let combinedSummary = { created: 0, reused: 0, failed: 0, skippedDetails: [] };
+
     try {
-      setProgress(40);
-      setStatusText(importMethod === "google" 
-        ? t("sheetsSync.progressText.import2")
-        : t("sheetsSync.progressText.import3"));
+      for (let i = 0; i < mappedSheets.length; i++) {
+        const sheet = mappedSheets[i];
+        const progressBase = 5 + (i / mappedSheets.length) * 80;
+        setProgress(progressBase);
+        setStatusText(`Importando hoja: ${sheet.name} (${i+1}/${mappedSheets.length})...`);
 
-      const filteredMapping = Object.keys(mapping)
-        .filter(key => enabledFields[entityType][key])
-        .reduce((obj, key) => {
-          obj[key] = mapping[key];
-          return obj;
-        }, {});
+        const filteredMapping = Object.keys(sheet.mapping)
+          .filter(key => sheet.enabledFields[key])
+          .reduce((obj, key) => {
+            obj[key] = sheet.mapping[key];
+            return obj;
+          }, {});
 
-      const payload = {
-        entityType,
-        mapping: filteredMapping
-      };
+        const payload = {
+          entityType: sheet.entityType,
+          mapping: filteredMapping
+        };
 
-      if (importMethod === "google") {
-        payload.sheetUrl = sheetUrl;
-      } else {
-        payload.rows = parsedRows;
+        if (sheet.isGoogleSheet) {
+          payload.sheetUrl = sheetUrl;
+        } else {
+          payload.rows = sheet.rows;
+        }
+
+        const res = await api.post("/google/import", payload);
+
+        if (res.data && res.data.success) {
+          combinedSummary.created += res.data.summary.created || 0;
+          combinedSummary.reused += res.data.summary.reused || 0;
+          combinedSummary.failed += res.data.summary.failed || 0;
+          
+          if (res.data.summary.skippedDetails) {
+            const mappedSkips = res.data.summary.skippedDetails.map(d => ({
+              ...d,
+              motive: `[${sheet.name}] ${d.motive}`
+            }));
+            combinedSummary.skippedDetails.push(...mappedSkips);
+          }
+        } else {
+          throw new Error(`Fallo al importar hoja ${sheet.name}`);
+        }
       }
 
-      const res = await api.post("/google/import", payload);
-
-      setProgress(85);
-      setStatusText(t("sheetsSync.progressText.import4"));
-
-      if (res.data && res.data.success) {
-        setProgress(100);
-        setStatusText(t("sheetsSync.progressCompleted"));
-        setSummary(res.data.summary);
-        setStep(4);
-      } else {
-        throw new Error(t("sheetsSync.errors.syncFailed"));
-      }
+      setProgress(100);
+      setStatusText(t("sheetsSync.progressCompleted"));
+      setSummary(combinedSummary);
+      setStep(4);
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.error || t("sheetsSync.errors.postgreError"));
+      setError(err.response?.data?.error || err.message || t("sheetsSync.errors.postgreError"));
       setStep(2);
     }
   };
@@ -787,115 +890,18 @@ export default function GoogleSheetsSyncView() {
                       </h3>
                       
                       <div className="d-grid gap-3">
-                        <Form.Group>
-                          <Form.Label className="fw-semibold small">{t("sheetsSync.syncDataTypeLabel")}</Form.Label>
-                          <Form.Select
-                            value={entityType}
-                            onChange={(e) => {
-                              setEntityType(e.target.value);
-                              setMapping({});
-                            }}
-                            className="modern-input"
-                          >
-                            <option value="appointments">{t("sheetsSync.dataTypeAppointments")}</option>
-                            <option value="clients">{t("sheetsSync.dataTypeClients")}</option>
-                            <option value="services">{t("sheetsSync.dataTypeServices")}</option>
-                            <option value="workers">{t("sheetsSync.dataTypeWorkers")}</option>
-                          </Form.Select>
-                          <Form.Text className="text-muted smaller">
-                            {t("sheetsSync.dataTypePlaceholder")}
-                          </Form.Text>
-                        </Form.Group>
-
-                        <div className="mt-2 p-3 bg-light rounded-4 border">
+                        <div className="p-3 bg-light rounded-4 border mb-3">
                           <label className="fw-bold small text-gray-700 mb-1 d-block">
-                            {t("sheetsSync.fieldsToImportLabel", { defaultValue: "Campos a Importar (Configurables)" })}
+                            Descargar Plantillas Oficiales
                           </label>
                           <p className="text-muted smaller mb-3" style={{ lineHeight: "1.4" }}>
-                            {t("sheetsSync.fieldsToImportDesc", { defaultValue: "Seleccioná qué campos querés extraer de tu planilla. Los campos obligatorios no se pueden deseleccionar." })}
+                            Puedes usar estas plantillas .xlsx para rellenar tus datos y luego subirlas al sistema. El sistema leerá todas las pestañas automáticamente.
                           </p>
                           <div className="d-flex flex-wrap gap-2">
-                            {entityFields[entityType].map(f => {
-                              const isRequired = f.required;
-                              const isChecked = enabledFields[entityType][f.key];
-                              return (
-                                <div 
-                                  key={f.key} 
-                                  className={`d-flex align-items-center gap-2 px-3 py-2 rounded-xl border transition-all ${
-                                    isChecked 
-                                      ? "bg-purple-500 bg-opacity-10 border-purple-300 text-purple-900" 
-                                      : "bg-white border-gray-200 text-muted"
-                                  }`}
-                                  style={{ cursor: isRequired ? "not-allowed" : "pointer" }}
-                                  onClick={() => !isRequired && handleToggleField(entityType, f.key)}
-                                >
-                                  <input 
-                                    type="checkbox"
-                                    checked={isChecked}
-                                    disabled={isRequired}
-                                    readOnly
-                                    className="cursor-pointer form-check-input m-0"
-                                    style={{ width: "16px", height: "16px" }}
-                                  />
-                                  <span className="small fw-semibold">
-                                    {t("sheetsSync.columns." + f.key, { defaultValue: f.label })}
-                                  </span>
-                                  {isRequired && (
-                                    <Badge bg="danger-soft" className="text-danger-600 px-2 py-0.5 rounded-pill smaller fw-bold ms-1" style={{ fontSize: "9px" }}>
-                                      {t("sheetsSync.requiredFieldBadge", { defaultValue: "Obligatorio" })}
-                                    </Badge>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-
-                          {/* New Custom Field Form */}
-                          <div className="mt-3 pt-3 border-top">
-                            {!showNewFieldForm ? (
-                              <Button 
-                                variant="outline-primary" 
-                                size="sm" 
-                                className="rounded-pill px-3" 
-                                onClick={() => setShowNewFieldForm(true)}
-                              >
-                                {t("sheetsSync.createCustomFieldBtn", { defaultValue: "+ Crear Columna Personalizada" })}
-                              </Button>
-                            ) : (
-                              <div className="d-flex gap-2 align-items-center" style={{ maxWidth: "420px" }}>
-                                <Form.Control
-                                  type="text"
-                                  size="sm"
-                                  placeholder={t("sheetsSync.customFieldPlaceholder", { defaultValue: "Ej. Dirección, Cumpleaños..." })}
-                                  value={newFieldName}
-                                  onChange={(e) => setNewFieldName(e.target.value)}
-                                  className="modern-input py-1.5"
-                                  autoFocus
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter") {
-                                      e.preventDefault();
-                                      handleAddCustomField();
-                                    }
-                                  }}
-                                />
-                                <Button 
-                                  variant="primary" 
-                                  size="sm" 
-                                  className="px-3 py-1.5 fw-bold"
-                                  onClick={handleAddCustomField}
-                                >
-                                  {t("sheetsSync.addBtn", { defaultValue: "Agregar" })}
-                                </Button>
-                                <Button 
-                                  variant="outline-secondary" 
-                                  size="sm" 
-                                  className="px-3 py-1.5"
-                                  onClick={() => { setShowNewFieldForm(false); setNewFieldName(""); }}
-                                >
-                                  ✖
-                                </Button>
-                              </div>
-                            )}
+                            <Button variant="outline-primary" size="sm" className="rounded-pill d-flex align-items-center gap-1" onClick={() => downloadTemplate("clients")}><Download size={12}/> Clientes</Button>
+                            <Button variant="outline-primary" size="sm" className="rounded-pill d-flex align-items-center gap-1" onClick={() => downloadTemplate("services")}><Download size={12}/> Servicios</Button>
+                            <Button variant="outline-primary" size="sm" className="rounded-pill d-flex align-items-center gap-1" onClick={() => downloadTemplate("workers")}><Download size={12}/> Profesionales</Button>
+                            <Button variant="outline-primary" size="sm" className="rounded-pill d-flex align-items-center gap-1" onClick={() => downloadTemplate("appointments")}><Download size={12}/> Citas</Button>
                           </div>
                         </div>
 
@@ -1013,8 +1019,8 @@ export default function GoogleSheetsSyncView() {
                           <HelpCircle size={20} />
                         </div>
                         <div>
-                          <h5 className="fw-semibold small text-dark mb-1">{t("sheetsSync.flexibleMappingTitle")}</h5>
-                          <p className="text-muted smaller mb-0">{t("sheetsSync.flexibleMappingDesc")}</p>
+                          <h5 className="fw-semibold small text-dark mb-1">Mapeo Multi-Hoja Automático</h5>
+                          <p className="text-muted smaller mb-0">Podés subir un Excel con múltiples pestañas y asignar cada pestaña a una sección distinta de la base de datos.</p>
                         </div>
                       </div>
                     </Card.Body>
@@ -1031,89 +1037,199 @@ export default function GoogleSheetsSyncView() {
                       <div>
                         <h3 className="h5 fw-black text-dark mb-1 d-flex align-items-center gap-2">
                           <CheckCircle2 className="text-success" size={22} />
-                          <span>{t("sheetsSync.sheetAnalyzedSuccess")}</span>
+                          <span>Configurar Importación Multi-Hoja</span>
                         </h3>
-                        <p className="text-muted small mb-0">{t("sheetsSync.sheetAnalyzedDesc")}</p>
+                        <p className="text-muted small mb-0">Asigna las hojas de tu archivo a las tablas del sistema.</p>
                       </div>
                       <div className="d-flex gap-2">
                         <Button variant="outline-dark" onClick={() => setStep(1)} className="rounded-pill px-4 btn-sm">
                           {t("sheetsSync.backBtn")}
                         </Button>
-                        <Button variant="success" onClick={executeRealSync} className="rounded-pill px-4 btn-sm btn-premium bg-success border-success text-white fw-bold shadow">
+                        <Button variant="success" onClick={() => setShowConfirmModal(true)} disabled={sheetsData.filter(s => s.entityType && s.entityType !== "ignore").length === 0} className="rounded-pill px-4 btn-sm btn-premium bg-success border-success text-white fw-bold shadow">
                           {t("sheetsSync.syncImportBtn")}
                         </Button>
                       </div>
                     </div>
 
-                    <h4 className="h6 fw-bold mb-3 d-flex align-items-center gap-2 text-purple-700">
-                      <Settings size={18} />
-                      <span>{t("sheetsSync.configureMappingTitle")}</span>
-                    </h4>
-
-                    <Row className="g-3 mb-4">
-                      {entityFields[entityType].filter(f => enabledFields[entityType][f.key]).map(f => (
-                        <Col md={4} key={f.key}>
-                          <Form.Group>
-                            <Form.Label className="smaller text-gray-700 fw-bold">
-                              {t("sheetsSync.columns." + f.key, { defaultValue: f.label })} {f.required && <span className="text-danger">*</span>}
-                            </Form.Label>
-                            <Form.Select
-                              value={mapping[f.key] || ""}
-                              onChange={(e) => handleMapChange(f.key, e.target.value)}
-                              className="modern-input"
-                            >
-                              <option value="">{t("sheetsSync.unassignedOption")}</option>
-                              {sheetHeaders.map(h => (
-                                <option key={h} value={h}>{h}</option>
-                              ))}
-                            </Form.Select>
-                          </Form.Group>
-                        </Col>
-                      ))}
-                    </Row>
- 
-                    <h4 className="h6 fw-bold mb-3 text-secondary">{t("sheetsSync.mappedPreviewTitle")}</h4>
-                    <div className="table-responsive rounded-3 border">
-                      <Table hover striped className="mb-0 align-middle">
+                    <div className="bg-light p-3 rounded-3 mb-4 border">
+                      <h4 className="h6 fw-bold mb-3 d-flex align-items-center gap-2 text-purple-700">
+                        <FileText size={18} />
+                        <span>Hojas Detectadas ({sheetsData.length})</span>
+                      </h4>
+                      <Table size="sm" className="mb-0 align-middle">
                         <thead>
-                          <tr className="bg-light table-header-small" style={{ fontSize: "11px" }}>
-                            <th className="ps-3">{t("sheetsSync.excelRowHeader")}</th>
-                            {entityFields[entityType].filter(f => enabledFields[entityType][f.key]).map(f => (
-                              <th key={f.key}>
-                                {t("sheetsSync.columns." + f.key, { defaultValue: f.label })}
-                                <div className="text-muted smaller fw-normal">
-                                  {mapping[f.key] ? `Col: ${mapping[f.key]}` : t("sheetsSync.unmappedLabel", { defaultValue: "(Sin mapear)" })}
-                                </div>
-                              </th>
-                            ))}
+                          <tr>
+                            <th className="text-muted smaller">Nombre de la Hoja</th>
+                            <th className="text-muted smaller">Filas detectadas</th>
+                            <th className="text-muted smaller">Importar como...</th>
+                            <th className="text-muted smaller text-end">Acción</th>
                           </tr>
                         </thead>
-                        <tbody style={{ fontSize: "13px" }}>
-                          {previewRows.map((r, idx) => (
-                            <tr key={idx}>
-                              <td className="ps-3 text-muted fw-bold">#{idx + 2}</td>
-                              {entityFields[entityType].filter(f => enabledFields[entityType][f.key]).map(f => {
-                                const colName = mapping[f.key];
-                                const cellVal = colName ? r[colName] : "";
-                                return (
-                                  <td key={f.key} className={f.key === "price" ? "text-success fw-bold" : ""}>
-                                    {f.key === "price" && cellVal ? `$${Number(cellVal).toLocaleString()}` : cellVal || "-"}
-                                  </td>
-                                );
-                              })}
-                            </tr>
-                          ))}
-                          {totalRows > 10 && (
-                            <tr style={{ background: "#fafafa" }}>
-                              <td className="ps-3 text-muted fw-bold">...</td>
-                              <td colSpan={entityFields[entityType].filter(f => enabledFields[entityType][f.key]).length} className="text-muted smaller italic">
-                                {t("sheetsSync.otherRecordsProcessed", { count: totalRows - 10 })}
+                        <tbody>
+                          {sheetsData.map(sheet => (
+                            <tr key={sheet.id}>
+                              <td className="fw-bold">{sheet.name}</td>
+                              <td className="text-muted">{sheet.totalRows} filas</td>
+                              <td>
+                                <Form.Select
+                                  size="sm"
+                                  value={sheet.entityType}
+                                  onChange={(e) => handleAssignSheetType(sheet.id, e.target.value)}
+                                  style={{ maxWidth: "200px" }}
+                                >
+                                  <option value="">-- Seleccionar --</option>
+                                  <option value="ignore">Ignorar hoja</option>
+                                  <option value="appointments">{t("sheetsSync.dataTypeAppointments")}</option>
+                                  <option value="clients">{t("sheetsSync.dataTypeClients")}</option>
+                                  <option value="services">{t("sheetsSync.dataTypeServices")}</option>
+                                  <option value="workers">{t("sheetsSync.dataTypeWorkers")}</option>
+                                </Form.Select>
+                              </td>
+                              <td className="text-end">
+                                {sheet.entityType && sheet.entityType !== "ignore" && (
+                                  <Button 
+                                    variant={activeSheetId === sheet.id ? "purple" : "outline-purple"} 
+                                    size="sm" 
+                                    className="rounded-pill"
+                                    onClick={() => setActiveSheetId(sheet.id)}
+                                  >
+                                    Mapear Columnas
+                                  </Button>
+                                )}
                               </td>
                             </tr>
-                          )}
+                          ))}
                         </tbody>
                       </Table>
                     </div>
+
+                    {activeSheetId && (
+                      <div className="mt-4 border-top pt-4">
+                        {(() => {
+                          const sheet = sheetsData.find(s => s.id === activeSheetId);
+                          if (!sheet || sheet.entityType === "ignore") return null;
+                          return (
+                            <>
+                              <h4 className="h6 fw-bold mb-3 d-flex align-items-center gap-2 text-purple-700">
+                                <Settings size={18} />
+                                <span>Configuración para: {sheet.name}</span>
+                              </h4>
+                              
+                              <div className="mb-4">
+                                <label className="fw-bold small text-gray-700 mb-1 d-block">
+                                  {t("sheetsSync.fieldsToImportLabel", { defaultValue: "Campos a Importar (Configurables)" })}
+                                </label>
+                                <div className="d-flex flex-wrap gap-2">
+                                  {sheet.entityFields.map(f => {
+                                    const isRequired = f.required;
+                                    const isChecked = sheet.enabledFields[f.key];
+                                    return (
+                                      <div 
+                                        key={f.key} 
+                                        className={`d-flex align-items-center gap-2 px-3 py-2 rounded-xl border transition-all ${
+                                          isChecked 
+                                            ? "bg-purple-500 bg-opacity-10 border-purple-300 text-purple-900" 
+                                            : "bg-white border-gray-200 text-muted"
+                                        }`}
+                                        style={{ cursor: isRequired ? "not-allowed" : "pointer" }}
+                                        onClick={() => !isRequired && handleToggleField(sheet.id, f.key)}
+                                      >
+                                        <input 
+                                          type="checkbox"
+                                          checked={isChecked}
+                                          disabled={isRequired}
+                                          readOnly
+                                          className="cursor-pointer form-check-input m-0"
+                                        />
+                                        <span className="small fw-semibold">
+                                          {t("sheetsSync.columns." + f.key, { defaultValue: f.label })}
+                                        </span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                                <div className="mt-2">
+                                  {!showNewFieldForm ? (
+                                    <Button variant="link" size="sm" className="p-0 text-decoration-none small" onClick={() => setShowNewFieldForm(true)}>+ Agregar campo personalizado</Button>
+                                  ) : (
+                                    <div className="d-flex gap-2 align-items-center mt-2" style={{ maxWidth: "300px" }}>
+                                      <Form.Control type="text" size="sm" placeholder="Nombre del campo" value={newFieldName} onChange={(e) => setNewFieldName(e.target.value)} />
+                                      <Button variant="primary" size="sm" onClick={() => handleAddCustomField(sheet.id)}>Agregar</Button>
+                                      <Button variant="light" size="sm" onClick={() => setShowNewFieldForm(false)}>✖</Button>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              <Row className="g-3 mb-4">
+                                {sheet.entityFields.filter(f => sheet.enabledFields[f.key]).map(f => (
+                                  <Col md={4} key={f.key}>
+                                    <Form.Group>
+                                      <Form.Label className="smaller text-gray-700 fw-bold">
+                                        {t("sheetsSync.columns." + f.key, { defaultValue: f.label })} {f.required && <span className="text-danger">*</span>}
+                                      </Form.Label>
+                                      <Form.Select
+                                        value={sheet.mapping[f.key] || ""}
+                                        onChange={(e) => handleMapChange(sheet.id, f.key, e.target.value)}
+                                        className="modern-input"
+                                      >
+                                        <option value="">{t("sheetsSync.unassignedOption")}</option>
+                                        {sheet.headers.map(h => (
+                                          <option key={h} value={h}>{h}</option>
+                                        ))}
+                                      </Form.Select>
+                                    </Form.Group>
+                                  </Col>
+                                ))}
+                              </Row>
+          
+                              <h4 className="h6 fw-bold mb-3 text-secondary">{t("sheetsSync.mappedPreviewTitle")}</h4>
+                              <div className="table-responsive rounded-3 border">
+                                <Table hover striped className="mb-0 align-middle">
+                                  <thead>
+                                    <tr className="bg-light table-header-small" style={{ fontSize: "11px" }}>
+                                      <th className="ps-3">{t("sheetsSync.excelRowHeader")}</th>
+                                      {sheet.entityFields.filter(f => sheet.enabledFields[f.key]).map(f => (
+                                        <th key={f.key}>
+                                          {t("sheetsSync.columns." + f.key, { defaultValue: f.label })}
+                                          <div className="text-muted smaller fw-normal">
+                                            {sheet.mapping[f.key] ? `Col: ${sheet.mapping[f.key]}` : "(Sin mapear)"}
+                                          </div>
+                                        </th>
+                                      ))}
+                                    </tr>
+                                  </thead>
+                                  <tbody style={{ fontSize: "13px" }}>
+                                    {sheet.previewRows.map((r, idx) => (
+                                      <tr key={idx}>
+                                        <td className="ps-3 text-muted fw-bold">#{idx + 2}</td>
+                                        {sheet.entityFields.filter(f => sheet.enabledFields[f.key]).map(f => {
+                                          const colName = sheet.mapping[f.key];
+                                          const cellVal = colName ? r[colName] : "";
+                                          return (
+                                            <td key={f.key} className={f.key === "price" ? "text-success fw-bold" : ""}>
+                                              {f.key === "price" && cellVal ? `$${Number(cellVal).toLocaleString()}` : cellVal || "-"}
+                                            </td>
+                                          );
+                                        })}
+                                      </tr>
+                                    ))}
+                                    {sheet.totalRows > 10 && (
+                                      <tr style={{ background: "#fafafa" }}>
+                                        <td className="ps-3 text-muted fw-bold">...</td>
+                                        <td colSpan={sheet.entityFields.filter(f => sheet.enabledFields[f.key]).length} className="text-muted smaller italic">
+                                          {t("sheetsSync.otherRecordsProcessed", { count: sheet.totalRows - 10 })}
+                                        </td>
+                                      </tr>
+                                    )}
+                                  </tbody>
+                                </Table>
+                              </div>
+                            </>
+                          );
+                        })()}
+                      </div>
+                    )}
                   </Card.Body>
                 </Card>
               </Col>
@@ -1133,7 +1249,7 @@ export default function GoogleSheetsSyncView() {
 
                     <div className="px-3">
                       <ProgressBar now={progress} animated variant="success" style={{ height: "10px", borderRadius: "10px" }} />
-                      <div className="text-end text-success fw-bold smaller mt-1.5">{progress}% {t("sheetsSync.progressCompleted")}</div>
+                      <div className="text-end text-success fw-bold smaller mt-1.5">{Math.round(progress)}% {t("sheetsSync.progressCompleted")}</div>
                     </div>
 
                     <div className="p-3 bg-light rounded-3 text-muted small text-start border-start border-primary border-4">
@@ -1183,8 +1299,48 @@ export default function GoogleSheetsSyncView() {
                       </Col>
                     </Row>
 
-                    <div className="d-flex gap-2.5 justify-content-center">
-                      <Button variant="outline-dark" onClick={() => setStep(1)} className="rounded-pill px-4">
+                    {summary.skippedDetails && summary.skippedDetails.length > 0 && (
+                      <div className="text-start mt-3">
+                        <div className="d-flex justify-content-between align-items-center mb-2">
+                          <h5 className="fw-bold text-danger h6 mb-0">Detalle de filas omitidas</h5>
+                          <Button 
+                            variant="outline-danger" 
+                            size="sm" 
+                            className="rounded-pill px-3 py-1 text-decoration-none d-flex align-items-center gap-1"
+                            onClick={() => {
+                              const data = [["Fila Original", "Motivo del Error"], ...summary.skippedDetails.map(d => [d.row, d.motive])];
+                              const ws = XLSX.utils.aoa_to_sheet(data);
+                              const wb = XLSX.utils.book_new();
+                              XLSX.utils.book_append_sheet(wb, ws, "Errores");
+                              XLSX.writeFile(wb, `errores_importacion.xlsx`);
+                            }}
+                          >
+                            <Download size={12} /> Descargar Errores
+                          </Button>
+                        </div>
+                        <div className="table-responsive border rounded-3" style={{ maxHeight: "200px" }}>
+                          <Table hover size="sm" className="mb-0">
+                            <thead className="bg-light sticky-top">
+                              <tr>
+                                <th>Fila</th>
+                                <th>Motivo</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {summary.skippedDetails.map((skipped, idx) => (
+                                <tr key={idx}>
+                                  <td className="text-muted">#{skipped.row}</td>
+                                  <td className="text-danger small">{skipped.motive}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </Table>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="d-flex gap-2.5 justify-content-center mt-3">
+                      <Button variant="outline-dark" onClick={() => { setStep(1); setSheetsData([]); }} className="rounded-pill px-4">
                         {t("sheetsSync.syncAnotherBtn")}
                       </Button>
                       <Button variant="dark" href="/app" className="rounded-pill px-4 btn-premium">
@@ -1416,6 +1572,53 @@ export default function GoogleSheetsSyncView() {
           </>
         )}
       </Row>
+
+      <Modal show={showConfirmModal} onHide={() => setShowConfirmModal(false)} centered size="lg">
+        <Modal.Header closeButton className="border-0 pb-0">
+          <Modal.Title className="fw-black d-flex align-items-center gap-2">
+            <CheckCircle2 className="text-primary" /> Confirmar Importación
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="pt-2">
+          <p className="text-muted small mb-4">
+            A continuación se muestra el resumen de cómo quedará repartida la información en la base de datos según lo que has asignado. Revisa que todo esté correcto antes de confirmar.
+          </p>
+          <div className="d-grid gap-3">
+            {sheetsData.filter(s => s.entityType && s.entityType !== "ignore").map(sheet => {
+              const mappedCount = Object.keys(sheet.mapping).filter(k => sheet.enabledFields[k] && sheet.mapping[k]).length;
+              return (
+                <div key={sheet.id} className="p-3 border rounded-3 bg-light">
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <h6 className="fw-bold mb-0 text-dark">{sheet.name}</h6>
+                    <Badge bg="purple-soft" className="text-purple-600 px-3 py-1 rounded-pill">
+                      Destino: {t("sheetsSync.dataType" + sheet.entityType.charAt(0).toUpperCase() + sheet.entityType.slice(1), { defaultValue: sheet.entityType })}
+                    </Badge>
+                  </div>
+                  <div className="d-flex justify-content-between text-muted small">
+                    <span><strong>{sheet.totalRows}</strong> filas a procesar</span>
+                    <span><strong>{mappedCount}</strong> columnas mapeadas</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Modal.Body>
+        <Modal.Footer className="border-0 pt-0">
+          <Button variant="light" onClick={() => setShowConfirmModal(false)} className="rounded-pill px-4">
+            Cancelar
+          </Button>
+          <Button 
+            variant="success" 
+            onClick={() => {
+              setShowConfirmModal(false);
+              executeRealSync();
+            }} 
+            className="rounded-pill px-4 btn-premium fw-bold shadow-sm"
+          >
+            Confirmar e Importar
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </Container>
   );
 }
