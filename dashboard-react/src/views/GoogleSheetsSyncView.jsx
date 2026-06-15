@@ -709,7 +709,7 @@ export default function GoogleSheetsSyncView() {
     setError("");
 
     try {
-      const res = await api.post("/google/fetch-sheet", { sheetUrl });
+      const res = await api.post("/google/fetch-sheet", { sheetUrl }, { timeout: 300000 });
       if (res.data && res.data.success) {
         setSheetsData([{
           id: "sheet_0",
@@ -789,7 +789,7 @@ export default function GoogleSheetsSyncView() {
           payload.rows = sheet.rows;
         }
 
-        const res = await api.post("/google/import", payload);
+        const res = await api.post("/google/import", payload, { timeout: 300000 });
 
         if (res.data && res.data.success) {
           combinedSummary.created += res.data.summary.created || 0;
