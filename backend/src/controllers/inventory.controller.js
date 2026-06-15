@@ -460,7 +460,7 @@ export async function deleteProduct(req, res) {
 // GET /api/inventory/suppliers & CRUD
 export async function listSuppliers(req, res) {
   try {
-    const list = await prisma.supplier.findMany({ where: { businessId: req.businessId }, include: { products: true },
+    const list = await prisma.supplier.findMany({ include: { products: true },
       orderBy: { name: "asc" }
     });
     return res.status(200).json(list);
