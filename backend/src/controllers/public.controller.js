@@ -133,7 +133,7 @@ export async function getPublicProfessionals(req, res) {
 
 // Lógica de cálculo de disponibilidad horaria real
 // Helper para verificar la disponibilidad de un profesional específico para un bloque total
-async function checkWorkerAvailability(workerId, date, time, totalDuration, bizId) {
+async function checkWorkerAvailability(workerId, date, time, totalDuration, biz) {
   const [year, month, day] = date.split("-").map(Number);
   const dayOfWeek = new Date(year, month - 1, day).getDay();
   const [h, m] = time.split(":").map(Number);
