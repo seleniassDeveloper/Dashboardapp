@@ -17,6 +17,7 @@ import {
 import api from "../lib/api.js";
 import { useBrand } from "../header/name/BrandProvider";
 import { useAuth } from "../auth/AuthProvider";
+import { QRCodeSVG } from "qrcode.react";
 
 // Componentes
 import DashboardGrid from "../components/dashboard/DashboardGrid";
@@ -72,6 +73,12 @@ export default function DashboardView() {
   const [showClientModal, setShowClientModal] = useState(false);
   const [showFinalizeModal, setShowFinalizeModal] = useState(false);
   const [selectedAppointmentForFinalize, setSelectedAppointmentForFinalize] = useState(null);
+
+  // Estado para el botón de Copiar Link
+  const [copiedLink, setCopiedLink] = useState(false);
+  
+  // Base URL para el link de reservas
+  const bookingUrl = business?.slug ? `${window.location.origin}/booking/${business.slug}` : "";
 
   // --- Carga unificada de datos del negocio y widgets ---
   const fetchData = useCallback(async () => {
@@ -586,6 +593,57 @@ export default function DashboardView() {
       </header>
 
       {error && <Alert variant="danger" className="mb-4">{error}</Alert>}
+
+      {/* TARJETA DE ENLACE DE RESERVAS */}
+      {business?.slug && (
+        <div className="mb-4 bg-white rounded-4 p-4 border shadow-sm d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-4" style={{ borderColor: "#e2e8f0" }}>
+          <div className="d-flex align-items-start gap-3">
+            <div className="p-3 bg-primary bg-opacity-10 rounded-4 text-primary d-flex align-items-center justify-content-center">
+              <Sparkles size={28} />
+            </div>
+            <div>
+              <h3 className="h5 fw-bold text-dark mb-1">Tu enlace de reservas</h3>
+              <p className="text-muted small mb-3">
+                Comparte este enlace con tus clientes para que reserven online (gratis).
+              </p>
+              <div className="d-flex flex-wrap align-items-center gap-2">
+                <InputGroup style={{ maxWidth: "350px" }} className="shadow-sm">
+                  <Form.Control
+                    readOnly
+                    value={bookingUrl}
+                    className="bg-light border-gray-200 fw-medium font-monospace text-primary"
+                    style={{ fontSize: "13px" }}
+                  />
+                  <Button 
+                    variant="primary" 
+                    onClick={() => {
+                      navigator.clipboard.writeText(bookingUrl);
+                      setCopiedLink(true);
+                      setTimeout(() => setCopiedLink(false), 2000);
+                    }}
+                    className="d-flex align-items-center gap-2 px-3 fw-bold"
+                  >
+                    {copiedLink ? "¡Copiado!" : "Copiar"}
+                  </Button>
+                </InputGroup>
+                <Button 
+                  variant="outline-secondary" 
+                  onClick={() => window.open(bookingUrl, '_blank')}
+                  className="d-flex align-items-center gap-2 px-3 fw-bold bg-white"
+                >
+                  Abrir <span className="d-none d-sm-inline">Página</span>
+                </Button>
+              </div>
+            </div>
+          </div>
+          <div className="text-center d-flex flex-column align-items-center" style={{ minWidth: "120px" }}>
+            <div className="bg-white p-2 border rounded-3 shadow-sm mb-2" style={{ width: "fit-content" }}>
+              <QRCodeSVG value={bookingUrl} size={90} level="M" />
+            </div>
+            <span className="text-muted" style={{ fontSize: "11px", fontWeight: "600" }}>CÓDIGO QR</span>
+          </div>
+        </div>
+      )}
 
       {/* 2. KPIs SUPERIORES (SaaSMetricsGrid con diseño oscuro premium) */}
       <SaaSMetricsGrid

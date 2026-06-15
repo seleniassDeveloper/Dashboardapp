@@ -1,7 +1,7 @@
 import React from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { Container, Card, Button } from "react-bootstrap";
-import { CheckCircle2, Calendar, User, Clock, ArrowLeft } from "lucide-react";
+import { CheckCircle2, Calendar, User, Clock, ArrowLeft, Download } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 export default function BookingSuccess() {
@@ -40,6 +40,44 @@ export default function BookingSuccess() {
   const totalDownpayment = list.reduce((sum, appt) => sum + (appt.downpaymentPaid || 0), 0);
   const hasDownpayment = list.some((appt) => appt.downpaymentPaid > 0);
   const transactionId = list.find((appt) => appt.downpaymentTransactionId)?.downpaymentTransactionId;
+
+  const handleDownloadICS = () => {
+    const formatICSDate = (date) => {
+      return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    };
+
+    const events = list.map(appt => {
+      const startDate = new Date(appt.startsAt);
+      const endDate = new Date(startDate.getTime() + (appt.service?.duration || 30) * 60000);
+      return [
+        'BEGIN:VEVENT',
+        `UID:${appt.id || Date.now()}@auradash.digital`,
+        `DTSTAMP:${formatICSDate(new Date())}`,
+        `DTSTART:${formatICSDate(startDate)}`,
+        `DTEND:${formatICSDate(endDate)}`,
+        `SUMMARY:Cita: ${appt.service?.name}`,
+        `DESCRIPTION:Turno con ${appt.worker ? appt.worker.firstName : "AuraDash"}.`,
+        'END:VEVENT'
+      ].join('\n');
+    }).join('\n');
+
+    const icsContent = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//AuraDash//Booking//ES',
+      events,
+      'END:VCALENDAR'
+    ].join('\n');
+
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `Reserva_${businessSlug}.ics`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <div style={{ background: "#f3f4f6", minHeight: "100vh" }} className="py-5 d-flex align-items-center">
@@ -138,6 +176,15 @@ export default function BookingSuccess() {
             </p>
 
             <div className="d-grid gap-2">
+              <Button
+                variant="outline-primary"
+                onClick={handleDownloadICS}
+                className="rounded-pill py-2.5 d-flex align-items-center justify-content-center gap-2 fw-semibold"
+                style={{ color: color, borderColor: color }}
+              >
+                <Download size={16} />
+                <span>Añadir a mi Calendario</span>
+              </Button>
               <Button
                 variant="dark"
                 onClick={() => navigate(`/booking/${businessSlug}`)}
