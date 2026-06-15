@@ -763,7 +763,7 @@ export default function GoogleSheetsSyncView() {
     setStatusText(t("sheetsSync.progressText.import1"));
     setError("");
 
-    let combinedSummary = { created: 0, reused: 0, failed: 0, skippedDetails: [] };
+    let combinedSummary = { created: 0, reused: 0, failed: 0, skippedDetails: [], successfulDetails: [] };
 
     try {
       for (let i = 0; i < mappedSheets.length; i++) {
@@ -803,6 +803,9 @@ export default function GoogleSheetsSyncView() {
               motive: `[${sheet.name}] ${d.motive}`
             }));
             combinedSummary.skippedDetails.push(...mappedSkips);
+          }
+          if (res.data.summary.successfulDetails) {
+            combinedSummary.successfulDetails.push(...res.data.summary.successfulDetails);
           }
         } else {
           throw new Error(`Fallo al importar hoja ${sheet.name}`);
@@ -1739,6 +1742,36 @@ export default function GoogleSheetsSyncView() {
                   </div>
                 </Col>
               </Row>
+
+              {selectedHistory.details.successfulDetails && selectedHistory.details.successfulDetails.length > 0 && (
+                <div className="mt-4">
+                  <h5 className="fw-bold text-success h6 mb-2">Datos Importados Exitosamente</h5>
+                  <div className="table-responsive border rounded-3 mb-4 custom-scrollbar" style={{ maxHeight: "250px" }}>
+                    <Table hover size="sm" className="mb-0 align-middle">
+                      <thead className="bg-light sticky-top" style={{ zIndex: 1 }}>
+                        <tr style={{ fontSize: "12px" }}>
+                          <th>Tipo</th>
+                          <th>Descripción</th>
+                          <th>Acción</th>
+                        </tr>
+                      </thead>
+                      <tbody style={{ fontSize: "13px" }}>
+                        {selectedHistory.details.successfulDetails.map((item, idx) => (
+                          <tr key={idx}>
+                            <td className="fw-bold text-dark">{item.entityType}</td>
+                            <td className="text-muted">{item.description}</td>
+                            <td>
+                              <Badge bg={item.action === "Creado" ? "success" : "primary"}>
+                                {item.action}
+                              </Badge>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </Table>
+                  </div>
+                </div>
+              )}
 
               {selectedHistory.details.skippedDetails && selectedHistory.details.skippedDetails.length > 0 && (
                 <div className="mt-4">

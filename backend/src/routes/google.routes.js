@@ -475,6 +475,7 @@ router.post("/import", async (req, res) => {
     let reusedCount = 0;
     let failedCount = 0;
     const skippedDetails = [];
+    const successfulDetails = [];
 
     const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     const cleanPhone = (phone) => phone ? phone.replace(/[^0-9+]/g, '') : null;
@@ -662,6 +663,7 @@ router.post("/import", async (req, res) => {
               });
               existing.notes = (existing.notes ? existing.notes + "\n" : "") + finalNotes; // Update cache
             }
+            successfulDetails.push({ row: rowNum, entityType: "Clientes", action: "Actualizado", description: nameKey });
           } else {
             const newClient = await prisma.client.create({
               data: { firstName, lastName, phone, email, notes: finalNotes, businessId }
@@ -670,6 +672,7 @@ router.post("/import", async (req, res) => {
             if (phone) clientCache.byPhone.set(phone, newClient);
             clientCache.byName.set(nameKey, newClient);
             createdCount++;
+            successfulDetails.push({ row: rowNum, entityType: "Clientes", action: "Creado", description: nameKey });
           }
         } 
         else if (entityType === "services") {
@@ -683,6 +686,7 @@ router.post("/import", async (req, res) => {
 
           if (serviceCache.has(name.trim())) {
             reusedCount++;
+            successfulDetails.push({ row: rowNum, entityType: "Servicios", action: "Ignorado / Ya existía", description: name.trim() });
           } else {
             const standardKeys = ["name", "price", "duration"];
             const customKeys = Object.keys(mapping).filter(k => !standardKeys.includes(k));
@@ -701,6 +705,7 @@ router.post("/import", async (req, res) => {
             });
             serviceCache.set(name.trim(), newSvc);
             createdCount++;
+            successfulDetails.push({ row: rowNum, entityType: "Servicios", action: "Creado", description: name.trim() });
           }
         } 
         else if (entityType === "workers") {
@@ -727,6 +732,7 @@ router.post("/import", async (req, res) => {
           const nameKey = `${firstName} ${lastName}`.trim();
           if (workerCache.has(nameKey)) {
             reusedCount++;
+            successfulDetails.push({ row: rowNum, entityType: "Profesionales", action: "Ignorado / Ya existía", description: nameKey });
           } else {
             const defaultSchedules = [1,2,3,4,5].map(dayOfWeek => ({ dayOfWeek, startTime: "09:00", endTime: "19:00" }));
             const standardKeys = ["firstName", "lastName", "email", "phone", "roleTitle"];
@@ -748,6 +754,7 @@ router.post("/import", async (req, res) => {
             });
             workerCache.set(nameKey, newWorker);
             createdCount++;
+            successfulDetails.push({ row: rowNum, entityType: "Profesionales", action: "Creado", description: nameKey });
           }
         } 
         else if (entityType === "appointments") {
@@ -787,6 +794,7 @@ router.post("/import", async (req, res) => {
           const apptKey = `${client.id}_${startsAt.getTime()}`;
           if (appointmentCache.has(apptKey)) {
             reusedCount++;
+            successfulDetails.push({ row: rowNum, entityType: "Citas", action: "Ignorado / Ya existía", description: `Cita de ${clientName}` });
             continue;
           }
 
@@ -815,6 +823,7 @@ router.post("/import", async (req, res) => {
           });
           appointmentCache.set(apptKey, newAppt);
           createdCount++;
+          successfulDetails.push({ row: rowNum, entityType: "Citas", action: "Creado", description: `Cita de ${clientName} con ${workerName}` });
         }
       } catch (e) {
         console.error(`Error importando fila ${rowNum}:`, e);
@@ -829,7 +838,8 @@ router.post("/import", async (req, res) => {
         created: createdCount,
         reused: reusedCount,
         failed: failedCount,
-        skippedDetails
+        skippedDetails,
+        successfulDetails
       }
     });
   } catch (err) {
