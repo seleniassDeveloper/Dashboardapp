@@ -793,7 +793,7 @@ router.post("/import", async (req, res) => {
 });
 
 
-router.post("/import-history", verifyToken, async (req, res) => {
+router.post("/import-history", async (req, res) => {
   try {
     const { name, summary } = req.body;
     const businessId = req.user.businessId;
@@ -813,7 +813,7 @@ router.post("/import-history", verifyToken, async (req, res) => {
   }
 });
 
-router.get("/import-history", verifyToken, async (req, res) => {
+router.get("/import-history", async (req, res) => {
   try {
     const businessId = req.user.businessId;
     const history = await prisma.dataImportHistory.findMany({
