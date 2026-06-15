@@ -516,17 +516,24 @@ export default function PublicBookingPage() {
                   </Card>
                 )}
 
-                {/* Buscador de servicios */}
-                <div className="position-relative mb-4">
-                  <Form.Control
-                    type="text"
-                    placeholder={isEs ? "Buscar servicio..." : "Search service..."}
-                    value={serviceSearch}
-                    onChange={(e) => setServiceSearch(e.target.value)}
-                    className="rounded-xl border-gray-200 py-2.5 px-3"
-                    style={{ fontSize: "13px" }}
-                  />
-                </div>
+                {services.length === 0 ? (
+                  <div className="p-5 border border-dashed rounded-3xl text-center text-muted small bg-light mt-4">
+                    <AlertTriangle size={32} className="mx-auto text-warning mb-3 opacity-75" />
+                    <h3 className="h6 fw-bold text-gray-800 mb-2">No hay servicios disponibles</h3>
+                    <p className="smaller mb-0">Este negocio aún no ha publicado servicios para reservas online.</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="position-relative mb-4">
+                      <Form.Control
+                        type="text"
+                        placeholder={isEs ? "Buscar servicio..." : "Search service..."}
+                        value={serviceSearch}
+                        onChange={(e) => setServiceSearch(e.target.value)}
+                        className="rounded-xl border-gray-200 py-2.5 px-3"
+                        style={{ fontSize: "13px" }}
+                      />
+                    </div>
 
                 <div className="d-flex flex-column gap-3">
                   {services
@@ -573,6 +580,8 @@ export default function PublicBookingPage() {
                       })
                   )}
                 </div>
+                </>
+                )}
 
                 {selServices.length > 0 && (
                   <div className="mt-4 p-3 bg-white border rounded-2xl d-flex justify-content-between align-items-center shadow-sm sticky-bottom animate-fade-in" style={{ borderColor: primaryColor }}>
@@ -625,7 +634,17 @@ export default function PublicBookingPage() {
                     </div>
                   </div>
 
-                  {professionals.filter((p) => selServices.every((s) => p.serviceIds.includes(s.id))).length === 0 && (
+                  {professionals.length === 0 && (
+                    <div className="w-100 col-span-full">
+                      <Alert variant="warning" className="rounded-2xl border-0 shadow-sm text-center py-4 mb-0">
+                        <AlertTriangle size={24} className="mx-auto text-warning mb-2 animate-bounce" />
+                        <strong className="d-block small text-dark mb-1">No hay profesionales disponibles</strong>
+                        <span className="smaller text-muted d-block">Este negocio aún no ha publicado profesionales para reservas online.</span>
+                      </Alert>
+                    </div>
+                  )}
+
+                  {professionals.length > 0 && professionals.filter((p) => selServices.every((s) => p.serviceIds.includes(s.id))).length === 0 && (
                     <div className="w-100 col-span-full">
                       <Alert variant="warning" className="rounded-2xl border-0 shadow-sm text-center py-4 mb-0">
                         <AlertTriangle size={24} className="mx-auto text-warning mb-2 animate-bounce" />

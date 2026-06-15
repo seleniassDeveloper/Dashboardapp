@@ -13,6 +13,7 @@ const workerInclude = {
 router.get("/", async (_req, res) => {
   try {
     const workers = await prisma.worker.findMany({
+      where: { businessId: req.businessId },
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
       include: workerInclude,
     });
@@ -27,7 +28,7 @@ router.get("/", async (_req, res) => {
 router.get("/:id", async (req, res) => {
   try {
     const w = await prisma.worker.findUnique({
-      where: { id: req.params.id },
+      where: { id: req.params.id, businessId: req.businessId },
       include: workerInclude,
     });
     if (!w) return res.status(404).json({ error: "Trabajador no encontrado." });
@@ -51,6 +52,7 @@ router.post("/", async (req, res) => {
       serviceIds = [],
       schedules = [],
       servicePricing = {},
+      availableOnline,
     } = req.body;
 
     if (!firstName?.trim() || !lastName?.trim()) {
@@ -73,6 +75,8 @@ router.post("/", async (req, res) => {
         phone: phone?.trim() || null,
         roleTitle: roleTitle?.trim() || null,
         customFields: customFields && typeof customFields === "object" ? customFields : {},
+        businessId: req.businessId,
+        availableOnline: availableOnline !== undefined ? availableOnline : true,
       },
     });
 
@@ -104,6 +108,7 @@ router.put("/:id", async (req, res) => {
       serviceIds = [],
       schedules = [],
       servicePricing = {},
+      availableOnline,
     } = req.body;
 
     if (!firstName?.trim() || !lastName?.trim()) {
@@ -119,6 +124,7 @@ router.put("/:id", async (req, res) => {
         phone: phone?.trim() || null,
         roleTitle: roleTitle?.trim() || null,
         customFields: customFields && typeof customFields === "object" ? customFields : {},
+        availableOnline: availableOnline !== undefined ? availableOnline : true,
       },
     });
 

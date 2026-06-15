@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { Card, Form, Button, Row, Col, Spinner, Alert, InputGroup } from "react-bootstrap";
-import { Link2, Copy, Check, Sparkles, Globe, AlertTriangle, CheckCircle2, CreditCard, Calendar } from "lucide-react";
+import { Card, Form, Button, Row, Col, Spinner, Alert, InputGroup, Badge } from "react-bootstrap";
+import { Link2, Copy, Check, Sparkles, Globe, AlertTriangle, CheckCircle2, CreditCard, Calendar, ExternalLink } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import api from "../../lib/api.js";
 
@@ -202,26 +202,57 @@ export default function BookingSettings({ onNavigateToGoogleSync }) {
 
           {business.bookingEnabled && (
             <>
-              {/* Copiar Link */}
-              <div className="p-3 border rounded-3 bg-light">
-                <Form.Label className="fw-semibold small d-flex align-items-center gap-2">
-                  <Globe size={16} className="text-primary" />
-                  <span>{t("settings.yourLink")}</span>
-                </Form.Label>
-                <InputGroup className="mb-2">
-                  <Form.Control
-                    readOnly
-                    value={bookingUrl}
-                    style={{ background: "#fff", fontSize: "13px" }}
-                  />
-                  <Button variant="outline-dark" onClick={copyToClipboard}>
-                    {copied ? <Check size={16} className="text-success" /> : <Copy size={16} />}
-                  </Button>
-                </InputGroup>
-                <Form.Text className="text-muted small">
-                  {t("settings.yourLinkHint")}
-                </Form.Text>
-              </div>
+              {/* Copiar Link - Rediseñado para destacar gratuidad e independencia */}
+              <Card className="border border-primary border-opacity-25 shadow-sm rounded-4 mb-4 overflow-hidden">
+                <div className="bg-primary bg-opacity-10 px-4 py-3 d-flex justify-content-between align-items-center border-bottom border-primary border-opacity-10">
+                  <div className="d-flex align-items-center gap-2">
+                    <Globe size={20} className="text-primary" />
+                    <h3 className="h6 fw-bold mb-0 text-primary">Tu Página Pública de Reservas AuraDash</h3>
+                  </div>
+                  <Badge bg="success" className="rounded-pill px-3 py-1 fw-bold text-uppercase d-flex align-items-center gap-1" style={{ fontSize: "10px", letterSpacing: "0.5px" }}>
+                    <Sparkles size={10} />
+                    100% Gratis e Independiente
+                  </Badge>
+                </div>
+                <Card.Body className="p-4 bg-white">
+                  <p className="text-muted small mb-3">
+                    Comparte este enlace con tus clientes en Instagram, WhatsApp o tu sitio web. No depende de Google Workspace ni tiene costos adicionales por reservas.
+                  </p>
+                  
+                  <div className="d-flex gap-2">
+                    <InputGroup>
+                      <Form.Control
+                        readOnly
+                        value={bookingUrl}
+                        className="fw-semibold text-primary font-monospace bg-light border-gray-200"
+                        style={{ fontSize: "13px" }}
+                      />
+                      <Button 
+                        variant="primary" 
+                        onClick={copyToClipboard}
+                        className="d-flex align-items-center gap-2 px-3"
+                        style={{ minWidth: "120px", justifyContent: "center" }}
+                      >
+                        {copied ? (
+                          <><Check size={16} /> ¡Copiado!</>
+                        ) : (
+                          <><Copy size={16} /> Copiar Link</>
+                        )}
+                      </Button>
+                    </InputGroup>
+                    
+                    <Button 
+                      variant="outline-primary" 
+                      onClick={() => window.open(bookingUrl, '_blank')}
+                      className="d-flex align-items-center gap-2 px-3 fw-semibold"
+                      title="Previsualizar página"
+                    >
+                      <ExternalLink size={16} />
+                      <span className="d-none d-sm-inline">Previsualizar</span>
+                    </Button>
+                  </div>
+                </Card.Body>
+              </Card>
 
               {/* Copiar Link de Google Calendar */}
               {business.googleBookingUrl && (

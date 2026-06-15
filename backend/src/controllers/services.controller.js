@@ -76,6 +76,7 @@ export async function createService(req, res) {
       commissionValue,
       workerIds,
       inventoryItems,
+      availableOnline: reqAvailableOnline,
     } = req.body;
 
     const validationError = validateServiceData({
@@ -101,7 +102,7 @@ export async function createService(req, res) {
 
     const currentStatus = status || "active";
     const isActive = currentStatus !== "inactive";
-    const availableOnline = currentStatus !== "hidden_online";
+    const availableOnline = reqAvailableOnline !== undefined ? Boolean(reqAvailableOnline) : currentStatus !== "hidden_online";
 
     const created = await prisma.service.create({
       data: {
@@ -228,6 +229,7 @@ export async function updateService(req, res) {
       commissionValue,
       workerIds,
       inventoryItems,
+      availableOnline: reqAvailableOnline,
     } = req.body;
 
     const existing = await prisma.service.findFirst({ where: { id, businessId: req.businessId }
@@ -277,7 +279,13 @@ export async function updateService(req, res) {
     if (status !== undefined) {
       updateData.status = status;
       updateData.isActive = status !== "inactive";
-      updateData.availableOnline = status !== "hidden_online";
+      if (reqAvailableOnline === undefined) {
+        updateData.availableOnline = status !== "hidden_online";
+      }
+    }
+
+    if (reqAvailableOnline !== undefined) {
+      updateData.availableOnline = Boolean(reqAvailableOnline);
     }
 
     if (requiresApproval !== undefined) updateData.requiresApproval = Boolean(requiresApproval);

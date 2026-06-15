@@ -41,6 +41,7 @@ export default function WorkerModal({
   const [phone, setPhone] = useState("");
   const [serviceIds, setServiceIds] = useState([]);
   const [schedule, setSchedule] = useState(emptySchedule);
+  const [availableOnline, setAvailableOnline] = useState(true);
 
   const [services, setServices] = useState([]);
 
@@ -75,6 +76,7 @@ export default function WorkerModal({
       setLastName(initialData?.lastName || "");
       setEmail(initialData?.email || "");
       setPhone(initialData?.phone || "");
+      setAvailableOnline(initialData?.availableOnline !== undefined ? initialData.availableOnline : true);
       setServiceIds(safeArray(initialData?.serviceIds));
 
       const base = DAYS.map((d) => ({
@@ -101,6 +103,7 @@ export default function WorkerModal({
       setLastName("");
       setEmail("");
       setPhone("");
+      setAvailableOnline(true);
       setServiceIds([]);
       setSchedule(emptySchedule);
     }
@@ -147,6 +150,7 @@ export default function WorkerModal({
         phone: phone.trim() || null,
         serviceIds,
         schedules: schedulesPayload,
+        availableOnline,
       };
 
       const url = isEdit ? `/workers/${initialData.id}` : `/workers`;
@@ -226,6 +230,21 @@ export default function WorkerModal({
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="Ej: +34 600 000 000"
+              />
+            </Form.Group>
+            
+            <Form.Group className="mt-3 p-3 bg-light rounded-2 border">
+              <Form.Check
+                type="switch"
+                id="worker-available-online"
+                label={
+                  <div>
+                    <span className="fw-bold text-gray-800 smaller block">Disponible para Reservas Online</span>
+                    <span className="text-muted" style={{fontSize: "11px"}}>Si está activo, este profesional será mostrado en la página pública de reservas.</span>
+                  </div>
+                }
+                checked={availableOnline}
+                onChange={(e) => setAvailableOnline(e.target.checked)}
               />
             </Form.Group>
           </Col>

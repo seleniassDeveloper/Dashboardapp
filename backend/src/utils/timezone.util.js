@@ -14,6 +14,7 @@
  * @returns {number} Minutos desde medianoche en ese huso horario
  */
 export function getTzMinutes(date, timezone = "America/Argentina/Buenos_Aires") {
+  if (!timezone) timezone = "America/Argentina/Buenos_Aires";
   const d = new Date(date);
   if (isNaN(d.getTime())) return 0;
 
@@ -47,6 +48,7 @@ export function getTzMinutes(date, timezone = "America/Argentina/Buenos_Aires") 
  * @returns {{ start: Date, end: Date, dayOfWeek: number }} 
  */
 export function getDayRangeInTz(dateStrOrDate, timezone = "America/Argentina/Buenos_Aires") {
+  if (!timezone) timezone = "America/Argentina/Buenos_Aires";
   let year, month, day;
 
   // Si recibimos YYYY-MM-DD
@@ -123,6 +125,7 @@ export function getDayRangeInTz(dateStrOrDate, timezone = "America/Argentina/Bue
  * @returns {{ todayStr: string, currentMins: number }}
  */
 export function getCurrentTimeInTz(timezone = "America/Argentina/Buenos_Aires") {
+  if (!timezone) timezone = "America/Argentina/Buenos_Aires";
   const formatter = new Intl.DateTimeFormat("en-US", {
     timeZone: timezone,
     year: "numeric", month: "2-digit", day: "2-digit",

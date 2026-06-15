@@ -30,7 +30,25 @@ function overlaps(aStart, aEnd, bStart, bEnd) {
 export async function getPublicBusiness(req, res) {
   try {
     const { slug } = req.params;
-    let biz = await prisma.business.findUnique({ where: { slug } });
+    const publicSelect = {
+      id: true,
+      name: true,
+      slug: true,
+      logo: true,
+      industry: true,
+      description: true,
+      bookingEnabled: true,
+      bookingPrimaryColor: true,
+      bookingConfirmationMessage: true,
+      timezone: true,
+      bookingDownpaymentEnabled: true,
+      bookingDownpaymentPercent: true
+    };
+
+    let biz = await prisma.business.findUnique({ 
+      where: { slug },
+      select: publicSelect
+    });
 
     // Autocreación de negocio por defecto para desarrollo
     if (!biz && slug === "mi-negocio") {
@@ -43,6 +61,7 @@ export async function getPublicBusiness(req, res) {
           bookingPrimaryColor: "#10b981",
           bookingConfirmationMessage: "¡Tu reserva ha sido confirmada con éxito!",
         },
+        select: publicSelect
       });
     }
 

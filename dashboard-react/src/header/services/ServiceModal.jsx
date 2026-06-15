@@ -49,6 +49,7 @@ export default function ServiceModal({ show, onHide, editService = null }) {
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("Estilismo");
   const [status, setStatus] = useState("active");
+  const [availableOnline, setAvailableOnline] = useState(true);
   const [color, setColor] = useState("#10b981");
 
   // TAB 2: PRECIO Y DURACIÓN
@@ -104,7 +105,8 @@ export default function ServiceModal({ show, onHide, editService = null }) {
       setName(editService.name || "");
       setDescription(editService.description || "");
       setCategory(editService.category || "Estilismo");
-      setStatus(editService.status || "active");
+      setStatus(editService.status === "inactive" ? "inactive" : "active");
+      setAvailableOnline(editService.availableOnline !== undefined ? editService.availableOnline : editService.status !== "hidden_online");
       setColor(editService.color || "#10b981");
 
       setPrice(editService.price || "");
@@ -133,6 +135,7 @@ export default function ServiceModal({ show, onHide, editService = null }) {
       setDescription("");
       setCategory("Estilismo");
       setStatus("active");
+      setAvailableOnline(true);
       setColor("#10b981");
 
       setPrice("");
@@ -229,6 +232,7 @@ export default function ServiceModal({ show, onHide, editService = null }) {
         depositAmount: Math.round(parsedDeposit),
         color,
         status,
+        availableOnline,
         requiresApproval,
         commissionType,
         commissionValue: Math.round(parsedCommValue),
@@ -382,11 +386,27 @@ export default function ServiceModal({ show, onHide, editService = null }) {
                           onChange={(e) => setStatus(e.target.value)}
                           className="modern-input"
                         >
-                          <option value="active">Activo (Disponible en Agenda y Reservas)</option>
-                          <option value="hidden_online">Oculto en Reservas Online (Solo interno)</option>
+                          <option value="active">Activo (Disponible en sistema)</option>
                           <option value="inactive">Inactivo / Desactivado</option>
                         </Form.Select>
                       </Form.Group>
+                    </Col>
+                    <Col md={12}>
+                      <Card className="border p-3.5 rounded-2xl bg-light mt-1 mb-2">
+                        <Form.Check
+                          type="switch"
+                          id="available-online-switch"
+                          label={
+                            <div>
+                              <span className="fw-bold text-gray-800 smaller block">Disponible para Reservas Online</span>
+                              <span className="text-muted" style={{fontSize: "11px"}}>Si está activo, los clientes podrán ver y agendar este servicio desde tu página web pública de reservas.</span>
+                            </div>
+                          }
+                          checked={availableOnline}
+                          onChange={(e) => setAvailableOnline(e.target.checked)}
+                          className="custom-switch"
+                        />
+                      </Card>
                     </Col>
                     <Col md={12}>
                       <Form.Group>
