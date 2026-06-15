@@ -842,7 +842,7 @@ router.post("/import", async (req, res) => {
 router.post("/import-history", async (req, res) => {
   try {
     const { name, summary } = req.body;
-    const businessId = req.user.businessId;
+    const businessId = req.businessId;
     if (!name || !summary) return res.status(400).json({ error: "Faltan datos requeridos." });
 
     const record = await prisma.dataImportHistory.create({
@@ -861,7 +861,7 @@ router.post("/import-history", async (req, res) => {
 
 router.get("/import-history", async (req, res) => {
   try {
-    const businessId = req.user.businessId;
+    const businessId = req.businessId;
     const history = await prisma.dataImportHistory.findMany({
       where: { businessId },
       orderBy: { createdAt: 'desc' }
