@@ -1522,8 +1522,8 @@ export default function UsersPermissionsSettings() {
                 <span className="d-flex align-items-center gap-1.5"><span className="bullet-legend rounded-circle" style={{ width: "7px", height: "7px", backgroundColor: "#ef4444", display: "inline-block" }}></span> Sin acceso (0 - 29%)</span>
               </div>
             </div>
-                </div>
-                <div style={{ display: activeRoleTab === "users" ? "flex" : "none" }} className="flex-column h-100 animate-fade-in">
+            {/* START USERS TAB */}
+            <div style={{ display: activeRoleTab === "users" ? "flex" : "none" }} className="flex-column h-100 animate-fade-in">
               <div className="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
                 <div>
                   <h3 className="h6 fw-black text-dark mb-0 text-uppercase" style={{ letterSpacing: "0.03em" }}>
@@ -1760,10 +1760,9 @@ export default function UsersPermissionsSettings() {
                 )}
               </div>
             </div>
-                </div>
-              </div>
-            </>
-          ) : (
+          </div>
+        </>
+      ) : (
             <div className="p-5 text-center d-flex flex-column align-items-center justify-content-center h-100">
               <ShieldQuestion size={56} className="text-muted mb-3" />
               <div className="fw-black h4 text-dark mb-2">No se ha seleccionado ningún rol</div>
