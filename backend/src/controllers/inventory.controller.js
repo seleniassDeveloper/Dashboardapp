@@ -686,7 +686,9 @@ export async function createBatch(req, res) {
 // GET /api/inventory/rules & CRUD
 export async function listRules(req, res) {
   try {
-    const list = await prisma.serviceConsumptionRule.findMany({ where: { businessId: req.businessId }, include: { service: true, product: true }
+    const list = await prisma.serviceConsumptionRule.findMany({ 
+      where: { service: { businessId: req.businessId } }, 
+      include: { service: true, product: true }
     });
     return res.status(200).json(list);
   } catch (error) {
@@ -738,7 +740,9 @@ export async function deleteRule(req, res) {
 // GET /api/inventory/orders & CRUD
 export async function listPurchaseOrders(req, res) {
   try {
-    const list = await prisma.purchaseOrder.findMany({ where: { businessId: req.businessId }, include: { supplier: true, branch: true, items: { include: { product: true } } },
+    const list = await prisma.purchaseOrder.findMany({ 
+      where: { supplier: { businessId: req.businessId } }, 
+      include: { supplier: true, branch: true, items: { include: { product: true } } },
       orderBy: { createdAt: "desc" }
     });
     return res.status(200).json(list);
