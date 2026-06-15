@@ -2,8 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Container, Nav, Tab } from "react-bootstrap";
 import { Trans, useTranslation } from "react-i18next";
-import FieldRegistryEditor from "../components/configurable-fields/FieldRegistryEditor.jsx";
-import ComponentAssignmentEditor from "../components/configurable-fields/ComponentAssignmentEditor.jsx";
+import FieldsAndFormsSettings from "../components/configurable-fields/FieldsAndFormsSettings.jsx";
 import ActiveModulesEditor from "../components/configurable-fields/ActiveModulesEditor.jsx";
 import BookingSettings from "../components/configurable-fields/BookingSettings.jsx";
 import UsersPermissionsSettings from "../components/configurable-fields/UsersPermissionsSettings.jsx";
@@ -27,7 +26,7 @@ export default function SettingsView() {
 
   const [tab, setTabState] = useState(() => {
     if (queryTab) return queryTab;
-    if (canManageSettings) return "assign";
+    if (canManageSettings) return "custom-fields";
     if (canManageUsers) return "users";
     return "";
   });
@@ -63,13 +62,8 @@ export default function SettingsView() {
           {canManageSettings && (
             <>
               <Nav.Item>
-                <Nav.Link eventKey="registry" className="rounded-pill px-4">
-                  {t("settings.tabs.registry")}
-                </Nav.Link>
-              </Nav.Item>
-              <Nav.Item>
-                <Nav.Link eventKey="assign" className="rounded-pill px-4">
-                  {t("settings.tabs.assign")}
+                <Nav.Link eventKey="custom-fields" className="rounded-pill px-4 fw-medium text-nowrap">
+                  {isEs ? "Campos y Formularios" : "Fields & Forms"}
                 </Nav.Link>
               </Nav.Item>
               <Nav.Item>
@@ -121,11 +115,8 @@ export default function SettingsView() {
         <Tab.Content>
           {canManageSettings && (
             <>
-              <Tab.Pane eventKey="registry">
-                <FieldRegistryEditor />
-              </Tab.Pane>
-              <Tab.Pane eventKey="assign">
-                <ComponentAssignmentEditor />
+              <Tab.Pane eventKey="custom-fields">
+                <FieldsAndFormsSettings />
               </Tab.Pane>
               <Tab.Pane eventKey="modules">
                 <ActiveModulesEditor />
