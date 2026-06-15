@@ -565,7 +565,15 @@ export default function PublicBookingPage() {
                               </div>
                               <div>
                                 <strong className="text-gray-900 d-block small fw-bold">{s.name}</strong>
-                                <span className="smaller text-muted d-block mt-0.5 d-flex align-items-center gap-1">
+                                {s.category && (
+                                  <span className="badge bg-light text-secondary border mt-1 mb-1 d-inline-block" style={{ fontSize: "10px" }}>{s.category}</span>
+                                )}
+                                {s.description && (
+                                  <span className="smaller text-muted d-block mt-1 mb-1" style={{ fontSize: "11px", lineHeight: "1.3" }}>
+                                    {s.description.length > 80 ? `${s.description.substring(0, 80)}...` : s.description}
+                                  </span>
+                                )}
+                                <span className="smaller text-muted d-block mt-1 d-flex align-items-center gap-1">
                                   <Clock size={12} />
                                   <span>{s.duration} min</span>
                                 </span>
@@ -674,7 +682,14 @@ export default function PublicBookingPage() {
                         </div>
                         <div>
                           <strong className="text-gray-900 d-block small fw-bold">{p.firstName} {p.lastName}</strong>
-                          <span className="smaller text-muted d-block mt-0.5" style={{ fontSize: "11px" }}>{isEs ? "Profesional Calificado" : "Qualified Professional"}</span>
+                          <span className="smaller text-primary d-block mt-0.5 fw-medium" style={{ fontSize: "11px" }}>
+                            {p.roleTitle || (isEs ? "Profesional" : "Professional")}
+                          </span>
+                          {p.customFields?.description && (
+                            <span className="text-muted d-block mt-1" style={{ fontSize: "10px", lineHeight: "1.2" }}>
+                              {p.customFields.description.length > 50 ? `${p.customFields.description.substring(0, 50)}...` : p.customFields.description}
+                            </span>
+                          )}
                         </div>
                       </div>
                     ))}
