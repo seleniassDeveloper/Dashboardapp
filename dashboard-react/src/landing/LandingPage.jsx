@@ -36,14 +36,14 @@ import "./styles/landing.css";
 import logoCircular from "../assets/logo-circular.png";
 import logoHorizontal from "../assets/logo-horizontal.png";
 
-import dashHome from "../assets/c1.png";
-import dashCalendar from "../assets/c2.png";
+import dashHome from "../views/Aura Pictures/Capturas 3/Panel/Panel1.png";
+import dashCalendar from "../views/Aura Pictures/Capturas 3/Agenda/agendaVista.png";
 import dashClients from "../assets/c3.png";
-import dashTeam from "../assets/c4.png";
-import dashFinance from "../assets/c5.png";
-import dashFlows from "../assets/c6.png";
-import dashIntegrations from "../assets/c7.png";
-import dashSettings from "../assets/c8.png";
+import dashTeam from "../views/Aura Pictures/Capturas 3/Personal/Captura de pantalla 2026-06-16 a las 7.34.13 p. m..png";
+import dashFinance from "../views/Aura Pictures/Capturas 3/Centro de Control ERP Financiero/Captura de pantalla 2026-06-16 a las 7.38.39 p. m..png";
+import dashFlows from "../views/Aura Pictures/Capturas 3/Workflow/Captura de pantalla 2026-06-16 a las 7.41.42 p. m..png";
+import dashIntegrations from "../views/Aura Pictures/Capturas 3/integraciones/Captura de pantalla 2026-06-16 a las 7.42.08 p. m..png";
+import dashSettings from "../views/Aura Pictures/Capturas 3/CREACION DE CAMOPS/Captura de pantalla 2026-06-16 a las 7.43.31 p. m..png";
 import dashInventory from "../assets/seccion3.png";
 
 // Reutilizamos el sistema de revelación al hacer scroll
