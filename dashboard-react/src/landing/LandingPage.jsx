@@ -36,14 +36,14 @@ import "./styles/landing.css";
 import logoCircular from "../assets/logo-circular.png";
 import logoHorizontal from "../assets/logo-horizontal.png";
 
-import dashHome from "../views/Aura Pictures/Capturas 3/Panel/Panel1.png";
-import dashCalendar from "../views/Aura Pictures/Capturas 3/Agenda/agendaVista.png";
+import dashHome from "../assets/tour_panel.png";
+import dashCalendar from "../assets/tour_agenda.png";
 import dashClients from "../assets/c3.png";
-import dashTeam from "../views/Aura Pictures/Capturas 3/Personal/Captura de pantalla 2026-06-16 a las 7.34.13 p. m..png";
-import dashFinance from "../views/Aura Pictures/Capturas 3/Centro de Control ERP Financiero/Captura de pantalla 2026-06-16 a las 7.38.39 p. m..png";
-import dashFlows from "../views/Aura Pictures/Capturas 3/Workflow/Captura de pantalla 2026-06-16 a las 7.41.42 p. m..png";
-import dashIntegrations from "../views/Aura Pictures/Capturas 3/integraciones/Captura de pantalla 2026-06-16 a las 7.42.08 p. m..png";
-import dashSettings from "../views/Aura Pictures/Capturas 3/CREACION DE CAMOPS/Captura de pantalla 2026-06-16 a las 7.43.31 p. m..png";
+import dashTeam from "../assets/tour_equipo.png";
+import dashFinance from "../assets/tour_finanzas.png";
+import dashFlows from "../assets/tour_workflows.png";
+import dashIntegrations from "../assets/tour_integraciones.png";
+import dashSettings from "../assets/tour_config.png";
 import dashInventory from "../assets/seccion3.png";
 
 // Reutilizamos el sistema de revelación al hacer scroll
@@ -449,19 +449,7 @@ export default function LandingPage() {
                   </button>
                 </div>
                 
-                {/* Social Proof Avatars */}
-                <div className="d-flex align-items-center gap-3">
-                  <div className="avatar-group">
-                    <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&h=100&q=80" alt="User 1" />
-                    <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&h=100&q=80" alt="User 2" />
-                    <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&h=100&q=80" alt="User 3" />
-                    <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=100&h=100&q=80" alt="User 4" />
-                  </div>
-                  <div>
-                    <div className="text-warning small" style={{ letterSpacing: '2px' }}>★★★★★</div>
-                    <div className="text-muted small fw-semibold" style={{ fontSize: '0.8rem' }}>{t("hero.trust")}</div>
-                  </div>
-                </div>
+
               </Col>
               
               <Col lg={6}>
@@ -488,13 +476,7 @@ export default function LandingPage() {
                     </div>
                     <div className="text-muted smaller fw-bold">{t("hero.metricsEfficiency")}</div>
                   </div>
-                  <div className="floating-card users-card card-premium shadow-lg" style={{ zIndex: 12, borderRadius: '16px' }}>
-                    <div className="d-flex align-items-center gap-2 mb-2">
-                      <Users size={16} style={{ color: '#3b82f6' }} />
-                      <span className="fw-bold small" style={{ color: '#1e293b' }}>1,200+</span>
-                    </div>
-                    <div className="text-muted smaller fw-bold">{t("hero.metricsClients")}</div>
-                  </div>
+
                 </div>
               </Col>
             </Row>
