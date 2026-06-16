@@ -79,18 +79,7 @@ export default function AgendaSummary({
 
   return (
     <div className="mb-4">
-      {/* Indicador Inteligente AI Sparkles */}
-      {stats.total > 0 && stats.recommendedName !== "N/A" && (
-        <div className="agenda-ai-badge mb-3.5">
-          <div className="d-flex align-items-center gap-2">
-            <Sparkles size={16} className="text-warning animate-bounce" />
-            <span className="fw-semibold">
-              <strong>Sugerencia de Agenda Inteligente:</strong> Asigná turnos preferentemente a *{stats.recommendedName}*, quien tiene un *{stats.recommendedFreePercent}%* de disponibilidad libre hoy.
-            </span>
-          </div>
-          <Badge bg="success" className="rounded-pill px-3 py-1 smaller uppercase">Optimizado</Badge>
-        </div>
-      )}
+
 
       {/* Grid de KPIs superiores */}
       <Row className="g-3">
