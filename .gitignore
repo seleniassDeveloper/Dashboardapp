@@ -43,3 +43,5 @@ Dashboard_SaaS_Product_Roadmap.pdf
 # Temp & Lock files
 *.tmp
 .~lock.*
+*.mov
+*.mp4

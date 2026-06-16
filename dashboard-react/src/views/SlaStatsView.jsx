@@ -372,7 +372,13 @@ export default function SlaStatsView() {
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="ps-5 border-gray-200 rounded-xl small"
                         style={{ padding: "8.5px 12px 8.5px 36px", fontSize: "13px" }}
+                        list="sla-client-suggestions"
                       />
+                      <datalist id="sla-client-suggestions">
+                        {Array.from(new Set(data.recentTransitions?.map(t => t.clientName))).filter(Boolean).map(name => (
+                          <option key={name} value={name} />
+                        ))}
+                      </datalist>
                     </div>
 
                     {/* Filter Status */}

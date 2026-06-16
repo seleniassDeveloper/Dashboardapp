@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import api from "../../../lib/api.js";
 import { Form, Row, Col, InputGroup } from "react-bootstrap";
 import { Search, User, Briefcase, Tag, AlertTriangle } from "lucide-react";
 
@@ -8,6 +9,16 @@ export default function AgendaFilters({
   filters,
   onChangeFilter,
 }) {
+  const [clients, setClients] = useState([]);
+
+  useEffect(() => {
+    api.get("/clients")
+      .then(res => {
+        if (Array.isArray(res.data)) setClients(res.data);
+      })
+      .catch(console.error);
+  }, []);
+
   return (
     <div className="agenda-filters-row shadow-sm">
       <Row className="g-3">
@@ -26,7 +37,13 @@ export default function AgendaFilters({
                 onChange={(e) => onChangeFilter("search", e.target.value)}
                 className="bg-transparent border-0 py-1.5 shadow-none small"
                 style={{ fontSize: "12.5px" }}
+                list="agenda-client-suggestions"
               />
+              <datalist id="agenda-client-suggestions">
+                {clients.map(c => (
+                  <option key={c.id} value={`${c.firstName} ${c.lastName || ""}`.trim()} />
+                ))}
+              </datalist>
             </InputGroup>
           </Form.Group>
         </Col>
