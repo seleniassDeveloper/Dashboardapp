@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { Container, Row, Col, Card, Button, Form, Badge, ListGroup, Alert } from "react-bootstrap";
 import { 
   MessageCircle, Clock, Users, Plus, Check, Clipboard, Trash2, 
-  Sparkles, AlertCircle, Phone, Calendar as CalendarIcon, DollarSign 
+  Sparkles, AlertCircle, Phone, Calendar as CalendarIcon, DollarSign, Search
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import AppointmentsCalendar from "../gadgets/appointments/AppointmentsCalendar";
@@ -63,13 +63,24 @@ export default function CalendarView() {
   const [activeSideTab, setActiveSideTab] = useState("waitlist");
 
   // --- HISTORIAL DE CITAS ---
+  const [historySearchTerm, setHistorySearchTerm] = useState("");
+
   const historyList = useMemo(() => {
     const now = new Date();
-    return appointments
+    let filtered = appointments
       .filter(a => a.status === "DONE" || new Date(a.startsAt) < now)
-      .sort((a, b) => new Date(b.startsAt) - new Date(a.startsAt))
-      .slice(0, 30);
-  }, [appointments]);
+      .sort((a, b) => new Date(b.startsAt) - new Date(a.startsAt));
+      
+    if (historySearchTerm.trim() !== "") {
+      const term = historySearchTerm.toLowerCase();
+      filtered = filtered.filter(a => 
+        (a.clientName && a.clientName.toLowerCase().includes(term)) ||
+        (a.serviceName && a.serviceName.toLowerCase().includes(term)) ||
+        (a.workerName && a.workerName.toLowerCase().includes(term))
+      );
+    }
+    return filtered.slice(0, 30);
+  }, [appointments, historySearchTerm]);
 
   // --- MOTOR DE RECOMENDACIONES DE AURA AI (Punto 6) ---
   // Detector de huecos libres (Mock determinista e interactivo en tiempo real)
@@ -590,7 +601,21 @@ export default function CalendarView() {
 
                 {/* --- PESTAÑA: HISTORIAL --- */}
                 <div style={{ display: activeSideTab === "history" ? "block" : "none" }} className="animate-fade-in">
-                  <div className="d-grid gap-3 overflow-auto" style={{ maxHeight: "700px", paddingRight: "4px" }}>
+                  
+                  {/* Búsqueda Inteligente */}
+                  <div className="mb-3 position-relative">
+                    <Form.Control
+                      type="text"
+                      placeholder="Buscar por cliente, servicio o profesional..."
+                      value={historySearchTerm}
+                      onChange={(e) => setHistorySearchTerm(e.target.value)}
+                      className="modern-input px-3 py-2"
+                      style={{ fontSize: "12px", paddingRight: "30px", borderRadius: "10px", backgroundColor: "#f8fafc" }}
+                    />
+                    <Search size={14} className="position-absolute text-muted" style={{ right: "12px", top: "50%", transform: "translateY(-50%)" }} />
+                  </div>
+
+                  <div className="d-grid gap-3 overflow-auto" style={{ maxHeight: "600px", paddingRight: "4px" }}>
                     {historyList.length === 0 ? (
                       <div className="text-center py-5 text-muted small">
                         <Clock size={32} className="mb-3 text-muted mx-auto opacity-50" />
