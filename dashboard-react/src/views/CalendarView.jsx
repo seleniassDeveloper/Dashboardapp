@@ -59,6 +59,18 @@ export default function CalendarView() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [initialAddData, setInitialAddData] = useState(null);
 
+  // --- TAB STATE ---
+  const [activeSideTab, setActiveSideTab] = useState("waitlist");
+
+  // --- HISTORIAL DE CITAS ---
+  const historyList = useMemo(() => {
+    const now = new Date();
+    return appointments
+      .filter(a => a.status === "DONE" || new Date(a.startsAt) < now)
+      .sort((a, b) => new Date(b.startsAt) - new Date(a.startsAt))
+      .slice(0, 30);
+  }, [appointments]);
+
   // --- MOTOR DE RECOMENDACIONES DE AURA AI (Punto 6) ---
   // Detector de huecos libres (Mock determinista e interactivo en tiempo real)
   const gaps = useMemo(() => {
@@ -324,14 +336,42 @@ export default function CalendarView() {
               </Card>
             )}
 
-            {/* LISTA DE ESPERA PRINCIPAL */}
-            <Card className="card-premium border-0 shadow-sm rounded-4 bg-white">
-              <Card.Body className="p-4">
-                <h3 className="h6 fw-black text-dark mb-3 d-flex align-items-center gap-2">
-                  <Users size={18} className="text-primary" />
-                  <span>Lista de Espera Inteligente</span>
-                </h3>
+            {/* PANEL LATERAL: TABS */}
+            <Card className="card-premium border-0 shadow-sm rounded-4 bg-white overflow-hidden">
+              <div className="d-flex border-bottom bg-light">
+                <button
+                  type="button"
+                  onClick={() => setActiveSideTab("waitlist")}
+                  className="btn flex-grow-1 rounded-0 border-0 py-3 fw-bold d-flex justify-content-center align-items-center gap-2 transition-all"
+                  style={{
+                    color: activeSideTab === "waitlist" ? "#10b981" : "#6b7280",
+                    borderBottom: activeSideTab === "waitlist" ? "3px solid #10b981" : "3px solid transparent",
+                    background: activeSideTab === "waitlist" ? "#ffffff" : "transparent",
+                    fontSize: "13px"
+                  }}
+                >
+                  <Users size={16} />
+                  Lista de Espera
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveSideTab("history")}
+                  className="btn flex-grow-1 rounded-0 border-0 py-3 fw-bold d-flex justify-content-center align-items-center gap-2 transition-all"
+                  style={{
+                    color: activeSideTab === "history" ? "#6366f1" : "#6b7280",
+                    borderBottom: activeSideTab === "history" ? "3px solid #6366f1" : "3px solid transparent",
+                    background: activeSideTab === "history" ? "#ffffff" : "transparent",
+                    fontSize: "13px"
+                  }}
+                >
+                  <Clock size={16} />
+                  Historial de Citas
+                </button>
+              </div>
 
+              <Card.Body className="p-4 position-relative">
+                {/* --- PESTAÑA: LISTA DE ESPERA --- */}
+                <div style={{ display: activeSideTab === "waitlist" ? "block" : "none" }} className="animate-fade-in">
                 {/* Formulario registro */}
                 <Form onSubmit={handleAddToWaitlist} className="d-grid gap-2 mb-4 bg-light p-3 rounded-4 border">
                   <div className="smaller text-muted fw-bold mb-1">Registrar Cliente en Espera</div>
@@ -545,6 +585,52 @@ export default function CalendarView() {
                       );
                     })
                   )}
+                </div>
+                </div>
+
+                {/* --- PESTAÑA: HISTORIAL --- */}
+                <div style={{ display: activeSideTab === "history" ? "block" : "none" }} className="animate-fade-in">
+                  <div className="d-grid gap-3 overflow-auto" style={{ maxHeight: "700px", paddingRight: "4px" }}>
+                    {historyList.length === 0 ? (
+                      <div className="text-center py-5 text-muted small">
+                        <Clock size={32} className="mb-3 text-muted mx-auto opacity-50" />
+                        <div>No hay citas en el historial todavía.</div>
+                      </div>
+                    ) : (
+                      historyList.map(appt => (
+                        <div key={appt.id} className="p-3 border rounded-4 bg-white shadow-premium-hover position-relative">
+                          <div className="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                              <strong className="text-dark small d-block" style={{ fontSize: "13.5px" }}>
+                                {appt.clientName}
+                              </strong>
+                              <span className="text-muted smaller d-flex align-items-center gap-1 mt-0.5" style={{ fontSize: "11px" }}>
+                                <CalendarIcon size={10} /> {new Date(appt.startsAt).toLocaleDateString("es-AR")} a las {appt.startTime}
+                              </span>
+                            </div>
+                            <Badge bg={appt.status === "DONE" ? "success" : "secondary"} className="rounded-pill smaller" style={{ fontSize: "9px" }}>
+                              {appt.status === "DONE" ? "Finalizada" : "Pasada"}
+                            </Badge>
+                          </div>
+
+                          <div className="d-grid gap-1 mt-3 text-dark small" style={{ fontSize: "11.5px" }}>
+                            <div className="d-flex justify-content-between border-bottom pb-1 mb-1">
+                              <span className="text-muted">Servicio:</span>
+                              <strong className="text-end text-truncate" style={{ maxWidth: "150px" }}>{appt.serviceName}</strong>
+                            </div>
+                            <div className="d-flex justify-content-between border-bottom pb-1 mb-1">
+                              <span className="text-muted">Profesional:</span>
+                              <strong>{appt.workerName}</strong>
+                            </div>
+                            <div className="d-flex justify-content-between align-items-center mt-1 pt-1">
+                              <span className="text-muted">Precio:</span>
+                              <strong className="text-success d-flex align-items-center gap-1"><DollarSign size={12}/> {appt.totalPrice}</strong>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
               </Card.Body>
             </Card>
