@@ -227,11 +227,11 @@ export default function CalendarView() {
           <p className="text-muted mb-0">{t("calendar.subtitle")}</p>
         </div>
 
-        <div className="d-flex bg-light p-1 rounded-3">
+        <div className="d-flex bg-light p-1 rounded-3 shadow-sm border">
           <Button
             size="sm"
             variant={mainView === "calendar" ? "white" : "link"}
-            className={`rounded-2 px-4 py-2 text-dark ${mainView === "calendar" ? "shadow-sm border fw-bold bg-white" : "text-muted border-0"}`}
+            className={`rounded-2 px-4 py-2 ${mainView === "calendar" ? "shadow-sm border fw-bold text-dark bg-white" : "text-muted border-0 text-decoration-none"}`}
             onClick={() => setMainView("calendar")}
           >
             <CalendarIcon size={14} className="me-2 d-inline-block" style={{marginTop:"-2px"}}/>
@@ -239,8 +239,13 @@ export default function CalendarView() {
           </Button>
           <Button
             size="sm"
-            variant={mainView === "history" ? "white" : "link"}
-            className={`rounded-2 px-4 py-2 text-dark ${mainView === "history" ? "shadow-sm border fw-bold bg-white" : "text-muted border-0"}`}
+            variant={mainView === "history" ? "primary" : "link"}
+            className={`rounded-2 px-4 py-2 transition-all ${mainView === "history" ? "shadow-premium fw-bold text-white border-0" : "fw-bold text-decoration-none border-0"}`}
+            style={
+              mainView === "history" 
+                ? { background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)" } 
+                : { color: "#4f46e5", backgroundColor: "rgba(99, 102, 241, 0.05)" }
+            }
             onClick={() => setMainView("history")}
           >
             <Clipboard size={14} className="me-2 d-inline-block" style={{marginTop:"-2px"}}/>
