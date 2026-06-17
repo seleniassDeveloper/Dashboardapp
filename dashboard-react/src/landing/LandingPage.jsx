@@ -345,7 +345,7 @@ export default function LandingPage() {
 
   const handleFreeTrial = () => {
     loginDemo();
-    navigate("/app/pricing");
+    navigate("/app");
   };
 
   // Estados del simulador interactivo de Aura AI Copilot

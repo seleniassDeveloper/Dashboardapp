@@ -22,7 +22,7 @@ const ClientsABMModal = lazy(() => import("../../header/clients/ClientsABMModal.
 
 export default function DashboardLayout({ children }) {
   const { brand } = useBrand();
-  const { business } = useAuth();
+  const { business, isDemoSession, logout } = useAuth();
   const hasCompanyName = Boolean(brand.companyName?.trim() || business?.name?.trim());
 
   let trialDaysLeft = null;
@@ -152,6 +152,26 @@ export default function DashboardLayout({ children }) {
         />
         <motion.div className="content-inner">
           <ProductionApiBanner />
+          {isDemoSession && (
+            <div className="alert border-0 rounded-4 px-4 py-3 mb-4 d-flex align-items-center justify-content-between shadow-sm" style={{ background: "linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(59, 130, 246, 0.02) 100%)", color: "#2563eb", borderLeft: "4px solid #3b82f6" }}>
+              <div className="d-flex align-items-center gap-2.5">
+                <span style={{ fontSize: "18px" }}>👀</span>
+                <span className="small fw-semibold">
+                  <strong>Modo Demostración (Solo Lectura):</strong> Estás explorando la plataforma. Las acciones de guardado están deshabilitadas.
+                </span>
+              </div>
+              <button 
+                onClick={() => {
+                  logout();
+                  window.location.href = "/app";
+                }} 
+                className="btn btn-primary btn-sm rounded-pill px-3 py-1.5 fw-bold text-white shadow-sm" 
+                style={{ fontSize: "11px", backgroundColor: "#3b82f6", border: "none" }}
+              >
+                ¡Crear mi cuenta!
+              </button>
+            </div>
+          )}
           {trialDaysLeft !== null && (
             <div className="alert alert-info border-0 rounded-4 px-4 py-3 mb-4 d-flex align-items-center justify-content-between shadow-sm" style={{ background: "linear-gradient(135deg, rgba(124, 58, 237, 0.08) 0%, rgba(124, 58, 237, 0.02) 100%)", color: "#6d28d9" }}>
               <div className="d-flex align-items-center gap-2.5">

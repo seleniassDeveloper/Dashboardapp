@@ -94,6 +94,7 @@ export function AuthProvider({ children }) {
   const [isUnauthorized, setIsUnauthorized] = useState(false);
   const [userStatus, setUserStatus] = useState("active");
   const [firestoreError, setFirestoreError] = useState("");
+  const [isDemoSession, setIsDemoSession] = useState(() => localStorage.getItem("auradash_demo_session") === "true");
 
   const [financeUnlocked, setFinanceUnlocked] = useState(() => {
     return typeof sessionStorage !== "undefined" && !!sessionStorage.getItem("finance_bypass_token");
@@ -466,6 +467,9 @@ export function AuthProvider({ children }) {
       // Check if we are in demo mode
       const isDemo = localStorage.getItem("auradash_demo_session") === "true";
       if (isDemo) {
+        if (config.method && config.method.toLowerCase() !== 'get') {
+          return Promise.reject(new Error("DEMO_READ_ONLY"));
+        }
         config.headers.Authorization = `Bearer aura-admin-token`;
         return config;
       }
@@ -508,6 +512,7 @@ export function AuthProvider({ children }) {
 
   const loginDemo = useCallback(() => {
     localStorage.setItem("auradash_demo_session", "true");
+    setIsDemoSession(true);
     setUser({ email: "demo@auradash.digital", displayName: "Usuario Demo", uid: "quick-booking-user" });
     setRole("owner");
     setPermissions(DEV_OWNER_PERMISSIONS);
@@ -539,6 +544,7 @@ export function AuthProvider({ children }) {
 
   const logout = useCallback(async () => {
     localStorage.removeItem("auradash_demo_session");
+    setIsDemoSession(false);
     localStorage.removeItem("authToken");
     localStorage.removeItem("active_business_id");
     sessionStorage.removeItem("finance_bypass_token");
@@ -580,6 +586,7 @@ export function AuthProvider({ children }) {
       lockFinance,
       switchBusiness,
       loginDemo,
+      isDemoSession,
     }),
     [
       user,
@@ -601,6 +608,7 @@ export function AuthProvider({ children }) {
       switchBusiness,
       loginDemo,
       isSuperAdmin,
+      isDemoSession,
     ]
   );
 
