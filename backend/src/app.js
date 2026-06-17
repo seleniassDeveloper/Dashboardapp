@@ -4,6 +4,8 @@ dotenv.config({ path: resolve(process.cwd(), ".env") });
 
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 
 import appointmentsRoutes from "./routes/appointments.routes.js";
 import clientsRoutes from "./routes/clients.routes.js";
@@ -54,6 +56,31 @@ app.get("/health", (_req, res) => {
 
 app.use(cors(getCorsOptions()));
 app.options(/.*/, cors(getCorsOptions()));
+
+// 1. Seguridad de Cabeceras HTTP
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" } // Permite acceso a recursos (como /uploads) desde el frontend
+}));
+
+// 2. Límite global de peticiones (Rate Limiting)
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 1000, // Límite generoso
+  message: { error: "Demasiadas peticiones desde esta IP. Intenta de nuevo después de 15 minutos." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use(globalLimiter);
+
+// 3. Límite estricto para rutas sensibles (como auth)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 50, // Límite estricto para proteger contra fuerza bruta
+  message: { error: "Demasiados intentos. Por favor espera 15 minutos." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 app.use(express.json({ limit: "15mb" }));
 app.use("/uploads", express.static(resolve(process.cwd(), "uploads")));
 app.use(requestLogger);
@@ -69,7 +96,7 @@ app.get("/", (_req, res) => {
 
 app.use("/health", healthRoutes);
 
-app.use("/api/auth", authRoutes);
+app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/admin", adminUsersRoutes);
 app.use("/api/public", publicRoutes);
 app.use("/api/billing", billingRoutes);
