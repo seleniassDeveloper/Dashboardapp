@@ -1,15 +1,15 @@
 {
   "menu": {
     "dashboard": "Dashboard",
-    "appointments": "Schedule",
+    "appointments": "Appointments",
     "clients": "Clients",
     "services": "Services",
     "team": "Team",
     "finances": "Finances",
     "inventory": "Inventory",
     "sheets_sync": "Sheets Sync",
-    "workflows": "Flows",
-    "automations": "Integrations",
+    "workflows": "Workflows",
+    "automations": "Automations",
     "templates": "Templates",
     "history": "History",
     "marketing": "Marketing",
@@ -18,7 +18,7 @@
     "automation_section": "Automation",
     "sub_resumen": "Summary",
     "sub_gastos": "Expenses",
-    "sub_cierre_caja": "Cash Close",
+    "sub_cierre_caja": "Cash Closing",
     "sub_nominas": "Payroll",
     "sub_conciliacion": "Reconciliation",
     "sub_servicios": "Services",
@@ -32,7 +32,7 @@
     "myBusiness": "My Business",
     "searchPlaceholder": "Search appointments, clients or actions... (⌘K)",
     "notifications": "Notifications",
-    "brandSettings": "Brand settings",
+    "brandSettings": "Brand Settings",
     "logout": "Log out"
   }
 }

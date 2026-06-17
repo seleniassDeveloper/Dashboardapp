@@ -1,7 +1,7 @@
 {
   "users": {
-    "title": "Users Administration",
-    "subtitle": "Manage users and permissions",
+    "title": "User Administration",
+    "subtitle": "Manage users and their permissions",
     "addUser": "Add user",
     "table": {
       "name": "Name",
@@ -12,7 +12,7 @@
       "actions": "Actions"
     },
     "roles": {
-      "admin": "Admin",
+      "admin": "Administrator",
       "owner": "Owner",
       "manager": "Manager",
       "staff": "Staff",
@@ -20,13 +20,13 @@
     },
     "confirmDelete": "Are you sure you want to delete this user?",
     "errors": {
-      "load": "Could not load users.",
-      "save": "Could not save the user.",
-      "delete": "Could not delete the user."
+      "load": "Users could not be loaded.",
+      "save": "User could not be saved.",
+      "delete": "User could not be deleted."
     }
   },
   "brand": {
-    "title": "Brand settings",
+    "title": "Brand Settings",
     "companyName": "Company name",
     "slogan": "Slogan",
     "primaryColor": "Primary color",
@@ -37,13 +37,13 @@
     "uploadCover": "Upload cover image",
     "save": "Save changes",
     "saved": "Brand updated successfully.",
-    "error": "Could not save the brand."
+    "error": "Brand could not be saved."
   },
   "modules": {
-    "title": "Active modules",
+    "title": "Active Modules",
     "subtitle": "Enable or disable modules across the app",
     "dashboard": "Dashboard",
-    "appointments": "Schedule",
+    "appointments": "Appointments",
     "clients": "Clients",
     "services": "Services",
     "team": "Team",

@@ -43,7 +43,7 @@
     "retry": "Retry",
     "login": "Log in",
     "logout": "Log out",
-    "register": "Sign up",
+    "register": "Register",
     "signIn": "Sign in",
     "signOut": "Sign out",
     "signUp": "Sign up",
@@ -120,12 +120,12 @@
     "thisYear": "This year"
   },
   "errors": {
-    "generic": "Something went wrong. Please try again.",
+    "generic": "Something went wrong. Try again.",
     "network": "Network error. Check your connection.",
     "notFound": "Not found",
     "unauthorized": "Unauthorized",
     "forbidden": "Forbidden",
-    "validation": "Please check the highlighted fields.",
+    "validation": "Please review the highlighted fields.",
     "requiredField": "This field is required",
     "invalidEmail": "Invalid email address",
     "invalidPhone": "Invalid phone number",
@@ -139,7 +139,7 @@
     "current": "Current language"
   },
   "errorBoundary": {
-    "title": "The dashboard screen crashed while loading",
-    "subtitle": "Copy the error below (or open the console) so we can fix it."
+    "title": "The screen broke while loading the dashboard",
+    "subtitle": "Copy this error (or open the console) so we can fix it."
   }
 }

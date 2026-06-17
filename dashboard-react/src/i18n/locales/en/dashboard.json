@@ -12,14 +12,14 @@
       "widget": "Widget"
     }
   },
-  "loading": "Loading your smart control center…",
+  "loading": "Loading your smart control center...",
   "errors": {
-    "loadData": "Could not load dashboard data. Check the connection.",
-    "saveWidget": "Could not save the widget configuration.",
-    "aiWidget": "Could not add the AI-suggested widget.",
-    "deleteWidget": "Could not delete the widget.",
-    "updateStatus": "Could not update the status.",
-    "configureScheduleHint": "To configure the professional's schedule, go to the Team view."
+    "loadData": "Dashboard data could not be loaded. Check your connection.",
+    "saveWidget": "Widget configuration could not be saved.",
+    "aiWidget": "AI suggested widget could not be added.",
+    "deleteWidget": "Widget could not be deleted.",
+    "updateStatus": "Status could not be updated.",
+    "configureScheduleHint": "To configure professional hours, go to the Team view."
   },
   "confirm": {
     "deleteWidget": "Are you sure you want to delete this widget?"
@@ -40,10 +40,10 @@
     "saveBtn": "Save and Apply",
     "descriptions": {
       "appointments": "Number of appointments scheduled for today.",
-      "revenue": "Amount invoiced for appointments attended today.",
+      "revenue": "Amount billed for completed appointments today.",
       "clients": "Total clients registered in your database.",
       "cancellations": "Appointments cancelled today.",
-      "occupancy": "Estimated percentage of salon occupancy.",
+      "occupancy": "Estimated salon occupancy percentage.",
       "topWorker": "Stylist or professional with the most appointments today."
     }
   },
@@ -67,7 +67,7 @@
     "table": "Table"
   },
   "ai": {
-    "openChat": "Open AI assistant",
+    "openChat": "Open AI Assistant",
     "closeChat": "Close",
     "title": "AI Copilot",
     "subtitle": "Ask anything about your business",
@@ -76,8 +76,8 @@
     "thinking": "Thinking...",
     "suggestions": "Suggestions",
     "requests": {
-      "title": "AI Requests",
-      "help": "Each query adds a new block. You configure the gadget with lists in <strong>Gadget options</strong> or with the <strong>Step-by-step assistant</strong>; just write what the AI should do in the final message."
+      "title": "Requests from AI",
+      "help": "Every query adds a new block. Configure the gadget with lists in <strong>Gadget Options</strong> or with the <strong>Step-by-step Assistant</strong>; just type what the AI should do in the final message."
     }
   }
 }
