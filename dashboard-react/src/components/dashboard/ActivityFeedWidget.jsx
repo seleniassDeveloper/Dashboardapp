@@ -104,7 +104,7 @@ export default function ActivityFeedWidget({ appointments = [], clients = [] }) 
 
   return (
     <div className="d-flex flex-column h-100">
-      <div className="activity-timeline flex-grow-1 overflow-auto pe-1" style={{ maxHeight: "285px" }}>
+      <div className="activity-timeline flex-grow-1 overflow-auto pe-1" style={{ minHeight: "260px" }}>
         {sorted.map((item, idx) => {
           const Icon = item.icon;
           return (

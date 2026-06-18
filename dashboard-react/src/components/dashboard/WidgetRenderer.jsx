@@ -408,7 +408,7 @@ export default function WidgetRenderer({
             <CheckCircle size={16} className="text-success" />
             <span>{isEs ? "AI Copilot - Sugerencias de Negocio Inteligentes" : "AI Copilot - Intelligent Business Suggestions"}</span>
           </div>
-          <div className="d-grid gap-3 overflow-auto" style={{ maxHeight: "400px" }}>
+          <div className="d-flex flex-column gap-3 overflow-auto flex-grow-1">
             {insightsList.map((insight, idx) => (
               <div 
                 key={idx} 

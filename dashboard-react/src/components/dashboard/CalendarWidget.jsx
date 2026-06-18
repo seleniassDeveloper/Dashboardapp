@@ -174,7 +174,7 @@ export default function CalendarWidget({
       </div>
 
       {/* Renderizado de vistas */}
-      <div className="flex-grow-1 custom-scrollbar overflow-auto pe-2" style={{ minHeight: "260px", maxHeight: "380px" }}>
+      <div className="flex-grow-1 custom-scrollbar overflow-auto pe-2" style={{ minHeight: "260px" }}>
         
         {/* VISTA HOY */}
         {view === "day" && (

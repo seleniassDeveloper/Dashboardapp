@@ -205,7 +205,7 @@ export default function AttentionWidget({
 
   return (
     <div className="d-flex flex-column h-100">
-      <div className="d-flex flex-column gap-2.5 overflow-auto flex-grow-1" style={{ maxHeight: "380px" }}>
+      <div className="d-flex flex-column gap-2.5 overflow-auto flex-grow-1" style={{ minHeight: "260px" }}>
         {alerts.map((item) => {
           const IconComp = item.icon;
           return (
