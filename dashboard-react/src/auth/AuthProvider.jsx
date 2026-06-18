@@ -78,7 +78,7 @@ function firebaseErrorMessage(err) {
 
 function googleProvider() {
   const provider = new GoogleAuthProvider();
-  provider.setCustomParameters({ prompt: "select_account" });
+  provider.setCustomParameters({ prompt: "select_account consent" });
   return provider;
 }
 
