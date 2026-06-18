@@ -421,9 +421,14 @@ export function AuthProvider({ children }) {
                   const bizRes = await api.get("/appointments/business");
                   if (bizRes.data) {
                     setBusiness(bizRes.data);
+                  } else if (String(u.email || "").toLowerCase().trim() === "seleniadeveloper@gmail.com") {
+                    setBusiness({ id: "business-default", name: "Aura Studio (Owner)" });
                   } else {
                     setBusiness(null);
                   }
+                } else if (String(u.email || "").toLowerCase().trim() === "seleniadeveloper@gmail.com") {
+                  setBusiness({ id: "business-default", name: "Aura Studio (Owner)" });
+                  localStorage.setItem("active_business_id", "business-default");
                 } else {
                   setBusiness(null);
                   localStorage.removeItem("active_business_id");
