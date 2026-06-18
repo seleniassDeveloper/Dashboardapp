@@ -26,6 +26,7 @@ import QuickAddBookingPage from "./views/booking/QuickAddBookingPage.jsx";
 import AcceptInviteView from "./views/AcceptInviteView.jsx";
 import PublicConsentPage from "./views/booking/PublicConsentPage.jsx";
 import GlobalErrorModal from "./components/layout/GlobalErrorModal.jsx";
+import ManualView from "./views/ManualView.jsx";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <BrowserRouter>
@@ -33,6 +34,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/guide" element={<HowItWorks />} />
+        <Route path="/manual" element={<ManualView />} />
         <Route path="/booking/:businessSlug" element={<PublicBookingPage />} />
         <Route path="/booking/:businessSlug/success" element={<BookingSuccess />} />
         <Route path="/booking/:businessSlug/add" element={<QuickAddBookingPage />} />

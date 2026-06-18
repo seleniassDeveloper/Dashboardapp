@@ -151,7 +151,7 @@ function HowItWorksModal({ show, onHide }) {
   );
 }
 
-function MainNavbar({ onHowItWorks, onFreeTrial }) {
+export function MainNavbar({ onHowItWorks, onFreeTrial }) {
   const { t } = useTranslation("landing");
   const [expanded, setExpanded] = useState(false);
 
@@ -448,7 +448,7 @@ export default function LandingPage() {
                     <Play size={16} />
                     {t("hero.ctaSecondary")}
                   </button>
-                  <a href="/guia-uso.html" className="btn-link px-3 py-3 d-flex align-items-center gap-2 text-decoration-none fw-semibold" style={{ color: '#64748b' }}>
+                  <a href="/manual" className="btn-link px-3 py-3 d-flex align-items-center gap-2 text-decoration-none fw-semibold" style={{ color: '#64748b' }}>
                     <Book size={18} />
                     Leer Manual de Uso
                   </a>
