@@ -112,17 +112,12 @@ export default function Sidebar({
   const { brand } = useBrand();
   const { t } = useTranslation(["nav", "common"]);
 
-  const sidebarVariants = {
-    expanded: { width: "var(--space-sidebar)" },
-    collapsed: { width: "var(--space-sidebar-collapsed)" }
-  };
+  // Removed variants because framer-motion fails with CSS variables
 
   return (
     <motion.aside 
-      className={`sidebar ${isOpen ? "sidebar--open" : ""}`}
+      className={`sidebar ${isOpen ? "sidebar--open" : ""} ${isCollapsed ? "sidebar--collapsed" : ""}`}
       initial={false}
-      animate={isCollapsed ? "collapsed" : "expanded"}
-      variants={sidebarVariants}
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
     >
       <div className="sidebar__header">

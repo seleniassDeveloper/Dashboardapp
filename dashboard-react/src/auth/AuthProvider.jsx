@@ -302,31 +302,8 @@ export function AuthProvider({ children }) {
     } catch (err) {
       console.error("[Diagnostic] Exception occurred during session sync:", err);
       
-      const email = String(firebaseUser.email || "").trim().toLowerCase();
-      if (email === "seleniadeveloper@gmail.com") {
-        console.warn("[Diagnostic] Firestore falló para el Owner. Habilitando bypass local de desarrollo.");
-        setRole("owner");
-        setPermissions([
-          "view_finances",
-          "manage_settings",
-          "manage_users",
-          "appointments.view",
-          "clients.view",
-          "services.view",
-          "team.view",
-          "inventory.view",
-          "sheets.view",
-          "workflows.view",
-          "automations.view"
-        ]);
-        setIsUnauthorized(false);
-        setFirestoreError("");
-        setBusiness({ id: "business-default", name: "Aura Studio" });
-        localStorage.setItem("active_business_id", "business-default");
-        console.groupEnd();
-        return;
-      }
-      
+      // The seleniadeveloper bypass has been removed to avoid breaking real sessions.
+
       setFirestoreError(String(err?.message || err));
     } finally {
       console.groupEnd();
@@ -421,14 +398,9 @@ export function AuthProvider({ children }) {
                   const bizRes = await api.get("/appointments/business");
                   if (bizRes.data) {
                     setBusiness(bizRes.data);
-                  } else if (String(u.email || "").toLowerCase().trim() === "seleniadeveloper@gmail.com") {
-                    setBusiness({ id: "business-default", name: "Aura Studio (Owner)" });
                   } else {
                     setBusiness(null);
                   }
-                } else if (String(u.email || "").toLowerCase().trim() === "seleniadeveloper@gmail.com") {
-                  setBusiness({ id: "business-default", name: "Aura Studio (Owner)" });
-                  localStorage.setItem("active_business_id", "business-default");
                 } else {
                   setBusiness(null);
                   localStorage.removeItem("active_business_id");
