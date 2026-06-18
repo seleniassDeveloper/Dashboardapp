@@ -13,6 +13,7 @@ import {
   BarChart3,
   Globe,
   Lock,
+  Book,
   Database,
   Sparkles,
   Play,
@@ -439,7 +440,7 @@ export default function LandingPage() {
                 <p className="lead text-muted mb-5 pe-lg-4" style={{ fontSize: '1.1rem', lineHeight: '1.6' }}>
                   {t("hero.subtitle")}
                 </p>
-                <div className="d-flex align-items-center gap-3 mb-5">
+                <div className="d-flex align-items-center gap-3 mb-5 flex-wrap">
                   <button onClick={handleFreeTrial} className="btn-premium px-5 py-3 text-decoration-none shadow-lg border-0 text-white bg-purple-600 hover-bg-purple-700 d-flex align-items-center gap-2" style={{ fontWeight: 700, borderRadius: '12px' }}>
                     {t("hero.ctaPrimary")} <ArrowRight size={18} />
                   </button>
@@ -447,6 +448,10 @@ export default function LandingPage() {
                     <Play size={16} />
                     {t("hero.ctaSecondary")}
                   </button>
+                  <a href="/guia-uso.html" className="btn-link px-3 py-3 d-flex align-items-center gap-2 text-decoration-none fw-semibold" style={{ color: '#64748b' }}>
+                    <Book size={18} />
+                    Leer Manual de Uso
+                  </a>
                 </div>
                 
 

@@ -102,10 +102,24 @@
     .module,.legend{box-shadow:none; break-inside:avoid}
     .cover{box-shadow:none}
   }
+
+  .layout { display: flex; min-height: 100vh; background: var(--bg); }
+  .sidebar { width: 280px; background: #fff; border-right: 1px solid var(--line); padding: 30px 20px; position: sticky; top: 0; height: 100vh; overflow-y: auto; flex-shrink: 0; box-shadow: 2px 0 10px rgba(0,0,0,0.02); }
+  .sidebar h3 { color: var(--brand); font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 20px; }
+  .sidebar ul { list-style: none; padding: 0; margin: 0; }
+  .sidebar li { margin-bottom: 8px; }
+  .sidebar a { text-decoration: none; color: var(--muted); font-size: 14px; font-weight: 500; display: block; padding: 8px 12px; border-radius: 8px; transition: all 0.2s; }
+  .sidebar a:hover { background: var(--brand-soft); color: var(--brand2); }
+  .main-content { flex: 1; padding-left: 20px; }
+  .gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-top: 16px; }
+  .gallery img { width: 100%; border-radius: 12px; border: 1px solid var(--line); box-shadow: 0 4px 12px rgba(0,0,0,0.05); transition: transform 0.3s ease; cursor: zoom-in; }
+  .gallery img:hover { transform: scale(1.02); }
+  @media (max-width: 800px) { .layout { flex-direction: column; } .sidebar { width: 100%; height: auto; position: static; border-bottom: 1px solid var(--line); border-right: none; } }
+
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="layout"><aside class="sidebar"><h3>Índice interactivo</h3><ul><li><a href="#modulo-1">Módulo 01: Panel de Control</a></li><li><a href="#modulo-2">Módulo 02: Agenda Inteligente</a></li><li><a href="#modulo-3">Módulo 03: Clientes</a></li><li><a href="#modulo-4">Módulo 04: Catálogo de Servicios</a></li><li><a href="#modulo-5">Módulo 05: Equipo de Trabajo y Liquidaciones</a></li><li><a href="#modulo-6">Módulo 06: Finanzas y Caja</a></li><li><a href="#modulo-7">Módulo 07: Inventario ERP</a></li><li><a href="#modulo-8">Módulo 08: Copilot Aura IA y Automatizaciones</a></li><li><a href="#modulo-9">Módulo 09: Sincronizador de Google Sheets</a></li><li><a href="#modulo-10">Módulo 010: Configuración General y Roles</a></li><li><a href="#modulo-11">Módulo 011: Generador de Contenido de Marketing e Instagram</a></li></ul></aside><div class="main-content"><div class="wrap">
 
   <div class="cover">
     <span class="badge">Documentación · Organizada por módulos</span>
@@ -124,7 +138,7 @@
   </div>
 
   <!-- 1 -->
-  <section class="module">
+  <section class="module" id="modulo-1">
     <header>
       <div class="num">Módulo 01</div>
       <h2>Panel de Control (Dashboard)</h2>
@@ -178,11 +192,12 @@
         </div>
       </div>
 
-    </div>
+    <div class="gallery"><img src="manual-assets/panel-panel1.png" alt="Captura de modulo-1" loading="lazy"/><img src="manual-assets/panel-panel2.png" alt="Captura de modulo-1" loading="lazy"/><img src="manual-assets/panel-qrcitapanel.png" alt="Captura de modulo-1" loading="lazy"/><img src="manual-assets/panel-vistadetalledecitapanel.png" alt="Captura de modulo-1" loading="lazy"/><img src="manual-assets/panel-informesiapanel.png" alt="Captura de modulo-1" loading="lazy"/></div>
+</div>
   </section>
 
   <!-- 2 -->
-  <section class="module">
+  <section class="module" id="modulo-2">
     <header>
       <div class="num">Módulo 02</div>
       <h2>Agenda Inteligente (Calendario)</h2>
@@ -265,11 +280,12 @@
         </div>
       </div>
 
-    </div>
+    <div class="gallery"><img src="manual-assets/agenda-agendavista.png" alt="Captura de modulo-2" loading="lazy"/><img src="manual-assets/agenda-lista-de-espera.png" alt="Captura de modulo-2" loading="lazy"/><img src="manual-assets/agenda-detalle-de-ingresos-estimados-del-di-a.png" alt="Captura de modulo-2" loading="lazy"/><img src="manual-assets/agenda-2026-06-16-7.31.54-pm.png" alt="Captura de modulo-2" loading="lazy"/></div>
+</div>
   </section>
 
   <!-- 3 -->
-  <section class="module">
+  <section class="module" id="modulo-3">
     <header>
       <div class="num">Módulo 03</div>
       <h2>Clientes (CRM)</h2>
@@ -323,11 +339,12 @@
         </div>
       </div>
 
-    </div>
+    <div class="gallery"><img src="manual-assets/consentimiento-2026-06-16-7.44.00-pm.png" alt="Captura de modulo-3" loading="lazy"/></div>
+</div>
   </section>
 
   <!-- 4 -->
-  <section class="module">
+  <section class="module" id="modulo-4">
     <header>
       <div class="num">Módulo 04</div>
       <h2>Catálogo de Servicios</h2>
@@ -368,11 +385,12 @@
         </div>
       </div>
 
-    </div>
+    <div class="gallery"><img src="manual-assets/servicios-2026-06-16-7.32.15-pm.png" alt="Captura de modulo-4" loading="lazy"/><img src="manual-assets/servicios-2026-06-16-7.32.48-pm.png" alt="Captura de modulo-4" loading="lazy"/></div>
+</div>
   </section>
 
   <!-- 5 -->
-  <section class="module">
+  <section class="module" id="modulo-5">
     <header>
       <div class="num">Módulo 05</div>
       <h2>Equipo de Trabajo y Liquidaciones</h2>
@@ -430,11 +448,12 @@
         </div>
       </div>
 
-    </div>
+    <div class="gallery"><img src="manual-assets/personal-2026-06-16-7.34.13-pm.png" alt="Captura de modulo-5" loading="lazy"/><img src="manual-assets/personal-2026-06-16-7.34.42-pm.png" alt="Captura de modulo-5" loading="lazy"/><img src="manual-assets/personal-2026-06-16-7.37.04-pm.png" alt="Captura de modulo-5" loading="lazy"/></div>
+</div>
   </section>
 
   <!-- 6 -->
-  <section class="module">
+  <section class="module" id="modulo-6">
     <header>
       <div class="num">Módulo 06</div>
       <h2>Finanzas y Caja</h2>
@@ -476,11 +495,12 @@
         </div>
       </div>
 
-    </div>
+    <div class="gallery"><img src="manual-assets/finanzas-2026-06-16-7.38.39-pm.png" alt="Captura de modulo-6" loading="lazy"/></div>
+</div>
   </section>
 
   <!-- 7 -->
-  <section class="module">
+  <section class="module" id="modulo-7">
     <header>
       <div class="num">Módulo 07</div>
       <h2>Inventario ERP</h2>
@@ -581,7 +601,7 @@
   </section>
 
   <!-- 8 -->
-  <section class="module">
+  <section class="module" id="modulo-8">
     <header>
       <div class="num">Módulo 08</div>
       <h2>Copilot Aura IA y Automatizaciones</h2>
@@ -632,11 +652,12 @@
         </div>
       </div>
 
-    </div>
+    <div class="gallery"><img src="manual-assets/workflow-2026-06-16-7.40.33-pm.png" alt="Captura de modulo-8" loading="lazy"/><img src="manual-assets/workflow-2026-06-16-7.41.42-pm.png" alt="Captura de modulo-8" loading="lazy"/></div>
+</div>
   </section>
 
   <!-- 9 -->
-  <section class="module">
+  <section class="module" id="modulo-9">
     <header>
       <div class="num">Módulo 09</div>
       <h2>Sincronizador de Google Sheets</h2>
@@ -674,11 +695,12 @@
         </div>
       </div>
 
-    </div>
+    <div class="gallery"><img src="manual-assets/importacion-2026-06-16-7.39.03-pm.png" alt="Captura de modulo-9" loading="lazy"/></div>
+</div>
   </section>
 
   <!-- 10 -->
-  <section class="module">
+  <section class="module" id="modulo-10">
     <header>
       <div class="num">Módulo 10</div>
       <h2>Configuración General y Roles (RBAC)</h2>
@@ -744,11 +766,12 @@
         </div>
       </div>
 
-    </div>
+    <div class="gallery"><img src="manual-assets/roles-2026-06-16-7.44.14-pm.png" alt="Captura de modulo-10" loading="lazy"/><img src="manual-assets/campos-2026-06-16-7.43.45-pm.png" alt="Captura de modulo-10" loading="lazy"/><img src="manual-assets/integraciones-2026-06-16-7.42.08-pm.png" alt="Captura de modulo-10" loading="lazy"/></div>
+</div>
   </section>
 
   <!-- 11 -->
-  <section class="module">
+  <section class="module" id="modulo-11">
     <header>
       <div class="num">Módulo 11</div>
       <h2>Generador de Contenido de Marketing e Instagram</h2>
@@ -841,5 +864,30 @@
   </section>
 
 </div>
+</div></div>
+<script>
+  document.addEventListener('click', e => {
+    if (e.target.tagName === 'IMG' && e.target.closest('.gallery')) {
+      const src = e.target.src;
+      const overlay = document.createElement('div');
+      overlay.style.position = 'fixed';
+      overlay.style.top = '0'; overlay.style.left = '0'; overlay.style.width = '100vw'; overlay.style.height = '100vh';
+      overlay.style.background = 'rgba(0,0,0,0.85)';
+      overlay.style.display = 'flex'; overlay.style.alignItems = 'center'; overlay.style.justifyContent = 'center';
+      overlay.style.zIndex = '9999';
+      overlay.style.cursor = 'zoom-out';
+      
+      const img = document.createElement('img');
+      img.src = src;
+      img.style.maxWidth = '90%'; img.style.maxHeight = '90%'; img.style.borderRadius = '12px';
+      img.style.boxShadow = '0 10px 40px rgba(0,0,0,0.5)';
+      
+      overlay.appendChild(img);
+      document.body.appendChild(overlay);
+      
+      overlay.onclick = () => overlay.remove();
+    }
+  });
+</script>
 </body>
 </html>
