@@ -60,6 +60,8 @@ export default function DashboardView() {
   const [clients, setClients] = useState([]);
   const [workers, setWorkers] = useState([]);
   const [services, setServices] = useState([]);
+  const [expenses, setExpenses] = useState([]);
+  const [products, setProducts] = useState([]);
 
   // Estados de carga y modal
   const [loading, setLoading] = useState(true);
@@ -94,12 +96,23 @@ export default function DashboardView() {
       setLoading(true);
       setError("");
 
-      const [wRes, apptRes, clientRes, workerRes, serviceRes] = await Promise.all([
+      const safeFetch = async (url) => {
+        try {
+          const res = await api.get(url);
+          return Array.isArray(res.data) ? res.data : [];
+        } catch (err) {
+          return [];
+        }
+      };
+
+      const [wRes, apptRes, clientRes, workerRes, serviceRes, expensesRes, productsRes] = await Promise.all([
         api.get("/dashboard/widgets"),
         api.get("/appointments"),
         api.get("/clients"),
         api.get("/workers"),
         api.get("/services"),
+        safeFetch("/finances/expenses"),
+        safeFetch("/inventory/products")
       ]);
 
       setWidgets(Array.isArray(wRes.data) ? wRes.data : []);
@@ -107,6 +120,8 @@ export default function DashboardView() {
       setClients(Array.isArray(clientRes.data) ? clientRes.data : []);
       setWorkers(Array.isArray(workerRes.data) ? workerRes.data : []);
       setServices(Array.isArray(serviceRes.data) ? serviceRes.data : []);
+      setExpenses(expensesRes);
+      setProducts(productsRes);
     } catch (e) {
       console.error("Error cargando datos del dashboard:", e);
       setError(t("errors.loadData"));
@@ -456,13 +471,30 @@ export default function DashboardView() {
   };
 
   const handleDeleteWidget = async (id) => {
-    if (!window.confirm(t("confirm.deleteWidget"))) return;
     try {
       await api.delete(`/dashboard/widgets/${id}`);
-      setWidgets((prev) => prev.filter((w) => w.id !== id));
+      setWidgets(widgets.filter((w) => w.id !== id));
+      setShowConfigModal(false);
     } catch (e) {
       console.error("Error eliminando widget:", e);
-      alert(t("errors.deleteWidget"));
+      setError(t("errors.deleteWidget"));
+    }
+  };
+
+  const handleRestoreDefaults = async () => {
+    const isEs = i18n.language === "es";
+    if (!window.confirm(isEs ? "¿Estás seguro de que deseas restaurar los widgets por defecto? Se perderán tus widgets actuales." : "Are you sure you want to restore default widgets? Your current widgets will be lost.")) {
+      return;
+    }
+    try {
+      setLoading(true);
+      await api.post("/dashboard/widgets/restore-defaults");
+      await fetchData();
+    } catch (err) {
+      console.error(err);
+      setError("Error al restaurar widgets.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -567,6 +599,15 @@ export default function DashboardView() {
             >
               <Plus size={14} />
               <span>{t("header.quickActions.client")}</span>
+            </Button>
+
+            <Button
+              variant="outline-dark"
+              onClick={handleRestoreDefaults}
+              className="rounded-pill px-3 py-2 small fw-bold d-flex align-items-center gap-1.5 hover-scale border"
+              style={{ fontSize: "12px", opacity: 0.8 }}
+            >
+              <span>{isEs ? "Restaurar Widgets" : "Restore Defaults"}</span>
             </Button>
 
             <Button
@@ -700,6 +741,8 @@ export default function DashboardView() {
           clients={filteredClients}
           workers={workers}
           services={services}
+          expenses={expenses}
+          products={products}
           onUpdateLayouts={handleUpdateLayouts}
           onEditWidget={(w) => {
             setSelectedWidget(w);

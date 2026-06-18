@@ -9,6 +9,7 @@ import RevenueWidget from "./RevenueWidget";
 import CalendarWidget from "./CalendarWidget";
 import ActivityFeedWidget from "./ActivityFeedWidget";
 import AttentionWidget from "./AttentionWidget";
+import UpcomingAppointmentsWidget from "./UpcomingAppointmentsWidget";
 
 // Mantenemos soporte a tablas e insights simulados
 import { Table, Badge, Button } from "react-bootstrap";
@@ -29,6 +30,8 @@ export default function WidgetRenderer({
   clients = [],
   workers = [],
   services = [],
+  expenses = [],
+  products = [],
   onUpdateAppointmentStatus,
   onConfirmAppointment,
   onFinalizeAppointment,
@@ -153,6 +156,15 @@ export default function WidgetRenderer({
       { name: isEs ? "Nuevos" : "New", value: newClientsCount },
     ];
 
+    // Fichas Clínicas
+    const totalClinicalNotes = clients.filter(c => c.clinicalData || c.notes).length;
+
+    // Gastos Totales
+    const totalExpenses = expenses.reduce((acc, e) => acc + Number(e.amount || 0), 0);
+
+    // Inventario
+    const totalProducts = products.length;
+
     return {
       totalAppointments,
       totalRevenue,
@@ -163,8 +175,11 @@ export default function WidgetRenderer({
       byDate,
       peakHours,
       retentionRateData,
+      totalClinicalNotes,
+      totalExpenses,
+      totalProducts,
     };
-  }, [appointments, filteredData, widget?.config?.metric]);
+  }, [appointments, clients, expenses, products, filteredData, widget?.config?.metric]);
 
   // 3. Renderizado Condicional
   switch (widget?.type) {
@@ -197,6 +212,15 @@ export default function WidgetRenderer({
         const recurrent = processedMetrics.retentionRateData.find(d => d.name === (isEs ? "Recurrentes" : "Recurring"))?.value || 0;
         displayValue = total ? `${Math.round((recurrent / total) * 100)}%` : "0%";
         label = isEs ? "Tasa de Retención" : "Retention Rate";
+      } else if (metricType === "expenses") {
+        displayValue = currency(processedMetrics.totalExpenses);
+        label = isEs ? "Gastos Totales" : "Total Expenses";
+      } else if (metricType === "inventory") {
+        displayValue = String(processedMetrics.totalProducts);
+        label = isEs ? "Productos en Inventario" : "Products in Inventory";
+      } else if (metricType === "clinical_notes") {
+        displayValue = String(processedMetrics.totalClinicalNotes);
+        label = isEs ? "Fichas Clínicas" : "Clinical Notes";
       }
 
       // Buscar ícono en Registry si es necesario
@@ -432,6 +456,16 @@ export default function WidgetRenderer({
         </div>
       );
     }
+
+    case "upcoming_appointments":
+      return (
+        <UpcomingAppointmentsWidget
+          appointments={appointments}
+          onConfirmAppointment={onConfirmAppointment}
+          onUpdateAppointmentStatus={onUpdateAppointmentStatus}
+          onFinalizeAppointment={onFinalizeAppointment}
+        />
+      );
 
     default:
       return (

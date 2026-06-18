@@ -15,13 +15,30 @@ export default function AttentionWidget({
   const { i18n } = useTranslation("dashboard");
   const isEs = i18n.language === "es";
 
-  // 1. Citas PENDING
-  const pendingAppointments = appointments.filter((a) => a.status === "PENDING");
+  const [dateRange, setDateRange] = React.useState("TODAY");
+
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  // 1. Citas PENDING filtradas por fecha
+  const pendingAppointments = appointments.filter((a) => {
+    if (a.status !== "PENDING") return false;
+    const date = new Date(a.startsAt);
+    
+    if (dateRange === "TODAY") {
+      return date.toDateString() === now.toDateString();
+    } else if (dateRange === "THIS_WEEK") {
+      const startOfWeek = new Date(startOfToday.getTime() - startOfToday.getDay() * 24 * 60 * 60 * 1000);
+      const endOfWeek = new Date(startOfWeek.getTime() + 7 * 24 * 60 * 60 * 1000);
+      return date >= startOfWeek && date < endOfWeek;
+    } else if (dateRange === "THIS_MONTH") {
+      return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+    }
+    return true; // ALL
+  });
 
   // 2. Colaboradores sin horarios (WorkerSchedule)
   const workersWithoutSchedule = workers.filter((w) => !w.schedules || w.schedules.length === 0);
-
-  const now = new Date();
 
   const isToday = (dateStr) => {
     const d = new Date(dateStr);
@@ -205,7 +222,41 @@ export default function AttentionWidget({
 
   return (
     <div className="d-flex flex-column h-100">
-      <div className="d-flex flex-column gap-2.5 overflow-auto flex-grow-1" style={{ minHeight: "260px" }}>
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <span className="small text-muted fw-bold">{isEs ? "Próximas Citas:" : "Upcoming:"}</span>
+        <div className="btn-group" role="group" style={{ transform: "scale(0.85)", transformOrigin: "right" }}>
+          <button 
+            type="button" 
+            className={`btn btn-sm ${dateRange === "TODAY" ? "btn-dark" : "btn-outline-dark"}`}
+            onClick={() => setDateRange("TODAY")}
+          >
+            {isEs ? "Hoy" : "Today"}
+          </button>
+          <button 
+            type="button" 
+            className={`btn btn-sm ${dateRange === "THIS_WEEK" ? "btn-dark" : "btn-outline-dark"}`}
+            onClick={() => setDateRange("THIS_WEEK")}
+          >
+            {isEs ? "Semana" : "Week"}
+          </button>
+          <button 
+            type="button" 
+            className={`btn btn-sm ${dateRange === "THIS_MONTH" ? "btn-dark" : "btn-outline-dark"}`}
+            onClick={() => setDateRange("THIS_MONTH")}
+          >
+            {isEs ? "Mes" : "Month"}
+          </button>
+          <button 
+            type="button" 
+            className={`btn btn-sm ${dateRange === "ALL" ? "btn-dark" : "btn-outline-dark"}`}
+            onClick={() => setDateRange("ALL")}
+          >
+            {isEs ? "Todas" : "All"}
+          </button>
+        </div>
+      </div>
+
+      <div className="d-flex flex-column gap-2.5 overflow-auto flex-grow-1" style={{ minHeight: "220px" }}>
         {alerts.map((item) => {
           const IconComp = item.icon;
           return (

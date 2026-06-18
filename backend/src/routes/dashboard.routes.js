@@ -5,10 +5,12 @@ import {
   updateWidget,
   updateLayouts,
   deleteWidget,
+  restoreDefaults,
 } from "../controllers/dashboard.controller.js";
 
 const router = Router();
 
+router.post("/widgets/restore-defaults", restoreDefaults);
 router.get("/widgets", getWidgets);
 router.post("/widgets", createWidget);
 router.put("/widgets/layout", updateLayouts);

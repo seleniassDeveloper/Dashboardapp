@@ -12,6 +12,8 @@ export default function DashboardGrid({
   clients = [],
   workers = [],
   services = [],
+  expenses = [],
+  products = [],
   searchQuery = "",
   onClearSearch,
   onUpdateLayouts,
@@ -135,7 +137,7 @@ export default function DashboardGrid({
         .dashboard-widgets-grid {
           display: grid;
           grid-template-columns: repeat(12, 1fr);
-          grid-auto-rows: minmax(110px, auto);
+          grid-auto-rows: 110px;
           gap: 20px;
           grid-auto-flow: row dense;
           padding-bottom: 40px;
@@ -236,6 +238,8 @@ export default function DashboardGrid({
                   clients={w.clientsData || clients}
                   workers={workers}
                   services={services}
+                  expenses={expenses}
+                  products={products}
                   onUpdateAppointmentStatus={onUpdateAppointmentStatus}
                   onConfirmAppointment={onConfirmAppointment}
                   onFinalizeAppointment={onFinalizeAppointment}

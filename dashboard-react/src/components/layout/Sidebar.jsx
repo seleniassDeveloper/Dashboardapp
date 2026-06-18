@@ -164,7 +164,7 @@ export default function Sidebar({
           const hasItemPermission = requiredPermission ? hasPermission(requiredPermission) : true;
           
           const activePlan = business?.plan || "starter";
-          const isPlanLocked = PLAN_RESTRICTIONS[activePlan]?.includes(item.id);
+          const isPlanLocked = !import.meta.env.DEV && PLAN_RESTRICTIONS[activePlan]?.includes(item.id);
           const linkPath = isPlanLocked ? "/app/pricing" : item.path;
           
           const isActive = !isPlanLocked && (location.pathname === item.path || (item.path !== "/app" && location.pathname.startsWith(item.path)));

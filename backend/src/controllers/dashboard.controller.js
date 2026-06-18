@@ -13,16 +13,23 @@ export async function getWidgets(req, res) {
       const defaults = [
         {
           userId,
-          title: "Agenda de Citas",
-          type: "calendar",
-          config: { color: "#10b981", range: "ALL" },
-          layout: { w: 8, h: 5 },
+          title: "Próximas Citas (SLA)",
+          type: "upcoming_appointments",
+          config: { color: "#3b82f6", range: "ALL" },
+          layout: { w: 4, h: 5 },
         },
         {
           userId,
           title: "Requiere Atención",
           type: "attention",
           config: { color: "#ef4444", range: "ALL" },
+          layout: { w: 4, h: 5 },
+        },
+        {
+          userId,
+          title: "Agenda de Citas",
+          type: "calendar",
+          config: { color: "#10b981", range: "ALL" },
           layout: { w: 4, h: 5 },
         },
         {
@@ -160,13 +167,30 @@ export async function deleteWidget(req, res) {
     const userId = req.user.uid;
     const { id } = req.params;
 
-    await prisma.dashboardWidget.delete({
-      where: { id, userId },
-    });
+    const existing = await prisma.dashboardWidget.findFirst({ where: { businessId: req.businessId,  id, userId } });
+    if (!existing) {
+      return res.status(404).json({ error: "Widget no encontrado o sin permisos." });
+    }
 
-    return res.json({ ok: true, message: "Widget eliminado." });
+    await prisma.dashboardWidget.delete({ where: { id } });
+
+    return res.json({ success: true });
   } catch (error) {
     console.error("Error eliminando widget:", error);
     return res.status(500).json({ error: "Error interno al eliminar widget." });
+  }
+}
+
+// Restaurar widgets por defecto
+export async function restoreDefaults(req, res) {
+  try {
+    const userId = req.user.uid;
+    await prisma.dashboardWidget.deleteMany({
+      where: { userId }
+    });
+    return res.json({ success: true, message: "Widgets restaurados a sus valores por defecto." });
+  } catch (error) {
+    console.error("Error restaurando widgets:", error);
+    return res.status(500).json({ error: "Error al restaurar widgets." });
   }
 }

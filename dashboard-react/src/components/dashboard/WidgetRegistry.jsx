@@ -1,4 +1,4 @@
-import { Scissors, Briefcase, CreditCard, Users, Calendar, AlertTriangle, Clock, UserCheck } from "lucide-react";
+import { Scissors, Briefcase, CreditCard, Users, Calendar, AlertTriangle, Clock, UserCheck, Archive, FileText, TrendingDown } from "lucide-react";
 
 export const WIDGET_TYPES = {
   kpi: {
@@ -57,6 +57,13 @@ export const WIDGET_TYPES = {
     minSize: { w: 3, h: 3 },
     maxSize: { w: 6, h: 6 },
   },
+  upcoming_appointments: {
+    label: "Próximas Citas (SLA)",
+    description: "Lista de siguientes citas con seguimiento de SLA para gestionar su estado.",
+    defaultSize: { w: 4, h: 4 },
+    minSize: { w: 3, h: 3 },
+    maxSize: { w: 6, h: 8 },
+  },
 };
 
 export const METRIC_OPTIONS = [
@@ -69,6 +76,9 @@ export const METRIC_OPTIONS = [
   { value: "workers_load", label: "Carga por Colaborador", entity: "workers" },
   { value: "peak_hours", label: "Horas Pico de Reserva", entity: "appointments" },
   { value: "retention_rate", label: "Retención de Clientes", entity: "clients" },
+  { value: "expenses", label: "Gastos Totales", entity: "expenses" },
+  { value: "inventory", label: "Inventario de Productos", entity: "products" },
+  { value: "clinical_notes", label: "Fichas Clínicas", entity: "clinical_notes" },
 ];
 
 export const RANGE_OPTIONS = [
@@ -115,6 +125,12 @@ export function getMetricIcon(metric, size = 18) {
       return <Clock size={size} />;
     case "retention_rate":
       return <UserCheck size={size} />;
+    case "expenses":
+      return <TrendingDown size={size} />;
+    case "inventory":
+      return <Archive size={size} />;
+    case "clinical_notes":
+      return <FileText size={size} />;
     default:
       return <Calendar size={size} />;
   }
@@ -192,6 +208,9 @@ export function getMetricOptions(isEs) {
     { value: "workers_load", label: isEs ? "Carga por Colaborador" : "Load per Staff Member", entity: "workers" },
     { value: "peak_hours", label: isEs ? "Horas Pico de Reserva" : "Peak Booking Hours", entity: "appointments" },
     { value: "retention_rate", label: isEs ? "Retención de Clientes" : "Client Retention Rate", entity: "clients" },
+    { value: "expenses", label: isEs ? "Gastos Totales" : "Total Expenses", entity: "expenses" },
+    { value: "inventory", label: isEs ? "Inventario de Productos" : "Product Inventory", entity: "products" },
+    { value: "clinical_notes", label: isEs ? "Fichas Clínicas" : "Clinical Notes", entity: "clinical_notes" },
   ];
 }
 
