@@ -22,7 +22,7 @@ const ClientsABMModal = lazy(() => import("../../header/clients/ClientsABMModal.
 
 export default function DashboardLayout({ children }) {
   const { brand } = useBrand();
-  const { business, isDemoSession, logout } = useAuth();
+  const { business, isDemoSession, logout, authLoading } = useAuth();
   const hasCompanyName = Boolean(brand.companyName?.trim() || business?.name?.trim());
 
   let trialDaysLeft = null;
@@ -35,9 +35,13 @@ export default function DashboardLayout({ children }) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   // Modal states
-  const [showBrandModal, setShowBrandModal] = useState(() => {
-    return !hasCompanyName;
-  });
+  const [showBrandModal, setShowBrandModal] = useState(false);
+
+  useEffect(() => {
+    if (!authLoading) {
+      setShowBrandModal(!hasCompanyName);
+    }
+  }, [authLoading, hasCompanyName]);
   const [showWorkerModal, setShowWorkerModal] = useState(false);
   const [showServiceModal, setShowServiceModal] = useState(false);
   const [showWorkersABM, setShowWorkersABM] = useState(false);
