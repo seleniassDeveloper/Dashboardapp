@@ -450,7 +450,7 @@ export default function LandingPage() {
                   </button>
                   <a href="/manual" className="btn-link px-3 py-3 d-flex align-items-center gap-2 text-decoration-none fw-semibold" style={{ color: '#64748b' }}>
                     <Book size={18} />
-                    Leer Manual de Uso
+                    {t("hero.ctaTertiary")}
                   </a>
                 </div>
                 
