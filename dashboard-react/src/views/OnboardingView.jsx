@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Container, Card, Form, Button, Row, Col, Alert, Spinner, Badge } from "react-bootstrap";
 import { 
   Scissors, Heart, Plus, Sparkles, Layout, Globe, Image, 
-  User, Calendar, Check, AlertCircle, Trash2, ArrowLeft, Clock, DollarSign
+  User, Calendar, Check, AlertCircle, Trash2, ArrowLeft, Clock, DollarSign, LogOut
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import api from "../lib/api.js";
@@ -95,7 +95,7 @@ const DEFAULT_SCHEDULES_EN = [
 ];
 
 export default function OnboardingView() {
-  const { user, switchBusiness } = useAuth();
+  const { user, switchBusiness, logout } = useAuth();
   const { t, i18n } = useTranslation("views");
   const isEn = i18n.language === "en";
   
@@ -355,7 +355,20 @@ export default function OnboardingView() {
         fontFamily: "'Outfit', sans-serif"
       }}
     >
-      <Container style={{ maxWidth: "800px" }}>
+      <Container style={{ maxWidth: "800px", position: "relative" }}>
+        {/* Logout Button */}
+        <div className="d-flex justify-content-end mb-3">
+          <Button 
+            variant="link" 
+            onClick={logout} 
+            className="text-muted text-decoration-none small d-flex align-items-center gap-1.5 p-0 hover-text-danger transition-all"
+            style={{ fontWeight: 600 }}
+          >
+            <LogOut size={16} />
+            {t("onboarding.logoutBtn", { defaultValue: "Cerrar Sesión" })}
+          </Button>
+        </div>
+
         {/* Stepper Header */}
         <div className="d-flex justify-content-between align-items-center mb-4 px-2">
           {[1, 2, 3, 4, 5].map((s) => (
