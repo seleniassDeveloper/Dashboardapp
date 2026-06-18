@@ -15,7 +15,7 @@
     <script>
       window.addEventListener('error', function(e) {
         // Detect Vite chunk load failure before React mounts
-        if (e.message && (/Failed to fetch dynamically imported module/i.test(e.message) || /Importing a module script failed/i.test(e.message) || /carga del m.dulo/i.test(e.message))) {
+        if (e.message && (/Failed to fetch dynamically imported module/i.test(e.message) || /error loading dynamically imported module/i.test(e.message) || /Importing a module script failed/i.test(e.message) || /carga del m.dulo/i.test(e.message))) {
           if (!sessionStorage.getItem('vite_reload')) {
             sessionStorage.setItem('vite_reload', 'true');
             if (navigator.serviceWorker) {

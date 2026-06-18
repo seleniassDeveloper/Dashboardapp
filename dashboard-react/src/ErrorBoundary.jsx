@@ -27,6 +27,7 @@ export default class ErrorBoundary extends React.Component {
     const isChunkError = 
       error?.name === 'ChunkLoadError' || 
       /Failed to fetch dynamically imported module/i.test(error?.message) ||
+      /error loading dynamically imported module/i.test(error?.message) ||
       /Importing a module script failed/i.test(error?.message) ||
       /fallado la carga del m.dulo/i.test(error?.message);
 
