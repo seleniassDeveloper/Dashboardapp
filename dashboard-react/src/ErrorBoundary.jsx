@@ -23,6 +23,22 @@ export default class ErrorBoundary extends React.Component {
   }
 
   static getDerivedStateFromError(error) {
+    // Detect dynamic import failure (Vite chunk hash changes after deployments)
+    const isChunkError = 
+      error?.name === 'ChunkLoadError' || 
+      /Failed to fetch dynamically imported module/i.test(error?.message) ||
+      /Importing a module script failed/i.test(error?.message) ||
+      /fallado la carga del m.dulo/i.test(error?.message);
+
+    if (isChunkError) {
+      // Avoid infinite reload loops
+      if (!sessionStorage.getItem('chunk_reloaded')) {
+        sessionStorage.setItem('chunk_reloaded', 'true');
+        window.location.reload();
+        return { error: null };
+      }
+    }
+
     return { error };
   }
 
