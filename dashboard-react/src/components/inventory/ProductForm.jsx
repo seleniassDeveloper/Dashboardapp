@@ -1074,7 +1074,7 @@ export default function ProductForm({ products = [], suppliers = [], onRefresh }
                 
                 <div className="bg-white p-3 rounded-xl shadow-lg mb-3" style={{ display: 'inline-block' }}>
                   <QRCodeSVG 
-                    value={`http://${window.location.hostname === 'localhost' ? '192.168.0.9' : window.location.hostname}:${window.location.port}/scan.html`} 
+                    value={window.location.hostname === 'localhost' ? `http://192.168.0.9:${window.location.port || '5173'}/scan.html` : `${window.location.origin}/scan.html`} 
                     size={160} 
                   />
                 </div>
