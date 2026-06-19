@@ -31,6 +31,8 @@ const PLAN_RESTRICTIONS = {
   business: []
 };
 
+import IdleTimer from "./auth/IdleTimer";
+
 export default function App() {
   const { brand } = useBrand();
   const { isSuperAdmin, business } = useAuth();
@@ -46,6 +48,7 @@ export default function App() {
 
   return (
     <DashboardLayout>
+      <IdleTimer timeoutMinutes={3} warningMinutes={2} />
       <Routes>
         <Route path="/" element={
           isSuperAdmin && !business ? (
