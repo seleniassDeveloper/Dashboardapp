@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "AuraDash Mobile Scanner Sync",
+  "version": "1.0",
+  "description": "Puente entre el escáner móvil local y la aplicación React de inventario.",
+  "permissions": [
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "http://localhost:5173/*",
+    "http://127.0.0.1:5173/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "http://localhost:5173/app/inventory*",
+        "http://127.0.0.1:5173/app/inventory*"
+      ],
+      "js": ["content.js"]
+    }
+  ],
+  "action": {
+    "default_title": "AuraDash Scanner Sync"
+  }
+}

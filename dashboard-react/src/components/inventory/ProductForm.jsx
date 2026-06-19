@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+import { QRCodeSVG } from "qrcode.react";
 import { Card, Table, Form, Button, Row, Col, Spinner, Badge, Modal, Alert, Nav } from "react-bootstrap";
 import { 
   Plus, Edit3, Trash2, Tag, DollarSign, Package, AlertTriangle, 
@@ -634,19 +635,87 @@ export default function ProductForm({ products = [], suppliers = [], onRefresh }
     }
   };
 
-  const handleScanLookup = () => {
+  const handleScanLookup = (codeStr) => {
+    const code = typeof codeStr === 'string' ? codeStr : barcodeInput;
     setScanErrorMsg("");
     setScanSuccessMsg("");
-    if (!barcodeInput.trim()) return;
+    if (!code.trim()) return;
 
-    const matched = products.find(p => p.barcode === barcodeInput.trim());
+    const matched = products.find(p => p.barcode === code.trim());
     if (matched) {
       setScannedProduct(matched);
+      setBarcodeInput(code.trim());
       setScanState("detected");
     } else {
       setScanState("not_found");
     }
   };
+
+  useEffect(() => {
+    let intervalId;
+    if (showScanModal) {
+      intervalId = setInterval(async () => {
+        try {
+          const res = await api.get("/mobile-scans/pending");
+          if (res.data?.pending?.length > 0) {
+            const codes = res.data.pending;
+            
+            // Count frequencies of each code
+            const frequencies = {};
+            codes.forEach(c => {
+              frequencies[c] = (frequencies[c] || 0) + 1;
+            });
+
+            let addedCount = 0;
+            let lastMatched = null;
+            let lastCode = null;
+
+            // Process each code
+            for (const [code, count] of Object.entries(frequencies)) {
+              lastCode = code;
+              const matched = products.find(p => p.barcode === code);
+              if (matched) {
+                // Automatically add stock
+                await api.post("/inventory/movements", {
+                  productId: matched.id,
+                  diff: count,
+                  type: "input",
+                  reason: "Carga remota automática por escáner móvil"
+                });
+                addedCount += count;
+                lastMatched = matched;
+              }
+            }
+
+            if (addedCount > 0) {
+              if (typeof onRefresh === "function") onRefresh();
+              setScanSuccessMsg(`¡Éxito! Se agregaron automáticamente ${addedCount} unidades desde el celular.`);
+              setScanErrorMsg("");
+              if (lastMatched) {
+                // To keep the UI coherent, simulate a lookup of the last added product
+                setScannedProduct(lastMatched);
+                setBarcodeInput(lastMatched.barcode);
+                setScanState("detected");
+                // Update local state temporarily to reflect new stock
+                setScannedProduct(prev => ({...prev, stock: prev.stock + frequencies[prev.barcode]}));
+              }
+            } else if (lastCode && !lastMatched) {
+              // Code not found
+              setScanSuccessMsg("");
+              setScanErrorMsg("");
+              setBarcodeInput(lastCode);
+              setScanState("not_found");
+            }
+          }
+        } catch (err) {
+          // ignore
+        }
+      }, 2000);
+    }
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [showScanModal, products, onRefresh]);
 
   const handleSaveScanInventory = async () => {
     if (!scannedProduct || !scanQtyChange) return;
@@ -997,44 +1066,23 @@ export default function ProductForm({ products = [], suppliers = [], onRefresh }
         </Modal.Header>
         <Modal.Body className="p-4">
           <Row className="g-4">
-            {/* LASER CAMERA SIMULATOR (Left Column) */}
+            {/* WIRELESS MOBILE SCANNER QR (Left Column) */}
             <Col md={6} xs={12}>
-              <div className="p-4 bg-dark text-white rounded-2xl h-100 d-flex flex-column align-items-center justify-content-between" style={{ minHeight: "280px" }}>
-                <div className="text-center w-100 mb-2">
-                  <h5 className="small fw-bold text-white mb-1">Simulador de Cámara Láser</h5>
-                  <p className="smaller text-gray-400 mb-0">Hacé click en un insumo para emular que la cámara del celular lee su código de barras.</p>
+              <div className="p-4 bg-dark text-white rounded-2xl h-100 d-flex flex-column align-items-center justify-content-center text-center" style={{ minHeight: "280px" }}>
+                <h5 className="small fw-bold text-white mb-1">Escáner Móvil Inalámbrico</h5>
+                <p className="smaller text-gray-400 mb-3">Escaneá este código con tu celular para enviar datos directo a esta pantalla.</p>
+                
+                <div className="bg-white p-3 rounded-xl shadow-lg mb-3" style={{ display: 'inline-block' }}>
+                  <QRCodeSVG 
+                    value={`http://${window.location.hostname === 'localhost' ? '192.168.0.9' : window.location.hostname}:${window.location.port}/scan.html`} 
+                    size={160} 
+                  />
                 </div>
                 
-                {/* Horizontal red laser line */}
-                <div className="w-100 rounded-xl bg-black border border-gray-800 position-relative d-flex align-items-center justify-content-center my-3" style={{ height: "130px", overflow: "hidden" }}>
-                  <div 
-                    className="position-absolute bg-red-500 w-100 animate-pulse" 
-                    style={{ 
-                      height: "2.5px", 
-                      boxShadow: "0 0 10px #ef4444, 0 0 20px #ef4444",
-                      top: "50%",
-                      left: 0,
-                      transform: "translateY(-50%)"
-                    }} 
-                  />
-                  <div className="text-center p-2 opacity-50">
-                    <Barcode size={48} className="text-gray-400 mb-1" />
-                    <div className="smaller text-gray-500">CÁMARA ACTIVA AURA</div>
-                  </div>
-                </div>
-
-                <div className="w-100">
-                  <Form.Label className="smaller text-gray-400 fw-bold d-block mb-1">Elegir producto para simular escaneo</Form.Label>
-                  <Form.Select 
-                    className="bg-gray-900 border-gray-800 text-white rounded-xl small"
-                    onChange={(e) => handleSimulateBarcodeDisparo(e.target.value)}
-                  >
-                    <option value="">Selecciona un producto...</option>
-                    {products.map(p => (
-                      <option key={p.id} value={p.id}>{p.name} ({p.barcode || "Sin código"})</option>
-                    ))}
-                  </Form.Select>
-                </div>
+                <p className="smaller text-indigo-400 mb-0 d-flex align-items-center justify-content-center gap-1">
+                  <Spinner animation="grow" size="sm" /> 
+                  Esperando conexión móvil...
+                </p>
               </div>
             </Col>
 

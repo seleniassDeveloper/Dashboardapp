@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>AuraDash - Escáner Móvil</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <style>
+    /* Custom animations and styling */
+    body { background-color: #f8fafc; font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; }
+    .btn-active { transform: scale(0.95); opacity: 0.9; }
+    #reader img { display: none; }
+    #reader video { border-radius: 1rem; object-fit: cover; }
+  </style>
+</head>
+<body class="h-screen flex flex-col text-slate-800">
+  <!-- Top Bar -->
+  <header class="bg-indigo-600 text-white p-4 shadow-md flex justify-between items-center sticky top-0 z-10">
+    <div class="flex items-center gap-2">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm14 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+      <h1 class="text-xl font-bold tracking-tight">Escáner Móvil</h1>
+    </div>
+    <span id="statusBadge" class="bg-indigo-800 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide">Listo</span>
+  </header>
+
+  <!-- Main Content -->
+  <main class="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+    
+    <!-- Camera Error / File Fallback -->
+    <div id="cameraFallback" class="hidden bg-yellow-50 border border-yellow-200 rounded-2xl p-4 text-sm text-yellow-800 shadow-sm">
+      <p class="font-semibold mb-2">📸 Uso de Cámara Nativa</p>
+      <p class="mb-3">La cámara web está bloqueada por falta de HTTPS (o permisos). Usa el botón de abajo para abrir la cámara de tu celular o subir una foto del código de barras.</p>
+      <label class="block w-full bg-yellow-600 text-white text-center py-3 rounded-xl font-bold shadow-sm active:btn-active transition cursor-pointer">
+        Tomar Foto al Código
+        <input type="file" id="fileInput" accept="image/*" capture="environment" class="hidden" />
+      </label>
+    </div>
+
+    <!-- Scanner Box -->
+    <div id="readerContainer" class="w-full bg-black rounded-2xl overflow-hidden shadow-lg relative min-h-[250px]">
+      <div id="reader" class="w-full h-full border-none"></div>
+    </div>
+
+    <!-- Scanned Codes List -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex-1 flex flex-col">
+      <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+        <h2 class="font-bold text-slate-700">Códigos Pendientes (<span id="codeCount">0</span>)</h2>
+        <button id="btnClear" class="text-red-500 text-sm font-semibold p-2 -m-2 active:opacity-50">Limpiar</button>
+      </div>
+      <ul id="codesList" class="flex-1 overflow-y-auto p-2 space-y-2 max-h-[30vh]">
+        <li id="emptyState" class="text-slate-400 text-center py-8 text-sm italic">
+          No hay códigos escaneados aún.
+        </li>
+      </ul>
+    </div>
+  </main>
+
+  <!-- Bottom Actions -->
+  <footer class="p-4 bg-white border-t border-slate-200 sticky bottom-0">
+    <button id="btnSend" disabled class="w-full bg-indigo-600 disabled:bg-slate-300 text-white font-bold py-4 rounded-xl shadow-lg active:btn-active transition-all flex justify-center items-center gap-2">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+      Enviar al Sistema
+    </button>
+  </footer>
+
+  <script>
+    // Configuration
+    const backendUrl = `http://${window.location.hostname}:3001/api/mobile-scans`;
+    
+    // State
+    let scannedCodes = [];
+    const audioBeep = new Audio('data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU'); // dummy short beep base64 could be added if needed, omitting for size
+    
+    // DOM Elements
+    const codesList = document.getElementById('codesList');
+    const emptyState = document.getElementById('emptyState');
+    const codeCount = document.getElementById('codeCount');
+    const btnSend = document.getElementById('btnSend');
+    const btnClear = document.getElementById('btnClear');
+    const statusBadge = document.getElementById('statusBadge');
+    const cameraFallback = document.getElementById('cameraFallback');
+    const readerContainer = document.getElementById('readerContainer');
+    const fileInput = document.getElementById('fileInput');
+
+    function updateUI() {
+      codeCount.textContent = scannedCodes.length;
+      btnSend.disabled = scannedCodes.length === 0;
+      
+      if (scannedCodes.length === 0) {
+        codesList.innerHTML = '';
+        codesList.appendChild(emptyState);
+      } else {
+        codesList.innerHTML = '';
+        [...scannedCodes].reverse().forEach((code, index) => {
+          const li = document.createElement('li');
+          li.className = 'bg-slate-100 p-3 rounded-xl text-sm font-mono flex items-center shadow-sm border border-slate-200 animate-fade-in';
+          li.innerHTML = `
+            <span class="bg-indigo-100 text-indigo-700 w-6 h-6 rounded-full flex items-center justify-center text-xs mr-3 font-bold">${scannedCodes.length - index}</span>
+            <span class="flex-1">${code}</span>
+          `;
+          codesList.appendChild(li);
+        });
+      }
+    }
+
+    function addScannedCode(code) {
+      if ('vibrate' in navigator) navigator.vibrate(100);
+      scannedCodes.push(code);
+      updateUI();
+    }
+
+    // Initialize Camera Scanner
+    const html5QrcodeScanner = new Html5QrcodeScanner(
+      "reader",
+      { fps: 10, qrbox: { width: 250, height: 150 }, aspectRatio: 1.0 },
+      /* verbose= */ false
+    );
+
+    let lastScanned = "";
+    let scanTimeout = null;
+
+    html5QrcodeScanner.render(
+      (decodedText) => {
+        if (decodedText !== lastScanned) {
+          lastScanned = decodedText;
+          addScannedCode(decodedText);
+          
+          if (scanTimeout) clearTimeout(scanTimeout);
+          scanTimeout = setTimeout(() => { lastScanned = ""; }, 2000);
+        }
+      },
+      (errorMessage) => {
+        // Parse errors are normal, ignore.
+      }
+    );
+
+    // Fallback detection (if camera fails or HTTP block)
+    setTimeout(() => {
+      // If the scanner didn't start the video stream after a bit, it likely failed due to HTTP context
+      const video = document.querySelector('#reader video');
+      if (!video) {
+        readerContainer.classList.add('hidden');
+        cameraFallback.classList.remove('hidden');
+      }
+    }, 2500);
+
+    // File Input Fallback Logic
+    fileInput.addEventListener('change', e => {
+      if (e.target.files.length == 0) return;
+      const file = e.target.files[0];
+      const html5QrCode = new Html5Qrcode("reader"); // use the same div to instantiate
+      
+      statusBadge.textContent = "Procesando...";
+      statusBadge.className = "bg-yellow-500 text-white px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide";
+      
+      html5QrCode.scanFile(file, true)
+      .then(decodedText => {
+        addScannedCode(decodedText);
+        statusBadge.textContent = "Listo";
+        statusBadge.className = "bg-indigo-800 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide";
+      })
+      .catch(err => {
+        alert("No se encontró ningún código de barras claro en la imagen. Intenta tomarla con mejor luz.");
+        statusBadge.textContent = "Error";
+        statusBadge.className = "bg-red-600 px-3 py-1 text-white rounded-full text-xs font-semibold uppercase tracking-wide";
+      });
+      
+      // Reset input so the same file can be selected again
+      fileInput.value = "";
+    });
+
+    // Actions
+    btnClear.addEventListener('click', () => {
+      scannedCodes = [];
+      updateUI();
+    });
+
+    btnSend.addEventListener('click', async () => {
+      if (scannedCodes.length === 0) return;
+      
+      const prevText = btnSend.innerHTML;
+      btnSend.innerHTML = '<svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Enviando...';
+      btnSend.disabled = true;
+
+      try {
+        const response = await fetch(backendUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ codes: scannedCodes })
+        });
+        
+        if (response.ok) {
+          scannedCodes = [];
+          updateUI();
+          statusBadge.textContent = "Enviado";
+          statusBadge.className = "bg-emerald-500 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide text-white";
+          setTimeout(() => {
+            statusBadge.textContent = "Listo";
+            statusBadge.className = "bg-indigo-800 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide";
+          }, 3000);
+        } else {
+          throw new Error("Server error");
+        }
+      } catch (error) {
+        alert("Error al enviar al sistema. Verifica que la PC y el celular sigan en la misma red y que el servidor (puerto 3000) esté corriendo.");
+        btnSend.disabled = false;
+      } finally {
+        btnSend.innerHTML = prevText;
+      }
+    });
+  </script>
+</body>
+</html>
