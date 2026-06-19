@@ -115,6 +115,7 @@ export default function WorkflowBuilder({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+  const [showSaveModal, setShowSaveModal] = useState(false);
 
   const isEdit = Boolean(initialData?.id);
 
@@ -309,9 +310,9 @@ export default function WorkflowBuilder({
   };
 
   // Save visual nodes to relational database format
-  const handleSaveWorkflow = async () => {
+  const executeSave = async () => {
     if (!name.trim()) {
-      setError(isEs ? "Por favor escribe el nombre del workflow." : "Please enter the workflow name.");
+      setError(isEs ? "Por favor asigna un nombre al workflow." : "Please enter the workflow name.");
       return;
     }
 
@@ -345,6 +346,7 @@ export default function WorkflowBuilder({
 
       setSuccessMsg(isEs ? "¡Workflow guardado con éxito!" : "Workflow saved successfully!");
       onSaved?.(res.data);
+      setShowSaveModal(false);
       setTimeout(() => onHide(), 1000);
     } catch (err) {
       console.error(err);
@@ -354,10 +356,20 @@ export default function WorkflowBuilder({
     }
   };
 
+  const handleSaveWorkflowClick = () => {
+    setError("");
+    const triggerNode = nodes.find(n => n.type === "trigger");
+    if (!triggerNode) {
+      setError(isEs ? "El workflow debe tener al menos un nodo Disparador (Trigger)." : "The workflow must have at least one Trigger node.");
+      return;
+    }
+    setShowSaveModal(true);
+  };
+
   return createPortal(
     <div 
       className="position-fixed top-0 start-0 w-100 h-100 bg-light"
-      style={{ zIndex: 9999, overflow: "hidden" }}
+      style={{ zIndex: 1040, overflow: "hidden" }}
     >
       <Container fluid className="px-4 py-3 h-100 d-flex flex-column" style={{ maxHeight: "100vh" }}>
         
@@ -410,7 +422,7 @@ export default function WorkflowBuilder({
 
             <Button
               variant="purple"
-              onClick={handleSaveWorkflow}
+              onClick={handleSaveWorkflowClick}
               disabled={saving}
               className="rounded-xl px-4 py-1.8 fw-bold text-white bg-purple-600 hover-bg-purple-700 border-0 d-flex align-items-center gap-1.5 shadow-md small"
             >
@@ -728,6 +740,73 @@ export default function WorkflowBuilder({
           </Button>
         </Modal.Footer>
       </Modal>
+
+      {/* MODAL PARA GUARDAR WORKFLOW */}
+      <Modal 
+        show={showSaveModal} 
+        onHide={() => !saving && setShowSaveModal(false)}
+        centered
+        className="modern-modal"
+      >
+        <Modal.Header closeButton={!saving} className="border-0 pb-0">
+          <Modal.Title className="fw-black text-gray-900 fs-5 d-flex align-items-center gap-2">
+            <Save size={20} className="text-purple-600" />
+            <span>{isEs ? "Guardar Automatización" : "Save Workflow"}</span>
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="pt-3">
+          <Form className="d-grid gap-3">
+            <Form.Group>
+              <Form.Label className="small fw-bold text-gray-700">{isEs ? "Nombre del Workflow" : "Workflow Name"} *</Form.Label>
+              <Form.Control
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder={isEs ? "Ej: Recordatorio 24h" : "e.g., 24h Reminder"}
+                className="rounded-xl border-gray-200"
+                disabled={saving}
+                autoFocus
+                required
+              />
+            </Form.Group>
+
+            <Form.Group>
+              <Form.Label className="small fw-bold text-gray-700">{isEs ? "Descripción (Opcional)" : "Description (Optional)"}</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={3}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder={isEs ? "¿Qué hace este flujo?" : "What does this flow do?"}
+                className="rounded-xl border-gray-200"
+                disabled={saving}
+              />
+            </Form.Group>
+            
+            {error && <Alert variant="danger" className="py-2 small mb-0 rounded-xl">{error}</Alert>}
+          </Form>
+        </Modal.Body>
+        <Modal.Footer className="border-0 pt-0 pb-4 justify-content-end gap-2">
+          <Button 
+            variant="light" 
+            onClick={() => setShowSaveModal(false)}
+            disabled={saving}
+            className="rounded-xl px-4 py-2 small fw-bold"
+          >
+            {isEs ? "Cancelar" : "Cancel"}
+          </Button>
+          <Button 
+            variant="purple" 
+            onClick={executeSave}
+            disabled={saving}
+            className="rounded-xl px-5 py-2 bg-purple-600 hover-bg-purple-700 text-white border-0 small fw-bold d-flex align-items-center gap-2 shadow-sm"
+          >
+            {saving && <Sparkles size={16} className="animate-spin" />}
+            {saving ? (isEs ? "Guardando..." : "Saving...") : (isEs ? "Guardar" : "Save")}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
     </div>,
     document.body
   );

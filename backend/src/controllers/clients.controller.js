@@ -131,6 +131,7 @@ export async function listClients(req, res) {
     const businessId = req.businessId;
 
     const where = {
+      isActive: true,
       ...(businessId ? { OR: [{ businessId }, { businessId: null }] } : {}),
       ...(search
         ? {
@@ -144,7 +145,7 @@ export async function listClients(req, res) {
         : {})
     };
 
-    const clients = await prisma.client.findMany({ where: { businessId: req.businessId }, where,
+    const clients = await prisma.client.findMany({ where,
       orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
       take: 50,
     });

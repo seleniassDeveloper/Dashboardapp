@@ -484,7 +484,7 @@ router.post("/import", async (req, res) => {
     // Fetch all existing entities to memory
     const allClients = await prisma.client.findMany({ where: { businessId } });
     const allServices = await prisma.service.findMany({ where: { businessId } });
-    const allWorkers = await prisma.worker.findMany({ where: { businessId } });
+    const allWorkers = await prisma.worker.findMany({ where: { businessId }, include: { services: true } });
 
     const clientCache = {
       byEmail: new Map(),
@@ -501,7 +501,13 @@ router.post("/import", async (req, res) => {
     allServices.forEach(s => serviceCache.set(s.name.trim(), s));
 
     const workerCache = new Map();
-    allWorkers.forEach(w => workerCache.set(`${w.firstName} ${w.lastName}`.trim(), w));
+    const workerServiceCache = new Set();
+    allWorkers.forEach(w => {
+      workerCache.set(`${w.firstName} ${w.lastName}`.trim(), w);
+      if (w.services && w.services.length > 0) {
+        w.services.forEach(ws => workerServiceCache.add(`${w.id}_${ws.serviceId}`));
+      }
+    });
 
     let appointmentCache = null;
     if (entityType === "appointments") {
@@ -512,6 +518,14 @@ router.post("/import", async (req, res) => {
         appointmentCache.set(key, a);
       });
     }
+
+    const createdIds = {
+      clients: [],
+      services: [],
+      workers: [],
+      appointments: [],
+      expenses: []
+    };
 
     const getOrCreateClient = async (nameVal, phoneVal, emailVal) => {
       if (!nameVal) return null;
@@ -534,6 +548,7 @@ router.post("/import", async (req, res) => {
       const newClient = await prisma.client.create({
         data: { firstName, lastName, phone, email, businessId }
       });
+      createdIds.clients.push(newClient.id);
       if (email) clientCache.byEmail.set(email, newClient);
       if (phone) clientCache.byPhone.set(phone, newClient);
       clientCache.byName.set(nameKey, newClient);
@@ -551,6 +566,7 @@ router.post("/import", async (req, res) => {
       const newService = await prisma.service.create({
         data: { name, price, duration: 60, businessId }
       });
+      createdIds.services.push(newService.id);
       serviceCache.set(name, newService);
       return newService;
     };
@@ -570,11 +586,15 @@ router.post("/import", async (req, res) => {
       if (workerCache.has(nameKey)) {
         const existing = workerCache.get(nameKey);
         if (serviceId) {
-          const relation = await prisma.workerService.findUnique({
-            where: { workerId_serviceId: { workerId: existing.id, serviceId } }
-          });
-          if (!relation) {
-            await prisma.workerService.create({ data: { workerId: existing.id, serviceId } });
+          const relationKey = `${existing.id}_${serviceId}`;
+          if (!workerServiceCache.has(relationKey)) {
+            const relation = await prisma.workerService.findUnique({
+              where: { workerId_serviceId: { workerId: existing.id, serviceId } }
+            });
+            if (!relation) {
+              await prisma.workerService.create({ data: { workerId: existing.id, serviceId } });
+            }
+            workerServiceCache.add(relationKey);
           }
         }
         return existing;
@@ -589,12 +609,18 @@ router.post("/import", async (req, res) => {
           schedules: { create: defaultSchedules }
         }
       });
-      if (serviceId) await prisma.workerService.create({ data: { workerId: newWorker.id, serviceId } });
+      createdIds.workers.push(newWorker.id);
+      if (serviceId) {
+        await prisma.workerService.create({ data: { workerId: newWorker.id, serviceId } });
+        workerServiceCache.add(`${newWorker.id}_${serviceId}`);
+      }
       workerCache.set(nameKey, newWorker);
       return newWorker;
     };
 
     // Procesamiento secuencial para aprovechar el caché en memoria
+    const expensesToCreate = [];
+    const appointmentsToCreate = [];
     for (let idx = 0; idx < rows.length; idx++) {
       const row = rows[idx];
       const rowNum = idx + 2;
@@ -668,6 +694,7 @@ router.post("/import", async (req, res) => {
             const newClient = await prisma.client.create({
               data: { firstName, lastName, phone, email, notes: finalNotes, businessId }
             });
+            createdIds.clients.push(newClient.id);
             if (email) clientCache.byEmail.set(email, newClient);
             if (phone) clientCache.byPhone.set(phone, newClient);
             clientCache.byName.set(nameKey, newClient);
@@ -703,6 +730,7 @@ router.post("/import", async (req, res) => {
             const newSvc = await prisma.service.create({
               data: { name: name.trim(), price, duration, description, businessId, isActive: true, availableOnline: true }
             });
+            createdIds.services.push(newSvc.id);
             serviceCache.set(name.trim(), newSvc);
             createdCount++;
             successfulDetails.push({ row: rowNum, entityType: "Servicios", action: "Creado", description: name.trim() });
@@ -752,6 +780,7 @@ router.post("/import", async (req, res) => {
                 customFields, businessId, branchId, schedules: { create: defaultSchedules }
               }
             });
+            createdIds.workers.push(newWorker.id);
             workerCache.set(nameKey, newWorker);
             createdCount++;
             successfulDetails.push({ row: rowNum, entityType: "Profesionales", action: "Creado", description: nameKey });
@@ -815,15 +844,38 @@ router.post("/import", async (req, res) => {
           let finalNotes = notesVal || "Importado históricamente";
           if (customValues.length > 0) finalNotes = (finalNotes ? finalNotes + "\n" : "") + customValues.join("\n");
 
-          const newAppt = await prisma.appointment.create({
-            data: {
-              clientId: client.id, serviceId: service.id, workerId: worker.id,
-              startsAt, notes: finalNotes, status: finalStatus, businessId, branchId
-            }
+          appointmentsToCreate.push({
+            clientId: client.id, serviceId: service.id, workerId: worker.id,
+            startsAt, notes: finalNotes, status: finalStatus, businessId, branchId
           });
-          appointmentCache.set(apptKey, newAppt);
+          appointmentCache.set(apptKey, { id: 'temp', ...appointmentsToCreate[appointmentsToCreate.length - 1] });
           createdCount++;
           successfulDetails.push({ row: rowNum, entityType: "Citas", action: "Creado", description: `Cita de ${clientName} con ${workerName}` });
+        }
+        else if (entityType === "expenses") {
+          const nameVal = mapping.name && row[mapping.name] ? String(row[mapping.name]).trim() : "";
+          if (!nameVal) {
+             failedCount++;
+             skippedDetails.push({ row: rowNum, motive: "Concepto / Descripción es obligatorio" });
+             continue;
+          }
+          let amountStr = mapping.amount && row[mapping.amount] ? String(row[mapping.amount]).replace(/[^0-9]/g, "") : "";
+          let amount = parseInt(amountStr, 10) || 0;
+          let category = mapping.category && row[mapping.category] ? String(row[mapping.category]).trim().toLowerCase() : "otros";
+          
+          let dateVal = mapping.date && row[mapping.date] ? String(row[mapping.date]).trim() : "";
+          let date = dateVal ? parseDateTime(dateVal, "") : new Date();
+          if (!date || isNaN(date.getTime())) date = new Date();
+
+          expensesToCreate.push({
+            name: nameVal,
+            amount,
+            category,
+            date,
+            branchId
+          });
+          createdCount++;
+          successfulDetails.push({ row: rowNum, entityType: "Pagos/Egresos", action: "Creado", description: nameVal });
         }
       } catch (e) {
         console.error(`Error importando fila ${rowNum}:`, e);
@@ -832,8 +884,31 @@ router.post("/import", async (req, res) => {
       }
     }
 
+    if (expensesToCreate.length > 0) {
+      try {
+        const inserted = await prisma.expense.createManyAndReturn({ data: expensesToCreate });
+        createdIds.expenses.push(...inserted.map(e => e.id));
+      } catch(e) {
+        console.error("Error inserting expenses block:", e);
+      }
+    }
+
+    if (appointmentsToCreate.length > 0) {
+      try {
+        // Chunk appointments by 500 to avoid parameters limit on SQLite/Postgres
+        for (let i = 0; i < appointmentsToCreate.length; i += 500) {
+          const chunk = appointmentsToCreate.slice(i, i + 500);
+          const inserted = await prisma.appointment.createManyAndReturn({ data: chunk });
+          createdIds.appointments.push(...inserted.map(a => a.id));
+        }
+      } catch(e) {
+        console.error("Error inserting appointments block:", e);
+      }
+    }
+
     res.json({
       success: true,
+      createdIds,
       summary: {
         created: createdCount,
         reused: reusedCount,
@@ -851,7 +926,7 @@ router.post("/import", async (req, res) => {
 
 router.post("/import-history", async (req, res) => {
   try {
-    const { name, summary } = req.body;
+    const { name, summary, createdIds } = req.body;
     const businessId = req.businessId;
     if (!name || !summary) return res.status(400).json({ error: "Faltan datos requeridos." });
 
@@ -859,7 +934,7 @@ router.post("/import-history", async (req, res) => {
       data: {
         businessId,
         name,
-        details: summary
+        details: { summary, createdIds: createdIds || {} }
       }
     });
     res.json({ success: true, record });
@@ -880,6 +955,58 @@ router.get("/import-history", async (req, res) => {
   } catch (err) {
     console.error("Error obteniendo historial de importaciones:", err);
     res.status(500).json({ error: "Error al obtener el historial." });
+  }
+});
+
+router.delete("/import-history/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const businessId = req.businessId;
+
+    const record = await prisma.dataImportHistory.findUnique({
+      where: { id }
+    });
+
+    if (!record || record.businessId !== businessId) {
+      return res.status(404).json({ error: "Historial no encontrado" });
+    }
+
+    if (record.status === "REVERTED") {
+      return res.status(400).json({ error: "Esta importación ya ha sido revertida" });
+    }
+
+    const createdIds = record.details?.createdIds;
+    if (!createdIds) {
+      return res.status(400).json({ error: "No hay registros rastreados para esta importación para poder revertirla" });
+    }
+
+    // Ejecutar desactivaciones masivas para los IDs rastreados
+    if (createdIds.appointments?.length > 0) {
+      await prisma.appointment.updateMany({ where: { id: { in: createdIds.appointments } }, data: { status: "CANCELLED" } });
+    }
+    if (createdIds.expenses?.length > 0) {
+      await prisma.expense.updateMany({ where: { id: { in: createdIds.expenses } }, data: { isActive: false } });
+    }
+    if (createdIds.workers?.length > 0) {
+      await prisma.worker.updateMany({ where: { id: { in: createdIds.workers } }, data: { isActive: false, availableOnline: false } });
+    }
+    if (createdIds.services?.length > 0) {
+      await prisma.service.updateMany({ where: { id: { in: createdIds.services } }, data: { isActive: false, status: "inactive" } });
+    }
+    if (createdIds.clients?.length > 0) {
+      await prisma.client.updateMany({ where: { id: { in: createdIds.clients } }, data: { isActive: false } });
+    }
+
+    // Actualizar estado del historial
+    await prisma.dataImportHistory.update({
+      where: { id },
+      data: { status: "REVERTED" }
+    });
+
+    res.json({ success: true, message: "Importación revertida exitosamente" });
+  } catch (err) {
+    console.error("Error al revertir importación:", err);
+    res.status(500).json({ error: "Error al revertir importación." });
   }
 });
 

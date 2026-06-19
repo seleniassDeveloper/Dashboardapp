@@ -3,7 +3,7 @@ import { Container, Row, Col, Card, Form, Button, Table, ProgressBar, Alert, Bad
 import {
   FileSpreadsheet, Link2, Settings, ArrowRight, RefreshCw,
   CheckCircle2, AlertTriangle, Sparkles, HelpCircle, Download,
-  Database, Check, FileText, FileJson, History
+  Database, Check, FileText, FileJson, History, AlertCircle
 } from "lucide-react";
 import { useTranslation, Trans } from "react-i18next";
 import api from "../lib/api.js";
@@ -40,6 +40,12 @@ const INITIAL_ENTITY_FIELDS = {
     { key: "price", label: "Importe Cobrado", required: false },
     { key: "status", label: "Estado (DONE, CONFIRMED, CANCELLED)", required: false },
     { key: "notes", label: "Notas / Detalles", required: false }
+  ],
+  expenses: [
+    { key: "name", label: "Concepto / Descripción", required: true },
+    { key: "amount", label: "Monto / Importe", required: true },
+    { key: "category", label: "Categoría", required: false },
+    { key: "date", label: "Fecha del Pago", required: false }
   ]
 };
 
@@ -86,6 +92,8 @@ export default function GoogleSheetsSyncView() {
   const [importName, setImportName] = useState("");
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showNewFieldForm, setShowNewFieldForm] = useState(false);
+  const [deactivateModalData, setDeactivateModalData] = useState(null);
+  const [isDeactivating, setIsDeactivating] = useState(false);
 
 
   useEffect(() => {
@@ -109,7 +117,8 @@ export default function GoogleSheetsSyncView() {
     clients: { firstName: true, lastName: true, phone: true, email: true, notes: true },
     services: { name: true, price: true, duration: true },
     workers: { firstName: true, lastName: true, email: true, phone: true, roleTitle: true },
-    appointments: { clientName: true, phone: true, email: true, serviceName: true, workerName: true, startsAt: true, time: true, price: true, status: true, notes: true }
+    appointments: { clientName: true, phone: true, email: true, serviceName: true, workerName: true, startsAt: true, time: true, price: true, status: true, notes: true },
+    expenses: { name: true, amount: true, category: true, date: true }
   }[type] || {});
 
   const autoDetectMappingsLocal = (headers, type, entityFieldsDef, enabled) => {
@@ -158,10 +167,15 @@ export default function GoogleSheetsSyncView() {
           const l = h.toLowerCase();
           return l.includes("hora") || l.includes("time");
         });
-      } else if (lowerKey === "price") {
+      } else if (lowerKey === "price" || lowerKey === "amount") {
         match = headers.find(h => {
           const l = h.toLowerCase();
-          return l.includes("precio") || l.includes("importe") || l.includes("monto") || l.includes("cost") || l.includes("total") || l.includes("pagos") || l.includes("cobrado");
+          return l.includes("precio") || l.includes("importe") || l.includes("monto") || l.includes("cost") || l.includes("total") || l.includes("pago") || l.includes("cobrado");
+        });
+      } else if (lowerKey === "category") {
+        match = headers.find(h => {
+          const l = h.toLowerCase();
+          return l.includes("categoria") || l.includes("rubro") || l.includes("tipo");
         });
       } else if (lowerKey === "notes") {
         match = headers.find(h => {
@@ -807,6 +821,13 @@ export default function GoogleSheetsSyncView() {
           if (res.data.summary.successfulDetails) {
             combinedSummary.successfulDetails.push(...res.data.summary.successfulDetails);
           }
+          if (res.data.createdIds) {
+            combinedSummary.createdIds = combinedSummary.createdIds || {};
+            for (const key of Object.keys(res.data.createdIds)) {
+              if (!combinedSummary.createdIds[key]) combinedSummary.createdIds[key] = [];
+              combinedSummary.createdIds[key].push(...res.data.createdIds[key]);
+            }
+          }
         } else {
           throw new Error(`Fallo al importar hoja ${sheet.name}`);
         }
@@ -814,7 +835,8 @@ export default function GoogleSheetsSyncView() {
 
 
       try {
-        await api.post("/google/import-history", { name: importName, summary: combinedSummary });
+        const historyPayload = { name: importName, summary: combinedSummary, createdIds: combinedSummary.createdIds || {} };
+        await api.post("/google/import-history", historyPayload);
       } catch (err) {
         console.error("No se pudo guardar el historial", err);
       }
@@ -1077,17 +1099,38 @@ export default function GoogleSheetsSyncView() {
                                 <th className="ps-3">Nombre del Registro</th>
                                 <th>Fecha y Hora</th>
                                 <th>Resultados</th>
+                                <th className="text-end pe-3">Acciones</th>
                               </tr>
                             </thead>
                             <tbody style={{ fontSize: "13px" }}>
                               {(importHistory || []).map(hist => (
-                                <tr key={hist.id} onClick={() => setSelectedHistory(hist)} className="cursor-pointer hover-bg-gray-50 transition-all" title="Ver detalles de la importación">
-                                  <td className="ps-3 fw-bold text-dark">{hist.name}</td>
-                                  <td className="text-muted">{new Date(hist.createdAt).toLocaleString()}</td>
-                                  <td>
-                                    <Badge bg="success" className="me-1">{(hist.details?.created) || 0} Creados</Badge>
-                                    <Badge bg="primary" className="me-1">{(hist.details?.reused) || 0} Actualizados</Badge>
-                                    <Badge bg="danger">{(hist.details?.failed) || 0} Fallidos</Badge>
+                                <tr key={hist.id} className="hover-bg-gray-50 transition-all">
+                                  <td className="ps-3 fw-bold text-dark cursor-pointer" onClick={() => setSelectedHistory(hist)} title="Ver detalles de la importación">{hist.name}</td>
+                                  <td className="text-muted cursor-pointer" onClick={() => setSelectedHistory(hist)}>{new Date(hist.createdAt).toLocaleString()}</td>
+                                  <td className="cursor-pointer" onClick={() => setSelectedHistory(hist)}>
+                                    {hist.status === "REVERTED" ? (
+                                      <Badge bg="secondary">Desactivado</Badge>
+                                    ) : (
+                                      <>
+                                        <Badge bg="success" className="me-1">{(hist.details?.summary?.created || hist.details?.created) || 0} Creados</Badge>
+                                        <Badge bg="primary" className="me-1">{(hist.details?.summary?.reused || hist.details?.reused) || 0} Actualizados</Badge>
+                                        <Badge bg="danger">{(hist.details?.summary?.failed || hist.details?.failed) || 0} Fallidos</Badge>
+                                      </>
+                                    )}
+                                  </td>
+                                  <td className="text-end pe-3">
+                                    <Button 
+                                      variant="outline-danger" 
+                                      size="sm" 
+                                      className="rounded-pill px-3 py-1"
+                                      disabled={hist.status === "REVERTED"}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setDeactivateModalData(hist);
+                                      }}
+                                    >
+                                      Desactivar
+                                    </Button>
                                   </td>
                                 </tr>
                               ))}
@@ -1155,6 +1198,7 @@ export default function GoogleSheetsSyncView() {
                                   <option value="clients">{t("sheetsSync.dataTypeClients")}</option>
                                   <option value="services">{t("sheetsSync.dataTypeServices")}</option>
                                   <option value="workers">{t("sheetsSync.dataTypeWorkers")}</option>
+                                  <option value="expenses">💸 Pagos y Egresos (Finanzas)</option>
                                 </Form.Select>
                               </td>
                               <td className="text-end">
@@ -1725,25 +1769,25 @@ export default function GoogleSheetsSyncView() {
               <Row className="g-3 mb-4 text-center">
                 <Col xs={4}>
                   <div className="p-3 bg-light rounded-3 border">
-                    <div className="h4 fw-black text-success m-0">{selectedHistory.details.created || 0}</div>
+                    <div className="h4 fw-black text-success m-0">{selectedHistory.details.summary?.created || selectedHistory.details.created || 0}</div>
                     <div className="text-muted smaller">Registros Creados</div>
                   </div>
                 </Col>
                 <Col xs={4}>
                   <div className="p-3 bg-light rounded-3 border">
-                    <div className="h4 fw-black text-primary m-0">{selectedHistory.details.reused || 0}</div>
+                    <div className="h4 fw-black text-primary m-0">{selectedHistory.details.summary?.reused || selectedHistory.details.reused || 0}</div>
                     <div className="text-muted smaller">Reutilizados / Actualizados</div>
                   </div>
                 </Col>
                 <Col xs={4}>
                   <div className="p-3 bg-light rounded-3 border">
-                    <div className="h4 fw-black text-danger m-0">{selectedHistory.details.failed || 0}</div>
+                    <div className="h4 fw-black text-danger m-0">{selectedHistory.details.summary?.failed || selectedHistory.details.failed || 0}</div>
                     <div className="text-muted smaller">Filas Omitidas</div>
                   </div>
                 </Col>
               </Row>
 
-              {selectedHistory.details.successfulDetails && selectedHistory.details.successfulDetails.length > 0 && (
+              {((selectedHistory.details.summary?.successfulDetails) || selectedHistory.details.successfulDetails)?.length > 0 && (
                 <div className="mt-4">
                   <h5 className="fw-bold text-success h6 mb-2">Datos Importados Exitosamente</h5>
                   <div className="table-responsive border rounded-3 mb-4 custom-scrollbar" style={{ maxHeight: "250px" }}>
@@ -1756,7 +1800,7 @@ export default function GoogleSheetsSyncView() {
                         </tr>
                       </thead>
                       <tbody style={{ fontSize: "13px" }}>
-                        {selectedHistory.details.successfulDetails.map((item, idx) => (
+                        {((selectedHistory.details.summary?.successfulDetails) || selectedHistory.details.successfulDetails).map((item, idx) => (
                           <tr key={idx}>
                             <td className="fw-bold text-dark">{item.entityType}</td>
                             <td className="text-muted">{item.description}</td>
@@ -1773,7 +1817,7 @@ export default function GoogleSheetsSyncView() {
                 </div>
               )}
 
-              {selectedHistory.details.skippedDetails && selectedHistory.details.skippedDetails.length > 0 && (
+              {((selectedHistory.details.summary?.skippedDetails) || selectedHistory.details.skippedDetails)?.length > 0 && (
                 <div className="mt-4">
                   <div className="d-flex justify-content-between align-items-center mb-2">
                     <h5 className="fw-bold text-danger h6 mb-0">Detalle de filas omitidas</h5>
@@ -1782,7 +1826,8 @@ export default function GoogleSheetsSyncView() {
                       size="sm" 
                       className="rounded-pill px-3 py-1 d-flex align-items-center gap-1"
                       onClick={() => {
-                        const data = [["Fila Original", "Motivo del Error"], ...selectedHistory.details.skippedDetails.map(d => [d.row, d.motive])];
+                        const skips = (selectedHistory.details.summary?.skippedDetails) || selectedHistory.details.skippedDetails;
+                        const data = [["Fila Original", "Motivo del Error"], ...skips.map(d => [d.row, d.motive])];
                         const ws = XLSX.utils.aoa_to_sheet(data);
                         const wb = XLSX.utils.book_new();
                         XLSX.utils.book_append_sheet(wb, ws, "Errores");
@@ -1801,7 +1846,7 @@ export default function GoogleSheetsSyncView() {
                         </tr>
                       </thead>
                       <tbody>
-                        {selectedHistory.details.skippedDetails.map((skipped, idx) => (
+                        {((selectedHistory.details.summary?.skippedDetails) || selectedHistory.details.skippedDetails).map((skipped, idx) => (
                           <tr key={idx}>
                             <td className="text-muted">#{skipped.row}</td>
                             <td className="text-danger small">{skipped.motive}</td>
@@ -1818,6 +1863,94 @@ export default function GoogleSheetsSyncView() {
         <Modal.Footer className="border-0">
           <Button variant="light" onClick={() => setSelectedHistory(null)} className="rounded-pill px-4">
             Cerrar
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* DEACTIVATE CONFIRMATION MODAL */}
+      <Modal show={!!deactivateModalData} onHide={() => !isDeactivating && setDeactivateModalData(null)} centered>
+        <Modal.Header closeButton={!isDeactivating} className="border-0 pb-0">
+          <Modal.Title className="fw-black h5 text-danger d-flex align-items-center gap-2">
+            <AlertCircle size={22} />
+            Desactivar Importación
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p className="text-muted small mb-4">
+            Estás a punto de desactivar la importación <strong>"{deactivateModalData?.name}"</strong>. Esto cambiará a estado "inactivo" o "cancelado" a los siguientes registros que fueron creados nuevos en esa importación:
+          </p>
+          <ul className="list-group mb-4 small">
+            {(deactivateModalData?.details?.createdIds?.clients?.length > 0) && (
+              <li className="list-group-item d-flex justify-content-between align-items-center bg-light">
+                Clientes
+                <Badge bg="primary" rounded="pill">{deactivateModalData.details.createdIds.clients.length}</Badge>
+              </li>
+            )}
+            {(deactivateModalData?.details?.createdIds?.appointments?.length > 0) && (
+              <li className="list-group-item d-flex justify-content-between align-items-center bg-light">
+                Citas
+                <Badge bg="success" rounded="pill">{deactivateModalData.details.createdIds.appointments.length}</Badge>
+              </li>
+            )}
+            {(deactivateModalData?.details?.createdIds?.services?.length > 0) && (
+              <li className="list-group-item d-flex justify-content-between align-items-center bg-light">
+                Servicios
+                <Badge bg="info" rounded="pill">{deactivateModalData.details.createdIds.services.length}</Badge>
+              </li>
+            )}
+            {(deactivateModalData?.details?.createdIds?.workers?.length > 0) && (
+              <li className="list-group-item d-flex justify-content-between align-items-center bg-light">
+                Profesionales
+                <Badge bg="warning" text="dark" rounded="pill">{deactivateModalData.details.createdIds.workers.length}</Badge>
+              </li>
+            )}
+            {(deactivateModalData?.details?.createdIds?.expenses?.length > 0) && (
+              <li className="list-group-item d-flex justify-content-between align-items-center bg-light">
+                Egresos / Pagos
+                <Badge bg="danger" rounded="pill">{deactivateModalData.details.createdIds.expenses.length}</Badge>
+              </li>
+            )}
+            {(!deactivateModalData?.details?.createdIds || Object.values(deactivateModalData.details.createdIds).every(arr => arr.length === 0)) && (
+              <li className="list-group-item bg-light text-muted fst-italic">
+                No hay registros nuevos rastreados en esta importación.
+              </li>
+            )}
+          </ul>
+          <p className="text-danger small fw-bold mb-0">
+            Esta acción no se puede deshacer. Los registros que solo fueron actualizados no se verán afectados.
+          </p>
+        </Modal.Body>
+        <Modal.Footer className="border-0 pt-0">
+          <Button variant="light" onClick={() => setDeactivateModalData(null)} disabled={isDeactivating} className="rounded-pill px-4">
+            Cancelar
+          </Button>
+          <Button 
+            variant="danger" 
+            disabled={isDeactivating}
+            onClick={async () => {
+              setIsDeactivating(true);
+              try {
+                await api.delete(`/google/import-history/${deactivateModalData.id}`);
+                setDeactivateModalData(null);
+                
+                // Refresh data
+                const res = await api.get("/google/import-history");
+                if (Array.isArray(res.data)) setImportHistory(res.data);
+                
+                alert("Importación desactivada exitosamente");
+                
+                // Optional: force a reload of the app to refresh dashboard stats
+                window.location.reload();
+              } catch (error) {
+                alert(error.response?.data?.error || "Error al desactivar la importación");
+              } finally {
+                setIsDeactivating(false);
+              }
+            }} 
+            className="rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2"
+          >
+            {isDeactivating ? <RefreshCw size={16} className="spin" /> : null}
+            {isDeactivating ? "Procesando..." : "Sí, Desactivar"}
           </Button>
         </Modal.Footer>
       </Modal>

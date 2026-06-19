@@ -8,6 +8,7 @@ const router = Router();
 router.get("/", async (req, res) => {
   try {
     const workers = await prisma.worker.findMany({
+      where: { isActive: true },
       include: {
         services: { include: { service: true } },
         schedules: true,

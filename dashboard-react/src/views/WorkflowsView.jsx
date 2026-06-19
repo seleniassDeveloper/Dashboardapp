@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState, useMemo } from "react";
-import { Container, Row, Col, Badge, Button, Spinner, Alert, Table, Card, Offcanvas, ListGroup, Form, ProgressBar } from "react-bootstrap";
+import { Container, Row, Col, Badge, Button, Spinner, Alert, Table, Card, Offcanvas, ListGroup, Form, ProgressBar, Modal } from "react-bootstrap";
 import { Play, Plus, GitBranch, Zap, Pencil, Trash2, Pause, Sparkles, Activity, MessageSquare, Mail, AlertTriangle, ShieldCheck, ArrowUpRight, XCircle, CheckCircle2, X, Clock, ArrowRight, ClipboardCheck, Search, Filter, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import WorkflowBuilder from "../components/workflows/WorkflowBuilder.jsx";
@@ -79,6 +79,11 @@ export default function WorkflowsView() {
   const [historySearchTerm, setHistorySearchTerm] = useState("");
   const [historyFilterStatus, setHistoryFilterStatus] = useState("all");
   const [historyExpandedId, setHistoryExpandedId] = useState(null);
+
+  // States for Delete Modal
+  const [workflowToDelete, setWorkflowToDelete] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleInstallTemplate = async (tpl) => {
     try {
@@ -243,14 +248,26 @@ export default function WorkflowsView() {
     }
   };
 
-  const deleteWorkflow = async (wf) => {
-    const confirmMsg = isEs ? `¿Eliminar "${wf.name}"?` : `Delete "${wf.name}"?`;
-    if (!window.confirm(confirmMsg)) return;
+  const deleteWorkflow = (wf) => {
+    setWorkflowToDelete(wf);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!workflowToDelete) return;
     try {
-      await api.delete(`/workflows/${wf.id}`);
-      load();
+      setIsDeleting(true);
+      await api.delete(`/workflows/${workflowToDelete.id}`);
+      await load();
+      setShowDeleteModal(false);
+      setWorkflowToDelete(null);
+      setSuccessMsg(isEs ? "Automatización eliminada correctamente." : "Automation deleted successfully.");
+      setTimeout(() => setSuccessMsg(""), 3000);
     } catch (e) {
       setError(e?.response?.data?.error || (isEs ? "Error eliminando." : "Error deleting workflow."));
+      setShowDeleteModal(false);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -1095,6 +1112,48 @@ export default function WorkflowsView() {
           opacity: 0.6;
         }
       `}</style>
+
+      {/* MODAL DE CONFIRMACIÓN PARA ELIMINAR */}
+      <Modal 
+        show={showDeleteModal} 
+        onHide={() => !isDeleting && setShowDeleteModal(false)}
+        centered
+        className="modern-modal"
+      >
+        <Modal.Header closeButton={!isDeleting} className="border-0 pb-0">
+          <Modal.Title className="fw-black text-gray-900 fs-5 d-flex align-items-center gap-2">
+            <Trash2 size={20} className="text-danger" />
+            <span>{isEs ? "Eliminar Automatización" : "Delete Automation"}</span>
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="pt-3 pb-4">
+          <p className="text-muted mb-0">
+            {isEs 
+              ? `¿Estás seguro de que deseas eliminar permanentemente el flujo "${workflowToDelete?.name}"? Esta acción no se puede deshacer y el flujo dejará de ejecutarse inmediatamente.` 
+              : `Are you sure you want to permanently delete the flow "${workflowToDelete?.name}"? This action cannot be undone and the flow will stop executing immediately.`}
+          </p>
+        </Modal.Body>
+        <Modal.Footer className="border-0 pt-0 pb-4 justify-content-end gap-2">
+          <Button 
+            variant="light" 
+            onClick={() => setShowDeleteModal(false)}
+            disabled={isDeleting}
+            className="rounded-xl px-4 py-2 small fw-bold"
+          >
+            {isEs ? "Cancelar" : "Cancel"}
+          </Button>
+          <Button 
+            variant="danger" 
+            onClick={confirmDelete}
+            disabled={isDeleting}
+            className="rounded-xl px-4 py-2 bg-danger text-white border-0 small fw-bold d-flex align-items-center gap-2 shadow-sm hover-bg-red-700"
+          >
+            {isDeleting && <Spinner size="sm" animation="border" />}
+            <span>{isDeleting ? (isEs ? "Eliminando..." : "Deleting...") : (isEs ? "Sí, Eliminar" : "Yes, Delete")}</span>
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
     </Container>
   );
 }

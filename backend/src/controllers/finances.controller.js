@@ -36,8 +36,9 @@ export async function getFinanceDashboardData(req, res) {
     });
 
     const expenses = await prisma.expense.findMany({ where: businessId ? {
-        branch: { businessId }
-      } : undefined,
+        branch: { businessId },
+        isActive: true
+      } : { isActive: true },
       include: { branch: true }
     });
 
@@ -219,8 +220,9 @@ export async function listExpenses(req, res) {
   try {
     const businessId = req.businessId;
     const list = await prisma.expense.findMany({ where: businessId ? {
-        branch: { businessId }
-      } : undefined,
+        branch: { businessId },
+        isActive: true
+      } : { isActive: true },
       include: { branch: true },
       orderBy: { date: "desc" }
     });

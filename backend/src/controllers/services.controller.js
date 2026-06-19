@@ -156,7 +156,7 @@ export async function listServices(req, res) {
   try {
     const { search, category, status, workerId, visibleOnline } = req.query;
 
-    const where = { businessId: req.businessId };
+    const where = { businessId: req.businessId, isActive: true };
 
     if (search && String(search).trim()) {
       where.name = {
@@ -171,6 +171,9 @@ export async function listServices(req, res) {
 
     if (status && String(status).trim()) {
       where.status = String(status).trim();
+      if (where.status === "inactive") {
+        where.isActive = false;
+      }
     }
 
     if (visibleOnline !== undefined) {

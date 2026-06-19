@@ -13,7 +13,7 @@ const workerInclude = {
 router.get("/", async (req, res) => {
   try {
     const workers = await prisma.worker.findMany({
-      where: { businessId: req.businessId },
+      where: { businessId: req.businessId, isActive: true },
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
       include: workerInclude,
     });

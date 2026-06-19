@@ -30,6 +30,7 @@ model Client {
   business          Business?          @relation(fields: [businessId], references: [id], onDelete: Cascade)
   marketingConsent  Boolean            @default(false)
   marketingPosts    MarketingPost[]
+  isActive          Boolean            @default(true)
 }
 
 model Service {
@@ -124,6 +125,7 @@ model Worker {
   business          Business?                      @relation(fields: [businessId], references: [id], onDelete: Cascade)
   estimates         ServiceProfessionalEstimate[]
   slas              ServiceSla[]
+  isActive          Boolean          @default(true)
 }
 
 model FormSchema {
@@ -385,6 +387,7 @@ model Expense {
   date        DateTime @default(now())
   branchId    String?
   branch      Branch?  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  isActive    Boolean  @default(true)
 }
 
 model CashClosing {
