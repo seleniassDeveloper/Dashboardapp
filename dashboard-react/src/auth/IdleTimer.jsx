@@ -12,10 +12,10 @@ export default function IdleTimer({ timeoutMinutes = 5, warningMinutes = 4 }) {
   const timeoutMs = timeoutMinutes * 60 * 1000;
   const warningMs = warningMinutes * 60 * 1000;
 
-  const resetTimer = () => {
-    // Si la advertencia está en pantalla, no reiniciamos solo por mover el mouse.
-    // El usuario debe hacer clic explícitamente en "Seguir conectado".
-    if (showWarning) return;
+  const showWarningRef = useRef(showWarning);
+
+  const resetTimer = React.useCallback(() => {
+    if (showWarningRef.current) return;
 
     clearTimeout(idleTimerRef.current);
     clearTimeout(warningTimerRef.current);
@@ -23,6 +23,7 @@ export default function IdleTimer({ timeoutMinutes = 5, warningMinutes = 4 }) {
 
     warningTimerRef.current = setTimeout(() => {
       setShowWarning(true);
+      showWarningRef.current = true;
       setTimeLeft((timeoutMinutes - warningMinutes) * 60);
 
       countdownIntervalRef.current = setInterval(() => {
@@ -41,14 +42,13 @@ export default function IdleTimer({ timeoutMinutes = 5, warningMinutes = 4 }) {
     idleTimerRef.current = setTimeout(() => {
       logout();
     }, timeoutMs);
-  };
+  }, [logout, timeoutMinutes, warningMinutes, timeoutMs, warningMs]);
 
   const handleKeepSession = () => {
     setShowWarning(false);
+    showWarningRef.current = false;
     resetTimer();
   };
-
-  const showWarningRef = useRef(showWarning);
 
   useEffect(() => {
     showWarningRef.current = showWarning;
