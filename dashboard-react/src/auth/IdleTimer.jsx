@@ -48,6 +48,12 @@ export default function IdleTimer({ timeoutMinutes = 5, warningMinutes = 4 }) {
     resetTimer();
   };
 
+  const showWarningRef = useRef(showWarning);
+
+  useEffect(() => {
+    showWarningRef.current = showWarning;
+  }, [showWarning]);
+
   useEffect(() => {
     if (!user) return;
 
@@ -58,6 +64,7 @@ export default function IdleTimer({ timeoutMinutes = 5, warningMinutes = 4 }) {
     // Limitamos la frecuencia de ejecución para no sobrecargar el navegador
     let throttleTimer;
     const handleEvent = () => {
+      if (showWarningRef.current) return;
       if (throttleTimer) return;
       throttleTimer = setTimeout(() => {
         resetTimer();
@@ -74,7 +81,7 @@ export default function IdleTimer({ timeoutMinutes = 5, warningMinutes = 4 }) {
       clearInterval(countdownIntervalRef.current);
       if (throttleTimer) clearTimeout(throttleTimer);
     };
-  }, [user, showWarning, timeoutMinutes, warningMinutes]);
+  }, [user, timeoutMinutes, warningMinutes]);
 
   if (!showWarning) return null;
 
