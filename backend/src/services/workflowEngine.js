@@ -331,7 +331,7 @@ export async function triggerWorkflows(businessId, triggerType, context) {
           }
 
           // CUSTOM EMAIL INTEGRATION
-          else if (node.integrationType === "email") {
+          else if (node.integrationType === "email" || subtype === "email") {
             if (!clientEmail) throw new Error("El cliente no tiene un email configurado.");
             const subjectTemplate = node.config?.subject || "Notificación de Cita";
             const messageTemplate = node.config?.message || "Hola {{cliente}}!";
@@ -367,7 +367,7 @@ export async function triggerWorkflows(businessId, triggerType, context) {
           }
 
           // CUSTOM WHATSAPP LOG/REDIRECT
-          else if (node.integrationType === "whatsapp") {
+          else if (node.integrationType === "whatsapp" || subtype === "whatsapp") {
             const messageTemplate = node.config?.message || "Hola {{cliente}}!";
             if (!clientPhone) throw new Error("El cliente no tiene un teléfono configurado.");
 
