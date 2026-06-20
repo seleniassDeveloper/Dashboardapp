@@ -5,6 +5,7 @@ import {
   Settings2, CheckCircle2, AlertTriangle, ShieldAlert, Key, Globe, Eye, EyeOff 
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import api from "../lib/api.js";
 
 const InstagramIcon = ({ size = 24, className }) => (
   <svg
@@ -94,29 +95,42 @@ export default function AutomationsView() {
     e.preventDefault();
     setSaving(true);
     
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 800));
-
-    // Save configurations
-    localStorage.setItem(`crm_config_${activeModal}`, JSON.stringify(formValues));
-
-    // Update connection status
-    setIntegrations(prev => ({
-      ...prev,
-      [activeModal]: {
-        ...prev[activeModal],
-        status: "CONNECTED"
+    try {
+      if (activeModal === "whatsapp") {
+        await api.put("/businesses/me/integrations/whatsapp", formValues);
+      } else {
+        // Simulate API delay for other integrations
+        await new Promise(resolve => setTimeout(resolve, 800));
       }
-    }));
 
-    setAlertMsg({ 
-      type: "success", 
-      text: isEs 
-        ? `¡Conexión establecida con éxito para ${integrations[activeModal].nameEs}!`
-        : `Connection established successfully for ${integrations[activeModal].nameEn}!`
-    });
-    setSaving(false);
-    setTimeout(() => setActiveModal(null), 1000);
+      // Save configurations to localStorage for frontend state
+      localStorage.setItem(`crm_config_${activeModal}`, JSON.stringify(formValues));
+
+      // Update connection status
+      setIntegrations(prev => ({
+        ...prev,
+        [activeModal]: {
+          ...prev[activeModal],
+          status: "CONNECTED"
+        }
+      }));
+
+      setAlertMsg({ 
+        type: "success", 
+        text: isEs 
+          ? `¡Conexión establecida con éxito para ${integrations[activeModal].nameEs}!`
+          : `Connection established successfully for ${integrations[activeModal].nameEn}!`
+      });
+    } catch (err) {
+      console.error(err);
+      setAlertMsg({ 
+        type: "danger", 
+        text: isEs ? "Ocurrió un error al guardar la configuración." : "An error occurred while saving the configuration." 
+      });
+    } finally {
+      setSaving(false);
+      setTimeout(() => setActiveModal(null), 1000);
+    }
   };
 
   const handleDisconnect = () => {

@@ -355,6 +355,8 @@ export async function triggerWorkflows(businessId, triggerType, context) {
           // CUSTOM WHATSAPP LOG/REDIRECT
           else if (node.integrationType === "whatsapp") {
             const messageTemplate = node.config?.message || "Hola {{cliente}}!";
+            if (!clientPhone) throw new Error("El cliente no tiene un teléfono configurado.");
+
             const contextVars = {
               cliente: clientName,
               fecha: appt ? new Date(appt.startsAt).toLocaleDateString("es-AR") : "",
@@ -365,7 +367,34 @@ export async function triggerWorkflows(businessId, triggerType, context) {
               sucursal: business.name
             };
             const message = processTemplateVars(messageTemplate, contextVars);
-            stepResult = `[WhatsApp simulado / Link generado para enviar a ${clientPhone || "cliente"}]: "${message}"`;
+            
+            const wpConfig = business.integrations?.whatsapp;
+            if (!wpConfig || !wpConfig.phoneId || !wpConfig.token) {
+              throw new Error("No hay credenciales de WhatsApp configuradas en las integraciones del negocio.");
+            }
+
+            const cleanPhone = clientPhone.replace(/\D/g, "");
+            const response = await fetch(`https://graph.facebook.com/v17.0/${wpConfig.phoneId}/messages`, {
+              method: "POST",
+              headers: {
+                "Authorization": `Bearer ${wpConfig.token}`,
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({
+                messaging_product: "whatsapp",
+                recipient_type: "individual",
+                to: cleanPhone,
+                type: "text",
+                text: { preview_url: false, body: message }
+              })
+            });
+
+            const resData = await response.json();
+            if (!response.ok) {
+              throw new Error(`Error Meta API: ${resData.error?.message || JSON.stringify(resData)}`);
+            }
+
+            stepResult = `Mensaje de WhatsApp enviado a ${cleanPhone} exitosamente.`;
           }
 
           else {
@@ -600,8 +629,36 @@ export async function triggerWorkflowByInboundWebhook(workflowId, payload, secre
         stepResult = `Email enviado a ${clientEmail}.`;
       } 
       else if (node.integrationType === "whatsapp") {
+        if (!clientPhone) throw new Error("El cliente no tiene un teléfono configurado.");
         const message = processTemplateVars(node.config?.message || "Hola {{cliente}}!", contextVars);
-        stepResult = `[WhatsApp simulado para ${clientPhone || "cliente"}]: "${message}"`;
+
+        const wpConfig = business.integrations?.whatsapp;
+        if (!wpConfig || !wpConfig.phoneId || !wpConfig.token) {
+          throw new Error("No hay credenciales de WhatsApp configuradas en las integraciones del negocio.");
+        }
+
+        const cleanPhone = clientPhone.replace(/\D/g, "");
+        const response = await fetch(`https://graph.facebook.com/v17.0/${wpConfig.phoneId}/messages`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${wpConfig.token}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            messaging_product: "whatsapp",
+            recipient_type: "individual",
+            to: cleanPhone,
+            type: "text",
+            text: { preview_url: false, body: message }
+          })
+        });
+
+        const resData = await response.json();
+        if (!response.ok) {
+          throw new Error(`Error Meta API: ${resData.error?.message || JSON.stringify(resData)}`);
+        }
+        
+        stepResult = `Mensaje de WhatsApp enviado a ${cleanPhone} exitosamente.`;
       } 
       else {
         stepResult = `Acción de tipo ${subtype} completada.`;

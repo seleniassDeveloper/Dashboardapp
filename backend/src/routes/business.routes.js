@@ -286,4 +286,35 @@ router.patch("/:id", requirePermission("business.edit"), async (req, res) => {
   }
 });
 
+// PUT /api/businesses/me/integrations/whatsapp
+router.put("/me/integrations/whatsapp", requirePermission("business.edit"), async (req, res) => {
+  try {
+    const { phoneId, businessId: wpBusinessId, token } = req.body;
+    const id = req.businessId;
+
+    if (!id) {
+      return res.status(403).json({ success: false, error: "No business context." });
+    }
+
+    const biz = await prisma.business.findUnique({ where: { id } });
+    if (!biz) return res.status(404).json({ success: false, error: "Negocio no encontrado." });
+
+    const currentIntegrations = biz.integrations || {};
+    const updatedIntegrations = {
+      ...currentIntegrations,
+      whatsapp: { phoneId, businessId: wpBusinessId, token }
+    };
+
+    await prisma.business.update({
+      where: { id },
+      data: { integrations: updatedIntegrations }
+    });
+
+    res.json({ success: true, integrations: updatedIntegrations });
+  } catch (error) {
+    console.error("Error al actualizar integración de WhatsApp:", error);
+    res.status(500).json({ success: false, error: "No se pudo guardar la configuración de WhatsApp." });
+  }
+});
+
 export default router;

@@ -275,6 +275,7 @@ model Business {
   googleRefreshToken         String?
   googleCalendarId           String?
   googleBookingUrl           String?
+  integrations               Json?    @default("{}")
   createdAt                  DateTime @default(now())
   updatedAt                  DateTime @updatedAt
   services                   Service[]
