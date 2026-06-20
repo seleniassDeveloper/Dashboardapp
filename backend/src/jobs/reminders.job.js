@@ -34,6 +34,15 @@ export function startRemindersJob() {
           timeStyle: "short",
         });
 
+        let smtpConfig = null;
+        if (a.businessId) {
+          const biz = await prisma.business.findUnique({
+            where: { id: a.businessId },
+            select: { integrations: true }
+          });
+          smtpConfig = biz?.integrations?.smtp;
+        }
+
         await sendReminderEmail({
           to,
           subject: `Recordatorio de tu cita (${a.service?.name || "Servicio"})`,
@@ -50,6 +59,7 @@ export function startRemindersJob() {
               <p>¡Te esperamos!</p>
             </div>
           `,
+          smtpConfig,
         });
 
         await prisma.appointment.update({

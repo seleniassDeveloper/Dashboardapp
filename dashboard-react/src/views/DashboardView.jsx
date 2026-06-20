@@ -83,7 +83,7 @@ export default function DashboardView() {
   
   // Base URL para el link de reservas
   const bookingUrl = business?.slug ? `${window.location.origin}/booking/${business.slug}` : "";
-  const [isBookingLinkExpanded, setIsBookingLinkExpanded] = useState(false);
+  const [isBookingLinkExpanded, setIsBookingLinkExpanded] = useState(true);
 
   // --- Carga unificada de datos del negocio y widgets ---
   const fetchData = useCallback(async () => {

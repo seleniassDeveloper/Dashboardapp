@@ -143,6 +143,17 @@ export default function AppointmentsCalendar() {
   const [showFinalizeModal, setShowFinalizeModal] = useState(false);
   const [finalizingAppt, setFinalizingAppt] = useState(null);
 
+  // Modal de advertencia de datos de contacto faltantes
+  const [contactWarning, setContactWarning] = useState({
+    show: false,
+    type: "email", // "email" | "phone"
+    appointment: null,
+    value: "",
+    saving: false,
+    error: ""
+  });
+
+
   const appointmentsByWorker = useMemo(() => {
     const map = {};
     workers.forEach(w => { map[w.id] = []; });
@@ -197,18 +208,38 @@ export default function AppointmentsCalendar() {
   };
 
   const handleSendWhatsApp = (appt) => {
+    const clientPhone = appt.client?.phone || appt.phone;
+    if (!clientPhone || !clientPhone.trim()) {
+      setContactWarning({
+        show: true,
+        type: "phone",
+        appointment: appt,
+        value: "",
+        saving: false,
+        error: ""
+      });
+      return;
+    }
     const worker = workers.find(w => w.id === appt.workerId);
     const startsDate = appt?.startsAt ? new Date(appt.startsAt) : null;
     const validStarts = startsDate && !isNaN(startsDate.getTime());
     const dateStr = validStarts ? startsDate.toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" }) : "—";
     const timeStr = validStarts ? startsDate.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }) : "—";
     const text = `¡Hola ${appt.client?.firstName || "Cliente"}! Te confirmamos tu turno en Aura Studio para el día ${dateStr} a las ${timeStr} hs para el servicio de ${appt.service?.name || "Estética"}. Te atenderá ${worker?.firstName || "Profesional"}. ¡Te esperamos!`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+    window.open(`https://wa.me/${clientPhone.replace(/\D/g, "")}?text=${encodeURIComponent(text)}`, "_blank");
   };
 
   const handleSendEmail = async (appt) => {
-    if (!appt.client?.email) {
-      alert("El cliente no posee un correo electrónico configurado.");
+    const clientEmail = appt.client?.email || appt.email;
+    if (!clientEmail || !clientEmail.trim()) {
+      setContactWarning({
+        show: true,
+        type: "email",
+        appointment: appt,
+        value: "",
+        saving: false,
+        error: ""
+      });
       return;
     }
 
@@ -228,7 +259,7 @@ export default function AppointmentsCalendar() {
       const timeStr = startsDate.toLocaleTimeString("es-AR", {hour: '2-digit', minute: '2-digit'});
       const payload = {
         appointmentId: appt.id,
-        to: appt.client.email.trim(),
+        to: clientEmail.trim(),
         subject: `Confirmación de Turno - Aura Studio`,
         message: `Hola ${appt.client.firstName || "Cliente"},\n\nTe confirmamos tu turno para el día ${dateStr} a las ${timeStr} hs para realizarte: ${appt.service?.name || "Estética"}.\n¡Muchas gracias por elegirnos!\n\nDirección del Local: Av. Principal 1234, Aura Studio.`
       };
@@ -243,6 +274,72 @@ export default function AppointmentsCalendar() {
       alert(`Error al enviar: ${err.response?.data?.message || err.message}`);
     }
   };
+
+  const handleSaveContactAndSend = async () => {
+    const { type, appointment, value } = contactWarning;
+    if (!value || !value.trim()) {
+      setContactWarning(prev => ({ ...prev, error: "Este campo es obligatorio." }));
+      return;
+    }
+    
+    if (type === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())) {
+      setContactWarning(prev => ({ ...prev, error: "El email no tiene un formato válido." }));
+      return;
+    }
+    if (type === "phone") {
+      const cleaned = value.replace(/\D/g, "");
+      if (cleaned.length < 7 || cleaned.length > 15) {
+        setContactWarning(prev => ({ ...prev, error: "El teléfono debe tener entre 7 y 15 dígitos." }));
+        return;
+      }
+    }
+
+    setContactWarning(prev => ({ ...prev, saving: true, error: "" }));
+    try {
+      const clientId = appointment.clientId || appointment.client?.id;
+      if (!clientId) {
+        throw new Error("No se pudo identificar al cliente.");
+      }
+      
+      const patch = type === "email" ? { email: value.trim() } : { phone: value.trim() };
+      const clientFirstName = appointment.client?.firstName || "Cliente";
+      const clientLastName = appointment.client?.lastName || "Aura";
+      
+      await axiosApi.put(`/clients/${clientId}`, {
+        firstName: clientFirstName,
+        lastName: clientLastName,
+        ...patch
+      });
+
+      const updatedAppt = {
+        ...appointment,
+        client: {
+          ...(appointment.client || {}),
+          ...patch
+        }
+      };
+
+      upsertAppointment(updatedAppt);
+      fetchAppointments();
+
+      // Close modal
+      setContactWarning({ show: false, type: "email", appointment: null, value: "", saving: false, error: "" });
+
+      if (type === "email") {
+        await handleSendEmail(updatedAppt);
+      } else {
+        handleSendWhatsApp(updatedAppt);
+      }
+    } catch (err) {
+      console.error(err);
+      setContactWarning(prev => ({ 
+        ...prev, 
+        saving: false, 
+        error: err.response?.data?.error || err.message || "Error al actualizar los datos." 
+      }));
+    }
+  };
+
 
   const handleMarkSenaPaid = async (appt) => {
     try {
@@ -621,6 +718,63 @@ export default function AppointmentsCalendar() {
         appointment={finalizingAppt}
         onCompleted={handleFinalizeCompleted}
       />
+
+      {/* Modal para ingresar datos de contacto faltantes */}
+      <Modal 
+        show={contactWarning.show} 
+        onHide={() => setContactWarning(prev => ({ ...prev, show: false }))} 
+        centered
+        className="modern-modal"
+      >
+        <Modal.Header closeButton className="border-0 pb-0">
+          <Modal.Title className="fw-black text-gray-900 fs-5 d-flex align-items-center gap-2">
+            <span className="fs-4">{contactWarning.type === "email" ? "✉️" : "📱"}</span>
+            <span>{contactWarning.type === "email" ? "Falta Correo Electrónico" : "Falta Teléfono de Contacto"}</span>
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="pt-3">
+          <p className="small text-muted mb-3">
+            Para enviar la confirmación a <strong>{contactWarning.appointment?.client?.firstName} {contactWarning.appointment?.client?.lastName || ""}</strong>, necesitas ingresar su {contactWarning.type === "email" ? "correo electrónico" : "número de teléfono/WhatsApp"}.
+          </p>
+          <Form.Group>
+            <Form.Label className="smaller text-muted fw-bold mb-1">
+              {contactWarning.type === "email" ? "Correo Electrónico *" : "Número de Teléfono/WhatsApp *"}
+            </Form.Label>
+            <Form.Control
+              type={contactWarning.type === "email" ? "email" : "text"}
+              placeholder={contactWarning.type === "email" ? "ejemplo@correo.com" : "Ej: +5491123456789"}
+              value={contactWarning.value}
+              onChange={(e) => setContactWarning(prev => ({ ...prev, value: e.target.value }))}
+              className="rounded-xl border-gray-200 py-2"
+              disabled={contactWarning.saving}
+              autoFocus
+            />
+          </Form.Group>
+          {contactWarning.error && (
+            <Alert variant="danger" className="py-2 small mb-0 mt-3 rounded-xl">
+              {contactWarning.error}
+            </Alert>
+          )}
+        </Modal.Body>
+        <Modal.Footer className="border-0 pt-0 pb-4 justify-content-end gap-2">
+          <Button 
+            variant="light" 
+            onClick={() => setContactWarning(prev => ({ ...prev, show: false }))}
+            disabled={contactWarning.saving}
+            className="rounded-xl px-4 py-2 small fw-bold"
+          >
+            Cancelar
+          </Button>
+          <Button 
+            variant="purple" 
+            onClick={handleSaveContactAndSend}
+            disabled={contactWarning.saving}
+            className="rounded-xl px-5 py-2 bg-purple-600 hover-bg-purple-700 text-white border-0 small fw-bold d-flex align-items-center gap-2 shadow-sm"
+          >
+            {contactWarning.saving ? "Guardando y enviando..." : "Guardar y Enviar"}
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </>
   );
 }

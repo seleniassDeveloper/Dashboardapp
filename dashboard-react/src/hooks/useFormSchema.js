@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import api from "../lib/api.js";
-export function useFormSchema(schemaKey, { enabled = true } = {}) {
+export function useFormSchema(schemaKey, { enabled = true, isPublic = false } = {}) {
   const [schema, setSchema] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -12,7 +12,10 @@ export function useFormSchema(schemaKey, { enabled = true } = {}) {
       setError("");
       let res;
       if (schemaKey.startsWith("assign.")) {
-        res = await api.get(`/form-schemas/resolve/${schemaKey}`);
+        const url = isPublic
+          ? `/public/form-schemas/resolve/${schemaKey}`
+          : `/form-schemas/resolve/${schemaKey}`;
+        res = await api.get(url);
         setSchema({
           key: schemaKey,
           label: res.data?.schema?.label || schemaKey,
@@ -20,7 +23,10 @@ export function useFormSchema(schemaKey, { enabled = true } = {}) {
           fieldRefs: res.data?.schema?.fieldRefs,
         });
       } else {
-        res = await api.get(`/form-schemas/${schemaKey}`);
+        const url = isPublic
+          ? `/public/form-schemas/${schemaKey}`
+          : `/form-schemas/${schemaKey}`;
+        res = await api.get(url);
         setSchema(res.data);
       }
     } catch (e) {

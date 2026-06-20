@@ -41,53 +41,68 @@ export default function AutomationsView() {
   const { i18n } = useTranslation();
   const isEs = i18n.language === "es";
 
-  const [integrations, setIntegrations] = useState(() => {
-    const saved = localStorage.getItem("crm_connected_integrations");
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        const merged = { ...INTEGRATION_DEFAULTS };
-        Object.keys(parsed).forEach((k) => {
-          if (merged[k]) {
-            merged[k] = {
-              ...merged[k],
-              status: parsed[k].status || merged[k].status,
-            };
-          }
-        });
-        return merged;
-      } catch (e) {
-        return INTEGRATION_DEFAULTS;
-      }
-    }
-    return INTEGRATION_DEFAULTS;
-  });
-
+  const [integrations, setIntegrations] = useState(INTEGRATION_DEFAULTS);
+  const [backendConfigs, setBackendConfigs] = useState({});
+  const [saving, setSaving] = useState(false);
   const [activeModal, setActiveModal] = useState(null); // 'whatsapp' | 'smtp' | 'calendar' | 'stripe' | 'mercadopago' | 'instagram' | null
   const [formValues, setFormValues] = useState({});
-  const [saving, setSaving] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [alertMsg, setAlertMsg] = useState(null);
 
   useEffect(() => {
-    localStorage.setItem("crm_connected_integrations", JSON.stringify(integrations));
-  }, [integrations]);
+    async function loadBusinessIntegrations() {
+      try {
+        const res = await api.get("/businesses/me");
+        if (res.data && res.data.success && res.data.business) {
+          const bizIntegrations = res.data.business.integrations || {};
+          setBackendConfigs(bizIntegrations);
+          
+          setIntegrations(prev => {
+            const updated = { ...prev };
+            Object.keys(updated).forEach((key) => {
+              if (bizIntegrations[key]) {
+                updated[key] = {
+                  ...updated[key],
+                  status: "CONNECTED"
+                };
+              } else if (key === "whatsapp" || key === "smtp") {
+                // If it is whatsapp or smtp and is not configured in backend, set as disconnected
+                updated[key] = {
+                  ...updated[key],
+                  status: "DISCONNECTED"
+                };
+              }
+            });
+            return updated;
+          });
+        }
+      } catch (err) {
+        console.error("Error loading business integrations:", err);
+      }
+    }
+    loadBusinessIntegrations();
+  }, []);
 
   const openConfigModal = (key) => {
     setActiveModal(key);
     setAlertMsg(null);
     setShowPassword(false);
     
-    // Load existing config or defaults from localStorage
-    const savedConfig = localStorage.getItem(`crm_config_${key}`);
-    if (savedConfig) {
-      try {
-        setFormValues(JSON.parse(savedConfig));
-      } catch (e) {
+    // Load existing config from backendConfigs if available, otherwise fallback to localStorage
+    const backendConfig = backendConfigs[key];
+    if (backendConfig) {
+      setFormValues(backendConfig);
+    } else {
+      const savedConfig = localStorage.getItem(`crm_config_${key}`);
+      if (savedConfig) {
+        try {
+          setFormValues(JSON.parse(savedConfig));
+        } catch (e) {
+          setFormValues({});
+        }
+      } else {
         setFormValues({});
       }
-    } else {
-      setFormValues({});
     }
   };
 
@@ -98,13 +113,19 @@ export default function AutomationsView() {
     try {
       if (activeModal === "whatsapp") {
         await api.put("/businesses/me/integrations/whatsapp", formValues);
+      } else if (activeModal === "smtp") {
+        await api.put("/businesses/me/integrations/smtp", formValues);
       } else {
         // Simulate API delay for other integrations
         await new Promise(resolve => setTimeout(resolve, 800));
       }
 
-      // Save configurations to localStorage for frontend state
+      // Save configurations for frontend state
       localStorage.setItem(`crm_config_${activeModal}`, JSON.stringify(formValues));
+      setBackendConfigs(prev => ({
+        ...prev,
+        [activeModal]: formValues
+      }));
 
       // Update connection status
       setIntegrations(prev => ({
@@ -133,40 +154,90 @@ export default function AutomationsView() {
     }
   };
 
-  const handleDisconnect = () => {
-    localStorage.removeItem(`crm_config_${activeModal}`);
-    setIntegrations(prev => ({
-      ...prev,
-      [activeModal]: {
-        ...prev[activeModal],
-        status: "DISCONNECTED"
+  const handleDisconnect = async () => {
+    setSaving(true);
+    try {
+      if (activeModal === "whatsapp" || activeModal === "smtp") {
+        await api.delete(`/businesses/me/integrations/${activeModal}`);
       }
-    }));
-    setActiveModal(null);
+
+      localStorage.removeItem(`crm_config_${activeModal}`);
+      setBackendConfigs(prev => {
+        const updated = { ...prev };
+        delete updated[activeModal];
+        return updated;
+      });
+
+      setIntegrations(prev => ({
+        ...prev,
+        [activeModal]: {
+          ...prev[activeModal],
+          status: "DISCONNECTED"
+        }
+      }));
+
+      setAlertMsg({
+        type: "success",
+        text: isEs 
+          ? `¡Integración desconectada con éxito!`
+          : `Integration disconnected successfully!`
+      });
+      setTimeout(() => setActiveModal(null), 1000);
+    } catch (err) {
+      console.error(err);
+      setAlertMsg({
+        type: "danger",
+        text: isEs ? "Ocurrió un error al desconectar." : "An error occurred while disconnecting."
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleToggleIntegration = (key, checked) => {
+  const handleToggleIntegration = async (key, checked) => {
     if (checked) {
-      const savedConfig = localStorage.getItem(`crm_config_${key}`);
+      const savedConfig = backendConfigs[key] || JSON.parse(localStorage.getItem(`crm_config_${key}`) || "null");
       if (savedConfig) {
-        setIntegrations(prev => ({
-          ...prev,
-          [key]: {
-            ...prev[key],
-            status: "CONNECTED"
+        try {
+          if (key === "whatsapp") {
+            await api.put("/businesses/me/integrations/whatsapp", savedConfig);
+          } else if (key === "smtp") {
+            await api.put("/businesses/me/integrations/smtp", savedConfig);
           }
-        }));
+          setBackendConfigs(prev => ({ ...prev, [key]: savedConfig }));
+          setIntegrations(prev => ({
+            ...prev,
+            [key]: {
+              ...prev[key],
+              status: "CONNECTED"
+            }
+          }));
+        } catch (err) {
+          console.error(err);
+        }
       } else {
         openConfigModal(key);
       }
     } else {
-      setIntegrations(prev => ({
-        ...prev,
-        [key]: {
-          ...prev[key],
-          status: "DISCONNECTED"
+      try {
+        if (key === "whatsapp" || key === "smtp") {
+          await api.delete(`/businesses/me/integrations/${key}`);
         }
-      }));
+        setBackendConfigs(prev => {
+          const updated = { ...prev };
+          delete updated[key];
+          return updated;
+        });
+        setIntegrations(prev => ({
+          ...prev,
+          [key]: {
+            ...prev[key],
+            status: "DISCONNECTED"
+          }
+        }));
+      } catch (err) {
+        console.error(err);
+      }
     }
   };
 

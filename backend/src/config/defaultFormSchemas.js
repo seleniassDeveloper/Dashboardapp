@@ -1,48 +1,35 @@
 /** Catálogo maestro + asignaciones por componente */
 
-const workerFields = [
-  { id: "firstName", type: "text", label: "Nombre", entities: ["worker"], system: true },
-  { id: "lastName", type: "text", label: "Apellido", entities: ["worker"], system: true },
+export const REGISTRY_FIELDS = [
+  { id: "firstName", type: "text", label: "Nombre", entities: ["worker", "client"], system: true },
+  { id: "lastName", type: "text", label: "Apellido", entities: ["worker", "client"], system: true },
   { id: "roleTitle", type: "text", label: "Cargo / Rol", entities: ["worker"] },
-  { id: "email", type: "email", label: "Email", entities: ["worker"] },
-  { id: "phone", type: "phone", label: "Teléfono", entities: ["worker"] },
+  { id: "email", type: "email", label: "Email", entities: ["worker", "client", "appointment"], system: true },
+  { id: "phone", type: "phone", label: "Teléfono / Celular", entities: ["worker", "client", "appointment"] },
   { id: "services", type: "services", label: "Servicios", entities: ["worker"], system: true },
   { id: "servicePricing", type: "servicePricing", label: "Tarifas por servicio", entities: ["worker"] },
   { id: "schedule", type: "schedule", label: "Horario laboral", entities: ["worker"], system: true },
-];
-
-const clientFields = [
-  { id: "firstName", type: "text", label: "Nombre", entities: ["client"], system: true },
-  { id: "lastName", type: "text", label: "Apellido", entities: ["client"], system: true },
-  { id: "phone", type: "phone", label: "Teléfono", entities: ["client"] },
-  { id: "email", type: "email", label: "Email", entities: ["client"] },
-  { id: "notes", type: "textarea", label: "Notas", entities: ["client"] },
-];
-
-const appointmentFields = [
+  { id: "notes", type: "textarea", label: "Notas / Observaciones", entities: ["client", "appointment"] },
   { id: "clientFirstName", type: "text", label: "Nombre cliente", entities: ["appointment"], system: true },
   { id: "clientLastName", type: "text", label: "Apellido cliente", entities: ["appointment"], system: true },
   { id: "workerId", type: "workerSelect", label: "Profesional", entities: ["appointment"], system: true },
   { id: "serviceId", type: "serviceSelect", label: "Servicio", entities: ["appointment"], system: true },
   { id: "startsAt", type: "datetime", label: "Fecha y hora", entities: ["appointment"], system: true },
-  { id: "price", type: "currency", label: "Precio", entities: ["appointment"] },
-  { id: "notes", type: "textarea", label: "Notas", entities: ["appointment"] },
-  { id: "phone", type: "phone", label: "Teléfono contacto", entities: ["appointment"] },
-];
-
-const serviceFields = [
+  { id: "price", type: "currency", label: "Precio", entities: ["appointment", "service"], system: true },
   { id: "name", type: "text", label: "Nombre", entities: ["service"], system: true },
-  { id: "price", type: "currency", label: "Precio", entities: ["service"], system: true },
   { id: "duration", type: "number", label: "Duración (min)", entities: ["service"], system: true },
-];
-
-const workflowScreenFields = [
   { id: "screenTitle", type: "text", label: "Título pantalla", entities: ["workflow"] },
   { id: "screenMessage", type: "textarea", label: "Mensaje", entities: ["workflow"] },
   { id: "confirmButton", type: "text", label: "Texto botón confirmar", entities: ["workflow"] },
   { id: "clientPhone", type: "phone", label: "Teléfono cliente", entities: ["workflow", "appointment"] },
   { id: "appointmentNotes", type: "textarea", label: "Notas cita", entities: ["workflow", "appointment"] },
 ];
+
+const workerFields = REGISTRY_FIELDS.filter(f => f.entities.includes("worker"));
+const clientFields = REGISTRY_FIELDS.filter(f => f.entities.includes("client"));
+const appointmentFields = REGISTRY_FIELDS.filter(f => f.entities.includes("appointment"));
+const serviceFields = REGISTRY_FIELDS.filter(f => f.entities.includes("service"));
+const workflowScreenFields = REGISTRY_FIELDS.filter(f => f.entities.includes("workflow"));
 
 function refs(ids, overrides = {}) {
   return ids.map((id) => ({
@@ -53,13 +40,7 @@ function refs(ids, overrides = {}) {
   }));
 }
 
-export const REGISTRY_FIELDS = [
-  ...workerFields,
-  ...clientFields,
-  ...appointmentFields,
-  ...serviceFields,
-  ...workflowScreenFields,
-];
+
 
 export const DEFAULT_FORM_SCHEMAS = [
   {
@@ -149,7 +130,7 @@ export const DEFAULT_FORM_SCHEMAS = [
     entity: "appointment",
     component: "AppointmentModal",
     fieldRefs: refs(
-      ["clientFirstName", "clientLastName", "workerId", "serviceId", "startsAt", "price", "notes", "phone"],
+      ["clientFirstName", "clientLastName", "workerId", "serviceId", "startsAt", "price", "notes", "phone", "email"],
       {
         clientFirstName: { required: true },
         clientLastName: { required: true },

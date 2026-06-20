@@ -598,6 +598,7 @@ export async function sendManualConfirmationEmail(req, res) {
       to: appointment.client.email.trim(),
       subject: `Reserva Confirmada: ${appointment.service?.name || "Servicio"} en ${biz.name}`,
       html: mailHtml,
+      smtpConfig: biz?.integrations?.smtp
     });
 
     return res.status(200).json({
@@ -653,7 +654,12 @@ export async function finalizeAppointment(req, res) {
         const clientName = `${appt.client.firstName} ${appt.client.lastName || ""}`;
         const serviceName = appt.service?.name || "Servicio General";
         const workerName = appt.worker ? `${appt.worker.firstName} ${appt.worker.lastName}` : "Profesional";
-        const businessName = "Aura Studio";
+        
+        const biz = await prisma.business.findUnique({
+          where: { id: appt.businessId }
+        });
+        const businessName = biz?.name || "Aura Studio";
+        const smtpConfig = biz?.integrations?.smtp;
         
         const receiptNumber = `AURA-${id.substring(0, 8).toUpperCase()}`;
         const chargedAmount = finalPrice !== undefined && finalPrice !== null ? Number(finalPrice) : (appt.service?.price || 0);
@@ -705,7 +711,8 @@ export async function finalizeAppointment(req, res) {
         await sendReminderEmail({
           to: clientEmail,
           subject: `Comprobante de Pago #${receiptNumber} - ${businessName}`,
-          html: receiptHtml
+          html: receiptHtml,
+          smtpConfig
         });
       } catch (emailErr) {
         console.error("Error sending receipt email:", emailErr);

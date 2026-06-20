@@ -245,7 +245,8 @@ router.post("/send-confirmation-email", async (req, res) => {
       googleAccessToken,
       to,
       subject,
-      html
+      html,
+      smtpConfig: biz?.integrations?.smtp
     });
 
     res.json({ success: true, message: "Email enviado con éxito por Gmail." });

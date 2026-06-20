@@ -666,8 +666,8 @@ export async function createPublicBooking(req, res) {
           to: client.email.trim(),
           subject: subjectStr,
           html: mailHtml,
-        });
-        console.log(`Email de confirmación unificado enviado exitosamente a ${client.email}`);
+          smtpConfig: biz?.integrations?.smtp
+        });console.log(`Email de confirmación unificado enviado exitosamente a ${client.email}`);
       } catch (err) {
         console.error("Error al enviar el email de confirmación:", err);
       }

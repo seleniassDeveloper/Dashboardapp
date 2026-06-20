@@ -436,10 +436,17 @@ export async function signConsent(req, res) {
           </div>
         `;
 
+        const biz = await prisma.business.findUnique({
+          where: { id: request.businessId },
+          select: { integrations: true }
+        });
+        const smtpConfig = biz?.integrations?.smtp;
+
         await sendReminderEmail({
           to: targetEmail,
           subject: `Copia firmada: ${request.template.name}`,
-          html: mailBody
+          html: mailBody,
+          smtpConfig
         });
       } catch (mailError) {
         console.error("Error sending copy email to client:", mailError);

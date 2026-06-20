@@ -179,7 +179,8 @@ export async function triggerWorkflows(businessId, triggerType, context) {
             await sendReminderEmail({
               to: clientEmail,
               subject: `Firma requerida: Consentimiento para ${serviceName} - ${business.name}`,
-              html: emailHtml
+              html: emailHtml,
+              smtpConfig: business.integrations?.smtp
             });
 
             // Update appointment status to PENDING_CONSENT if configured
@@ -279,7 +280,8 @@ export async function triggerWorkflows(businessId, triggerType, context) {
             await sendReminderEmail({
               to: clientEmail,
               subject: `Comprobante de Pago #${receiptNumber} - ${business.name}`,
-              html: receiptHtml
+              html: receiptHtml,
+              smtpConfig: business.integrations?.smtp
             });
 
             stepResult = `Comprobante de pago generado (${receiptNumber}) y enviado por email a ${clientEmail} exitosamente.`;
@@ -360,7 +362,8 @@ export async function triggerWorkflows(businessId, triggerType, context) {
                   <hr style="border: 0; border-top: 1px solid #eee; margin-top: 25px; margin-bottom: 10px;" />
                   <p style="font-size: 11px; color: #888; text-align: center;">Automatizado por AuraDash Suite.</p>
                 </div>
-              `
+              `,
+              smtpConfig: business.integrations?.smtp
             });
 
             stepResult = `Email personalizado enviado con éxito a ${clientEmail}. Asunto: "${subject}"`;
@@ -638,7 +641,8 @@ export async function triggerWorkflowByInboundWebhook(workflowId, payload, secre
               <hr style="border: 0; border-top: 1px solid #eee; margin-top: 25px; margin-bottom: 10px;" />
               <p style="font-size: 11px; color: #888; text-align: center;">Automatizado por AuraDash Suite.</p>
             </div>
-          `
+          `,
+          smtpConfig: business.integrations?.smtp
         });
         stepResult = `Email enviado a ${clientEmail}.`;
       } 

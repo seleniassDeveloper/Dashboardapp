@@ -24,11 +24,37 @@ if (!process.env.EMAIL_HOST || !process.env.EMAIL_USER || !process.env.EMAIL_PAS
 }
 
 
-export async function sendReminderEmail({ to, subject, html }) {
+export async function sendReminderEmail({ to, subject, html, smtpConfig }) {
   if (!to) throw new Error("Email destino vacío");
 
-  await transporter.sendMail({
-    from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+  let activeTransporter = transporter;
+  let fromAddress = process.env.EMAIL_FROM || process.env.EMAIL_USER;
+
+  if (smtpConfig && smtpConfig.host && smtpConfig.user && smtpConfig.password) {
+    console.log(`[mailer] Usando transportador SMTP personalizado para el correo: ${smtpConfig.user}`);
+    const customPort = Number(smtpConfig.port || 587);
+    const customSecure = customPort === 465 ? true : false; // 465 = direct TLS, others = STARTTLS
+    
+    activeTransporter = nodemailer.createTransport({
+      host: smtpConfig.host,
+      port: customPort,
+      secure: customSecure,
+      auth: {
+        user: smtpConfig.user,
+        pass: smtpConfig.password,
+      },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 10000,
+      debug: true,
+      logger: true
+    });
+    
+    fromAddress = `"${smtpConfig.user.split('@')[0]}" <${smtpConfig.user}>`;
+  }
+
+  await activeTransporter.sendMail({
+    from: fromAddress,
     to,
     subject,
     html,

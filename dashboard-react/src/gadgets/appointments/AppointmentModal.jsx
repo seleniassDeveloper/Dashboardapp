@@ -5,6 +5,9 @@ import api from "../../lib/api.js";
 import { useFormSchema } from "../../hooks/useFormSchema.js";
 import { useAppointmentsStore } from "./AppointmentsProvider.jsx";
 import FinalizeServiceModal from "../../components/clients/FinalizeServiceModal.jsx";
+import { useAuth } from "../../auth/AuthProvider.jsx";
+import { QRCodeSVG } from "qrcode.react";
+import { Sparkles, ChevronDown, ChevronUp } from "lucide-react";
 const emptyForm = {
   clientFirstName: "",
   clientLastName: "",
@@ -144,6 +147,11 @@ function formatDateTimeLocalLabel(dtLocal) {
 export default function AppointmentModal({ show, onHide, onSaved, initialData = null }) {
   const isEdit = Boolean(initialData?.id);
   const { appointmentStatuses } = useAppointmentsStore();
+  const { business } = useAuth();
+  
+  const [isQrExpanded, setIsQrExpanded] = useState(true);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const bookingUrl = business?.slug ? `${window.location.origin}/booking/${business.slug}` : "";
 
   const [showFinalizeModal, setShowFinalizeModal] = useState(false);
   const [finalizingAppt, setFinalizingAppt] = useState(null);
@@ -252,6 +260,7 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
   const priceField = useMemo(() => enabledFields.find((f) => f.id === "price"), [enabledFields]);
   const notesField = useMemo(() => enabledFields.find((f) => f.id === "notes"), [enabledFields]);
   const phoneField = useMemo(() => enabledFields.find((f) => f.id === "phone"), [enabledFields]);
+  const emailField = useMemo(() => enabledFields.find((f) => f.id === "email"), [enabledFields]);
 
   // cerrar dropdown click afuera
   useEffect(() => {
@@ -374,6 +383,7 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
       else if (field.id === "price") val = form.price;
       else if (field.id === "notes") val = form.notes;
       else if (field.id === "phone") val = form.phone;
+      else if (field.id === "email") val = form.email;
 
       if (field.required && !String(val || "").trim()) {
         return false;
@@ -503,6 +513,7 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
           ...emptyForm,
           clientFirstName: initialData?.clientFirstName || "",
           clientLastName: initialData?.clientLastName || "",
+          email: initialData?.email || initialData?.client?.email || "",
           phone: initialData?.phone || "",
           serviceId: initialData?.serviceId || "",
           workerId: targetWorkerId,
@@ -516,6 +527,7 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
           ...emptyForm,
           clientFirstName: initialData?.clientFirstName || "",
           clientLastName: initialData?.clientLastName || "",
+          email: initialData?.email || initialData?.client?.email || "",
           phone: initialData?.phone || "",
           serviceId: initialData?.serviceId || "",
           workerId: initialData?.workerId || "",
@@ -606,12 +618,14 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
     if (!firstName || !lastName) throw new Error("Completa nombre y apellido del cliente.");
 
     const phoneVal = phoneField ? (form.phone.trim() || null) : undefined;
+    const emailVal = emailField ? (form.email.trim() || null) : undefined;
 
     if (form.clientId) {
       await api.put(`/clients/${form.clientId}`, {
         firstName,
         lastName,
         phone: phoneVal,
+        email: emailVal,
       });
       return { id: form.clientId };
     }
@@ -620,11 +634,12 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
       firstName,
       lastName,
       phone: phoneVal,
+      email: emailVal,
       notes: null,
     });
 
     return res.data;
-  }, [form.clientFirstName, form.clientLastName, form.clientId, form.phone, phoneField]);
+  }, [form.clientFirstName, form.clientLastName, form.clientId, form.phone, form.email, phoneField, emailField]);
 
   const handleSave = useCallback(async () => {
     setError("");
@@ -643,6 +658,7 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
       else if (field.id === "price") val = form.price;
       else if (field.id === "notes") val = form.notes;
       else if (field.id === "phone") val = form.phone;
+      else if (field.id === "email") val = form.email;
 
       if (field.required && !String(val || "").trim()) {
         fieldErrors[field.id] = "Este campo es obligatorio.";
@@ -653,6 +669,12 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
       const cleaned = form.phone.replace(/\D/g, "");
       if (!/^[+0-9()\-.\s]+$/.test(form.phone) || cleaned.length < 7 || cleaned.length > 15) {
         fieldErrors["phone"] = "El teléfono debe tener entre 7 y 15 dígitos.";
+      }
+    }
+
+    if (emailField && form.email.trim()) {
+      if (!/\S+@\S+\.\S+/.test(form.email.trim())) {
+        fieldErrors["email"] = "El correo electrónico no tiene un formato válido.";
       }
     }
 
@@ -800,6 +822,90 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
             <div className="fw-bold mb-1">Hubo un problema:</div>
             {error}
           </Alert>
+        )}
+
+        {business?.slug && (
+          <div className="mb-4">
+            {!isQrExpanded ? (
+              <div 
+                className="bg-white rounded-4 p-3 border shadow-sm d-flex justify-content-between align-items-center cursor-pointer transition-all hover-scale" 
+                onClick={() => setIsQrExpanded(true)} 
+                style={{ borderColor: "#e2e8f0", cursor: "pointer", borderRadius: "16px" }}
+              >
+                <div className="d-flex align-items-center gap-3">
+                  <div className="p-2 rounded-circle d-flex align-items-center justify-content-center" style={{ backgroundColor: `${business.bookingPrimaryColor || "#7c3aed"}15`, color: business.bookingPrimaryColor || "#7c3aed", width: "36px", height: "36px" }}>
+                    <Sparkles size={18} />
+                  </div>
+                  <div>
+                    <span className="fw-bold text-dark d-block" style={{ fontSize: "14px" }}>Compartir enlace o código QR de reservas</span>
+                    <span className="text-muted" style={{ fontSize: "11px" }}>Haz clic para ver y compartir el link o código QR</span>
+                  </div>
+                </div>
+                <ChevronDown size={18} className="text-secondary" />
+              </div>
+            ) : (
+              <div className="bg-white rounded-4 p-4 border shadow-sm position-relative d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-4 animate-fade-in" style={{ borderColor: "#e2e8f0", borderRadius: "16px" }}>
+                <Button 
+                  variant="white" 
+                  size="sm" 
+                  className="position-absolute top-0 end-0 m-3 rounded-circle p-2 d-flex align-items-center justify-content-center border bg-light hover-bg-gray-200"
+                  onClick={() => setIsQrExpanded(false)}
+                  title="Ocultar"
+                  style={{ width: "32px", height: "32px" }}
+                >
+                  <ChevronUp size={16} className="text-secondary" />
+                </Button>
+                
+                <div className="d-flex align-items-start gap-3 mt-2 mt-md-0">
+                  <div className="p-3 text-primary d-flex align-items-center justify-content-center" style={{ backgroundColor: `${business.bookingPrimaryColor || "#7c3aed"}15`, color: business.bookingPrimaryColor || "#7c3aed", borderRadius: "12px" }}>
+                    <Sparkles size={28} />
+                  </div>
+                  <div>
+                    <h3 className="h5 fw-bold text-dark mb-1" style={{ fontSize: "16px" }}>Enlace de Reservas</h3>
+                    <p className="text-muted small mb-3" style={{ fontSize: "12px" }}>
+                      Comparte este enlace con tus clientes para que reserven online (gratis).
+                    </p>
+                    <div className="d-flex flex-wrap align-items-center gap-2">
+                      <InputGroup style={{ maxWidth: "320px" }} className="shadow-sm">
+                        <Form.Control
+                          readOnly
+                          value={bookingUrl}
+                          className="bg-light border-gray-200 fw-medium font-monospace text-primary"
+                          style={{ fontSize: "12px" }}
+                        />
+                        <Button 
+                          variant="primary" 
+                          onClick={() => {
+                            navigator.clipboard.writeText(bookingUrl);
+                            setCopiedLink(true);
+                            setTimeout(() => setCopiedLink(false), 2000);
+                          }}
+                          className="d-flex align-items-center gap-2 px-3 fw-bold"
+                          style={{ background: business.bookingPrimaryColor || "#7c3aed", borderColor: business.bookingPrimaryColor || "#7c3aed" }}
+                        >
+                          {copiedLink ? "¡Copiado!" : "Copiar"}
+                        </Button>
+                      </InputGroup>
+                      <Button 
+                        variant="outline-secondary" 
+                        onClick={() => window.open(bookingUrl, '_blank')}
+                        className="d-flex align-items-center gap-2 px-3 fw-bold bg-white"
+                        style={{ fontSize: "12px" }}
+                      >
+                        Abrir Página
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+                <div className="text-center d-flex flex-column align-items-center" style={{ minWidth: "120px" }}>
+                  <div className="bg-white p-2 border rounded-3 shadow-sm mb-2" style={{ width: "fit-content", borderRadius: "12px" }}>
+                    <QRCodeSVG value={bookingUrl} size={90} level="M" />
+                  </div>
+                  <span className="text-muted" style={{ fontSize: "11px", fontWeight: "600" }}>CÓDIGO QR</span>
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
         {loadingRefs || schemaLoading ? (
@@ -1122,6 +1228,28 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
                           isInvalid={Boolean(errors.phone)}
                         />
                         {errors.phone && <div className="text-danger small mt-1">{errors.phone}</div>}
+                      </Form.Group>
+                    </Col>
+                  );
+                }
+
+                if (field.id === "email") {
+                  return (
+                    <Col md={6} key="email">
+                      <Form.Group>
+                        <Form.Label className="small-label" htmlFor="appt-email">
+                          {field.label} {field.required && "*"}
+                        </Form.Label>
+                        <Form.Control
+                          id="appt-email"
+                          className="modern-input"
+                          type="email"
+                          placeholder={field.placeholder || "Ej: maria@gmail.com"}
+                          value={form.email}
+                          onChange={(e) => setField("email", e.target.value)}
+                          isInvalid={Boolean(errors.email)}
+                        />
+                        {errors.email && <div className="text-danger small mt-1">{errors.email}</div>}
                       </Form.Group>
                     </Col>
                   );

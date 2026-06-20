@@ -185,6 +185,20 @@ router.post("/executions", requirePermission("workflows.run"), async (req, res) 
       return res.status(400).json({ error: "Campos requeridos: workflowId, status, triggerType." });
     }
 
+    // Verify that the workflow exists in the database
+    const workflowExists = await prisma.workflow.findUnique({
+      where: { id: workflowId }
+    });
+
+    if (!workflowExists) {
+      console.log(`[Workflows] Skipping execution log persistence: Workflow ID "${workflowId}" does not exist in DB (likely unsaved draft or template).`);
+      return res.status(200).json({ 
+        success: true, 
+        message: "Simulated log skipped (workflow not in DB).",
+        logs: [] 
+      });
+    }
+
     const execution = await prisma.workflowExecution.create({
       data: {
         businessId: req.businessId,

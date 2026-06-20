@@ -98,8 +98,8 @@ export async function getAuthenticatedClient(businessId) {
  * (mailer.js) para evitar la pantalla "Google no ha verificado esta aplicación".
  * Se conserva la firma por compatibilidad; `googleAccessToken` se ignora.
  */
-export async function sendConfirmationEmailWithGmail({ to, subject, html }) {
-  await sendReminderEmail({ to, subject, html });
+export async function sendConfirmationEmailWithGmail({ to, subject, html, smtpConfig }) {
+  await sendReminderEmail({ to, subject, html, smtpConfig });
 }
 
 /**

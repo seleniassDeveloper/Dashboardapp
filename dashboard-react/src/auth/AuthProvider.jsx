@@ -47,7 +47,7 @@ function applyLocalDevSession(setters) {
   setPermissions(DEV_OWNER_PERMISSIONS);
   setIsUnauthorized(false);
   setFirestoreError("");
-  setBusiness({ id: "business-default", name: "Aura Studio" });
+  setBusiness({ id: "business-default", name: "Aura Studio", slug: "aura-studio" });
   localStorage.setItem("active_business_id", "business-default");
 }
 
@@ -281,7 +281,7 @@ export function AuthProvider({ children }) {
           
           const isDemo = localStorage.getItem("auradash_demo_session") === "true";
           if (AUTH_DISABLED || isDemo) {
-            setBusiness({ id: "business-default", name: "Aura Studio" });
+            setBusiness({ id: "business-default", name: "Aura Studio", slug: "aura-studio" });
             localStorage.setItem("active_business_id", "business-default");
           } else {
             setBusiness(null);
@@ -318,7 +318,7 @@ export function AuthProvider({ children }) {
       setRole("owner");
       setPermissions(DEV_OWNER_PERMISSIONS);
       setIsUnauthorized(false);
-      setBusiness({ id: "business-default", name: "Aura Studio (Demo)" });
+      setBusiness({ id: "business-default", name: "Aura Studio (Demo)", slug: "aura-studio" });
       setAuthLoading(false);
       return;
     }
@@ -468,8 +468,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    const activeBId = localStorage.getItem("active_business_id");
-    if (role && !business && activeBId && activeBId !== "business-default") {
+    if (role && (!business || !business.slug || business.id === "business-default")) {
       api.get("/appointments/business")
         .then(res => {
           if (res.data) {
@@ -494,7 +493,7 @@ export function AuthProvider({ children }) {
     setRole("owner");
     setPermissions(DEV_OWNER_PERMISSIONS);
     setIsUnauthorized(false);
-    setBusiness({ id: "business-default", name: "Aura Studio (Demo)" });
+    setBusiness({ id: "business-default", name: "Aura Studio (Demo)", slug: "aura-studio" });
     setAuthLoading(false);
   }, []);
 

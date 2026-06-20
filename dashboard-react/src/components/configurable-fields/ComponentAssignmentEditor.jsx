@@ -18,6 +18,15 @@ export default function ComponentAssignmentEditor() {
 
   // Tabs for configuration column: 'select' (choose fields) or 'order' (reorder them)
   const [editorTab, setEditorTab] = useState("select");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const ENTITY_LABELS = {
+    worker: "Empleado / Equipo",
+    client: "Cliente",
+    appointment: "Cita / Reserva",
+    service: "Servicio",
+    workflow: "Workflow"
+  };
 
   const selectedTarget = useMemo(() => {
     for (const g of FORM_TARGET_GROUPS) {
@@ -27,30 +36,31 @@ export default function ComponentAssignmentEditor() {
     return null;
   }, [selectedKey]);
 
-  const registryForEntity = useMemo(() => {
-    if (!selectedTarget?.entity) return registry;
-    return registry.filter((f) => (f.entities || []).includes(selectedTarget.entity));
-  }, [registry, selectedTarget]);
-
   const previewFields = useMemo(
     () => resolveFieldsFromRegistry(registry, fieldRefs),
     [registry, fieldRefs]
   );
 
-  const orderedFields = useMemo(() => {
-    return fieldRefs.map((ref) => {
-      const base = registry.find((f) => f.id === ref.id);
-      return {
-        id: ref.id,
-        label: base?.label || ref.id,
-        type: base?.type || "text",
-      };
-    });
-  }, [fieldRefs, registry]);
+  const categorizedFields = useMemo(() => {
+    const query = searchQuery.toLowerCase().trim();
+    const filteredRegistry = query
+      ? registry.filter(f => 
+          (f.label || "").toLowerCase().includes(query) || 
+          (f.id || "").toLowerCase().includes(query)
+        )
+      : registry;
 
-  const inactiveFields = useMemo(() => {
-    return registryForEntity.filter((f) => !fieldRefs.some((ref) => ref.id === f.id));
-  }, [registryForEntity, fieldRefs]);
+    const available = filteredRegistry.filter(
+      (f) => !fieldRefs.some((ref) => ref.id === f.id)
+    );
+
+    const entity = selectedTarget?.entity;
+    const recommended = available.filter((f) => (f.entities || []).includes(entity));
+    const others = available.filter((f) => !(f.entities || []).includes(entity));
+
+    return { recommended, others };
+  }, [registry, fieldRefs, selectedTarget, searchQuery]);
+
 
   useEffect(() => {
     (async () => {
@@ -251,39 +261,87 @@ export default function ComponentAssignmentEditor() {
             </div>
 
             <div>
-              <Form.Label className="small text-muted mb-3 fw-bold text-xs uppercase d-flex align-items-center gap-2">
+              <Form.Label className="small text-muted mb-2 fw-bold text-xs uppercase d-flex align-items-center gap-2">
                 <div className="bg-purple text-white rounded-circle d-flex align-items-center justify-content-center" style={{ width: 18, height: 18, fontSize: 10 }}>2</div>
                 Paleta de Campos Disponibles
               </Form.Label>
+
+              <div className="mb-3">
+                <Form.Control
+                  type="text"
+                  placeholder="Buscar campos por nombre o ID..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="rounded-xl border-gray-200 small shadow-sm"
+                  style={{ fontSize: "13px" }}
+                />
+              </div>
               
               <div
-                className="d-flex flex-column gap-2 overflow-auto scrollbar-none pb-2"
-                style={{ maxHeight: 400, paddingRight: "4px" }}
+                className="d-flex flex-column gap-3 overflow-auto scrollbar-none pb-2"
+                style={{ maxHeight: 420, paddingRight: "4px" }}
               >
-                {inactiveFields.length === 0 ? (
+                {categorizedFields.recommended.length > 0 && (
+                  <div>
+                    <span className="text-xxs text-uppercase fw-bold text-purple-600 tracking-wider mb-2 d-block" style={{ fontSize: "8.5px" }}>
+                      ⭐ Recomendados ({ENTITY_LABELS[selectedTarget?.entity] || selectedTarget?.entity})
+                    </span>
+                    <div className="d-flex flex-column gap-2">
+                      {categorizedFields.recommended.map((f) => (
+                        <button
+                          key={f.id}
+                          type="button"
+                          onClick={() => toggleField(f.id)}
+                          className="text-start p-3 border border-gray-200 bg-white rounded-2xl hover-bg-gray-50 transition-all d-flex align-items-center justify-content-between w-100 shadow-sm add-field-btn group"
+                        >
+                          <div className="d-flex flex-column">
+                            <span className="fw-bold text-gray-800 text-sm mb-0.5">{f.label}</span>
+                            <span className="text-xxs text-muted font-mono bg-light px-1.5 py-0.5 rounded border d-inline-block" style={{ width: "fit-content" }}>
+                              {f.type} {f.system && "• Sistema"}
+                            </span>
+                          </div>
+                          <div className="text-purple-600 bg-purple-50 rounded-circle d-flex align-items-center justify-content-center add-icon transition-transform" style={{ width: 32, height: 32 }}>
+                            <i className="fa-solid fa-plus text-xs"></i>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {categorizedFields.others.length > 0 && (
+                  <div>
+                    <span className="text-xxs text-uppercase fw-bold text-muted tracking-wider mb-2 d-block" style={{ fontSize: "8.5px" }}>
+                      📂 Otros campos del catálogo
+                    </span>
+                    <div className="d-flex flex-column gap-2">
+                      {categorizedFields.others.map((f) => (
+                        <button
+                          key={f.id}
+                          type="button"
+                          onClick={() => toggleField(f.id)}
+                          className="text-start p-3 border border-gray-200 bg-white rounded-2xl hover-bg-gray-50 transition-all d-flex align-items-center justify-content-between w-100 shadow-sm add-field-btn group"
+                        >
+                          <div className="d-flex flex-column">
+                            <span className="fw-bold text-gray-800 text-sm mb-0.5">{f.label}</span>
+                            <span className="text-xxs text-muted font-mono bg-light px-1.5 py-0.5 rounded border d-inline-block" style={{ width: "fit-content" }}>
+                              {f.type} {f.system && "• Sistema"}
+                            </span>
+                          </div>
+                          <div className="text-purple-600 bg-purple-50 rounded-circle d-flex align-items-center justify-content-center add-icon transition-transform" style={{ width: 32, height: 32 }}>
+                            <i className="fa-solid fa-plus text-xs"></i>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {categorizedFields.recommended.length === 0 && categorizedFields.others.length === 0 && (
                   <div className="text-center py-5 border border-dashed border-gray-300 rounded-3xl bg-light text-muted small d-flex flex-column align-items-center gap-2">
                     <i className="fa-solid fa-check-circle text-success fs-3 opacity-50"></i>
-                    <span>¡Todos los campos están en uso!</span>
+                    <span>{searchQuery ? "No se encontraron campos coincidentes." : "¡Todos los campos están en uso!"}</span>
                   </div>
-                ) : (
-                  inactiveFields.map((f) => (
-                    <button
-                      key={f.id}
-                      type="button"
-                      onClick={() => toggleField(f.id)}
-                      className="text-start p-3 border border-gray-200 bg-white rounded-2xl hover-bg-gray-50 transition-all d-flex align-items-center justify-content-between w-100 shadow-sm add-field-btn group"
-                    >
-                      <div className="d-flex flex-column">
-                        <span className="fw-bold text-gray-800 text-sm mb-0.5">{f.label}</span>
-                        <span className="text-xxs text-muted font-mono bg-light px-1.5 py-0.5 rounded border d-inline-block w-auto" style={{ width: "fit-content" }}>
-                          {f.type}
-                        </span>
-                      </div>
-                      <div className="text-purple-600 bg-purple-50 rounded-circle d-flex align-items-center justify-content-center add-icon transition-transform" style={{ width: 32, height: 32 }}>
-                        <i className="fa-solid fa-plus text-xs"></i>
-                      </div>
-                    </button>
-                  ))
                 )}
               </div>
             </div>
@@ -466,14 +524,19 @@ export default function ComponentAssignmentEditor() {
                             </div>
 
                             <Form.Group className="mb-0">
-                              <Form.Label className="fw-semibold text-sm text-gray-800 d-flex align-items-center gap-2 mb-2">
-                                <GripVertical
-                                  size={16}
-                                  className="text-purple-300 drag-handle transition-colors"
-                                  style={{ cursor: "grab" }}
-                                />
-                                <span>
-                                  {f.label} {f.required && <span className="text-danger">*</span>}
+                              <Form.Label className="fw-semibold text-sm text-gray-800 d-flex align-items-center justify-content-between mb-2 w-100">
+                                <div className="d-flex align-items-center gap-2">
+                                  <GripVertical
+                                    size={16}
+                                    className="text-purple-300 drag-handle transition-colors"
+                                    style={{ cursor: "grab" }}
+                                  />
+                                  <span>
+                                    {f.label} {f.required && <span className="text-danger">*</span>}
+                                  </span>
+                                </div>
+                                <span className={`text-xxs px-2 py-0.5 rounded-pill fw-bold ${f.system ? 'bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-10' : 'bg-primary bg-opacity-10 text-primary border border-primary border-opacity-10'}`} style={{ fontSize: "9px" }}>
+                                  {f.system ? "Sistema" : "Personalizado"}
                                 </span>
                               </Form.Label>
                               {inputMock}

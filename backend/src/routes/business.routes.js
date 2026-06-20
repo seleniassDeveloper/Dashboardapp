@@ -317,4 +317,67 @@ router.put("/me/integrations/whatsapp", requirePermission("business.edit"), asyn
   }
 });
 
+// PUT /api/businesses/me/integrations/smtp
+router.put("/me/integrations/smtp", requirePermission("business.edit"), async (req, res) => {
+  try {
+    const { host, port, user, password } = req.body;
+    const id = req.businessId;
+
+    if (!id) {
+      return res.status(403).json({ success: false, error: "No business context." });
+    }
+
+    const biz = await prisma.business.findUnique({ where: { id } });
+    if (!biz) return res.status(404).json({ success: false, error: "Negocio no encontrado." });
+
+    const currentIntegrations = biz.integrations || {};
+    const updatedIntegrations = {
+      ...currentIntegrations,
+      smtp: { host, port: Number(port), user, password }
+    };
+
+    await prisma.business.update({
+      where: { id },
+      data: { integrations: updatedIntegrations }
+    });
+
+    res.json({ success: true, integrations: updatedIntegrations });
+  } catch (error) {
+    console.error("Error al actualizar integración SMTP:", error);
+    res.status(500).json({ success: false, error: "No se pudo guardar la configuración SMTP." });
+  }
+});
+
+// DELETE /api/businesses/me/integrations/:name
+router.delete("/me/integrations/:name", requirePermission("business.edit"), async (req, res) => {
+  try {
+    const { name } = req.params;
+    const id = req.businessId;
+
+    if (!id) {
+      return res.status(403).json({ success: false, error: "No business context." });
+    }
+
+    const biz = await prisma.business.findUnique({ where: { id } });
+    if (!biz) return res.status(404).json({ success: false, error: "Negocio no encontrado." });
+
+    const currentIntegrations = biz.integrations || {};
+    
+    // Si la integración existe, la eliminamos
+    if (currentIntegrations[name]) {
+      delete currentIntegrations[name];
+      
+      await prisma.business.update({
+        where: { id },
+        data: { integrations: currentIntegrations }
+      });
+    }
+
+    res.json({ success: true, integrations: currentIntegrations });
+  } catch (error) {
+    console.error(`Error al desconectar integración ${req.params.name}:`, error);
+    res.status(500).json({ success: false, error: `No se pudo desconectar la integración ${req.params.name}.` });
+  }
+});
+
 export default router;

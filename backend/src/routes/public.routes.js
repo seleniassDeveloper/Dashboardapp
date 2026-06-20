@@ -14,6 +14,7 @@ import {
   signConsent,
   getConsentRecordById
 } from "../controllers/consent.controller.js";
+import { resolveComponentFields } from "../services/formSchemaService.js";
 
 const router = Router();
 
@@ -36,6 +37,16 @@ router.post("/workflows/trigger/:workflowId", triggerPublicWorkflowWebhook);
 router.get("/consent/:token", getPublicConsentDetails);
 router.post("/consent/:token/sign", signConsent);
 router.get("/consent/record/:id", getConsentRecordById);
+
+router.get("/form-schemas/resolve/:componentKey", async (req, res) => {
+  try {
+    const result = await resolveComponentFields(req.params.componentKey);
+    res.json(result);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Error resolviendo campos públicos." });
+  }
+});
 
 router.get("/version", (req, res) => res.json({ version: "fire-and-forget-fix" }));
 

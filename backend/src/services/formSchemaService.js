@@ -19,6 +19,18 @@ export async function ensureFormSchemas() {
           fieldRefs: def.fieldRefs || null,
         },
       });
+    } else if (def.key === "fields.registry") {
+      const currentFields = Array.isArray(existing.fields) ? existing.fields : [];
+      const customFields = currentFields.filter(f => !f.system);
+      const newSystemFields = def.fields.filter(f => f.system);
+      const systemIds = new Set(newSystemFields.map(f => f.id));
+      const filteredCustomFields = customFields.filter(f => !systemIds.has(f.id));
+      const mergedFields = [...newSystemFields, ...filteredCustomFields];
+
+      await prisma.formSchema.update({
+        where: { key: def.key },
+        data: { fields: mergedFields }
+      });
     }
   }
 }
