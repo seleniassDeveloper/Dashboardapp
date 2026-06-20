@@ -41,29 +41,34 @@ export default function WorkflowSimulator({
     setSimLogs([]);
     setSuccess(null);
     onResetHighlights();
-
-    // 1. Check if trigger type matches workflow trigger
-    const requiredTrigger = workflow.trigger?.type;
     const simulatedTrigger = eventToTriggerMap[eventType];
 
-    addLog(isEs ? "🚀 Iniciando Simulación del Workflow contable..." : "🚀 Starting accounting Workflow Simulation...", "info");
+    addLog(isEs ? "🚀 Iniciando Simulación del Workflow..." : "🚀 Starting Workflow Simulation...", "info");
     addLog(`${isEs ? "Evento disparado" : "Trigger event"}: ${eventType.toUpperCase()} (${clientType === "vip" ? (isEs ? "Cliente VIP" : "VIP Client") : (isEs ? "Cliente Regular" : "Regular Client")})`, "info");
 
-    if (requiredTrigger !== simulatedTrigger) {
+    // 2. Identify the Trigger node on canvas that matches the simulation event
+    let triggerNode = nodes.find(n => n.type === "trigger" && n.subtype === simulatedTrigger);
+    
+    // Fallback if they only have a general trigger node and no specific subtype matches
+    if (!triggerNode) {
+      triggerNode = nodes.find(n => n.type === "trigger");
+    }
+
+    if (!triggerNode) {
       setTimeout(() => {
-        addLog(`⚠️ ERROR: ${isEs ? `El disparador del workflow ("${requiredTrigger}") no coincide con el evento simulado ("${simulatedTrigger}").` : `Workflow trigger ("${requiredTrigger}") does not match simulated event ("${simulatedTrigger}").`}`, "danger");
+        addLog(isEs ? "⚠️ ERROR: No se encontró ningún nodo de tipo DISPARADOR en el canvas." : "⚠️ ERROR: No TRIGGER node was found on the canvas.", "danger");
         setSuccess(false);
         setSimulating(false);
       }, 500);
       return;
     }
 
-    // 2. Identify the Trigger node on canvas
-    const triggerNode = nodes.find(n => n.type === "trigger");
-    if (!triggerNode) {
-      addLog(isEs ? "⚠️ ERROR: No se encontró ningún nodo de tipo DISPARADOR en el canvas." : "⚠️ ERROR: No TRIGGER node was found on the canvas.", "danger");
-      setSuccess(false);
-      setSimulating(false);
+    if (triggerNode.subtype !== simulatedTrigger && workflow.trigger?.type !== simulatedTrigger) {
+      setTimeout(() => {
+        addLog(`⚠️ ERROR: ${isEs ? `El disparador del workflow no coincide con el evento simulado ("${simulatedTrigger}").` : `Workflow trigger does not match simulated event ("${simulatedTrigger}").`}`, "danger");
+        setSuccess(false);
+        setSimulating(false);
+      }, 500);
       return;
     }
 
