@@ -22,14 +22,16 @@ export async function triggerWorkflows(businessId, triggerType, context) {
 
     if (!businessModel) {
       console.warn(`[WorkflowEngine] Business Model "${modelSlug}" not found for business "${businessId}"`);
-      return;
     }
 
-    // 2. Find all active workflows for this business model
+    // 2. Find all active workflows for this business model OR this specific business
     const workflows = await prisma.workflow.findMany({
       where: {
         status: "ACTIVE",
-        businessModelId: businessModel.id
+        OR: [
+          ...(businessModel ? [{ businessModelId: businessModel.id }] : []),
+          { businessId: businessId }
+        ]
       }
     });
 
@@ -41,6 +43,12 @@ export async function triggerWorkflows(businessId, triggerType, context) {
       if (normTrigger === "appointment_created" && type === "nueva-cita") return true;
       if (normTrigger === "consent_signed" && type === "consentimiento-firmado") return true;
       if (normTrigger === "status_changed" && type === "cambio-estado-cita") return true;
+      if (normTrigger === "confirmed" && type === "cita-confirmada") return true;
+      if (normTrigger === "cancelled" && type === "cita-cancelada") return true;
+      if (normTrigger === "done" && type === "cita-finalizada") return true;
+      if (normTrigger === "client_created" && type === "cliente-nuevo") return true;
+      if (normTrigger === "low_stock" && type === "stock-bajo") return true;
+      if (normTrigger === "payment_received" && type === "pago-recibido") return true;
       return false;
     };
 
