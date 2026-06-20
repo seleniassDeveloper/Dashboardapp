@@ -621,7 +621,7 @@ export async function sendManualConfirmationEmail(req, res) {
 export async function finalizeAppointment(req, res) {
   try {
     const { id } = req.params;
-    const { note, recommendations, beforePhoto, afterPhoto, paymentMethod, finalPrice, sendEmail } = req.body;
+    const { note, recommendations, beforePhoto, afterPhoto, paymentMethod, finalPrice, sendEmail, selectedWorkflowIds } = req.body;
 
     if (!id) {
       return res.status(400).json({ error: "El ID de la cita es obligatorio." });
@@ -634,6 +634,12 @@ export async function finalizeAppointment(req, res) {
 
     if (!appt) {
       return res.status(404).json({ error: "La cita no existe." });
+    }
+
+    // Normalize workflow IDs parameter to array if supplied
+    let limitWorkflowIds = null;
+    if (selectedWorkflowIds) {
+      limitWorkflowIds = Array.isArray(selectedWorkflowIds) ? selectedWorkflowIds : [selectedWorkflowIds];
     }
 
     // 1. Update status to DONE and save payment details
@@ -651,10 +657,10 @@ export async function finalizeAppointment(req, res) {
     const isStatusChanged = oldStatus !== "DONE";
     if (isStatusChanged) {
       recordStatusTransition(appt.businessId, id, oldStatus, "DONE").catch(err => console.error(err));
-      triggerWorkflows(appt.businessId, "status_changed", updatedAppt).catch(err => console.error("Error triggering status changed workflows:", err));
-      triggerWorkflows(appt.businessId, "done", updatedAppt).catch(err => console.error("Error triggering done workflow:", err));
+      triggerWorkflows(appt.businessId, "status_changed", updatedAppt, limitWorkflowIds).catch(err => console.error("Error triggering status changed workflows:", err));
+      triggerWorkflows(appt.businessId, "done", updatedAppt, limitWorkflowIds).catch(err => console.error("Error triggering done workflow:", err));
     }
-    triggerWorkflows(appt.businessId, "payment_received", updatedAppt).catch(err => console.error("Error triggering payment_received workflow:", err));
+    triggerWorkflows(appt.businessId, "payment_received", updatedAppt, limitWorkflowIds).catch(err => console.error("Error triggering payment_received workflow:", err));
 
     // Send email receipt if requested and client has email
     if (sendEmail && appt.client?.email) {

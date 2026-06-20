@@ -4,9 +4,9 @@ import { sendReminderEmail } from "./mailer.js";
 import { handleSlaTransition } from "./serviceSla.js";
 
 // Triggers: "appointment_created" (nueva-cita), "consent_signed" (consentimiento-firmado), "status_changed" (cambio-estado-cita)
-export async function triggerWorkflows(businessId, triggerType, context) {
+export async function triggerWorkflows(businessId, triggerType, context, limitWorkflowIds = null) {
   if (!businessId) return;
-  console.log(`[WorkflowEngine] Triggered "${triggerType}" for business "${businessId}"`, context);
+  console.log(`[WorkflowEngine] Triggered "${triggerType}" for business "${businessId}" (limit: ${JSON.stringify(limitWorkflowIds)})`, context);
 
   try {
     // 1. Get business and its active business model
@@ -53,6 +53,7 @@ export async function triggerWorkflows(businessId, triggerType, context) {
     };
 
     const matchingWorkflows = workflows.filter(w => {
+      if (limitWorkflowIds && !limitWorkflowIds.includes(w.id)) return false;
       if (w.trigger && matchTrigger(w.trigger.type)) return true;
       if (Array.isArray(w.steps)) {
         return w.steps.some(n => n.type === "trigger" && matchTrigger(n.subtype));

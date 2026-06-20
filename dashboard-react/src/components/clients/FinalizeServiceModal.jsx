@@ -15,6 +15,9 @@ export default function FinalizeServiceModal({ show, onHide, appointment, onComp
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const [activeWorkflows, setActiveWorkflows] = useState([]);
+  const [selectedWorkflowSelection, setSelectedWorkflowSelection] = useState("ALL"); // "ALL" | "NONE" | workflowId
+
   useEffect(() => {
     if (appointment) {
       setNote("");
@@ -27,6 +30,35 @@ export default function FinalizeServiceModal({ show, onHide, appointment, onComp
       setPaymentMethod("Efectivo");
     }
   }, [appointment]);
+
+  useEffect(() => {
+    if (show && appointment) {
+      api.get("/workflows?status=ACTIVE")
+        .then(res => {
+          const list = Array.isArray(res.data) ? res.data : [];
+          // Filter workflows that match finalize triggers
+          const filtered = list.filter(wf => {
+            const type = String(wf.trigger?.type || "").toLowerCase();
+            const hasFinalizeTrigger = type === "done" || type === "cita-finalizada" || 
+                                      type === "payment_received" || type === "pago-recibido" ||
+                                      type === "status_changed" || type === "cambio-estado-cita";
+            const hasStepFinalizeTrigger = Array.isArray(wf.steps) && wf.steps.some(s => {
+              if (s.type !== "trigger") return false;
+              const sub = String(s.subtype || "").toLowerCase();
+              return sub === "done" || sub === "cita-finalizada" || 
+                     sub === "payment_received" || sub === "pago-recibido" ||
+                     sub === "status_changed" || sub === "cambio-estado-cita";
+            });
+            return hasFinalizeTrigger || hasStepFinalizeTrigger;
+          });
+          setActiveWorkflows(filtered);
+          setSelectedWorkflowSelection("ALL");
+        })
+        .catch(err => {
+          console.error("Error fetching active workflows:", err);
+        });
+    }
+  }, [show, appointment]);
 
   if (!appointment) return null;
 
@@ -91,6 +123,13 @@ export default function FinalizeServiceModal({ show, onHide, appointment, onComp
       setLoading(true);
       setError("");
 
+      let selectedWorkflowIds = null;
+      if (selectedWorkflowSelection === "NONE") {
+        selectedWorkflowIds = [];
+      } else if (selectedWorkflowSelection !== "ALL") {
+        selectedWorkflowIds = [selectedWorkflowSelection];
+      }
+
       const payload = {
         note: note.trim(),
         recommendations: recommendations.trim(),
@@ -99,6 +138,7 @@ export default function FinalizeServiceModal({ show, onHide, appointment, onComp
         paymentMethod,
         finalPrice,
         sendEmail,
+        selectedWorkflowIds
       };
 
       const res = await api.post(`/appointments/${appointment.id}/finalize`, payload);
@@ -260,6 +300,35 @@ export default function FinalizeServiceModal({ show, onHide, appointment, onComp
               </div>
             </div>
           </div>
+
+          {/* Opciones de Automatizaciones si hay múltiples activas */}
+          {activeWorkflows.length >= 2 && (
+            <div className="border border-purple-100 rounded-2xl p-4 bg-purple-50 bg-opacity-20 mb-4 shadow-inner animate-fade-in">
+              <h4 className="h6 fw-bold mb-3 text-purple-900 d-flex align-items-center gap-1.5">
+                <Sparkles size={18} className="text-purple-600 animate-pulse" />
+                <span>Múltiples automatizaciones detectadas para este disparador</span>
+              </h4>
+              <Form.Group>
+                <Form.Label className="small text-gray-700 mb-2 font-semibold">
+                  Seleccioná cuál de las automatizaciones activas querés ejecutar al finalizar esta cita:
+                </Form.Label>
+                <Form.Select
+                  value={selectedWorkflowSelection}
+                  onChange={(e) => setSelectedWorkflowSelection(e.target.value)}
+                  className="border-gray-200 rounded-xl focus-ring-purple cursor-pointer small"
+                  style={{ fontSize: "13px" }}
+                >
+                  <option value="ALL">✨ Ejecutar todas las automatizaciones activas ({activeWorkflows.length})</option>
+                  <option value="NONE">❌ No ejecutar ninguna automatización</option>
+                  {activeWorkflows.map(wf => (
+                    <option key={wf.id} value={wf.id}>
+                      🔄 Ejecutar solo: {wf.name}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
+            </div>
+          )}
 
           {/* Evolución clínica y Notas */}
           <Form.Group className="mb-4">
