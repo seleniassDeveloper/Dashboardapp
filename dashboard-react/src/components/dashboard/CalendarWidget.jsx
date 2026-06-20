@@ -46,6 +46,30 @@ export default function CalendarWidget({
   const [showEditModal, setShowEditModal] = useState(false);
   const [initialEditData, setInitialEditData] = useState(null);
 
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailSuccess, setEmailSuccess] = useState("");
+  const [emailError, setEmailError] = useState("");
+
+  useEffect(() => {
+    setEmailSuccess("");
+    setEmailError("");
+  }, [selectedAppt]);
+
+  const handleSendConfirmationEmail = async (apptId) => {
+    try {
+      setSendingEmail(true);
+      setEmailSuccess("");
+      setEmailError("");
+      await api.post(`/appointments/${apptId}/confirm-email`);
+      setEmailSuccess(isEs ? "¡Correo de confirmación enviado con éxito!" : "Confirmation email sent successfully!");
+    } catch (err) {
+      console.error("Error sending manual confirmation email:", err);
+      setEmailError(err.response?.data?.error || (isEs ? "No se pudo enviar el correo de confirmación. Revisa la configuración SMTP." : "Failed to send confirmation email. Check SMTP settings."));
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
   const handleEditSaved = () => {
     fetchAppointments();
     setShowEditModal(false);
@@ -630,6 +654,37 @@ export default function CalendarWidget({
                   <option value="NOSHOW">{isEs ? "No asistió" : "No-show"}</option>
                 </Form.Select>
               </div>
+
+              {selectedAppt.client?.email && (
+                <div className="mt-3 p-3 border rounded-3 bg-light bg-opacity-30">
+                  <div className="fw-bold small text-muted mb-2 uppercase d-flex align-items-center gap-2">
+                    <span>✉️ {isEs ? "Notificación Manual" : "Manual Notification"}</span>
+                  </div>
+                  <Button
+                    variant="outline-primary"
+                    size="sm"
+                    className="w-100 rounded-pill d-flex align-items-center justify-content-center gap-2"
+                    disabled={sendingEmail}
+                    onClick={() => handleSendConfirmationEmail(selectedAppt.id)}
+                    style={{
+                      borderColor: "#7c3aed",
+                      color: "#7c3aed",
+                      backgroundColor: "transparent",
+                    }}
+                  >
+                    {sendingEmail ? (
+                      <>
+                        <Spinner size="sm" animation="border" />
+                        <span>{isEs ? "Enviando..." : "Sending..."}</span>
+                      </>
+                    ) : (
+                      <span>{isEs ? "Enviar Confirmación por Correo" : "Send Confirmation Email"}</span>
+                    )}
+                  </Button>
+                  {emailSuccess && <small className="text-success d-block mt-2 fw-semibold text-center">{emailSuccess}</small>}
+                  {emailError && <small className="text-danger d-block mt-2 fw-semibold text-center">{emailError}</small>}
+                </div>
+              )}
 
               <div className="d-flex justify-content-between gap-2 mt-4 pt-3 border-top">
                 <Button
