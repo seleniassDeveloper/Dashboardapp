@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Badge, Button, Table, Row, Col, Card, Form, Dropdown, Offcanvas } from "react-bootstrap";
 import { Calendar, Clock, User, ChevronLeft, ChevronRight, Check, X, ShieldAlert, Edit3 } from "lucide-react";
 import { useTranslation } from "react-i18next";
