@@ -29,10 +29,11 @@ export async function sendReminderEmail({ to, subject, html, smtpConfig }) {
 
   let activeTransporter = transporter;
   let fromAddress = process.env.EMAIL_FROM || process.env.EMAIL_USER;
+  let customPort = null;
 
   if (smtpConfig && smtpConfig.host && smtpConfig.user && smtpConfig.password) {
     console.log(`[mailer] Usando transportador SMTP personalizado para el correo: ${smtpConfig.user}`);
-    const customPort = Number(smtpConfig.port || 587);
+    customPort = Number(smtpConfig.port || 587);
     const customSecure = customPort === 465 ? true : false; // 465 = direct TLS, others = STARTTLS
     
     activeTransporter = nodemailer.createTransport({
@@ -53,10 +54,80 @@ export async function sendReminderEmail({ to, subject, html, smtpConfig }) {
     fromAddress = `"${smtpConfig.user.split('@')[0]}" <${smtpConfig.user}>`;
   }
 
-  await activeTransporter.sendMail({
-    from: fromAddress,
-    to,
-    subject,
-    html,
-  });
+  try {
+    await activeTransporter.sendMail({
+      from: fromAddress,
+      to,
+      subject,
+      html,
+    });
+  } catch (error) {
+    // Si falló el envío y estábamos usando el transportador personalizado con un puerto distinto a 465 (ej: 587)
+    // intentamos hacer un fallback automático al puerto 465 (SSL/TLS directo) que suele evitar bloqueos de ISPs locales.
+    if (smtpConfig && smtpConfig.host && customPort && customPort !== 465) {
+      console.warn(`[mailer] Envío SMTP personalizado falló con puerto ${customPort}. Intentando fallback automático al puerto 465 (SSL/TLS)... Error:`, error.message);
+      try {
+        const fallbackTransporter = nodemailer.createTransport({
+          host: smtpConfig.host,
+          port: 465,
+          secure: true,
+          auth: {
+            user: smtpConfig.user,
+            pass: smtpConfig.password,
+          },
+          connectionTimeout: 10000,
+          greetingTimeout: 10000,
+          socketTimeout: 10000,
+          debug: true,
+          logger: true
+        });
+        await fallbackTransporter.sendMail({
+          from: fromAddress,
+          to,
+          subject,
+          html,
+        });
+        console.log(`[mailer] Envío exitoso en el reintento usando puerto 465 (SSL/TLS).`);
+        return;
+      } catch (fallbackError) {
+        console.error(`[mailer] Reintento de fallback en puerto 465 también falló:`, fallbackError.message);
+        throw fallbackError;
+      }
+    }
+    
+    // Si no es personalizado pero el default falló y usaba puerto != 465, y tenemos env vars disponibles
+    if (!smtpConfig && process.env.EMAIL_HOST && Number(process.env.EMAIL_PORT || 465) !== 465) {
+      const currentPort = Number(process.env.EMAIL_PORT || 465);
+      console.warn(`[mailer] Envío SMTP global falló con puerto ${currentPort}. Intentando fallback automático al puerto 465 (SSL/TLS)... Error:`, error.message);
+      try {
+        const fallbackTransporter = nodemailer.createTransport({
+          host: process.env.EMAIL_HOST,
+          port: 465,
+          secure: true,
+          auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS,
+          },
+          connectionTimeout: 10000,
+          greetingTimeout: 10000,
+          socketTimeout: 10000,
+          debug: true,
+          logger: true
+        });
+        await fallbackTransporter.sendMail({
+          from: fromAddress,
+          to,
+          subject,
+          html,
+        });
+        console.log(`[mailer] Envío global exitoso en el reintento usando puerto 465 (SSL/TLS).`);
+        return;
+      } catch (fallbackError) {
+        console.error(`[mailer] Reintento global de fallback en puerto 465 también falló:`, fallbackError.message);
+        throw fallbackError;
+      }
+    }
+    
+    throw error;
+  }
 }
