@@ -771,7 +771,7 @@ export default function PublicBookingPage() {
                   <p className="text-muted smaller mb-0">{isEs ? "Escoge el bloque de tiempo de tu preferencia." : "Choose the time block of your preference."}</p>
                 </div>
 
-                <div>
+                <div style={{ minWidth: 0 }}>
                   <span className="smaller text-muted fw-bold uppercase d-block mb-2.5" style={{ fontSize: "10.5px", letterSpacing: "0.05em" }}>
                     {isEs ? "Días disponibles" : "Available days"}
                   </span>
