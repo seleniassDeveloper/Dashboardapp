@@ -1,4 +1,13 @@
 import nodemailer from "nodemailer";
+import dns from "dns";
+
+if (typeof dns.setDefaultResultOrder === "function") {
+  dns.setDefaultResultOrder("ipv4first");
+}
+
+const lookupIPv4 = (hostname, options, callback) => {
+  return dns.lookup(hostname, { ...options, family: 4 }, callback);
+};
 
 
 const isSecure = String(process.env.EMAIL_SECURE) === "true";
@@ -12,6 +21,7 @@ const transporter = nodemailer.createTransport({
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
+  lookup: lookupIPv4,
   connectionTimeout: 10000, // 10 segundos para no colgarse infinitamente
   greetingTimeout: 10000,
   socketTimeout: 10000,
@@ -44,6 +54,7 @@ export async function sendReminderEmail({ to, subject, html, smtpConfig }) {
         user: smtpConfig.user,
         pass: smtpConfig.password,
       },
+      lookup: lookupIPv4,
       connectionTimeout: 10000,
       greetingTimeout: 10000,
       socketTimeout: 10000,
@@ -75,6 +86,7 @@ export async function sendReminderEmail({ to, subject, html, smtpConfig }) {
             user: smtpConfig.user,
             pass: smtpConfig.password,
           },
+          lookup: lookupIPv4,
           connectionTimeout: 10000,
           greetingTimeout: 10000,
           socketTimeout: 10000,
@@ -108,6 +120,7 @@ export async function sendReminderEmail({ to, subject, html, smtpConfig }) {
             user: process.env.EMAIL_USER,
             pass: process.env.EMAIL_PASS,
           },
+          lookup: lookupIPv4,
           connectionTimeout: 10000,
           greetingTimeout: 10000,
           socketTimeout: 10000,
