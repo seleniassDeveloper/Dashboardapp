@@ -598,60 +598,87 @@ export default function AppointmentsCalendar() {
           {!selected ? (
             <div className="text-muted">Sin selección</div>
           ) : (
-            <div className="d-grid gap-4">
+            <div className="d-grid gap-3">
               <div>
-                <span className="text-muted smaller uppercase d-block mb-1">Cliente</span>
-                <h4 className="fw-bold text-dark mb-0">
-                  {selected.client?.firstName} {selected.client?.lastName || ""}
-                </h4>
-                <div className="text-muted small mt-1">
-                  {selected.client?.email || "Sin correo"} · {selected.client?.phone || "Sin teléfono"}
-                </div>
-              </div>
-
-              <div className="p-3 bg-light rounded-4 border">
-                <div className="d-flex justify-content-between align-items-start mb-2">
-                  <div>
-                    <span className="text-muted smaller uppercase">Servicio</span>
-                    <div className="fw-bold text-dark">{selected.service?.name || "Servicio"}</div>
-                  </div>
-                  <Badge bg="dark" className="fs-6 py-1 px-2.5">
-                    {currency(selected.service?.price)}
-                  </Badge>
-                </div>
-                <div className="text-muted small">
-                  Duración del servicio: {selected.service?.duration || 60} minutos
+                <span className="text-muted smaller uppercase d-block mb-1">Nombre del Cliente</span>
+                <div className="p-2 border bg-light bg-opacity-40 rounded-3 text-dark small" style={{ minHeight: "38px" }}>
+                  {selected.client?.firstName || ""}
                 </div>
               </div>
 
               <div>
-                <span className="text-muted smaller uppercase d-block mb-2">Colaborador</span>
-                <div className="d-flex align-items-center gap-2 bg-light p-2.5 rounded-3">
-                  <User size={16} className="text-muted" />
-                  <span className="fw-semibold text-dark">
-                    {selected.worker ? `${selected.worker.firstName} ${selected.worker.lastName}` : "Profesional no asignado"}
-                  </span>
+                <span className="text-muted smaller uppercase d-block mb-1">Apellido del Cliente</span>
+                <div className="p-2 border bg-light bg-opacity-40 rounded-3 text-dark small" style={{ minHeight: "38px" }}>
+                  {selected.client?.lastName || ""}
                 </div>
               </div>
 
               <div>
-                <span className="text-muted smaller uppercase d-block mb-2">Fecha y Horario</span>
-                <div className="d-flex align-items-center gap-2 bg-light p-2.5 rounded-3">
-                  <Calendar size={16} className="text-muted" />
-                  <span className="fw-semibold text-dark">
-                    {new Date(selected.startsAt).toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
-                    {" a las "}
-                    {new Date(selected.startsAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })} {"hs"}
-                  </span>
+                <span className="text-muted smaller uppercase d-block mb-1">Teléfono / WhatsApp</span>
+                <div className="p-2 border bg-light bg-opacity-40 rounded-3 text-dark small" style={{ minHeight: "38px" }}>
+                  {selected.client?.phone || ""}
                 </div>
               </div>
 
-              {selected.notes && (
-                <div>
-                  <span className="text-muted smaller uppercase d-block mb-1">Notas del Turno</span>
-                  <div className="p-2 border bg-light rounded-3 text-muted small">{selected.notes}</div>
+              <div>
+                <span className="text-muted smaller uppercase d-block mb-1">Correo Electrónico</span>
+                <div className="p-2 border bg-light bg-opacity-40 rounded-3 text-dark small" style={{ minHeight: "38px" }}>
+                  {selected.client?.email || ""}
                 </div>
-              )}
+              </div>
+
+              <div>
+                <span className="text-muted smaller uppercase d-block mb-1">Servicio</span>
+                <div className="p-2 border bg-light bg-opacity-40 rounded-3 text-dark small" style={{ minHeight: "38px" }}>
+                  {selected.service?.name || ""}
+                </div>
+              </div>
+
+              <div>
+                <span className="text-muted smaller uppercase d-block mb-1">Duración</span>
+                <div className="p-2 border bg-light bg-opacity-40 rounded-3 text-dark small" style={{ minHeight: "38px" }}>
+                  {selected.service?.duration ? `${selected.service.duration} minutos` : ""}
+                </div>
+              </div>
+
+              <div>
+                <span className="text-muted smaller uppercase d-block mb-1">Precio</span>
+                <div className="p-2 border bg-light bg-opacity-40 rounded-3 text-dark small" style={{ minHeight: "38px" }}>
+                  {selected.service?.price ? currency(selected.service.price) : ""}
+                </div>
+              </div>
+
+              <div>
+                <span className="text-muted smaller uppercase d-block mb-1">Colaborador / Profesional</span>
+                <div className="p-2 border bg-light bg-opacity-40 rounded-3 text-dark small" style={{ minHeight: "38px" }}>
+                  {selected.worker ? `${selected.worker.firstName} ${selected.worker.lastName || ""}`.trim() : ""}
+                </div>
+              </div>
+
+              <div>
+                <span className="text-muted smaller uppercase d-block mb-1">Fecha y Horario</span>
+                <div className="p-2 border bg-light bg-opacity-40 rounded-3 text-dark small" style={{ minHeight: "38px" }}>
+                  {selected.startsAt ? (
+                    new Date(selected.startsAt).toLocaleDateString("es-AR", {
+                      weekday: "long",
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric"
+                    }) + " a las " +
+                    new Date(selected.startsAt).toLocaleTimeString("es-AR", {
+                      hour: "2-digit",
+                      minute: "2-digit"
+                    }) + " hs"
+                  ) : ""}
+                </div>
+              </div>
+
+              <div>
+                <span className="text-muted smaller uppercase d-block mb-1">Notas del Turno</span>
+                <div className="p-2 border bg-light bg-opacity-40 rounded-3 text-muted small" style={{ minHeight: "38px" }}>
+                  {selected.notes || ""}
+                </div>
+              </div>
 
               <div>
                 <span className="text-muted smaller uppercase d-block mb-2">Cambiar Estado</span>
