@@ -520,60 +520,87 @@ export default function CalendarWidget({
         </Offcanvas.Header>
         <Offcanvas.Body className="p-4">
           {selectedAppt && (
-            <div className="d-grid gap-4">
+            <div className="d-grid gap-3">
               <div>
-                <span className="text-muted smaller uppercase d-block mb-1">{isEs ? "Cliente" : "Client"}</span>
-                <h4 className="fw-bold text-dark mb-0">
-                  {selectedAppt.client?.firstName} {selectedAppt.client?.lastName || ""}
-                </h4>
-                <div className="text-muted small mt-1">
-                  {selectedAppt.client?.email || (isEs ? "Sin correo" : "No email")} · {selectedAppt.client?.phone || (isEs ? "Sin teléfono" : "No phone")}
-                </div>
-              </div>
-
-              <div className="p-3 bg-light rounded-4 border">
-                <div className="d-flex justify-content-between align-items-start mb-2">
-                  <div>
-                    <span className="text-muted smaller uppercase">{isEs ? "Servicio" : "Service"}</span>
-                    <div className="fw-bold text-dark">{selectedAppt.service?.name}</div>
-                  </div>
-                  <Badge bg="dark" className="fs-6 py-1 px-2.5">
-                    {currency(selectedAppt.service?.price, isEs)}
-                  </Badge>
-                </div>
-                <div className="text-muted small">
-                  {isEs ? "Duración del servicio:" : "Service duration:"} {selectedAppt.service?.duration} {isEs ? "minutos" : "minutes"}
+                <span className="text-muted smaller uppercase d-block mb-1">{isEs ? "Nombre del Cliente" : "Client First Name"}</span>
+                <div className="p-2 border bg-light bg-opacity-40 rounded-3 text-dark small" style={{ minHeight: "38px" }}>
+                  {selectedAppt.client?.firstName || ""}
                 </div>
               </div>
 
               <div>
-                <span className="text-muted smaller uppercase d-block mb-2">{isEs ? "Colaborador" : "Staff"}</span>
-                <div className="d-flex align-items-center gap-2 bg-light p-2.5 rounded-3">
-                  <User size={16} className="text-muted" />
-                  <span className="fw-semibold text-dark">
-                    {selectedAppt.worker ? `${selectedAppt.worker.firstName} ${selectedAppt.worker.lastName}` : (isEs ? "Profesional no asignado" : "Staff not assigned")}
-                  </span>
+                <span className="text-muted smaller uppercase d-block mb-1">{isEs ? "Apellido del Cliente" : "Client Last Name"}</span>
+                <div className="p-2 border bg-light bg-opacity-40 rounded-3 text-dark small" style={{ minHeight: "38px" }}>
+                  {selectedAppt.client?.lastName || ""}
                 </div>
               </div>
 
               <div>
-                <span className="text-muted smaller uppercase d-block mb-2">{isEs ? "Fecha y Horario" : "Date & Time"}</span>
-                <div className="d-flex align-items-center gap-2 bg-light p-2.5 rounded-3">
-                  <Calendar size={16} className="text-muted" />
-                  <span className="fw-semibold text-dark">
-                    {new Date(selectedAppt.startsAt).toLocaleDateString(isEs ? "es-AR" : "en-US", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
-                    {isEs ? " a las " : " at "}
-                    {new Date(selectedAppt.startsAt).toLocaleTimeString(isEs ? "es-AR" : "en-US", { hour: "2-digit", minute: "2-digit" })} {isEs ? "hs" : ""}
-                  </span>
+                <span className="text-muted smaller uppercase d-block mb-1">{isEs ? "Teléfono / WhatsApp" : "Phone / WhatsApp"}</span>
+                <div className="p-2 border bg-light bg-opacity-40 rounded-3 text-dark small" style={{ minHeight: "38px" }}>
+                  {selectedAppt.client?.phone || ""}
                 </div>
               </div>
 
-              {selectedAppt.notes && (
-                <div>
-                  <span className="text-muted smaller uppercase d-block mb-1">{isEs ? "Notas del Turno" : "Appointment Notes"}</span>
-                  <div className="p-2 border bg-light rounded-3 text-muted small">{selectedAppt.notes}</div>
+              <div>
+                <span className="text-muted smaller uppercase d-block mb-1">{isEs ? "Correo Electrónico" : "Email"}</span>
+                <div className="p-2 border bg-light bg-opacity-40 rounded-3 text-dark small" style={{ minHeight: "38px" }}>
+                  {selectedAppt.client?.email || ""}
                 </div>
-              )}
+              </div>
+
+              <div>
+                <span className="text-muted smaller uppercase d-block mb-1">{isEs ? "Servicio" : "Service"}</span>
+                <div className="p-2 border bg-light bg-opacity-40 rounded-3 text-dark small" style={{ minHeight: "38px" }}>
+                  {selectedAppt.service?.name || ""}
+                </div>
+              </div>
+
+              <div>
+                <span className="text-muted smaller uppercase d-block mb-1">{isEs ? "Duración" : "Duration"}</span>
+                <div className="p-2 border bg-light bg-opacity-40 rounded-3 text-dark small" style={{ minHeight: "38px" }}>
+                  {selectedAppt.service?.duration ? `${selectedAppt.service.duration} ${isEs ? "minutos" : "minutes"}` : ""}
+                </div>
+              </div>
+
+              <div>
+                <span className="text-muted smaller uppercase d-block mb-1">{isEs ? "Precio" : "Price"}</span>
+                <div className="p-2 border bg-light bg-opacity-40 rounded-3 text-dark small" style={{ minHeight: "38px" }}>
+                  {selectedAppt.service?.price ? currency(selectedAppt.service.price, isEs) : ""}
+                </div>
+              </div>
+
+              <div>
+                <span className="text-muted smaller uppercase d-block mb-1">{isEs ? "Colaborador / Profesional" : "Staff / Professional"}</span>
+                <div className="p-2 border bg-light bg-opacity-40 rounded-3 text-dark small" style={{ minHeight: "38px" }}>
+                  {selectedAppt.worker ? `${selectedAppt.worker.firstName} ${selectedAppt.worker.lastName || ""}`.trim() : ""}
+                </div>
+              </div>
+
+              <div>
+                <span className="text-muted smaller uppercase d-block mb-1">{isEs ? "Fecha y Horario" : "Date & Time"}</span>
+                <div className="p-2 border bg-light bg-opacity-40 rounded-3 text-dark small" style={{ minHeight: "38px" }}>
+                  {selectedAppt.startsAt ? (
+                    new Date(selectedAppt.startsAt).toLocaleDateString(isEs ? "es-AR" : "en-US", {
+                      weekday: "long",
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric"
+                    }) + (isEs ? " a las " : " at ") +
+                    new Date(selectedAppt.startsAt).toLocaleTimeString(isEs ? "es-AR" : "en-US", {
+                      hour: "2-digit",
+                      minute: "2-digit"
+                    }) + (isEs ? " hs" : "")
+                  ) : ""}
+                </div>
+              </div>
+
+              <div>
+                <span className="text-muted smaller uppercase d-block mb-1">{isEs ? "Notas del Turno" : "Appointment Notes"}</span>
+                <div className="p-2 border bg-light bg-opacity-40 rounded-3 text-muted small" style={{ minHeight: "38px" }}>
+                  {selectedAppt.notes || ""}
+                </div>
+              </div>
 
               <div>
                 <span className="text-muted smaller uppercase d-block mb-2">{isEs ? "Cambiar Estado" : "Change Status"}</span>
