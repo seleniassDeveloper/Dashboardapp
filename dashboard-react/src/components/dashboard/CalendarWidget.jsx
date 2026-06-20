@@ -2,6 +2,8 @@ import React, { useState, useMemo } from "react";
 import { Badge, Button, Table, Row, Col, Card, Form, Dropdown, Offcanvas } from "react-bootstrap";
 import { Calendar, Clock, User, ChevronLeft, ChevronRight, Check, X, ShieldAlert, Edit3 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useAppointmentsStore } from "../../gadgets/appointments/AppointmentsProvider.jsx";
+import AppointmentModal from "../../gadgets/appointments/AppointmentModal.jsx";
 
 // Helper de moneda
 function currency(n, isEs) {
@@ -38,6 +40,17 @@ export default function CalendarWidget({
   // Drawer / Side Panel para editar cita
   const [selectedAppt, setSelectedAppt] = useState(null);
   const [showDrawer, setShowDrawer] = useState(false);
+
+  // Estado para la edición de cita
+  const { fetchAppointments } = useAppointmentsStore();
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [initialEditData, setInitialEditData] = useState(null);
+
+  const handleEditSaved = () => {
+    fetchAppointments();
+    setShowEditModal(false);
+    setShowDrawer(false);
+  };
 
   // --- Helpers de Fecha ---
   const startOfCurrentDay = useMemo(() => {
@@ -618,7 +631,17 @@ export default function CalendarWidget({
                 </Form.Select>
               </div>
 
-              <div className="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+              <div className="d-flex justify-content-between gap-2 mt-4 pt-3 border-top">
+                <Button
+                  variant="outline-primary"
+                  className="rounded-pill px-4"
+                  onClick={() => {
+                    setInitialEditData(selectedAppt);
+                    setShowEditModal(true);
+                  }}
+                >
+                  {isEs ? "Editar Cita" : "Edit Appointment"}
+                </Button>
                 <Button variant="outline-dark" className="rounded-pill px-4" onClick={() => setShowDrawer(false)}>
                   {isEs ? "Cerrar" : "Close"}
                 </Button>
@@ -627,6 +650,13 @@ export default function CalendarWidget({
           )}
         </Offcanvas.Body>
       </Offcanvas>
+
+      <AppointmentModal
+        show={showEditModal}
+        onHide={() => setShowEditModal(false)}
+        initialData={initialEditData}
+        onSaved={handleEditSaved}
+      />
 
     </div>
   );
