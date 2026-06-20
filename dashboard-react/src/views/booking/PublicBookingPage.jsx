@@ -484,34 +484,61 @@ export default function PublicBookingPage() {
       </Container>
 
       <Container style={{ maxWidth: "720px" }}>
-
-        {/* STEP PROGRESS BAR */}
-        {business?.bookingDownpaymentEnabled && (
+        {business && (
           <div className="card-premium border bg-white p-3.5 rounded-2xl shadow-sm mb-4">
             <div className="d-flex justify-content-between align-items-center small text-muted px-1 mb-3">
-              <span>Progreso de Reserva</span>
-              <strong className="text-dark">{step} de 2</strong>
+              <span>{isEs ? "Progreso de Reserva" : "Booking Progress"}</span>
+              <strong className="text-dark">{step} de {business.bookingDownpaymentEnabled ? 5 : 4}</strong>
             </div>
+            
             <div className="d-flex justify-content-between align-items-center position-relative mb-2 px-2">
               <div className="position-absolute start-0 end-0 bg-light rounded-pill" style={{ height: "4px", top: "50%", transform: "translateY(-50%)", zIndex: 0 }} />
+              
               <div 
                 className="position-absolute start-0 bg-light rounded-pill transition-all" 
                 style={{ 
                   height: "4px", 
                   top: "50%", 
                   transform: "translateY(-50%)", 
-                  width: `${((step - 1) / 1) * 100}%`,
+                  width: `${((step - 1) / (business.bookingDownpaymentEnabled ? 4 : 3)) * 100}%`,
                   backgroundColor: primaryColor,
                   zIndex: 1,
                   transition: "width 0.4s cubic-bezier(0.4, 0, 0.2, 1)"
                 }}
               />
-              <div className="rounded-circle d-flex align-items-center justify-content-center fw-bold transition-all" style={{ width: "28px", height: "28px", fontSize: "11px", zIndex: 2, border: "2px solid", borderColor: primaryColor, backgroundColor: step === 1 ? "#fff" : primaryColor, color: step === 1 ? primaryColor : "#fff" }}>1</div>
-              <div className="rounded-circle d-flex align-items-center justify-content-center fw-bold transition-all" style={{ width: "28px", height: "28px", fontSize: "11px", zIndex: 2, border: "2px solid", borderColor: step === 2 ? primaryColor : "#cbd5e1", backgroundColor: step === 2 ? "#fff" : "#fff", color: step === 2 ? primaryColor : "#94a3b8" }}>2</div>
+              
+              {Array.from({ length: business.bookingDownpaymentEnabled ? 5 : 4 }).map((_, idx) => {
+                const currentStepNum = idx + 1;
+                const isActive = currentStepNum <= step;
+                const isCurrent = currentStepNum === step;
+                return (
+                  <div 
+                    key={idx}
+                    className="rounded-circle d-flex align-items-center justify-content-center fw-bold transition-all"
+                    style={{
+                      width: "28px",
+                      height: "28px",
+                      fontSize: "11px",
+                      zIndex: 2,
+                      border: "2px solid",
+                      borderColor: isCurrent ? primaryColor : (isActive ? primaryColor : "#cbd5e1"),
+                      backgroundColor: isActive ? (isCurrent ? "#fff" : primaryColor) : "#fff",
+                      color: isActive ? (isCurrent ? primaryColor : "#fff") : "#94a3b8",
+                      boxShadow: isCurrent ? `0 0 0 4px ${primaryColor}20` : "none"
+                    }}
+                  >
+                    {currentStepNum}
+                  </div>
+                );
+              })}
             </div>
+            
             <div className="d-flex justify-content-between text-muted px-1" style={{ fontSize: "10px", fontWeight: 700 }}>
-              <span>{isEs ? "Tus Datos & Turno" : "Your Details & Appointment"}</span>
-              <span>{isEs ? "Seña" : "Downpayment"}</span>
+              <span>{isEs ? "Servicio" : "Service"}</span>
+              <span>{isEs ? "Profesional" : "Professional"}</span>
+              <span>{isEs ? "Fecha & Hora" : "Date & Time"}</span>
+              <span>{isEs ? "Tus Datos" : "Your Data"}</span>
+              {business.bookingDownpaymentEnabled && <span>{isEs ? "Seña" : "Downpayment"}</span>}
             </div>
           </div>
         )}
@@ -520,11 +547,13 @@ export default function PublicBookingPage() {
 
         <Card className="card-premium border bg-white rounded-2xl shadow-sm overflow-hidden">
           <Card.Body className="p-4 p-md-5">
-            {step === 1 ? (
-              <Form onSubmit={handleStep4Submit} className="d-grid gap-4">
+            
+            {/* PASO 1: SELECCIONAR SERVICIO */}
+            {step === 1 && (
+              <div className="animate-fade-in d-grid gap-4">
                 <div className="text-center pb-3 border-bottom mb-2">
-                  <h2 className="h4 fw-black text-gray-900 mb-1">{isEs ? "Nueva Reserva Online" : "New Online Booking"}</h2>
-                  <p className="text-muted smaller mb-0">{isEs ? "Completá los detalles a continuación para solicitar tu turno." : "Complete the details below to request your appointment."}</p>
+                  <h2 className="h4 fw-black text-gray-900 mb-1">{isEs ? "Selecciona los Servicios" : "Select Services"}</h2>
+                  <p className="text-muted smaller mb-0">{isEs ? "Elegí uno o más tratamientos que deseas agendar." : "Choose one or more treatments you want to schedule."}</p>
                 </div>
 
                 {business?.googleBookingUrl && (
@@ -565,327 +594,444 @@ export default function PublicBookingPage() {
                   </div>
                 ) : (
                   <>
-                    {/* SECCIÓN 1: SERVICIOS */}
-                    <div>
-                      <div className="fw-black text-gray-900 h6 mb-3 d-flex align-items-center gap-2">
-                        <span className="rounded-circle d-inline-flex align-items-center justify-content-center text-white small" style={{ width: "20px", height: "20px", background: primaryColor, fontSize: "10px" }}>1</span>
-                        <span>{isEs ? "Selecciona los Servicios" : "Select Services"} *</span>
+                    {services.length === 0 ? (
+                      <div className="p-4 border border-dashed rounded-3xl text-center text-muted small bg-light">
+                        <AlertTriangle size={24} className="mx-auto text-warning mb-2 opacity-75" />
+                        <p className="smaller mb-0">{isEs ? "No hay servicios disponibles." : "No services available."}</p>
                       </div>
-
-                      {services.length === 0 ? (
-                        <div className="p-4 border border-dashed rounded-3xl text-center text-muted small bg-light">
-                          <AlertTriangle size={24} className="mx-auto text-warning mb-2 opacity-75" />
-                          <p className="smaller mb-0">{isEs ? "No hay servicios disponibles." : "No services available."}</p>
-                        </div>
-                      ) : (
-                        <div className="d-grid gap-2">
-                          <Form.Control
-                            type="text"
-                            placeholder={isEs ? "Buscar servicio..." : "Search service..."}
-                            value={serviceSearch}
-                            onChange={(e) => setServiceSearch(e.target.value)}
-                            className="rounded-xl border-gray-200 py-2.5 px-3 mb-2"
-                            style={{ fontSize: "13px" }}
-                          />
-                          <div className="d-flex flex-column gap-2" style={{ maxHeight: "250px", overflowY: "auto", paddingRight: "4px" }}>
-                            {services
-                              .filter((s) => s.name.toLowerCase().includes(serviceSearch.toLowerCase()))
-                              .map((s) => {
-                                const isSelected = selServices.some((svc) => svc.id === s.id);
-                                return (
-                                  <div 
-                                    key={s.id}
-                                    onClick={() => handleToggleService(s)}
-                                    className="p-3 border rounded-2xl cursor-pointer transition-all hover-row-focus d-flex justify-content-between align-items-center gap-3"
-                                    style={{
-                                      borderColor: isSelected ? primaryColor : "#e2e8f0",
-                                      backgroundColor: isSelected ? `${primaryColor}05` : "#fff",
-                                      borderWidth: isSelected ? "2px" : "1px",
-                                      boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)"
-                                    }}
-                                  >
-                                    <div className="d-flex align-items-center gap-2">
-                                      <Form.Check 
-                                        type="checkbox"
-                                        checked={isSelected}
-                                        onChange={() => {}}
-                                        className="me-2"
-                                        style={{ accentColor: primaryColor }}
-                                      />
-                                      <div>
-                                        <strong className="text-gray-900 d-block small fw-bold">{s.name}</strong>
-                                        <span className="smaller text-muted d-block mt-0.5 d-flex align-items-center gap-1" style={{ fontSize: "11px" }}>
-                                          <Clock size={11} />
-                                          <span>{s.duration} min</span>
-                                        </span>
-                                      </div>
+                    ) : (
+                      <div className="d-grid gap-2">
+                        <Form.Control
+                          type="text"
+                          placeholder={isEs ? "Buscar servicio..." : "Search service..."}
+                          value={serviceSearch}
+                          onChange={(e) => setServiceSearch(e.target.value)}
+                          className="rounded-xl border-gray-200 py-2.5 px-3 mb-2"
+                          style={{ fontSize: "13px" }}
+                        />
+                        <div className="d-flex flex-column gap-2" style={{ maxHeight: "300px", overflowY: "auto", paddingRight: "4px" }}>
+                          {services
+                            .filter((s) => s.name.toLowerCase().includes(serviceSearch.toLowerCase()))
+                            .map((s) => {
+                              const isSelected = selServices.some((svc) => svc.id === s.id);
+                              return (
+                                <div 
+                                  key={s.id}
+                                  onClick={() => handleToggleService(s)}
+                                  className="p-3 border rounded-2xl cursor-pointer transition-all hover-row-focus d-flex justify-content-between align-items-center gap-3"
+                                  style={{
+                                    borderColor: isSelected ? primaryColor : "#e2e8f0",
+                                    backgroundColor: isSelected ? `${primaryColor}05` : "#fff",
+                                    borderWidth: isSelected ? "2px" : "1px",
+                                    boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)"
+                                  }}
+                                >
+                                  <div className="d-flex align-items-center gap-2">
+                                    <Form.Check 
+                                      type="checkbox"
+                                      checked={isSelected}
+                                      onChange={() => {}}
+                                      className="me-2"
+                                      style={{ accentColor: primaryColor }}
+                                    />
+                                    <div>
+                                      <strong className="text-gray-900 d-block small fw-bold">{s.name}</strong>
+                                      <span className="smaller text-muted d-block mt-0.5 d-flex align-items-center gap-1" style={{ fontSize: "11px" }}>
+                                        <Clock size={11} />
+                                        <span>{s.duration} min</span>
+                                      </span>
                                     </div>
-                                    <strong style={{ fontSize: "13px", color: isSelected ? primaryColor : "#475569" }} className="fw-black">{currency(s.price)}</strong>
                                   </div>
-                                );
-                              })}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* SECCIÓN 2: PROFESIONAL */}
-                    <div>
-                      <div className="fw-black text-gray-900 h6 mb-3 d-flex align-items-center gap-2">
-                        <span className="rounded-circle d-inline-flex align-items-center justify-content-center text-white small" style={{ width: "20px", height: "20px", background: primaryColor, fontSize: "10px" }}>2</span>
-                        <span>{isEs ? "Elige el Profesional" : "Choose Professional"} *</span>
-                      </div>
-
-                      <Form.Select
-                        value={selProfessional ? selProfessional.id : ""}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          if (val === "" || val === "any") {
-                            setSelProfessional(null);
-                          } else {
-                            const p = professionals.find((x) => x.id === val);
-                            setSelProfessional(p || null);
-                          }
-                          setSelTime("");
-                        }}
-                        className="rounded-xl border-gray-200 py-2.5"
-                      >
-                        <option value="any">{isEs ? "Cualquier profesional disponible (Asignación rápida)" : "Any available professional (Fast assignment)"}</option>
-                        {professionals
-                          .filter((p) => selServices.length === 0 || selServices.every((s) => p.serviceIds.includes(s.id)))
-                          .map((p) => (
-                            <option key={p.id} value={p.id}>
-                              {p.firstName} {p.lastName} ({p.roleTitle || (isEs ? "Profesional" : "Professional")})
-                            </option>
-                          ))}
-                      </Form.Select>
-                    </div>
-
-                    {/* SECCIÓN 3: FECHA Y HORA */}
-                    <div>
-                      <div className="fw-black text-gray-900 h6 mb-3 d-flex align-items-center gap-2">
-                        <span className="rounded-circle d-inline-flex align-items-center justify-content-center text-white small" style={{ width: "20px", height: "20px", background: primaryColor, fontSize: "10px" }}>3</span>
-                        <span>{isEs ? "Elige Fecha y Horario" : "Choose Date & Time"} *</span>
-                      </div>
-
-                      <Row className="g-3">
-                        <Col md={6}>
-                          <Form.Group>
-                            <Form.Label className="small text-muted fw-bold mb-1">{isEs ? "Fecha del turno" : "Date"}</Form.Label>
-                            <Form.Control
-                              type="date"
-                              value={selDate}
-                              min={new Date().toISOString().slice(0, 10)}
-                              onChange={(e) => {
-                                setSelDate(e.target.value);
-                                setSelTime("");
-                              }}
-                              className="rounded-xl border-gray-200 py-2.5"
-                            />
-                          </Form.Group>
-                        </Col>
-                        
-                        <Col md={6}>
-                          <Form.Group>
-                            <Form.Label className="small text-muted fw-bold mb-1">{isEs ? "Horarios Disponibles" : "Available slots"}</Form.Label>
-                            {selServices.length === 0 ? (
-                              <div className="text-muted smaller py-2">{isEs ? "Selecciona al menos un servicio." : "Select at least one service."}</div>
-                            ) : !selDate ? (
-                              <div className="text-muted smaller py-2">{isEs ? "Elige una fecha primero." : "Select a date first."}</div>
-                            ) : loadingSlots ? (
-                              <div className="d-flex align-items-center gap-2 text-muted smaller py-2">
-                                <Spinner size="sm" animation="border" />
-                                <span>{isEs ? "Calculando disponibilidad..." : "Calculating slots..."}</span>
-                              </div>
-                            ) : slots.length === 0 ? (
-                              <div className="text-danger smaller py-2 fw-semibold">
-                                {isEs ? "Sin turnos disponibles para esta fecha." : "No slots available for this date."}
-                              </div>
-                            ) : (
-                              <div className="d-flex flex-wrap gap-2 mt-1 overflow-auto" style={{ maxHeight: "150px", paddingRight: "4px" }}>
-                                {slots.map((t) => (
-                                  <Button
-                                    key={t}
-                                    size="sm"
-                                    variant={selTime === t ? "dark" : "outline-secondary"}
-                                    onClick={() => setSelTime(t)}
-                                    className="rounded-xl border-gray-200"
-                                    style={{
-                                      fontSize: "11px",
-                                      padding: "6px 12px",
-                                      backgroundColor: selTime === t ? "#1e293b" : "#fff",
-                                      color: selTime === t ? "#fff" : "#475569",
-                                      borderColor: selTime === t ? "#1e293b" : "#e2e8f0",
-                                    }}
-                                  >
-                                    {t} hs
-                                  </Button>
-                                ))}
-                              </div>
-                            )}
-                          </Form.Group>
-                        </Col>
-                      </Row>
-                    </div>
-
-                    {/* SECCIÓN 4: DATOS DEL CLIENTE (DINÁMICOS) */}
-                    <div>
-                      <div className="fw-black text-gray-900 h6 mb-3 d-flex align-items-center gap-2">
-                        <span className="rounded-circle d-inline-flex align-items-center justify-content-center text-white small" style={{ width: "20px", height: "20px", background: primaryColor, fontSize: "10px" }}>4</span>
-                        <span>{isEs ? "Tus Datos de Contacto" : "Your Contact Details"} *</span>
-                      </div>
-
-                      {schemaError && <Alert variant="warning" className="small py-2">{schemaError}</Alert>}
-
-                      <Row className="g-3">
-                        {clientFieldsToDisplay.map((field) => {
-                          if (field.id === "clientFirstName") {
-                            return (
-                              <Col xs={6} key="clientFirstName">
-                                <Form.Group>
-                                  <Form.Label className="fw-semibold small">{field.label} {field.required && "*"}</Form.Label>
-                                  <Form.Control
-                                    type="text"
-                                    required={field.required}
-                                    value={clientForm.firstName}
-                                    onChange={(e) => setClientForm({ ...clientForm, firstName: e.target.value })}
-                                    placeholder={field.placeholder || "Juan"}
-                                    className="rounded-xl border-gray-200 py-2.5"
-                                    isInvalid={Boolean(errors.firstName)}
-                                  />
-                                  {errors.firstName && <Form.Control.Feedback type="invalid">{errors.firstName}</Form.Control.Feedback>}
-                                </Form.Group>
-                              </Col>
-                            );
-                          }
-                          if (field.id === "clientLastName") {
-                            return (
-                              <Col xs={6} key="clientLastName">
-                                <Form.Group>
-                                  <Form.Label className="fw-semibold small">{field.label} {field.required && "*"}</Form.Label>
-                                  <Form.Control
-                                    type="text"
-                                    required={field.required}
-                                    value={clientForm.lastName}
-                                    onChange={(e) => setClientForm({ ...clientForm, lastName: e.target.value })}
-                                    placeholder={field.placeholder || "Pérez"}
-                                    className="rounded-xl border-gray-200 py-2.5"
-                                    isInvalid={Boolean(errors.lastName)}
-                                  />
-                                  {errors.lastName && <Form.Control.Feedback type="invalid">{errors.lastName}</Form.Control.Feedback>}
-                                </Form.Group>
-                              </Col>
-                            );
-                          }
-                          if (field.id === "phone") {
-                            return (
-                              <Col xs={12} key="phone">
-                                <Form.Group>
-                                  <Form.Label className="fw-semibold small">{field.label} {field.required && "*"}</Form.Label>
-                                  <Form.Control
-                                    type="tel"
-                                    required={field.required}
-                                    value={clientForm.phone}
-                                    onChange={(e) => setClientForm({ ...clientForm, phone: e.target.value })}
-                                    placeholder={field.placeholder || "+54 9 11 ..."}
-                                    className="rounded-xl border-gray-200 py-2.5"
-                                    isInvalid={Boolean(errors.phone)}
-                                  />
-                                  {errors.phone && <Form.Control.Feedback type="invalid">{errors.phone}</Form.Control.Feedback>}
-                                </Form.Group>
-                              </Col>
-                            );
-                          }
-                          if (field.id === "email") {
-                            return (
-                              <Col xs={12} key="email">
-                                <Form.Group>
-                                  <Form.Label className="fw-semibold small">{field.label} {field.required && "*"}</Form.Label>
-                                  <Form.Control
-                                    type="email"
-                                    required={field.required}
-                                    value={clientForm.email}
-                                    onChange={(e) => setClientForm({ ...clientForm, email: e.target.value })}
-                                    placeholder={field.placeholder || "juan.perez@email.com"}
-                                    className="rounded-xl border-gray-200 py-2.5"
-                                    isInvalid={Boolean(errors.email)}
-                                  />
-                                  {errors.email && <Form.Control.Feedback type="invalid">{errors.email}</Form.Control.Feedback>}
-                                </Form.Group>
-                              </Col>
-                            );
-                          }
-                          if (field.id === "notes") {
-                            return (
-                              <Col xs={12} key="notes">
-                                <Form.Group>
-                                  <Form.Label className="fw-semibold small">{field.label} {field.required && "*"}</Form.Label>
-                                  <Form.Control
-                                    as="textarea"
-                                    rows={2}
-                                    required={field.required}
-                                    value={clientForm.notes}
-                                    onChange={(e) => setClientForm({ ...clientForm, notes: e.target.value })}
-                                    placeholder={field.placeholder || "Ej: Alergia a tinturas"}
-                                    className="rounded-xl border-gray-200 py-2"
-                                    isInvalid={Boolean(errors.notes)}
-                                  />
-                                  {errors.notes && <Form.Control.Feedback type="invalid">{errors.notes}</Form.Control.Feedback>}
-                                </Form.Group>
-                              </Col>
-                            );
-                          }
-                          return null;
-                        })}
-                      </Row>
-                    </div>
-
-                    {/* RESUMEN DEL TURNO */}
-                    {selServices.length > 0 && (
-                      <div className="p-3 bg-light rounded-3 small mt-3">
-                        <div className="fw-bold mb-1">{isEs ? "Resumen de la Cita:" : "Appointment Summary:"}</div>
-                        <div className="text-muted">
-                          {isEs ? "Servicios:" : "Services:"} <strong>{selServices.map(s => s.name).join(" + ")}</strong><br />
-                          {isEs ? "Total a Abonar:" : "Total Price:"} <strong>{currency(selServices.reduce((sum, s) => sum + s.price, 0))}</strong> ({selServices.reduce((sum, s) => sum + s.duration, 0)} min)<br />
-                          {selDate && selTime && (
-                            <>
-                              {isEs ? "Horario:" : "Time:"} <strong className="text-success">{selDate} a las {selTime} hs</strong>
-                            </>
-                          )}
+                                  <strong style={{ fontSize: "13px", color: isSelected ? primaryColor : "#475569" }} className="fw-black">{currency(s.price)}</strong>
+                                </div>
+                              );
+                            })}
                         </div>
                       </div>
                     )}
-
-                    {/* BOTÓN CONFIRMAR */}
-                    <div className="pt-3 border-top mt-2">
-                      <Button
-                        type="submit"
-                        disabled={submitting || selServices.length === 0 || !selDate || !selTime}
-                        className="w-100 py-2.5 rounded-pill fw-bold text-white shadow-sm border-0 btn-premium"
-                        style={{ background: primaryColor }}
-                      >
-                        {submitting ? (
-                          <>
-                            <Spinner size="sm" animation="border" className="me-1" />
-                            {isEs ? "Confirmando..." : "Confirming..."}
-                          </>
-                        ) : business?.bookingDownpaymentEnabled ? (
-                          `${isEs ? "Proceder al Pago de Seña:" : "Proceed to Downpayment:"} ${currency(getDownpaymentAmount())}`
-                        ) : (
-                          isEs ? "Confirmar Reserva" : "Confirm Booking"
-                        )}
-                      </Button>
-                    </div>
+                    
+                    {selServices.length > 0 && (
+                      <div className="mt-4 p-3 bg-white border rounded-2xl d-flex justify-content-between align-items-center shadow-sm animate-fade-in" style={{ borderColor: primaryColor }}>
+                        <div>
+                          <strong className="d-block text-dark small">
+                            {selServices.length} {selServices.length === 1 ? "servicio seleccionado" : "servicios seleccionados"}
+                          </strong>
+                          <span className="smaller text-muted">
+                            Total: {currency(selServices.reduce((sum, s) => sum + s.price, 0))} • {selServices.reduce((sum, s) => sum + s.duration, 0)} min
+                          </span>
+                        </div>
+                        <Button 
+                          onClick={handleNextStep}
+                          className="rounded-pill px-4 border-0 text-white font-semibold d-flex align-items-center gap-1 btn-premium"
+                          style={{ background: primaryColor }}
+                        >
+                          <span>{isEs ? "Continuar" : "Continue"}</span>
+                          <ChevronRight size={16} />
+                        </Button>
+                      </div>
+                    )}
                   </>
                 )}
+              </div>
+            )}
+
+            {/* PASO 2: SELECCIONAR PROFESIONAL */}
+            {step === 2 && (
+              <div className="animate-fade-in d-grid gap-4">
+                <div className="text-center pb-3 border-bottom mb-2">
+                  <h2 className="h4 fw-black text-gray-900 mb-1">{isEs ? "Selecciona el Profesional" : "Select Professional"}</h2>
+                  <p className="text-muted smaller mb-0">{isEs ? "¿Quién te gustaría que realice el servicio?" : "Who would you like to perform the service?"}</p>
+                </div>
+
+                <div className="d-grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))" }}>
+                  <div 
+                    onClick={() => { setSelProfessional(null); handleNextStep(); }}
+                    className="p-3 border rounded-2xl cursor-pointer transition-all hover-row-focus d-flex flex-column justify-content-between text-center gap-2"
+                    style={{
+                      borderColor: selProfessional === null ? primaryColor : "#e2e8f0",
+                      backgroundColor: selProfessional === null ? `${primaryColor}05` : "#fff",
+                      borderWidth: selProfessional === null ? "2px" : "1px",
+                      boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.05)",
+                      minHeight: "140px"
+                    }}
+                  >
+                    <div className="rounded-circle d-flex align-items-center justify-content-center text-white mx-auto mt-2" style={{ width: "48px", height: "48px", background: `linear-gradient(135deg, ${primaryColor} 0%, #1f2937 100%)` }}>
+                      <Sparkles size={20} />
+                    </div>
+                    <div>
+                      <strong className="text-gray-900 d-block small fw-bold">{isEs ? "Cualquier miembro" : "Any member"}</strong>
+                      <span className="smaller text-muted d-block mt-0.5" style={{ fontSize: "11px" }}>{isEs ? "Asignación rápida" : "Fast assignment"}</span>
+                    </div>
+                  </div>
+
+                  {professionals.length === 0 && (
+                    <div className="w-100 col-span-full">
+                      <Alert variant="warning" className="rounded-2xl border-0 shadow-sm text-center py-4 mb-0">
+                        <AlertTriangle size={24} className="mx-auto text-warning mb-2" />
+                        <strong className="d-block small text-dark mb-1">{isEs ? "No hay profesionales disponibles" : "No professionals available"}</strong>
+                        <span className="smaller text-muted d-block">{isEs ? "Este negocio aún no ha publicado profesionales para reservas online." : "This business has not published professionals for online bookings yet."}</span>
+                      </Alert>
+                    </div>
+                  )}
+
+                  {professionals.length > 0 && professionals.filter((p) => selServices.every((s) => p.serviceIds.includes(s.id))).length === 0 && (
+                    <div className="w-100 col-span-full">
+                      <Alert variant="warning" className="rounded-2xl border-0 shadow-sm text-center py-4 mb-0">
+                        <AlertTriangle size={24} className="mx-auto text-warning mb-2" />
+                        <strong className="d-block small text-dark mb-1">{isEs ? "Ningún profesional realiza todos los servicios seleccionados" : "No professional performs all selected services"}</strong>
+                        <span className="smaller text-muted d-block">{isEs ? "Intenta quitando algún servicio o reservándolos por separado." : "Try removing a service or booking them separately."}</span>
+                      </Alert>
+                    </div>
+                  )}
+
+                  {professionals
+                    .filter((p) => selServices.every((s) => p.serviceIds.includes(s.id)))
+                    .map((p) => {
+                      const isSelected = selProfessional?.id === p.id;
+                      return (
+                        <div 
+                          key={p.id}
+                          onClick={() => { setSelProfessional(p); handleNextStep(); }}
+                          className="p-3 border rounded-2xl cursor-pointer transition-all hover-row-focus d-flex flex-column justify-content-between text-center gap-2"
+                          style={{
+                            borderColor: isSelected ? primaryColor : "#e2e8f0",
+                            backgroundColor: isSelected ? `${primaryColor}05` : "#fff",
+                            borderWidth: isSelected ? "2px" : "1px",
+                            boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.05)",
+                            minHeight: "140px"
+                          }}
+                        >
+                          <div className="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold mx-auto mt-2" style={{ width: "48px", height: "48px", background: "linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)", fontSize: "14px" }}>
+                            {p.firstName?.charAt(0)}{p.lastName?.charAt(0)}
+                          </div>
+                          <div>
+                            <strong className="text-gray-900 d-block small fw-bold">{p.firstName} {p.lastName}</strong>
+                            <span className="smaller text-primary d-block mt-0.5 fw-medium" style={{ fontSize: "11px" }}>
+                              {p.roleTitle || (isEs ? "Profesional" : "Professional")}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+
+                <div className="d-flex justify-content-between mt-4 pt-3 border-top">
+                  <Button variant="outline-secondary" onClick={handleBackStep} className="rounded-pill px-4">
+                    {t("form.back")}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* PASO 3: SELECCIONAR FECHA Y HORA */}
+            {step === 3 && (
+              <div className="animate-fade-in d-grid gap-4">
+                <div className="text-center pb-3 border-bottom mb-2">
+                  <h2 className="h4 fw-black text-gray-900 mb-1">{isEs ? "Selecciona Fecha y Hora" : "Select Date & Time"}</h2>
+                  <p className="text-muted smaller mb-0">{isEs ? "Escoge el bloque de tiempo de tu preferencia." : "Choose the time block of your preference."}</p>
+                </div>
+
+                <div>
+                  <span className="smaller text-muted fw-bold uppercase d-block mb-2.5" style={{ fontSize: "10.5px", letterSpacing: "0.05em" }}>
+                    {isEs ? "Días disponibles" : "Available days"}
+                  </span>
+                  <div className="d-flex gap-2 overflow-auto pb-2 scrollbar-none" style={{ whiteSpace: "nowrap", WebkitOverflowScrolling: "touch" }}>
+                    {getNextDays().map((day) => {
+                      const isSelected = selDate === day.dateStr;
+                      return (
+                        <div
+                          key={day.dateStr}
+                          onClick={() => { setSelDate(day.dateStr); setSelTime(""); }}
+                          className="p-3 border rounded-2xl text-center cursor-pointer transition-all d-inline-block"
+                          style={{
+                            minWidth: "75px",
+                            borderColor: isSelected ? primaryColor : "#e2e8f0",
+                            backgroundColor: isSelected ? `${primaryColor}10` : "#fff",
+                            borderWidth: isSelected ? "2px" : "1px",
+                            boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.02)"
+                          }}
+                        >
+                          <span className="smaller text-muted d-block uppercase fw-bold" style={{ fontSize: "10px", color: isSelected ? primaryColor : "#64748b" }}>{day.label}</span>
+                          <strong className="h4 my-1 d-block" style={{ color: isSelected ? primaryColor : "#1e293b" }}>{day.dayOfMonth}</strong>
+                          <span className="smaller text-muted d-block" style={{ fontSize: "10px" }}>{day.monthName}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <Row className="g-3">
+                  <Col md={5}>
+                    <Form.Group className="mb-3">
+                      <Form.Label className="fw-semibold small">{isEs ? "O elegí otro día" : "Or choose another day"}</Form.Label>
+                      <Form.Control
+                        type="date"
+                        value={selDate}
+                        min={new Date().toISOString().split("T")[0]}
+                        onChange={(e) => { setSelDate(e.target.value); setSelTime(""); }}
+                        className="rounded-xl border-gray-200 py-2.5"
+                        style={{ fontSize: "13px" }}
+                      />
+                    </Form.Group>
+                  </Col>
+                  
+                  <Col md={7}>
+                    <Form.Label className="fw-semibold small">{isEs ? "Horarios Disponibles" : "Available Times"}</Form.Label>
+                    {!selDate ? (
+                      <div className="p-3 border border-dashed rounded-2xl text-center text-muted smaller bg-light">
+                        {isEs ? "Selecciona primero una fecha para ver horarios." : "Select a date first to see available schedules."}
+                      </div>
+                    ) : loadingSlots ? (
+                      <div className="text-center py-4">
+                        <Spinner size="sm" className="me-2" /> {isEs ? "Buscando disponibilidad..." : "Searching availability..."}
+                      </div>
+                    ) : slots.length === 0 ? (
+                      <div className="p-4 border border-dashed rounded-3xl text-center text-danger small bg-danger bg-opacity-5">
+                        <AlertTriangle size={20} className="mx-auto mb-2 text-danger" />
+                        <div>{isEs ? "No hay horarios disponibles." : "No schedules available."}</div>
+                        <span className="smaller text-muted">{isEs ? "Intentá con otro día." : "Please try a different day."}</span>
+                      </div>
+                    ) : (
+                      <div className="d-flex flex-wrap gap-2 mt-1 overflow-auto bg-light bg-opacity-40 p-3 border rounded-3xl" style={{ maxHeight: "180px", paddingRight: "4px" }}>
+                        {slots.map((t) => (
+                          <Button
+                            key={t}
+                            size="sm"
+                            variant={selTime === t ? "dark" : "outline-secondary"}
+                            onClick={() => setSelTime(t)}
+                            className="rounded-xl border-gray-200"
+                            style={{
+                              fontSize: "11px",
+                              padding: "6px 12px",
+                              backgroundColor: selTime === t ? "#1e293b" : "#fff",
+                              color: selTime === t ? "#fff" : "#475569",
+                              borderColor: selTime === t ? "#1e293b" : "#e2e8f0",
+                            }}
+                          >
+                            {t} hs
+                          </Button>
+                        ))}
+                      </div>
+                    )}
+                  </Col>
+                </Row>
+
+                <div className="d-flex justify-content-between mt-4 pt-3 border-top">
+                  <Button variant="outline-secondary" onClick={handleBackStep} className="rounded-pill px-4">
+                    {t("form.back")}
+                  </Button>
+                  <Button
+                    variant="dark"
+                    disabled={!selDate || !selTime}
+                    onClick={handleNextStep}
+                    className="rounded-pill px-4 btn-premium border-0"
+                    style={{ background: primaryColor }}
+                  >
+                    {t("form.next", { defaultValue: "Siguiente" })}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* PASO 4: COMPLETAR DATOS DEL CLIENTE */}
+            {step === 4 && (
+              <Form onSubmit={handleStep4Submit} className="animate-fade-in d-grid gap-4">
+                <div className="text-center pb-3 border-bottom mb-2">
+                  <h2 className="h4 fw-black text-gray-900 mb-1">{isEs ? "Tus Datos de Contacto" : "Your Contact Details"}</h2>
+                  <p className="text-muted smaller mb-0">{isEs ? "Completá los campos para finalizar tu reserva." : "Complete the fields to finalize your booking."}</p>
+                </div>
+
+                {schemaError && <Alert variant="warning" className="small py-2">{schemaError}</Alert>}
+
+                <Row className="g-3">
+                  {clientFieldsToDisplay.map((field) => {
+                    if (field.id === "clientFirstName") {
+                      return (
+                        <Col xs={6} key="clientFirstName">
+                          <Form.Group>
+                            <Form.Label className="fw-semibold small">{field.label} {field.required && "*"}</Form.Label>
+                            <Form.Control
+                              type="text"
+                              required={field.required}
+                              value={clientForm.firstName}
+                              onChange={(e) => setClientForm({ ...clientForm, firstName: e.target.value })}
+                              placeholder={field.placeholder || "Juan"}
+                              className="rounded-xl border-gray-200 py-2.5"
+                              isInvalid={Boolean(errors.firstName)}
+                            />
+                            {errors.firstName && <Form.Control.Feedback type="invalid">{errors.firstName}</Form.Control.Feedback>}
+                          </Form.Group>
+                        </Col>
+                      );
+                    }
+                    if (field.id === "clientLastName") {
+                      return (
+                        <Col xs={6} key="clientLastName">
+                          <Form.Group>
+                            <Form.Label className="fw-semibold small">{field.label} {field.required && "*"}</Form.Label>
+                            <Form.Control
+                              type="text"
+                              required={field.required}
+                              value={clientForm.lastName}
+                              onChange={(e) => setClientForm({ ...clientForm, lastName: e.target.value })}
+                              placeholder={field.placeholder || "Pérez"}
+                              className="rounded-xl border-gray-200 py-2.5"
+                              isInvalid={Boolean(errors.lastName)}
+                            />
+                            {errors.lastName && <Form.Control.Feedback type="invalid">{errors.lastName}</Form.Control.Feedback>}
+                          </Form.Group>
+                        </Col>
+                      );
+                    }
+                    if (field.id === "phone") {
+                      return (
+                        <Col xs={12} key="phone">
+                          <Form.Group>
+                            <Form.Label className="fw-semibold small">{field.label} {field.required && "*"}</Form.Label>
+                            <Form.Control
+                              type="tel"
+                              required={field.required}
+                              value={clientForm.phone}
+                              onChange={(e) => setClientForm({ ...clientForm, phone: e.target.value })}
+                              placeholder={field.placeholder || "+54 9 11 ..."}
+                              className="rounded-xl border-gray-200 py-2.5"
+                              isInvalid={Boolean(errors.phone)}
+                            />
+                            {errors.phone && <Form.Control.Feedback type="invalid">{errors.phone}</Form.Control.Feedback>}
+                          </Form.Group>
+                        </Col>
+                      );
+                    }
+                    if (field.id === "email") {
+                      return (
+                        <Col xs={12} key="email">
+                          <Form.Group>
+                            <Form.Label className="fw-semibold small">{field.label} {field.required && "*"}</Form.Label>
+                            <Form.Control
+                              type="email"
+                              required={field.required}
+                              value={clientForm.email}
+                              onChange={(e) => setClientForm({ ...clientForm, email: e.target.value })}
+                              placeholder={field.placeholder || "juan.perez@email.com"}
+                              className="rounded-xl border-gray-200 py-2.5"
+                              isInvalid={Boolean(errors.email)}
+                            />
+                            {errors.email && <Form.Control.Feedback type="invalid">{errors.email}</Form.Control.Feedback>}
+                          </Form.Group>
+                        </Col>
+                      );
+                    }
+                    if (field.id === "notes") {
+                      return (
+                        <Col xs={12} key="notes">
+                          <Form.Group>
+                            <Form.Label className="fw-semibold small">{field.label} {field.required && "*"}</Form.Label>
+                            <Form.Control
+                              as="textarea"
+                              rows={2}
+                              required={field.required}
+                              value={clientForm.notes}
+                              onChange={(e) => setClientForm({ ...clientForm, notes: e.target.value })}
+                              placeholder={field.placeholder || "Ej: Alergia a tinturas"}
+                              className="rounded-xl border-gray-200 py-2"
+                              isInvalid={Boolean(errors.notes)}
+                            />
+                            {errors.notes && <Form.Control.Feedback type="invalid">{errors.notes}</Form.Control.Feedback>}
+                          </Form.Group>
+                        </Col>
+                      );
+                    }
+                    return null;
+                  })}
+                </Row>
+
+                {selServices.length > 0 && (
+                  <div className="p-3 bg-light rounded-3 small mt-2">
+                    <div className="fw-bold mb-1">{isEs ? "Resumen de la Cita:" : "Appointment Summary:"}</div>
+                    <div className="text-muted">
+                      {isEs ? "Servicios:" : "Services:"} <strong>{selServices.map(s => s.name).join(" + ")}</strong><br />
+                      {isEs ? "Profesional:" : "Professional:"} <strong>{selProfessional ? `${selProfessional.firstName} ${selProfessional.lastName}` : (isEs ? "Cualquier miembro" : "Any member")}</strong><br />
+                      {isEs ? "Total a Abonar:" : "Total Price:"} <strong>{currency(selServices.reduce((sum, s) => sum + s.price, 0))}</strong> ({selServices.reduce((sum, s) => sum + s.duration, 0)} min)<br />
+                      {selDate && selTime && (
+                        <>
+                          {isEs ? "Horario:" : "Time:"} <strong className="text-success">{selDate} a las {selTime} hs</strong>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <div className="d-flex justify-content-between mt-4 pt-3 border-top">
+                  <Button variant="outline-secondary" onClick={handleBackStep} className="rounded-pill px-4">
+                    {t("form.back")}
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={submitting}
+                    className="rounded-pill px-4 btn-premium border-0 text-white fw-bold"
+                    style={{ background: primaryColor }}
+                  >
+                    {submitting ? (
+                      <>
+                        <Spinner size="sm" animation="border" className="me-1" />
+                        {isEs ? "Confirmando..." : "Confirming..."}
+                      </>
+                    ) : business?.bookingDownpaymentEnabled ? (
+                      `${isEs ? "Proceder al Pago de Seña:" : "Proceed to Downpayment:"} ${currency(getDownpaymentAmount())}`
+                    ) : (
+                      isEs ? "Confirmar Reserva" : "Confirm Booking"
+                    )}
+                  </Button>
+                </div>
               </Form>
-            ) : (
-              /* PASO 2: PAGO DE SEÑA */
+            )}
+
+            {/* PASO 5: PAGO DE SEÑA */}
+            {step === 5 && (
               <div className="animate-fade-in">
                 <h2 className="h5 fw-black text-gray-900 mb-1">{isEs ? "Abonar Pago de Seña Obligatoria" : "Pay Mandatory Downpayment"}</h2>
                 <p className="text-muted smaller mb-4">{isEs ? "El establecimiento exige una seña previa para confirmar de manera efectiva tu turno." : "The establishment requires a pre-payment to effectively confirm your slot."}</p>
 
-                {/* Desglose de Precios */}
                 <div className="p-3.5 border rounded-2xl bg-light bg-opacity-40 mb-4">
                   <div className="d-flex justify-content-between align-items-center pb-2 border-bottom mb-2">
                     <span className="smaller text-muted">{isEs ? `Total de Servicios (${selServices.length})` : `Total Services (${selServices.length})`}</span>
@@ -909,7 +1055,6 @@ export default function PublicBookingPage() {
                   </div>
                 </div>
 
-                {/* Selectores de Pasarela */}
                 <div className="d-flex gap-2.5 mb-4">
                   <Button 
                     variant={paymentMethod === "mercadopago" ? "primary" : "outline-secondary"}
@@ -929,7 +1074,6 @@ export default function PublicBookingPage() {
                   </Button>
                 </div>
 
-                {/* Vista Mercado Pago */}
                 {paymentMethod === "mercadopago" ? (
                   <div className="text-center py-4 border rounded-2xl bg-white p-3.5 shadow-sm d-flex flex-column align-items-center gap-3">
                     <img 
@@ -954,10 +1098,8 @@ export default function PublicBookingPage() {
                     </Button>
                   </div>
                 ) : (
-                  /* Formulario de Tarjeta de Crédito Tradicional */
                   <Form onSubmit={(e) => { e.preventDefault(); handlePaymentAndBook(); }} className="d-grid gap-3">
                     
-                    {/* Tarjeta de Crédito Interactiva */}
                     <div 
                       className="p-4 rounded-4 text-white shadow-lg d-flex flex-column justify-content-between mb-2 overflow-hidden position-relative animate-fade-in"
                       style={{
@@ -1071,7 +1213,7 @@ export default function PublicBookingPage() {
                 )}
 
                 <div className="d-flex justify-content-start mt-4 pt-3 border-top">
-                  <Button variant="outline-secondary" onClick={() => setStep(1)} className="rounded-pill px-4">
+                  <Button variant="outline-secondary" onClick={() => setStep(4)} className="rounded-pill px-4">
                     {t("form.back")}
                   </Button>
                 </div>
