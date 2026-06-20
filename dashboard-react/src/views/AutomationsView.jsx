@@ -303,8 +303,18 @@ export default function AutomationsView() {
               {/* WhatsApp Config Fields */}
               {activeModal === "whatsapp" && (
                 <div className="d-flex flex-column gap-3">
+                  <Alert variant="info" className="rounded-xl border-0 shadow-sm small py-2.5 mb-1 text-center" style={{ backgroundColor: "rgba(14, 165, 233, 0.1)", color: "#0284c7" }}>
+                    {isEs 
+                      ? "Para conectar WhatsApp necesitás una app en Meta for Developers. Seguí los links de ayuda en cada campo." 
+                      : "To connect WhatsApp you need a Meta for Developers app. Follow the help links on each field."}
+                  </Alert>
                   <Form.Group>
-                    <Form.Label className="smaller text-muted fw-bold">ID del Teléfono (Phone Number ID) *</Form.Label>
+                    <div className="d-flex justify-content-between align-items-end mb-1">
+                      <Form.Label className="smaller text-muted fw-bold mb-0">ID del Teléfono (Phone Number ID) *</Form.Label>
+                      <a href="https://developers.facebook.com/apps/" target="_blank" rel="noopener noreferrer" className="smaller text-purple-600 fw-bold text-decoration-none">
+                        {isEs ? "¿Dónde encuentro esto? →" : "Where do I find this? →"}
+                      </a>
+                    </div>
                     <Form.Control
                       type="text"
                       required
@@ -315,7 +325,12 @@ export default function AutomationsView() {
                     />
                   </Form.Group>
                   <Form.Group>
-                    <Form.Label className="smaller text-muted fw-bold">ID de Cuenta Comercial *</Form.Label>
+                    <div className="d-flex justify-content-between align-items-end mb-1">
+                      <Form.Label className="smaller text-muted fw-bold mb-0">ID de Cuenta Comercial *</Form.Label>
+                      <a href="https://business.facebook.com/settings/whatsapp-business-accounts" target="_blank" rel="noopener noreferrer" className="smaller text-purple-600 fw-bold text-decoration-none">
+                        {isEs ? "¿Dónde encuentro esto? →" : "Where do I find this? →"}
+                      </a>
+                    </div>
                     <Form.Control
                       type="text"
                       required
@@ -326,9 +341,14 @@ export default function AutomationsView() {
                     />
                   </Form.Group>
                   <Form.Group>
-                    <Form.Label className="smaller text-muted fw-bold">
-                      {isEs ? "Token de Acceso Permanente *" : "Permanent Access Token *"}
-                    </Form.Label>
+                    <div className="d-flex justify-content-between align-items-end mb-1">
+                      <Form.Label className="smaller text-muted fw-bold mb-0">
+                        {isEs ? "Token de Acceso Permanente *" : "Permanent Access Token *"}
+                      </Form.Label>
+                      <a href="https://developers.facebook.com/docs/whatsapp/business-management-api/get-started" target="_blank" rel="noopener noreferrer" className="smaller text-purple-600 fw-bold text-decoration-none">
+                        {isEs ? "¿Cómo generar un token permanente? →" : "How to generate a permanent token? →"}
+                      </a>
+                    </div>
                     <div className="position-relative">
                       <Form.Control
                         type={showPassword ? "text" : "password"}
@@ -550,6 +570,16 @@ export default function AutomationsView() {
               )}
               
               <div className="d-flex gap-2">
+                {activeModal === "whatsapp" && (
+                  <a 
+                    href="https://developers.facebook.com/docs/whatsapp/cloud-api/get-started" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="btn btn-light rounded-xl py-2 border hover-bg-gray-100 font-semibold text-purple-600 text-decoration-none"
+                  >
+                    {isEs ? "Guía completa →" : "Full guide →"}
+                  </a>
+                )}
                 <Button 
                   variant="light" 
                   className="rounded-xl py-2 border hover-bg-gray-100 font-semibold"
