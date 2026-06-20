@@ -7,7 +7,6 @@ import {
   HelpCircle, Eye, EyeOff, Globe, Sparkles, AlertTriangle, ChevronDown, ChevronUp 
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { QRCodeSVG } from "qrcode.react";
 import LanguageSwitcher from "../../components/language/LanguageSwitcher.jsx";
 import api from "../../lib/api.js";
 import { useFormSchema } from "../../hooks/useFormSchema.js";
@@ -29,9 +28,7 @@ export default function PublicBookingPage() {
   const { businessSlug } = useParams();
   const navigate = useNavigate();
 
-  const [isQrExpanded, setIsQrExpanded] = useState(true);
-  const [copiedLink, setCopiedLink] = useState(false);
-  const bookingUrl = businessSlug ? `${window.location.origin}/booking/${businessSlug}` : "";
+
 
   // Carga de formulario dinámico
   const { enabledFields, loading: schemaLoading, error: schemaError } = useFormSchema(
@@ -487,92 +484,6 @@ export default function PublicBookingPage() {
       </Container>
 
       <Container style={{ maxWidth: "720px" }}>
-        {/* WIDGET DEL CÓDIGO QR Y ENLACE DE RESERVAS (Para Tablet/Recepción) */}
-        {business && (
-          <div className="mb-4 animate-fade-in">
-            {!isQrExpanded ? (
-              <div 
-                className="bg-white rounded-4 p-3 border shadow-sm d-flex justify-content-between align-items-center cursor-pointer transition-all hover-scale" 
-                onClick={() => setIsQrExpanded(true)} 
-                style={{ borderColor: "#e2e8f0", cursor: "pointer", borderRadius: "16px" }}
-              >
-                <div className="d-flex align-items-center gap-3">
-                  <div className="p-2 rounded-circle d-flex align-items-center justify-content-center" style={{ backgroundColor: `${primaryColor}15`, color: primaryColor, width: "36px", height: "36px" }}>
-                    <Sparkles size={18} />
-                  </div>
-                  <div>
-                    <span className="fw-bold text-dark d-block" style={{ fontSize: "14px" }}>{isEs ? "Compartir enlace o código QR de reservas" : "Share booking link or QR code"}</span>
-                    <span className="text-muted" style={{ fontSize: "11px" }}>{isEs ? "Haz clic para ver y compartir el link o código QR" : "Click to view and share the link or QR code"}</span>
-                  </div>
-                </div>
-                <Button variant="light" size="sm" className="rounded-circle p-2 d-flex align-items-center justify-content-center border" onClick={(e) => { e.stopPropagation(); setIsQrExpanded(true); }}>
-                  <ChevronDown size={18} className="text-secondary" />
-                </Button>
-              </div>
-            ) : (
-              <div className="bg-white rounded-4 p-4 border shadow-sm position-relative d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-4" style={{ borderColor: "#e2e8f0", borderRadius: "16px" }}>
-                <Button 
-                  variant="white" 
-                  size="sm" 
-                  className="position-absolute top-0 end-0 m-3 rounded-circle p-2 d-flex align-items-center justify-content-center border bg-light hover-bg-gray-200"
-                  onClick={() => setIsQrExpanded(false)}
-                  title={isEs ? "Ocultar" : "Hide"}
-                  style={{ width: "32px", height: "32px" }}
-                >
-                  <ChevronUp size={16} className="text-secondary" />
-                </Button>
-                
-                <div className="d-flex align-items-start gap-3 mt-2 mt-md-0">
-                  <div className="p-3 text-primary d-flex align-items-center justify-content-center" style={{ backgroundColor: `${primaryColor}15`, color: primaryColor, borderRadius: "12px" }}>
-                    <Sparkles size={28} />
-                  </div>
-                  <div>
-                    <h3 className="h5 fw-bold text-dark mb-1" style={{ fontSize: "16px" }}>{isEs ? "Enlace de Reservas" : "Booking Link"}</h3>
-                    <p className="text-muted small mb-3" style={{ fontSize: "12px" }}>
-                      {isEs ? "Comparte este enlace con tus clientes para que reserven online (gratis)." : "Share this link with your clients so they can book online (free)."}
-                    </p>
-                    <div className="d-flex flex-wrap align-items-center gap-2">
-                      <InputGroup style={{ maxWidth: "320px" }} className="shadow-sm">
-                        <Form.Control
-                          readOnly
-                          value={bookingUrl}
-                          className="bg-light border-gray-200 fw-medium font-monospace text-primary"
-                          style={{ fontSize: "12px" }}
-                        />
-                        <Button 
-                          variant="primary" 
-                          onClick={() => {
-                            navigator.clipboard.writeText(bookingUrl);
-                            setCopiedLink(true);
-                            setTimeout(() => setCopiedLink(false), 2000);
-                          }}
-                          className="d-flex align-items-center gap-2 px-3 fw-bold"
-                          style={{ background: primaryColor, borderColor: primaryColor }}
-                        >
-                          {copiedLink ? (isEs ? "¡Copiado!" : "Copied!") : (isEs ? "Copiar" : "Copy")}
-                        </Button>
-                      </InputGroup>
-                      <Button 
-                        variant="outline-secondary" 
-                        onClick={() => window.open(bookingUrl, '_blank')}
-                        className="d-flex align-items-center gap-2 px-3 fw-bold bg-white"
-                        style={{ fontSize: "12px" }}
-                      >
-                        {isEs ? "Abrir Página" : "Open Page"}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-                <div className="text-center d-flex flex-column align-items-center" style={{ minWidth: "120px" }}>
-                  <div className="bg-white p-2 border rounded-3 shadow-sm mb-2" style={{ width: "fit-content", borderRadius: "12px" }}>
-                    <QRCodeSVG value={bookingUrl} size={90} level="M" />
-                  </div>
-                  <span className="text-muted" style={{ fontSize: "11px", fontWeight: "600" }}>{isEs ? "CÓDIGO QR" : "QR CODE"}</span>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
 
         {/* STEP PROGRESS BAR */}
         {business?.bookingDownpaymentEnabled && (

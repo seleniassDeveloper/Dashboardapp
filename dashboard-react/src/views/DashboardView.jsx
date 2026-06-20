@@ -645,7 +645,7 @@ export default function DashboardView() {
             <div 
               className="bg-white rounded-4 p-3 border shadow-sm d-flex justify-content-between align-items-center cursor-pointer transition-all hover-scale" 
               onClick={() => setIsBookingLinkExpanded(true)} 
-              style={{ borderColor: "#e2e8f0", cursor: "pointer" }}
+              style={{ borderColor: "#e2e8f0", cursor: "pointer", maxWidth: "800px" }}
             >
               <div className="d-flex align-items-center gap-3">
                 <div className="p-2 bg-primary bg-opacity-10 rounded-circle text-primary d-flex align-items-center justify-content-center">
@@ -661,61 +661,86 @@ export default function DashboardView() {
               </Button>
             </div>
           ) : (
-            <div className="bg-white rounded-4 p-4 border shadow-sm position-relative d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-4 animate-fade-in" style={{ borderColor: "#e2e8f0" }}>
+            <div 
+              className="bg-white rounded-4 p-4 border shadow-sm position-relative animate-fade-in" 
+              style={{ 
+                borderColor: "#e2e8f0", 
+                maxWidth: "800px", 
+                background: "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)" 
+              }}
+            >
               <Button 
                 variant="white" 
                 size="sm" 
                 className="position-absolute top-0 end-0 m-3 rounded-circle p-2 d-flex align-items-center justify-content-center border bg-light hover-bg-gray-200"
                 onClick={() => setIsBookingLinkExpanded(false)}
                 title="Ocultar"
+                style={{ width: "32px", height: "32px" }}
               >
                 <ChevronUp size={16} className="text-secondary" />
               </Button>
               
-              <div className="d-flex align-items-start gap-3 mt-2 mt-md-0">
-                <div className="p-3 bg-primary bg-opacity-10 rounded-4 text-primary d-flex align-items-center justify-content-center">
-                  <Sparkles size={28} />
-                </div>
-                <div>
-                  <h3 className="h5 fw-bold text-dark mb-1">Tu enlace de reservas</h3>
-                  <p className="text-muted small mb-3">
-                    Comparte este enlace con tus clientes para que reserven online (gratis).
-                  </p>
-                  <div className="d-flex flex-wrap align-items-center gap-2">
-                    <InputGroup style={{ maxWidth: "350px" }} className="shadow-sm">
-                      <Form.Control
-                        readOnly
-                        value={bookingUrl}
-                        className="bg-light border-gray-200 fw-medium font-monospace text-primary"
-                        style={{ fontSize: "13px" }}
-                      />
-                      <Button 
-                        variant="primary" 
-                        onClick={() => {
-                          navigator.clipboard.writeText(bookingUrl);
-                          setCopiedLink(true);
-                          setTimeout(() => setCopiedLink(false), 2000);
-                        }}
-                        className="d-flex align-items-center gap-2 px-3 fw-bold"
-                      >
-                        {copiedLink ? "¡Copiado!" : "Copiar"}
-                      </Button>
-                    </InputGroup>
-                    <Button 
-                      variant="outline-secondary" 
-                      onClick={() => window.open(bookingUrl, '_blank')}
-                      className="d-flex align-items-center gap-2 px-3 fw-bold bg-white"
+              <div className="row g-4 align-items-center">
+                <div className="col-12 col-md-8">
+                  <div className="d-flex align-items-start gap-3">
+                    <div 
+                      className="p-3 rounded-4 d-flex align-items-center justify-content-center flex-shrink-0"
+                      style={{ 
+                        backgroundColor: `${brand.accentColor || "#10b981"}15`, 
+                        color: brand.accentColor || "#10b981", 
+                        width: "54px", 
+                        height: "54px" 
+                      }}
                     >
-                      Abrir <span className="d-none d-sm-inline">Página</span>
-                    </Button>
+                      <Sparkles size={24} />
+                    </div>
+                    <div>
+                      <h3 className="h6 fw-bold text-dark mb-1" style={{ fontSize: "16px" }}>Tu enlace de reservas</h3>
+                      <p className="text-muted mb-3" style={{ fontSize: "12.5px", lineHeight: "1.4" }}>
+                        Comparte este enlace con tus clientes para que reserven online (gratis).
+                      </p>
+                      <div className="d-flex flex-wrap align-items-center gap-2">
+                        <InputGroup style={{ maxWidth: "320px" }} className="shadow-sm">
+                          <Form.Control
+                            readOnly
+                            value={bookingUrl}
+                            className="bg-light border-gray-200 fw-medium font-monospace text-primary"
+                            style={{ fontSize: "12px" }}
+                          />
+                          <Button 
+                            variant="primary" 
+                            onClick={() => {
+                              navigator.clipboard.writeText(bookingUrl);
+                              setCopiedLink(true);
+                              setTimeout(() => setCopiedLink(false), 2000);
+                            }}
+                            className="d-flex align-items-center gap-2 px-3 fw-bold border-0"
+                            style={{ background: brand.accentColor || "#10b981" }}
+                          >
+                            {copiedLink ? "¡Copiado!" : "Copiar"}
+                          </Button>
+                        </InputGroup>
+                        <Button 
+                          variant="outline-secondary" 
+                          onClick={() => window.open(bookingUrl, '_blank')}
+                          className="d-flex align-items-center gap-2 px-3 fw-bold bg-white border"
+                          style={{ fontSize: "12.5px" }}
+                        >
+                          Abrir Página
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="text-center d-flex flex-column align-items-center" style={{ minWidth: "120px" }}>
-                <div className="bg-white p-2 border rounded-3 shadow-sm mb-2" style={{ width: "fit-content" }}>
-                  <QRCodeSVG value={bookingUrl} size={90} level="M" />
+                
+                <div className="col-12 col-md-4 d-flex justify-content-center justify-content-md-end">
+                  <div className="text-center d-flex flex-column align-items-center bg-white p-2.5 border rounded-4 shadow-sm" style={{ width: "130px" }}>
+                    <div className="p-1 mb-1.5">
+                      <QRCodeSVG value={bookingUrl} size={90} level="M" />
+                    </div>
+                    <span className="text-muted" style={{ fontSize: "10px", fontWeight: "700", letterSpacing: "0.05em" }}>CÓDIGO QR</span>
+                  </div>
                 </div>
-                <span className="text-muted" style={{ fontSize: "11px", fontWeight: "600" }}>CÓDIGO QR</span>
               </div>
             </div>
           )}
