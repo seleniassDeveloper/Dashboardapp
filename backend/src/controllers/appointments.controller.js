@@ -647,6 +647,15 @@ export async function finalizeAppointment(req, res) {
       include: { client: true, worker: true, service: true }
     });
 
+    const oldStatus = appt.status;
+    const isStatusChanged = oldStatus !== "DONE";
+    if (isStatusChanged) {
+      recordStatusTransition(appt.businessId, id, oldStatus, "DONE").catch(err => console.error(err));
+      triggerWorkflows(appt.businessId, "status_changed", updatedAppt).catch(err => console.error("Error triggering status changed workflows:", err));
+      triggerWorkflows(appt.businessId, "done", updatedAppt).catch(err => console.error("Error triggering done workflow:", err));
+    }
+    triggerWorkflows(appt.businessId, "payment_received", updatedAppt).catch(err => console.error("Error triggering payment_received workflow:", err));
+
     // Send email receipt if requested and client has email
     if (sendEmail && appt.client?.email) {
       try {

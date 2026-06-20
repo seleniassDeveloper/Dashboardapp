@@ -1,5 +1,6 @@
 import prisma from "../prisma.js";
 import { sendReminderEmail } from "../services/mailer.js";
+import { triggerWorkflows } from "../services/workflowEngine.js";
 import { getTzMinutes, getDayRangeInTz, getCurrentTimeInTz } from "../utils/timezone.util.js";
 
 // Helper para convertir hora HH:MM a minutos desde las 00:00
@@ -592,6 +593,14 @@ export async function createPublicBooking(req, res) {
           syncAppointmentToGoogleCalendar(appt.id);
         })
         .catch((err) => console.error("Error importando googleService:", err));
+    }
+
+    // Trigger workflows for public bookings
+    for (const appt of createdAppointments) {
+      triggerWorkflows(biz.id, "appointment_created", appt).catch(err => console.error("Error triggering appointment_created workflow:", err));
+      if (appt.downpaymentPaid && appt.downpaymentPaid > 0) {
+        triggerWorkflows(biz.id, "payment_received", appt).catch(err => console.error("Error triggering payment_received workflow:", err));
+      }
     }
 
     // Enviar email consolidado de confirmación si el cliente tiene email
