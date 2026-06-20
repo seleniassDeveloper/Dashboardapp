@@ -36,6 +36,7 @@ import marketingRoutes from "./routes/marketing.routes.js";
 import billingRoutes from "./routes/billing.routes.js";
 import adminBillingRoutes from "./routes/adminBilling.routes.js";
 import mobileScansRoutes from "./routes/mobileScans.routes.js";
+import whatsappRoutes from "./routes/whatsapp.routes.js";
 import requireAuth from "./middleware/requireAuth.js";
 import { checkTenant } from "./middleware/tenant.middleware.js";
 import { getCorsOptions } from "./config/cors.js";
@@ -139,6 +140,7 @@ app.use("/api/marketing", requireAuth, checkTenant, marketingRoutes);
 app.use("/api/me", requireAuth, meRoutes);
 app.use("/api/audit-logs", requireAuth, checkTenant, auditRoutes);
 app.use("/api/mobile-scans", mobileScansRoutes);
+app.use("/api/webhooks/whatsapp", whatsappRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
