@@ -52,8 +52,14 @@ export async function triggerWorkflows(businessId, triggerType, context) {
       return false;
     };
 
-    const matchingWorkflows = workflows.filter(w => w.trigger && matchTrigger(w.trigger.type));
-    console.log(`[WorkflowEngine] Found ${matchingWorkflows.length} matching active workflows.`);
+    const matchingWorkflows = workflows.filter(w => {
+      if (w.trigger && matchTrigger(w.trigger.type)) return true;
+      if (Array.isArray(w.steps)) {
+        return w.steps.some(n => n.type === "trigger" && matchTrigger(n.subtype));
+      }
+      return false;
+    });
+    console.log(`[WorkflowEngine] Found ${matchingWorkflows.length} matching active workflows for trigger ${triggerType}.`);
 
     for (const workflow of matchingWorkflows) {
       const startTime = Date.now();
