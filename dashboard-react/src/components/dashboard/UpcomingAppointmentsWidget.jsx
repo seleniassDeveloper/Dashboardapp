@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Clock, UserCheck, PlayCircle, CheckCircle2, AlertCircle } from "lucide-react";
 import { Badge, Button } from "react-bootstrap";
 import { useTranslation } from "react-i18next";
@@ -8,11 +8,18 @@ export default function UpcomingAppointmentsWidget({
   onConfirmAppointment,
   onUpdateAppointmentStatus,
   onFinalizeAppointment,
+  defaultRange = "TODAY",
 }) {
   const { i18n } = useTranslation("dashboard");
   const isEs = i18n.language === "es";
 
-  const [dateRange, setDateRange] = useState("TODAY");
+  const [dateRange, setDateRange] = useState(defaultRange || "TODAY");
+
+  useEffect(() => {
+    if (defaultRange) {
+      setDateRange(defaultRange);
+    }
+  }, [defaultRange]);
 
   const now = new Date();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());

@@ -34,7 +34,7 @@ export default function CalendarWidget({
   const { i18n } = useTranslation("dashboard");
   const isEs = i18n.language === "es";
   const statusStyles = getStatusStyles(isEs);
-  const [view, setView] = useState("day"); // "day" | "week" | "month"
+  const [view, setView] = useState("month"); // "day" | "week" | "month"
   const [currentDate, setCurrentDate] = useState(new Date());
   
   // Drawer / Side Panel para editar cita

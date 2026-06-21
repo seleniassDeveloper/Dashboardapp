@@ -464,6 +464,7 @@ export default function WidgetRenderer({
           onConfirmAppointment={onConfirmAppointment}
           onUpdateAppointmentStatus={onUpdateAppointmentStatus}
           onFinalizeAppointment={onFinalizeAppointment}
+          defaultRange={widget?.config?.range}
         />
       );
 

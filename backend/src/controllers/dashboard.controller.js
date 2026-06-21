@@ -15,7 +15,7 @@ export async function getWidgets(req, res) {
           userId,
           title: "Próximas Citas (SLA)",
           type: "upcoming_appointments",
-          config: { color: "#3b82f6", range: "ALL" },
+          config: { color: "#3b82f6", range: "TODAY" },
           layout: { w: 4, h: 5 },
         },
         {
