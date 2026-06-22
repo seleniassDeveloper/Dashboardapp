@@ -115,9 +115,25 @@ export function AuthProvider({ children }) {
   const switchBusiness = useCallback(async (businessId) => {
     localStorage.setItem("active_business_id", businessId);
     try {
-      const bizRes = await api.get("/appointments/business");
-      if (bizRes.data) {
-        setBusiness(bizRes.data);
+      const meRes = await api.get("/me");
+      if (meRes.data) {
+        if (meRes.data.business) {
+          setBusiness(meRes.data.business);
+        }
+        if (meRes.data.role) {
+          setRole(meRes.data.role.toLowerCase());
+        }
+        if (meRes.data.permissions) {
+          setPermissions(meRes.data.permissions);
+        }
+      }
+      try {
+        const bizRes = await api.get("/appointments/business");
+        if (bizRes.data) {
+          setBusiness(bizRes.data);
+        }
+      } catch (bizErr) {
+        console.warn("Failed to fetch extended business config during switch:", bizErr);
       }
     } catch (err) {
       console.error("Error switching business:", err);
@@ -384,6 +400,12 @@ export function AuthProvider({ children }) {
                 }
 
                 setUserStatus("active");
+                if (meRes.data?.role) {
+                  setRole(meRes.data.role.toLowerCase());
+                }
+                if (meRes.data?.permissions) {
+                  setPermissions(meRes.data.permissions);
+                }
 
                 const list = meRes.data?.userBusinesses || [];
                 setUserBusinesses(list);
@@ -395,11 +417,16 @@ export function AuthProvider({ children }) {
                   
                   localStorage.setItem("active_business_id", selectedId);
                   
-                  const bizRes = await api.get("/appointments/business");
-                  if (bizRes.data) {
-                    setBusiness(bizRes.data);
-                  } else {
-                    setBusiness(null);
+                  if (meRes.data?.business) {
+                    setBusiness(meRes.data.business);
+                  }
+                  try {
+                    const bizRes = await api.get("/appointments/business");
+                    if (bizRes.data) {
+                      setBusiness(bizRes.data);
+                    }
+                  } catch (bizErr) {
+                    console.warn("Failed to fetch extended business config, keeping me.business:", bizErr);
                   }
                 } else {
                   setBusiness(null);
