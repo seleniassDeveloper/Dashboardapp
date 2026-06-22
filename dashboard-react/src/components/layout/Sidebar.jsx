@@ -19,7 +19,6 @@ import {
   Package,
   FileSpreadsheet,
   Lock,
-  Sparkles,
   Clock,
   HelpCircle,
   Shield
@@ -42,7 +41,6 @@ const MENU_ITEMS = [
   // Grupo Automatización
   { id: "workflows", icon: GitBranch, path: "/app/workflows", isAutomation: true },
   { id: "automations", icon: Zap, path: "/app/automations", isAutomation: true },
-  { id: "marketing", icon: Sparkles, path: "/app/marketing", isAutomation: true },
   
   { id: "config", icon: Settings, path: "/app/settings" },
 ];
@@ -70,13 +68,12 @@ const MENU_ITEM_PERMISSIONS = {
   automations: "automations.view",
   templates: "workflows.view",
   history: "workflows.view",
-  marketing: "marketing.view",
   config: ["manage_settings", "manage_users"],
 };
 
 const PLAN_RESTRICTIONS = {
-  starter: ["finances", "inventory", "sheets_sync", "workflows", "automations", "marketing"],
-  pro: ["sheets_sync", "automations", "marketing"],
+  starter: ["finances", "inventory", "sheets_sync", "workflows", "automations"],
+  pro: ["sheets_sync", "automations"],
   business: []
 };
 

@@ -32,7 +32,6 @@ import rolesRoutes from "./routes/roles.routes.js";
 import meRoutes from "./routes/me.routes.js";
 import auditRoutes from "./routes/audit.routes.js";
 import consentRoutes from "./routes/consent.routes.js";
-import marketingRoutes from "./routes/marketing.routes.js";
 import billingRoutes from "./routes/billing.routes.js";
 import adminBillingRoutes from "./routes/adminBilling.routes.js";
 import mobileScansRoutes from "./routes/mobileScans.routes.js";
@@ -136,7 +135,6 @@ app.use("/api/permission-matrix", requireAuth, checkTenant, (req, res, next) => 
   req.url = "/permission-matrix";
   rolesRoutes(req, res, next);
 });
-app.use("/api/marketing", requireAuth, checkTenant, marketingRoutes);
 app.use("/api/me", requireAuth, meRoutes);
 app.use("/api/audit-logs", requireAuth, checkTenant, auditRoutes);
 app.use("/api/mobile-scans", mobileScansRoutes);

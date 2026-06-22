@@ -21,7 +21,6 @@ import SettingsView from "./views/SettingsView";
 import UnauthorizedView from "./views/UnauthorizedView";
 import RolesPermissionsPage from "./views/RolesPermissionsPage";
 import FinanceProtectedRoute from "./auth/FinanceProtectedRoute";
-import MarketingView from "./views/MarketingView";
 import PricingView from "./views/PricingView";
 import SuperAdminBillingView from "./views/SuperAdminBillingView";
 
@@ -170,21 +169,6 @@ export default function App() {
             ) : isModuleActive("automations") ? (
               <Can permission="automations.view" fallback={<UnauthorizedView />}>
                 <AutomationsView />
-              </Can>
-            ) : (
-              <Navigate to="/" replace />
-            )
-          }
-        />
-
-        <Route
-          path="/marketing"
-          element={
-            isLocked("marketing") ? (
-              <Navigate to="/app/pricing" replace />
-            ) : isModuleActive("marketing") ? (
-              <Can permission="marketing.view" fallback={<UnauthorizedView />}>
-                <MarketingView />
               </Can>
             ) : (
               <Navigate to="/" replace />
