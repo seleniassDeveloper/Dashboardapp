@@ -45,6 +45,33 @@ router.get("/users/pending", async (_req, res) => {
   }
 });
 
+// NUEVO: Obtener todos los usuarios registrados con membresías asociadas
+router.get("/users/all", async (_req, res) => {
+  try {
+    const users = await prisma.user.findMany({
+      include: {
+        memberships: {
+          include: {
+            business: {
+              select: {
+                id: true,
+                name: true,
+                slug: true
+              }
+            }
+          }
+        }
+      },
+      orderBy: { createdAt: "desc" }
+    });
+    return res.json({ success: true, users });
+  } catch (e) {
+    console.error("Error fetching all users:", e);
+    return res.status(500).json({ success: false, error: "No se pudieron listar los usuarios registrados." });
+  }
+});
+
+
 // NUEVO: Aprobar usuario
 router.post("/users/:uid/approve", async (req, res) => {
   try {
@@ -154,10 +181,43 @@ router.patch("/users/:uid", async (req, res) => {
     if (typeof data.email === "string") data.email = data.email.toLowerCase().trim();
     if (data.displayName === null) data.displayName = "";
 
-    await auth.updateUser(uid, data);
+    // 1. Actualizar en Firebase Auth si se enviaron datos
+    if (Object.keys(data).length > 0) {
+      await auth.updateUser(uid, data);
+    }
+
+    // 2. Actualizar en PostgreSQL
+    const updateData = {};
+    if (data.email) updateData.email = data.email;
+    if (data.displayName !== undefined) {
+      updateData.name = data.displayName;
+      const parts = data.displayName.split(" ");
+      updateData.firstName = parts[0] || "";
+      updateData.lastName = parts.slice(1).join(" ") || "";
+    }
+    if (req.body.status) {
+      updateData.status = req.body.status;
+    }
+
+    await prisma.user.update({
+      where: { id: uid },
+      data: updateData
+    });
+
+    // 3. Sincronizar Firestore si cambia de status
+    if (req.body.status) {
+      try {
+        const { getFirestore } = await import("firebase-admin/firestore");
+        const db = getFirestore();
+        await db.collection("users").doc(uid).update({ active: req.body.status === "active" });
+      } catch (firestoreErr) {
+        console.warn("No se pudo sincronizar Firestore para", uid, firestoreErr);
+      }
+    }
+
     return res.json({ success: true });
   } catch (e) {
-    console.error(e);
+    console.error("Error updating user:", e);
     return res.status(500).json({ success: false, error: "No se pudo actualizar el usuario." });
   }
 });
@@ -166,11 +226,32 @@ router.delete("/users/:uid", async (req, res) => {
   try {
     const uid = String(req.params.uid || "").trim();
     if (!uid) return res.status(400).json({ success: false, error: "uid inválido." });
-    const auth = getFirebaseAuth();
-    await auth.deleteUser(uid);
+
+    // 1. Eliminar de Firebase Auth
+    try {
+      const auth = getFirebaseAuth();
+      await auth.deleteUser(uid);
+    } catch (firebaseErr) {
+      console.warn("No se pudo eliminar de Firebase Auth:", firebaseErr);
+    }
+
+    // 2. Eliminar de PostgreSQL
+    await prisma.user.delete({
+      where: { id: uid }
+    });
+
+    // 3. Eliminar de Firestore
+    try {
+      const { getFirestore } = await import("firebase-admin/firestore");
+      const db = getFirestore();
+      await db.collection("users").doc(uid).delete();
+    } catch (firestoreErr) {
+      console.warn("No se pudo eliminar de Firestore:", firestoreErr);
+    }
+
     return res.json({ success: true });
   } catch (e) {
-    console.error(e);
+    console.error("Error deleting user:", e);
     return res.status(500).json({ success: false, error: "No se pudo eliminar el usuario." });
   }
 });

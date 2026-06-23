@@ -12,6 +12,7 @@ export default function LoginGate({ children }) {
   const {
     user,
     authLoading,
+    businessFetched,
     firebaseConfigOk,
     logout,
     isUnauthorized,
@@ -25,7 +26,7 @@ export default function LoginGate({ children }) {
   const googleRedirectPending =
     typeof sessionStorage !== "undefined" && sessionStorage.getItem("authRedirectPending") === "1";
 
-  if (authLoading) {
+  if (authLoading || (user && !businessFetched)) {
     return (
       <div className="auth-loading-screen d-flex min-vh-100 flex-column align-items-center justify-content-center gap-3"
            style={{ background: "radial-gradient(circle at 50% 50%, #fcfbff 0%, #f3ebff 100%)" }}>
@@ -59,7 +60,7 @@ export default function LoginGate({ children }) {
   }
 
   // Si está autenticado pero no está autorizado en Firestore (o active = false)
-  if (isUnauthorized || !role) {
+  if (isUnauthorized || (business && !role)) {
     return (
       <div 
         className="d-flex align-items-center justify-content-center py-5 min-vh-100"

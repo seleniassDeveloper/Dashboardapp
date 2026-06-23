@@ -2,6 +2,7 @@ import { Router } from "express";
 import prisma from "../prisma.js";
 import requireAuth from "../middleware/requireAuth.js";
 import requireAdmin from "../middleware/requireAdmin.js";
+import { getFirebaseAuth } from "../services/firebaseAdmin.js";
 
 const router = Router();
 
@@ -33,9 +34,49 @@ router.get("/businesses", async (req, res) => {
         trialEndsAt: true,
         currentPeriodEnd: true,
         gracePeriodEndsAt: true,
-        createdAt: true
+        createdAt: true,
+        ownerId: true,
+        userId: true,
+        industry: true,
+        description: true,
+        timezone: true
       },
       orderBy: { createdAt: "desc" }
+    });
+
+    // 1. Obtener los correos electrónicos de los dueños por relación de UID (ownerId o userId)
+    const uids = businesses.map(b => b.ownerId || b.userId).filter(Boolean);
+    const users = await prisma.user.findMany({
+      where: { id: { in: uids } },
+      select: { id: true, email: true }
+    });
+
+    const uidEmailMap = {};
+    users.forEach(u => {
+      uidEmailMap[u.id] = u.email;
+    });
+
+    // 2. Obtener correos electrónicos desde BusinessMember (para mayor robustez si ownerId está vacío o es inconsistente)
+    const memberships = await prisma.businessMember.findMany({
+      where: {
+        businessId: { in: businesses.map(b => b.id) },
+        role: { in: ["owner", "OWNER"] },
+        status: "ACTIVE"
+      },
+      include: {
+        user: {
+          select: {
+            email: true
+          }
+        }
+      }
+    });
+
+    const memberOwnerEmailMap = {};
+    memberships.forEach(m => {
+      if (m.user?.email) {
+        memberOwnerEmailMap[m.businessId] = m.user.email;
+      }
     });
 
     // Calculate Estimated MRR (Monthly Recurring Revenue)
@@ -50,8 +91,14 @@ router.get("/businesses", async (req, res) => {
       }
       totalMRR += mrrContribution;
 
+      // Buscar email del dueño con múltiples fallbacks para asegurar que siempre aparezca
+      const ownerEmail = memberOwnerEmailMap[b.id]
+        || (b.ownerId ? uidEmailMap[b.ownerId] : null)
+        || (b.userId ? uidEmailMap[b.userId] : null);
+
       return {
         ...b,
+        ownerEmail: ownerEmail || null,
         mrr: mrrContribution
       };
     });
@@ -70,11 +117,103 @@ router.get("/businesses", async (req, res) => {
 router.post("/businesses/:id/override", async (req, res) => {
   try {
     const { id } = req.params;
-    const { plan, subscriptionStatus, trialEndsAt, currentPeriodEnd, gracePeriodEndsAt } = req.body;
+    const { 
+      plan, 
+      subscriptionStatus, 
+      trialEndsAt, 
+      currentPeriodEnd, 
+      gracePeriodEndsAt,
+      name,
+      slug,
+      industry,
+      timezone,
+      ownerEmail
+    } = req.body;
 
     const biz = await prisma.business.findUnique({ where: { id } });
     if (!biz) {
       return res.status(404).json({ success: false, error: "Negocio no encontrado." });
+    }
+
+    let ownerIdUpdate = undefined;
+
+    if (ownerEmail !== undefined) {
+      const emailLower = ownerEmail.trim().toLowerCase();
+      if (emailLower) {
+        // 1. Buscar en PostgreSQL
+        let user = await prisma.user.findUnique({ where: { email: emailLower } });
+        
+        // 2. Si no está en Postgres, buscar en Firebase Auth
+        if (!user) {
+          try {
+            const auth = getFirebaseAuth();
+            const fbUser = await auth.getUserByEmail(emailLower);
+            if (fbUser) {
+              user = await prisma.user.create({
+                data: {
+                  id: fbUser.uid,
+                  email: fbUser.email,
+                  name: fbUser.displayName || "Usuario SaaS",
+                  status: "active"
+                }
+              });
+            }
+          } catch (fbErr) {
+            console.log("Firebase user not found or error:", fbErr.message);
+          }
+        }
+
+        // 3. Si sigue sin existir, crear un usuario temporal/placeholder en Postgres
+        if (!user) {
+          const tempId = "temp-" + Math.random().toString(36).substring(2, 15);
+          user = await prisma.user.create({
+            data: {
+              id: tempId,
+              email: emailLower,
+              name: "Usuario Invitado",
+              status: "active"
+            }
+          });
+        }
+
+        ownerIdUpdate = user.id;
+
+        // 4. Asegurar rol OWNER y membresía activa
+        let ownerRole = await prisma.role.findFirst({
+          where: { key: "owner", businessId: null }
+        });
+        if (!ownerRole) {
+          ownerRole = await prisma.role.create({
+            data: {
+              key: "owner",
+              name: "Owner / Dueño",
+              description: "Acceso total del sistema.",
+              isSystemRole: true
+            }
+          });
+        }
+
+        await prisma.businessMember.upsert({
+          where: {
+            userId_businessId: {
+              userId: user.id,
+              businessId: id
+            }
+          },
+          update: {
+            role: "owner",
+            status: "ACTIVE",
+            roleId: ownerRole.id
+          },
+          create: {
+            userId: user.id,
+            businessId: id,
+            role: "owner",
+            status: "ACTIVE",
+            roleId: ownerRole.id
+          }
+        });
+      }
     }
 
     const updated = await prisma.business.update({
@@ -84,7 +223,12 @@ router.post("/businesses/:id/override", async (req, res) => {
         subscriptionStatus: subscriptionStatus !== undefined ? subscriptionStatus : undefined,
         trialEndsAt: trialEndsAt !== undefined ? (trialEndsAt ? new Date(trialEndsAt) : null) : undefined,
         currentPeriodEnd: currentPeriodEnd !== undefined ? (currentPeriodEnd ? new Date(currentPeriodEnd) : null) : undefined,
-        gracePeriodEndsAt: gracePeriodEndsAt !== undefined ? (gracePeriodEndsAt ? new Date(gracePeriodEndsAt) : null) : undefined
+        gracePeriodEndsAt: gracePeriodEndsAt !== undefined ? (gracePeriodEndsAt ? new Date(gracePeriodEndsAt) : null) : undefined,
+        name: name !== undefined ? name : undefined,
+        slug: slug !== undefined ? slug : undefined,
+        industry: industry !== undefined ? industry : undefined,
+        timezone: timezone !== undefined ? timezone : undefined,
+        ownerId: ownerIdUpdate !== undefined ? ownerIdUpdate : undefined
       }
     });
 

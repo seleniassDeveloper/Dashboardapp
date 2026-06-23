@@ -85,7 +85,7 @@ function HeroImageStack() {
   }, [images.length]);
 
   return (
-    <div className="hero-carousel" style={{ height: "420px", border: "none", borderRadius: "0 0 24px 24px" }}>
+    <div className="hero-carousel">
       {images.map((img, idx) => (
         <img
           key={idx}
@@ -653,11 +653,11 @@ export default function LandingPage() {
                             </div>
                           </div>
                           <div className="explorer-screenshot-body">
-                            <img 
-                              src={explorerConfig[activeExplorer].img} 
-                              alt={t(`explorer.${activeExplorer}.title`)} 
-                              className="img-fluid w-100 animate-fade-in"
-                              style={{ objectFit: 'cover', objectPosition: 'top' }}
+                            <img
+                              src={explorerConfig[activeExplorer].img}
+                              alt={t(`explorer.${activeExplorer}.title`)}
+                              className="animate-fade-in"
+                              style={{ width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'top center', backgroundColor: '#f8fafc', display: 'block' }}
                             />
                           </div>
                         </div>
@@ -724,7 +724,7 @@ export default function LandingPage() {
                                       <span className="dot yellow"></span>
                                       <span className="dot green"></span>
                                     </div>
-                                    <div className="browser-address-bar" style={{ padding: '2px 10px', fontSize: '9px' }}>
+                                    <div className="browser-address-bar" style={{ padding: '2px 10px', fontSize: '9px', backgroundColor: '#ffffff', color: '#64748b', border: '1px solid rgba(15, 23, 42, 0.08)', position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', borderRadius: '4px' }}>
                                       {conf.url}
                                     </div>
                                   </div>

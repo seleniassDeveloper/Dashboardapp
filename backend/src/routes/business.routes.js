@@ -66,6 +66,11 @@ router.post("/", async (req, res) => {
         }
       });
 
+      await tx.user.update({
+        where: { id: firebaseUid },
+        data: { status: "active" }
+      });
+
       return { biz, member };
     });
 
@@ -207,6 +212,11 @@ router.post("/setup", async (req, res) => {
           }
         }
       }
+
+      await tx.user.update({
+        where: { id: firebaseUid },
+        data: { status: "active" }
+      });
 
       return { biz, member };
     });

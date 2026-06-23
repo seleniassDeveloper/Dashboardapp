@@ -21,14 +21,7 @@ router.get("/", async (req, res) => {
     const memberships = await prisma.businessMember.findMany({
       where: { userId: firebaseUid, status: "ACTIVE" },
       include: {
-        business: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            logo: true
-          }
-        },
+        business: true,
         roleRel: {
           include: {
             permissions: {

@@ -81,7 +81,8 @@ export default async function requireAuth(req, res, next) {
             email: firebaseUser.email || `${firebaseUser.uid}@aura-studio.com`,
             firstName: firebaseUser.uid === "dev-user" ? "Dev" : "Usuario",
             lastName: firebaseUser.uid === "dev-user" ? "User" : "SaaS",
-            name: firebaseUser.uid === "dev-user" ? "Dev User" : "Usuario SaaS"
+            name: firebaseUser.uid === "dev-user" ? "Dev User" : "Usuario SaaS",
+            status: "active"
           }
         });
       }

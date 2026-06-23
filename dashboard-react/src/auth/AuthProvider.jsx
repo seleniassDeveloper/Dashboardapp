@@ -89,6 +89,7 @@ export function AuthProvider({ children }) {
   const [authError, setAuthError] = useState("");
 
   const [business, setBusiness] = useState(null);
+  const [businessFetched, setBusinessFetched] = useState(false);
   const [role, setRole] = useState(null);
   const [permissions, setPermissions] = useState([]);
   const [isUnauthorized, setIsUnauthorized] = useState(false);
@@ -114,6 +115,7 @@ export function AuthProvider({ children }) {
 
   const switchBusiness = useCallback(async (businessId) => {
     localStorage.setItem("active_business_id", businessId);
+    setBusinessFetched(false);
     try {
       const meRes = await api.get("/me");
       if (meRes.data) {
@@ -135,8 +137,10 @@ export function AuthProvider({ children }) {
       } catch (bizErr) {
         console.warn("Failed to fetch extended business config during switch:", bizErr);
       }
+      setBusinessFetched(true);
     } catch (err) {
       console.error("Error switching business:", err);
+      setBusinessFetched(true);
     }
   }, []);
 
@@ -249,7 +253,7 @@ export function AuthProvider({ children }) {
           displayName: firebaseUser.displayName || "Usuario SaaS",
           role: defaultRole,
           permissions: defaultPermissions,
-          active: false, // Ahora es false por defecto para requerir aprobación manual
+          active: true, // Por defecto es active para permitir onboarding inicial
           createdAt: new Date(),
           lastAccess: new Date()
         };
@@ -266,6 +270,9 @@ export function AuthProvider({ children }) {
       if (data) {
         console.log("[Diagnostic] 4. User data loaded successfully:", data);
         console.log(`[Diagnostic] Active status: ${data.active}, Role: ${data.role}`);
+
+        const isDemo = localStorage.getItem("auradash_demo_session") === "true";
+        const isLocalBypass = AUTH_DISABLED || isDemo;
 
         if (data.active === true) {
           // If the document ID was not the Firebase UID, migrate it now
@@ -291,29 +298,29 @@ export function AuthProvider({ children }) {
             });
           }
 
-          setRole(data.role);
-          setPermissions(data.permissions || []);
-          setIsUnauthorized(false);
-          
-          const isDemo = localStorage.getItem("auradash_demo_session") === "true";
-          if (AUTH_DISABLED || isDemo) {
+          if (isLocalBypass) {
+            setRole(data.role);
+            setPermissions(data.permissions || []);
+            setIsUnauthorized(false);
             setBusiness({ id: "business-default", name: "Aura Studio", slug: "aura-studio" });
             localStorage.setItem("active_business_id", "business-default");
-          } else {
-            setBusiness(null);
           }
-          console.log("[Diagnostic] 5. Session successfully authorized. Role:", data.role, "Permissions:", data.permissions);
+          console.log("[Diagnostic] 5. Session successfully authorized in background/bypass. Role:", data.role);
         } else {
-          console.warn("[Diagnostic] User exists but is set as INACTIVE.");
+          console.warn("[Diagnostic] User exists but is set as INACTIVE in Firestore.");
+          if (isLocalBypass) {
+            setRole(null);
+            setPermissions([]);
+            setIsUnauthorized(true);
+          }
+        }
+      } else {
+        console.warn("[Diagnostic] Failure loading user data from Firestore.");
+        if (isLocalBypass) {
           setRole(null);
           setPermissions([]);
           setIsUnauthorized(true);
         }
-      } else {
-        console.warn("[Diagnostic] Failure loading user data.");
-        setRole(null);
-        setPermissions([]);
-        setIsUnauthorized(true);
       }
     } catch (err) {
       console.error("[Diagnostic] Exception occurred during session sync:", err);
@@ -335,6 +342,7 @@ export function AuthProvider({ children }) {
       setPermissions(DEV_OWNER_PERMISSIONS);
       setIsUnauthorized(false);
       setBusiness({ id: "business-default", name: "Aura Studio (Demo)", slug: "aura-studio" });
+      setBusinessFetched(true);
       setAuthLoading(false);
       return;
     }
@@ -378,72 +386,86 @@ export function AuthProvider({ children }) {
             setIsSuperAdmin(email === "seleniadeveloper@gmail.com");
           }
           setAuthError("");
-          try {
-            await fetchSession(u);
-            
+          // Iniciar la carga de /api/me y fetchSession en paralelo
+          const mePromise = (async () => {
             const isDemo = localStorage.getItem("auradash_demo_session") === "true";
             if (!AUTH_DISABLED && !isDemo) {
-              try {
-                // Obtenemos perfil relacional completo
-                const meRes = await api.get("/me");
-                
-                if (meRes.data?.user?.status === "pending") {
-                  setUserStatus("pending");
-                  setIsUnauthorized(true);
-                  setBusiness(null);
-                  return;
-                } else if (meRes.data?.user?.status === "rejected") {
-                  setUserStatus("rejected");
-                  setIsUnauthorized(true);
-                  setBusiness(null);
-                  return;
-                }
-
-                setUserStatus("active");
-                if (meRes.data?.role) {
-                  setRole(meRes.data.role.toLowerCase());
-                }
-                if (meRes.data?.permissions) {
-                  setPermissions(meRes.data.permissions);
-                }
-
-                const list = meRes.data?.userBusinesses || [];
-                setUserBusinesses(list);
-
-                if (list.length > 0) {
-                  const activeBId = localStorage.getItem("active_business_id");
-                  const activeExists = list.some(b => b.id === activeBId);
-                  const selectedId = activeExists ? activeBId : list[0].id;
-                  
-                  localStorage.setItem("active_business_id", selectedId);
-                  
-                  if (meRes.data?.business) {
-                    setBusiness(meRes.data.business);
-                  }
-                  try {
-                    const bizRes = await api.get("/appointments/business");
-                    if (bizRes.data) {
-                      setBusiness(bizRes.data);
-                    }
-                  } catch (bizErr) {
-                    console.warn("Failed to fetch extended business config, keeping me.business:", bizErr);
-                  }
-                } else {
-                  setBusiness(null);
-                  localStorage.removeItem("active_business_id");
-                }
-              } catch (err) {
-                console.error("Error loading businesses on auth state change:", err);
-                setBusiness(null);
-              }
+              const meRes = await api.get("/me");
+              return meRes.data;
             }
-          } catch (_) {}
+            return null;
+          })();
+
+          const sessionPromise = fetchSession(u);
+
+          try {
+            const meData = await mePromise;
+            if (meData) {
+              if (meData.user?.status === "pending") {
+                setUserStatus("pending");
+                setIsUnauthorized(true);
+                setBusiness(null);
+                setBusinessFetched(true);
+                setAuthLoading(false);
+                return;
+              } else if (meData.user?.status === "rejected") {
+                setUserStatus("rejected");
+                setIsUnauthorized(true);
+                setBusiness(null);
+                setBusinessFetched(true);
+                setAuthLoading(false);
+                return;
+              }
+
+              setUserStatus("active");
+              setIsUnauthorized(false);
+              if (meData.role) {
+                setRole(meData.role.toLowerCase());
+              }
+              if (meData.permissions) {
+                setPermissions(meData.permissions);
+              }
+
+              const list = meData.userBusinesses || [];
+              setUserBusinesses(list);
+
+              if (list.length > 0) {
+                const activeBId = localStorage.getItem("active_business_id");
+                const activeExists = list.some(b => b.id === activeBId);
+                const selectedId = activeExists ? activeBId : list[0].id;
+                
+                localStorage.setItem("active_business_id", selectedId);
+                
+                if (meData.business) {
+                  setBusiness(meData.business);
+                }
+              } else {
+                setBusiness(null);
+                localStorage.removeItem("active_business_id");
+              }
+              setBusinessFetched(true);
+            } else {
+              setBusinessFetched(true);
+            }
+          } catch (err) {
+            console.error("Error loading businesses on auth state change:", err);
+            setBusiness(null);
+            setRole(null);
+            setPermissions([]);
+            setBusinessFetched(true);
+          }
+
+          // La sincronización de Firestore se ejecuta en segundo plano sin bloquear el renderizado principal
+          sessionPromise.catch((e) => {
+            console.warn("Firestore session sync failed in background:", e);
+          });
         } else {
           setBusiness(null);
           setRole(null);
           setPermissions([]);
           setIsUnauthorized(false);
           setFirestoreError("");
+          setBusinessFetched(false);
         }
         setAuthLoading(false);
       });
@@ -521,6 +543,7 @@ export function AuthProvider({ children }) {
     setPermissions(DEV_OWNER_PERMISSIONS);
     setIsUnauthorized(false);
     setBusiness({ id: "business-default", name: "Aura Studio (Demo)", slug: "aura-studio" });
+    setBusinessFetched(true);
     setAuthLoading(false);
   }, []);
 
@@ -590,6 +613,7 @@ export function AuthProvider({ children }) {
       switchBusiness,
       loginDemo,
       isDemoSession,
+      businessFetched,
     }),
     [
       user,
@@ -610,8 +634,9 @@ export function AuthProvider({ children }) {
       userBusinesses,
       switchBusiness,
       loginDemo,
-      isSuperAdmin,
       isDemoSession,
+      isSuperAdmin,
+      businessFetched,
     ]
   );
 
