@@ -33,20 +33,22 @@ export default function BookingPage() {
   }, [slug]);
 
   // Dynamic branding variables
-  const brandColor = business?.bookingPrimaryColor || "#7c3aed";
+  const brandColor = business?.bookingPrimaryColor || "#6B4EFF";
 
   return (
     <div
       style={{
         "--brand-color": brandColor,
         minHeight: "100vh",
-        backgroundColor: "#f8fafc",
-        padding: "20px 10px",
+        backgroundColor: "#F2F2F7",
+        padding: "40px 10px",
         fontFamily: "'Outfit', 'Inter', sans-serif",
         color: "#1e293b",
         display: "flex",
         flexDirection: "column",
-        alignItems: "center"
+        alignItems: "center",
+        justifyContent: "flex-start",
+        boxSizing: "border-box"
       }}
     >
       <style>{`
@@ -54,15 +56,16 @@ export default function BookingPage() {
         
         .booking-container {
           width: 100%;
-          max-width: 580px;
+          max-width: 480px;
           background: #ffffff;
           border-radius: 24px;
-          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
-          border: 1px solid #f1f5f9;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04), 0 1px 8px rgba(0, 0, 0, 0.02);
+          border: 1px solid rgba(0, 0, 0, 0.02);
           overflow: hidden;
           padding: 24px;
           margin-top: 15px;
-          margin-bottom: 80px;
+          margin-bottom: 100px;
+          box-sizing: border-box;
         }
 
         .skeleton-block {
@@ -78,8 +81,8 @@ export default function BookingPage() {
         }
 
         .brand-avatar {
-          width: 48px;
-          height: 48px;
+          width: 44px;
+          height: 44px;
           border-radius: 50%;
           object-fit: cover;
           border: 2px solid var(--brand-color);
@@ -87,8 +90,8 @@ export default function BookingPage() {
         }
 
         .brand-avatar-placeholder {
-          width: 48px;
-          height: 48px;
+          width: 44px;
+          height: 44px;
           border-radius: 50%;
           display: flex;
           align-items: center;
@@ -97,6 +100,7 @@ export default function BookingPage() {
           color: #ffffff;
           background: linear-gradient(135deg, var(--brand-color) 0%, #1e293b 100%);
           box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+          font-size: 14px;
         }
       `}</style>
 
@@ -104,17 +108,18 @@ export default function BookingPage() {
       <header
         style={{
           width: "100%",
-          maxWidth: "580px",
+          maxWidth: "480px",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
           padding: "10px 5px",
-          marginBottom: "10px"
+          marginBottom: "10px",
+          boxSizing: "border-box"
         }}
       >
-        <div style={{ display: "flex", translate: "no", alignItems: "center", gap: "12px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           {loading ? (
-            <div className="skeleton-block" style={{ width: "48px", height: "48px", borderRadius: "50%" }} />
+            <div className="skeleton-block" style={{ width: "44px", height: "44px", borderRadius: "50%" }} />
           ) : business?.logo ? (
             <img src={business.logo} alt="Logo" className="brand-avatar" />
           ) : (
@@ -127,7 +132,7 @@ export default function BookingPage() {
             {loading ? (
               <div className="skeleton-block" style={{ width: "120px", height: "20px", marginBottom: "6px" }} />
             ) : (
-              <h1 style={{ fontSize: "18px", fontWeight: "700", margin: 0, color: "#0f172a" }}>
+              <h1 style={{ fontSize: "17px", fontWeight: "800", margin: 0, color: "#0f172a", letterSpacing: "-0.02em" }}>
                 {business?.name}
               </h1>
             )}
@@ -135,7 +140,7 @@ export default function BookingPage() {
             {loading ? (
               <div className="skeleton-block" style={{ width: "80px", height: "12px" }} />
             ) : (
-              <span style={{ fontSize: "12px", color: "#64748b" }}>
+              <span style={{ fontSize: "11px", color: "#64748b", fontWeight: "600" }}>
                 {business?.description || "Reservas Online"}
               </span>
             )}
@@ -145,12 +150,12 @@ export default function BookingPage() {
 
       {/* SKELETON LOADER STATE */}
       {loading && (
-        <div className="booking-container d-grid gap-4">
+        <div className="booking-container" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
           <div className="skeleton-block" style={{ height: "4px", width: "100%", borderRadius: "10px" }} />
           <div className="skeleton-block" style={{ height: "40px", width: "70%", margin: "0 auto 10px" }} />
-          <div className="skeleton-block" style={{ height: "80px", width: "100%" }} />
-          <div className="skeleton-block" style={{ height: "80px", width: "100%" }} />
-          <div className="skeleton-block" style={{ height: "80px", width: "100%" }} />
+          <div className="skeleton-block" style={{ height: "80px", width: "100%", borderRadius: "16px" }} />
+          <div className="skeleton-block" style={{ height: "80px", width: "100%", borderRadius: "16px" }} />
+          <div className="skeleton-block" style={{ height: "80px", width: "100%", borderRadius: "16px" }} />
         </div>
       )}
 
@@ -164,10 +169,10 @@ export default function BookingPage() {
           }}
         >
           <div style={{ fontSize: "48px", marginBottom: "15px" }}>⚠️</div>
-          <h2 style={{ fontSize: "20px", fontWeight: "700", color: "#ef4444", marginBottom: "10px" }}>
+          <h2 style={{ fontSize: "19px", fontWeight: "800", color: "#ef4444", marginBottom: "10px" }}>
             Negocio no Encontrado
           </h2>
-          <p style={{ color: "#64748b", fontSize: "14px", lineHeight: "1.5", marginBottom: "0" }}>
+          <p style={{ color: "#64748b", fontSize: "13.5px", lineHeight: "1.5", marginBottom: "0" }}>
             {error}
           </p>
         </div>

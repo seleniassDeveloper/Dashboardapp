@@ -8,30 +8,34 @@ function hexToRgb(hex) {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(fullHex);
   return result
     ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}`
-    : "124, 58, 237"; // default brand color purple
+    : "107, 78, 255"; // default brand color purple #6B4EFF
 }
 
 export default function BookingForm({ business, slug }) {
-  const brandColor = business?.bookingPrimaryColor || "#7c3aed";
+  const brandColor = business?.bookingPrimaryColor || "#6B4EFF";
   const brandColorRgb = hexToRgb(brandColor);
 
   const [step, setStep] = useState(1);
+  const [direction, setDirection] = useState("forward");
+
   const [services, setServices] = useState([]);
   const [professionals, setProfessionals] = useState([]);
   const [loadingData, setLoadingData] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
 
-  // Step 1: Selected services
+  // Step 1: Services selection
   const [selectedServices, setSelectedServices] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeCategory, setActiveCategory] = useState("Todos");
 
-  // Step 2: Selected professional
+  // Step 2: Professional selection
   const [selectedWorkerId, setSelectedWorkerId] = useState("any");
 
-  // Step 3: Date & Hour
+  // Step 3: Date & Hour Strip
+  const today = new Date();
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
-    d.setHours(0,0,0,0);
+    d.setHours(0, 0, 0, 0);
     return d;
   });
   const [selectedDate, setSelectedDate] = useState(null); // Date object
@@ -40,18 +44,21 @@ export default function BookingForm({ business, slug }) {
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState(null); // "HH:MM"
 
-  // Step 4: Personal details
+  // Step 4: Client information
   const [form, setForm] = useState({
+    clientName: "",
     firstName: "",
     lastName: "",
     phone: "",
+    clientPhone: "",
     email: "",
+    clientEmail: "",
     notes: ""
   });
   const [submitting, setSubmitting] = useState(false);
   const [bookingError, setBookingError] = useState("");
 
-  // Success view data
+  // Step 5: Success screen
   const [createdBookings, setCreatedBookings] = useState(null);
 
   // Fetch services and professionals on mount
@@ -110,6 +117,12 @@ export default function BookingForm({ business, slug }) {
     }
   };
 
+  // Helper step transitions
+  const changeStep = (nextStep) => {
+    setDirection(nextStep > step ? "forward" : "backward");
+    setStep(nextStep);
+  };
+
   // Helper calculations for summary
   const totalDuration = selectedServices.reduce((sum, s) => sum + (s.duration || 30), 0);
   const totalPrice = selectedServices.reduce((sum, s) => sum + s.price, 0);
@@ -120,7 +133,16 @@ export default function BookingForm({ business, slug }) {
     return serviceIds.every(id => w.serviceIds.includes(id));
   });
 
-  // Reset forward selections when step 1 changes
+  // Extract categories for tabs in step 1
+  const categories = ["Todos", ...Array.from(new Set(services.map(s => s.category).filter(Boolean)))];
+
+  // Rotate pastel background colors
+  const getPastelBg = (index) => {
+    const colors = ["#FDECD8", "#DDE8FF", "#DDF4EA", "#EDE8FF"];
+    return colors[index % colors.length];
+  };
+
+  // Toggle selected service
   const toggleService = (service) => {
     setSelectedServices(prev => {
       const exists = prev.some(s => s.id === service.id);
@@ -130,7 +152,7 @@ export default function BookingForm({ business, slug }) {
       } else {
         updated = [...prev, service];
       }
-      // Reset worker and date if services changed
+      // Reset worker and date selection to avoid inconsistencies
       setSelectedWorkerId("any");
       setSelectedDate(null);
       setSelectedDateStr("");
@@ -140,7 +162,7 @@ export default function BookingForm({ business, slug }) {
     });
   };
 
-  // Reset forward selections when step 2 changes
+  // Select professional
   const handleWorkerChange = (workerId) => {
     setSelectedWorkerId(workerId);
     setSelectedDate(null);
@@ -190,10 +212,23 @@ export default function BookingForm({ business, slug }) {
     });
   };
 
-  // Day names for the strip
+  // Formatting month label
+  const formatMonthLabel = (date) => {
+    const monthsShort = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+    const monthName = monthsShort[date.getMonth()];
+    const year = date.getFullYear();
+    return `${monthName}, ${year}`;
+  };
+
+  const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const startDateOnly = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+  const isStripLeftDisabled = startDateOnly <= todayDateOnly;
+  const isMonthLeftDisabled = startDate.getFullYear() === today.getFullYear() && startDate.getMonth() === today.getMonth();
+
+  // Day names for strip
   const dayNamesShort = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
-  // Render 5 days in the week view strip
+  // Generate 5 days cells for horizontal datepicker strip
   const dayStripCells = [];
   const tempDate = new Date(startDate);
   for (let i = 0; i < 5; i++) {
@@ -222,20 +257,16 @@ export default function BookingForm({ business, slug }) {
     tempDate.setDate(tempDate.getDate() + 1);
   }
 
-  // Formatting month label Aug, 2023 style
-  const formatMonthLabel = (date) => {
-    const monthsShort = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
-    const monthName = monthsShort[date.getMonth()];
-    const year = date.getFullYear();
-    return `${monthName}, ${year}`;
-  };
+  // Time Slots logic: Available, Selected, Occupied
+  const standardHours = [
+    "09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "12:00", "12:30",
+    "13:00", "13:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30",
+    "17:00", "17:30", "18:00"
+  ];
+  // Merge API slots with standard hours to build a comprehensive list of statuses
+  const allSlots = Array.from(new Set([...standardHours, ...slots])).sort();
 
-  const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const startDateOnly = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
-  const isStripLeftDisabled = startDateOnly <= todayDateOnly;
-  const isMonthLeftDisabled = startDate.getFullYear() === today.getFullYear() && startDate.getMonth() === today.getMonth();
-
-  // Formatting date header
+  // Formatting date header for slots
   const formatSelectedDateHeader = (dateStr) => {
     if (!dateStr) return "";
     const [y, m, d] = dateStr.split("-").map(Number);
@@ -247,12 +278,15 @@ export default function BookingForm({ business, slug }) {
     });
   };
 
-  // Step 4 phone and name validation
-  const cleanPhone = form.phone.replace(/[\s\-+()]/g, '');
-  const isPhoneValid = /^\d+$/.test(cleanPhone) && cleanPhone.length >= 8;
-  const isFormValid = form.firstName.trim() !== "" && form.lastName.trim() !== "" && isPhoneValid;
+  // Form phone and name validation
+  const inputPhone = form.phone || form.clientPhone || "";
+  const cleanedPhone = inputPhone.replace(/[\s\-+()]/g, '');
+  const isPhoneValid = /^\d+$/.test(cleanedPhone) && cleanedPhone.length >= 8;
+  
+  const finalClientName = form.clientName || `${form.firstName || ""} ${form.lastName || ""}`.trim();
+  const isFormValid = finalClientName.trim() !== "" && isPhoneValid;
 
-  // Submit booking
+  // Confirm booking POST execution (dual-payload)
   const handleConfirmBooking = async (e) => {
     e.preventDefault();
     if (!isFormValid) return;
@@ -261,16 +295,30 @@ export default function BookingForm({ business, slug }) {
       setSubmitting(true);
       setBookingError("");
 
+      const splitName = finalClientName.trim().split(" ");
+      const firstNameVal = form.firstName || splitName[0] || "Cliente";
+      const lastNameVal = form.lastName || splitName.slice(1).join(" ") || "SaaS";
+
+      // Build payload matching both schemas
       const payload = {
-        firstName: form.firstName.trim(),
-        lastName: form.lastName.trim(),
-        phone: form.phone.trim(),
-        email: form.email.trim() || null,
+        // Express backend properties
+        firstName: firstNameVal,
+        lastName: lastNameVal,
+        phone: inputPhone.trim(),
+        email: (form.email || form.clientEmail || "").trim() || null,
         notes: form.notes.trim() || null,
         serviceId: selectedServices.map(s => s.id).join(","),
         professionalId: selectedWorkerId,
         date: selectedDateStr,
-        time: selectedSlot
+        time: selectedSlot,
+
+        // Alternative schema requested
+        clientName: finalClientName.trim(),
+        clientPhone: inputPhone.trim(),
+        clientEmail: (form.email || form.clientEmail || "").trim() || "",
+        serviceIds: selectedServices.map(s => s.id),
+        workerId: selectedWorkerId,
+        startsAt: selectedDateStr && selectedSlot ? new Date(`${selectedDateStr}T${selectedSlot}:00`).toISOString() : ""
       };
 
       const res = await fetch(`${API_BASE_URL}/public/business/${slug}/bookings`, {
@@ -286,7 +334,7 @@ export default function BookingForm({ business, slug }) {
       }
 
       setCreatedBookings(data.bookings || [data.booking]);
-      setStep(5); // Transition to success step
+      changeStep(5); // Transition to success step
     } catch (err) {
       console.error(err);
       setBookingError(err.message || "Error de red al procesar la reserva. Inténtalo de nuevo.");
@@ -299,14 +347,11 @@ export default function BookingForm({ business, slug }) {
   const getGCalLink = () => {
     if (!createdBookings || createdBookings.length === 0) return "";
     
-    // Sort booking appointments by startsAt to get the true start/end window
     const sorted = [...createdBookings].sort((a, b) => new Date(a.startsAt) - new Date(b.startsAt));
     const firstAppt = sorted[0];
     const lastAppt = sorted[sorted.length - 1];
     
     const start = new Date(firstAppt.startsAt);
-    
-    // End is start of last appointment plus its service duration
     const lastSvcDuration = lastAppt.service?.duration || 30;
     const end = new Date(new Date(lastAppt.startsAt).getTime() + lastSvcDuration * 60 * 1000);
     
@@ -327,7 +372,6 @@ export default function BookingForm({ business, slug }) {
     return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${dates}&details=${encodeURIComponent(details)}`;
   };
 
-  // Reset all states to do a new booking
   const handleReset = () => {
     setStep(1);
     setSelectedServices([]);
@@ -337,22 +381,78 @@ export default function BookingForm({ business, slug }) {
     setSlots([]);
     setSelectedSlot(null);
     setForm({
+      clientName: "",
       firstName: "",
       lastName: "",
       phone: "",
+      clientPhone: "",
       email: "",
+      clientEmail: "",
       notes: ""
     });
     setCreatedBookings(null);
     setBookingError("");
   };
 
+  // Step header details matching modern calendar icon + title layout
+  const getStepHeader = () => {
+    switch(step) {
+      case 1:
+        return {
+          title: "Elegí tu servicio",
+          subtitle: "Selecciona uno o más servicios que deseas reservar.",
+          icon: (
+            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
+            </svg>
+          )
+        };
+      case 2:
+        return {
+          title: "Elegí el profesional",
+          subtitle: "Selecciona quién realizará tu atención.",
+          icon: (
+            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+          )
+        };
+      case 3:
+        return {
+          title: "Fecha y hora",
+          subtitle: "Selecciona el día y horario de tu reserva.",
+          icon: (
+            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+          )
+        };
+      case 4:
+        return {
+          title: "Tus Datos",
+          subtitle: "Completa tus datos personales para finalizar.",
+          icon: (
+            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+              <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
+            </svg>
+          )
+        };
+      default:
+        return { title: "", subtitle: "", icon: null };
+    }
+  };
+
   // Loading skeleton state
   if (loadingData) {
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-        <div className="skeleton-block" style={{ height: "24px", width: "40%", borderRadius: "8px" }} />
-        <div className="skeleton-block" style={{ height: "80px", width: "100%", borderRadius: "16px" }} />
+        <div className="skeleton-block" style={{ height: "4px", width: "100%", borderRadius: "10px" }} />
+        <div className="skeleton-block" style={{ height: "40px", width: "75%", borderRadius: "8px" }} />
         <div className="skeleton-block" style={{ height: "80px", width: "100%", borderRadius: "16px" }} />
         <div className="skeleton-block" style={{ height: "80px", width: "100%", borderRadius: "16px" }} />
       </div>
@@ -363,98 +463,125 @@ export default function BookingForm({ business, slug }) {
     return (
       <div style={{ textAlign: "center", padding: "20px" }}>
         <div style={{ fontSize: "40px", marginBottom: "12px" }}>⚠️</div>
-        <p style={{ color: "#ef4444", fontWeight: "600" }}>{errorMsg}</p>
-        <button className="back-button" onClick={handleReset} style={{ marginTop: "16px" }}>
+        <p style={{ color: "#ef4444", fontWeight: "700" }}>{errorMsg}</p>
+        <button className="back-button" onClick={handleReset} style={{ marginTop: "16px", width: "100%" }}>
           Reintentar
         </button>
       </div>
     );
   }
 
-  // Filter service items by search query
-  const filteredServices = services.filter(s => 
-    s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    (s.description && s.description.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  // Filter services by search term and tab category
+  const filteredServices = services.filter(s => {
+    const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      (s.description && s.description.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesCategory = activeCategory === "Todos" || s.category === activeCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  const headerDetails = getStepHeader();
+
+  // Stack of workers overlapping avatars (Step 2)
+  const workerAvatars = eligibleWorkers.slice(0, 3);
+  const workerRemaining = eligibleWorkers.length - 3;
 
   return (
     <div className="booking-form-wrapper" style={{ "--brand-color": brandColor, "--brand-color-rgb": brandColorRgb }}>
       <style>{`
         .booking-form-wrapper {
           position: relative;
+          color: #1e293b;
         }
 
-        /* Stepper Styling */
-        .wizard-stepper {
+        /* Segmented Progress Bar */
+        .progress-bar-container {
           display: flex;
-          justify-content: space-between;
-          margin-bottom: 30px;
-          position: relative;
-          padding: 0 10px;
+          gap: 6px;
+          margin-bottom: 24px;
+          padding: 0 4px;
         }
-        .wizard-stepper::before {
-          content: '';
-          position: absolute;
-          top: 16px;
-          left: 10px;
-          right: 10px;
-          height: 3px;
+        .progress-segment {
+          flex-grow: 1;
+          height: 5px;
+          border-radius: 99px;
           background: #e2e8f0;
-          z-index: 1;
+          transition: background 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .wizard-stepper-progress {
-          position: absolute;
-          top: 16px;
-          left: 10px;
-          height: 3px;
+        .progress-segment.active {
           background: var(--brand-color);
-          z-index: 2;
-          transition: width 0.3s ease;
         }
-        .step-dot {
-          position: relative;
-          z-index: 3;
-          width: 32px;
-          height: 32px;
-          border-radius: 50%;
-          background: #ffffff;
-          border: 2px solid #cbd5e1;
+
+        /* Step Header */
+        .step-header-container {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          margin-bottom: 20px;
+          padding: 0 4px;
+        }
+        .step-title-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          color: #0f172a;
+        }
+        .step-title-icon {
           display: flex;
           align-items: center;
           justify-content: center;
-          font-weight: 700;
+          color: var(--brand-color);
+        }
+        .step-title-text {
+          font-size: 19px;
+          font-weight: 800;
+          letter-spacing: -0.02em;
+          margin: 0;
+        }
+        .step-subtitle-text {
           font-size: 13px;
-          color: #64748b;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          color: #8e8e93;
+          margin: 0;
+          font-weight: 500;
         }
-        .step-dot.active {
-          border-color: var(--brand-color);
-          color: var(--brand-color);
-          box-shadow: 0 0 0 4px rgba(var(--brand-color-rgb), 0.15);
+
+        /* Category tabs horizontal scrolling */
+        .category-tabs-container {
+          display: flex;
+          overflow-x: auto;
+          gap: 16px;
+          margin-bottom: 20px;
+          border-bottom: 1.5px solid #e2e8f0;
+          padding-bottom: 8px;
+          -webkit-overflow-scrolling: touch;
         }
-        .step-dot.completed {
-          border-color: var(--brand-color);
-          background: var(--brand-color);
-          color: #ffffff;
+        .category-tabs-container::-webkit-scrollbar {
+          display: none;
         }
-        .step-label {
-          position: absolute;
-          top: 38px;
-          font-size: 10px;
-          font-weight: 600;
-          white-space: nowrap;
-          color: #64748b;
-          transform: translateX(-50%);
-          left: 50%;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-        .step-dot.active .step-label {
-          color: var(--brand-color);
+        .category-tab {
+          background: transparent;
+          border: none;
+          padding: 6px 2px;
+          font-size: 13.5px;
           font-weight: 700;
+          color: #8e8e93;
+          cursor: pointer;
+          white-space: nowrap;
+          position: relative;
+          transition: color 0.2s ease;
+          outline: none;
         }
-        .step-dot.completed .step-label {
+        .category-tab.active {
           color: #0f172a;
+        }
+        .category-tab.active::after {
+          content: '';
+          position: absolute;
+          bottom: -9.5px;
+          left: 0;
+          right: 0;
+          height: 3px;
+          background: var(--brand-color);
+          border-radius: 2px 2px 0 0;
         }
 
         /* Search input */
@@ -467,79 +594,47 @@ export default function BookingForm({ business, slug }) {
           left: 14px;
           top: 50%;
           transform: translateY(-50%);
-          color: #94a3b8;
+          color: #8e8e93;
           pointer-events: none;
         }
         .search-input {
           width: 100%;
           padding: 12px 16px 12px 42px;
           border-radius: 14px;
-          border: 2px solid #e2e8f0;
+          border: 2px solid #e5e5ea;
           font-size: 14px;
           transition: all 0.2s ease;
           color: #0f172a;
           outline: none;
+          box-sizing: border-box;
+          background: #ffffff;
         }
         .search-input:focus {
           border-color: var(--brand-color);
-          box-shadow: 0 0 0 3px rgba(var(--brand-color-rgb), 0.08);
         }
 
-        /* Service Cards styling */
+        /* Service Cards - soft pastel color rotation */
         .services-list-container {
-          padding-bottom: 120px; /* Spacer for bottom bar */
+          padding-bottom: 110px; /* Spacer for bottom bar */
         }
         .service-card {
           padding: 18px;
-          border-radius: 20px;
-          border: 2px solid #f1f5f9;
-          background: #ffffff;
+          border-radius: 16px;
+          border: 2.5px solid transparent;
           cursor: pointer;
           transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
           display: flex;
           align-items: flex-start;
           gap: 14px;
-          margin-bottom: 14px;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.01);
+          margin-bottom: 12px;
+          position: relative;
         }
         .service-card:hover {
-          border-color: #cbd5e1;
           transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0,0,0,0.03);
         }
         .service-card.selected {
           border-color: var(--brand-color);
-          background: rgba(var(--brand-color-rgb), 0.02);
-          box-shadow: 0 4px 15px rgba(var(--brand-color-rgb), 0.05);
-        }
-        .custom-checkbox {
-          width: 22px;
-          height: 22px;
-          border-radius: 7px;
-          border: 2.5px solid #cbd5e1;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-          transition: all 0.2s ease;
-          margin-top: 2px;
-        }
-        .service-card.selected .custom-checkbox {
-          border-color: var(--brand-color);
-          background: var(--brand-color);
-        }
-        .custom-checkbox svg {
-          fill: none;
-          stroke: #ffffff;
-          stroke-width: 3.5;
-          stroke-linecap: round;
-          stroke-linejoin: round;
-          width: 11px;
-          height: 11px;
-          display: none;
-        }
-        .service-card.selected .custom-checkbox svg {
-          display: block;
+          box-shadow: 0 6px 20px rgba(var(--brand-color-rgb), 0.08);
         }
         .service-info {
           flex-grow: 1;
@@ -552,23 +647,28 @@ export default function BookingForm({ business, slug }) {
           margin-bottom: 4px;
         }
         .service-title {
-          font-weight: 700;
+          font-weight: 800;
           font-size: 15px;
           color: #0f172a;
-          line-height: 1.3;
+          line-height: 1.35;
           margin: 0;
         }
         .service-price {
-          font-weight: 700;
-          font-size: 16px;
-          color: var(--brand-color);
+          font-weight: 800;
+          font-size: 15.5px;
+          color: #0f172a;
           white-space: nowrap;
         }
         .service-desc {
           font-size: 12.5px;
           color: #64748b;
-          line-height: 1.4;
-          margin: 0 0 8px 0;
+          line-height: 1.45;
+          margin: 0 0 10px 0;
+        }
+        .service-badge-container {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
         }
         .service-badge {
           display: inline-flex;
@@ -577,169 +677,177 @@ export default function BookingForm({ business, slug }) {
           padding: 3px 8px;
           border-radius: 6px;
           font-size: 11px;
-          font-weight: 600;
-          background: #f1f5f9;
+          font-weight: 700;
+          background: rgba(255, 255, 255, 0.6);
           color: #475569;
         }
         .service-card.selected .service-badge {
-          background: rgba(var(--brand-color-rgb), 0.08);
+          background: #ffffff;
           color: var(--brand-color);
         }
-
-        /* Sticky bottom panel */
-        .sticky-summary {
-          position: fixed;
-          bottom: 0;
-          left: 50%;
-          transform: translateX(-50%);
-          width: 100%;
-          max-width: 580px;
+        
+        /* Select indicator at the right of cards */
+        .select-check-circle {
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
           background: #ffffff;
-          border-top: 1px solid #e2e8f0;
-          border-radius: 24px 24px 0 0;
-          padding: 16px 24px;
+          border: 2px solid #cbd5e1;
           display: flex;
-          justify-content: space-between;
           align-items: center;
-          z-index: 100;
-          box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.06);
-          box-sizing: border-box;
+          justify-content: center;
+          flex-shrink: 0;
+          transition: all 0.2s ease;
         }
-        .summary-info {
-          display: flex;
-          flex-direction: column;
-          gap: 2px;
-        }
-        .summary-text {
-          font-size: 12px;
-          font-weight: 600;
-          color: #94a3b8;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-        .summary-total {
-          font-size: 20px;
-          font-weight: 800;
-          color: #0f172a;
-        }
-        .next-button {
+        .service-card.selected .select-check-circle,
+        .worker-card.selected-expanded .select-check-circle {
+          border-color: var(--brand-color);
           background: var(--brand-color);
-          color: #ffffff;
-          border: none;
-          padding: 14px 26px;
-          border-radius: 14px;
-          font-weight: 700;
-          font-size: 14px;
-          cursor: pointer;
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          box-shadow: 0 4px 12px rgba(var(--brand-color-rgb), 0.2);
         }
-        .next-button:hover:not(:disabled) {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 16px rgba(var(--brand-color-rgb), 0.3);
-          opacity: 0.95;
+        .select-check-circle svg {
+          fill: none;
+          stroke: #ffffff;
+          stroke-width: 3.5;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+          width: 10px;
+          height: 10px;
+          display: none;
         }
-        .next-button:disabled {
-          background: #e2e8f0;
-          color: #94a3b8;
-          cursor: not-allowed;
-          box-shadow: none;
+        .service-card.selected .select-check-circle svg,
+        .worker-card.selected-expanded .select-check-circle svg {
+          display: block;
         }
 
-        /* Professional Selection styling */
-        .professionals-container {
+        /* Dynamic overlap avatars (Paso 2) */
+        .overlap-avatars-container {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          margin-bottom: 20px;
+        }
+        .overlap-avatar {
+          width: 44px;
+          height: 44px;
+          border-radius: 50%;
+          border: 3px solid #ffffff;
+          margin-left: -9px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 800;
+          font-size: 13px;
+          color: #0f172a;
+          box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+        }
+        .overlap-avatar:first-child {
+          margin-left: 0;
+        }
+        .overlap-avatar.badge-avatar {
+          background: #475569;
+          color: #ffffff;
+          font-weight: 700;
+          font-size: 12px;
+        }
+
+        /* Professional Selector list */
+        .professional-list {
           display: flex;
           flex-direction: column;
-          gap: 16px;
-        }
-        .professional-grid {
-          display: grid;
-          grid-template-columns: 1fr;
           gap: 12px;
         }
-        @media (min-width: 480px) {
-          .professional-grid {
-            grid-template-columns: 1fr 1fr;
-          }
-        }
         .worker-card {
-          padding: 20px 16px;
-          border-radius: 20px;
-          border: 2px solid #f1f5f9;
+          padding: 16px 20px;
+          border-radius: 16px;
           background: #ffffff;
+          border: 2px solid #e5e5ea;
           cursor: pointer;
-          transition: all 0.25s ease;
+          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
           display: flex;
-          flex-direction: column;
           align-items: center;
-          text-align: center;
-          position: relative;
+          justify-content: space-between;
+          gap: 16px;
         }
         .worker-card:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.03);
           border-color: #cbd5e1;
-          transform: translateY(-3px);
-          box-shadow: 0 6px 15px rgba(0,0,0,0.03);
         }
-        .worker-card.selected {
+        .worker-card.selected-expanded {
           border-color: var(--brand-color);
-          background: rgba(var(--brand-color-rgb), 0.02);
-          box-shadow: 0 6px 18px rgba(var(--brand-color-rgb), 0.05);
+          box-shadow: 0 6px 20px rgba(var(--brand-color-rgb), 0.08);
+          align-items: flex-start;
+          flex-direction: column;
         }
-        .worker-avatar {
-          width: 60px;
-          height: 60px;
+        .worker-main-row {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          width: 100%;
+        }
+        .worker-avatar-circle {
+          width: 44px;
+          height: 44px;
           border-radius: 50%;
           background: #f1f5f9;
           color: #475569;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 20px;
-          font-weight: 700;
-          margin-bottom: 12px;
-          border: 2.5px solid transparent;
-          transition: all 0.2s ease;
+          font-weight: 800;
+          font-size: 15px;
+          border: 2px solid transparent;
         }
-        .worker-card.selected .worker-avatar {
+        .worker-card.selected-expanded .worker-avatar-circle {
+          background: #ffffff;
+          color: var(--brand-color);
           border-color: var(--brand-color);
-          background: var(--brand-color);
-          color: #ffffff;
         }
-        .worker-name {
-          font-weight: 700;
+        .worker-identity {
+          flex-grow: 1;
+        }
+        .worker-name-title {
+          font-weight: 800;
           font-size: 15px;
           color: #0f172a;
-          margin-bottom: 3px;
+          margin: 0;
         }
-        .worker-role {
+        .worker-role-title {
           font-size: 12px;
-          color: #64748b;
-          font-weight: 500;
+          color: #8e8e93;
+          font-weight: 600;
+          margin: 0;
+        }
+        .worker-details-area {
+          width: 100%;
+          padding-top: 12px;
+          border-top: 1.5px dashed rgba(255, 255, 255, 0.4);
+          font-size: 12.5px;
+          color: #475569;
+          line-height: 1.45;
+          margin-top: 8px;
         }
 
         /* Schedule/Calendar Strip Styling */
         .calendar-wrapper {
-          border: 1px solid #f1f5f9;
+          border: 2px solid #f1f5f9;
           border-radius: 24px;
           padding: 20px;
           background: #ffffff;
-          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.015);
+          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.01);
         }
         .month-selector {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          background: #f8fafc;
+          background: #f2f2f7;
           border-radius: 14px;
           padding: 8px 12px;
           margin-bottom: 20px;
         }
         .month-nav-btn {
           background: #ffffff;
-          border: 1px solid #e2e8f0;
+          border: 1px solid #e5e5ea;
           width: 32px;
           height: 32px;
           border-radius: 10px;
@@ -749,12 +857,12 @@ export default function BookingForm({ business, slug }) {
           cursor: pointer;
           transition: all 0.2s ease;
           color: #475569;
-          font-weight: bold;
+          font-weight: 800;
           font-size: 14px;
           outline: none;
         }
         .month-nav-btn:hover:not(:disabled) {
-          background: #f1f5f9;
+          background: #f2f2f7;
           color: #0f172a;
           border-color: #cbd5e1;
         }
@@ -763,9 +871,9 @@ export default function BookingForm({ business, slug }) {
           cursor: not-allowed;
         }
         .month-label {
-          font-weight: 700;
-          font-size: 15px;
-          color: #1e293b;
+          font-weight: 800;
+          font-size: 14.5px;
+          color: #1c1c1e;
         }
 
         .days-strip-container {
@@ -776,7 +884,7 @@ export default function BookingForm({ business, slug }) {
         }
         .strip-nav-btn {
           background: #ffffff;
-          border: 1px solid #e2e8f0;
+          border: 1px solid #e5e5ea;
           width: 32px;
           height: 32px;
           border-radius: 50%;
@@ -786,13 +894,12 @@ export default function BookingForm({ business, slug }) {
           cursor: pointer;
           transition: all 0.2s ease;
           color: #475569;
-          font-weight: bold;
+          font-weight: 800;
           font-size: 13px;
           outline: none;
-          box-shadow: 0 2px 5px rgba(0,0,0,0.02);
         }
         .strip-nav-btn:hover:not(:disabled) {
-          background: #f1f5f9;
+          background: #f2f2f7;
           color: #0f172a;
           border-color: #cbd5e1;
         }
@@ -818,24 +925,25 @@ export default function BookingForm({ business, slug }) {
           cursor: pointer;
           transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
           background: #ffffff;
-          border: 1px solid transparent;
+          border: 1.5px solid #e5e5ea;
         }
         .day-strip-item:hover:not(.selected) {
-          background: #f8fafc;
+          background: #f2f2f7;
         }
         .day-strip-item.selected {
           background: var(--brand-color);
           color: #ffffff;
+          border-color: var(--brand-color);
           box-shadow: 0 6px 16px rgba(var(--brand-color-rgb), 0.3);
         }
         .day-strip-item.today:not(.selected) {
-          border: 1.5px solid var(--brand-color);
+          border: 2px solid var(--brand-color);
         }
         .day-strip-name {
-          font-size: 11px;
-          font-weight: 600;
-          color: #64748b;
-          text-transform: capitalize;
+          font-size: 10.5px;
+          font-weight: 700;
+          color: #8e8e93;
+          text-transform: uppercase;
           margin-bottom: 4px;
         }
         .day-strip-item.selected .day-strip-name {
@@ -843,14 +951,14 @@ export default function BookingForm({ business, slug }) {
         }
         .day-strip-num {
           font-size: 17px;
-          font-weight: 700;
+          font-weight: 800;
           color: #0f172a;
         }
         .day-strip-item.selected .day-strip-num {
           color: #ffffff;
         }
 
-        /* Slots container */
+        /* Pill rounded Time slots */
         .slots-container {
           margin-top: 24px;
           padding-top: 24px;
@@ -858,39 +966,55 @@ export default function BookingForm({ business, slug }) {
         }
         .slots-grid {
           display: grid;
-          grid-template-columns: repeat(3, 1fr);
+          grid-template-columns: repeat(4, 1fr);
           gap: 8px;
         }
-        @media (min-width: 480px) {
-          .slots-grid {
-            grid-template-columns: repeat(4, 1fr);
-          }
-        }
-        .slot-btn {
-          padding: 12px 8px;
-          border-radius: 12px;
-          border: 2px solid #e2e8f0;
-          background: #ffffff;
+        .slot-pill {
+          padding: 10px 4px;
+          border-radius: 999px;
           font-size: 13px;
-          font-weight: 600;
-          color: #334155;
+          font-weight: 700;
+          text-align: center;
           cursor: pointer;
           transition: all 0.2s ease;
-          text-align: center;
+          border: none;
           outline: none;
         }
-        .slot-btn:hover:not(.selected) {
-          border-color: #cbd5e1;
+        .slot-pill.available {
+          background: #ffffff;
+          color: #334155;
+          border: 1.5px solid #cbd5e1;
+        }
+        .slot-pill.available:hover {
+          border-color: #94a3b8;
           background: #f8fafc;
         }
-        .slot-btn.selected {
+        .slot-pill.selected {
           background: var(--brand-color);
           color: #ffffff;
-          border-color: var(--brand-color);
           box-shadow: 0 4px 10px rgba(var(--brand-color-rgb), 0.2);
         }
+        .slot-pill.occupied {
+          background: #f1f5f9;
+          color: #cbd5e1;
+          text-decoration: line-through;
+          cursor: not-allowed;
+        }
 
-        /* Review and Form card */
+        /* Outlined tags matching MARKETING layout */
+        .outlined-badge {
+          border: 1px solid var(--brand-color);
+          color: var(--brand-color);
+          padding: 3px 8px;
+          border-radius: 999px;
+          font-size: 9.5px;
+          font-weight: 800;
+          text-transform: uppercase;
+          display: inline-block;
+          letter-spacing: 0.5px;
+        }
+
+        /* Review summary card */
         .summary-card {
           background: #f8fafc;
           border: 2px solid #f1f5f9;
@@ -899,7 +1023,7 @@ export default function BookingForm({ business, slug }) {
           margin-bottom: 24px;
         }
         .summary-title {
-          font-weight: 700;
+          font-weight: 800;
           font-size: 15px;
           color: #0f172a;
           margin-bottom: 12px;
@@ -921,7 +1045,7 @@ export default function BookingForm({ business, slug }) {
         }
         .form-label {
           display: block;
-          font-size: 13px;
+          font-size: 12.5px;
           font-weight: 700;
           color: #475569;
           margin-bottom: 6px;
@@ -932,7 +1056,7 @@ export default function BookingForm({ business, slug }) {
           width: 100%;
           padding: 12px 16px;
           border-radius: 12px;
-          border: 2px solid #e2e8f0;
+          border: 2px solid #e5e5ea;
           background: #ffffff;
           font-size: 14.5px;
           transition: all 0.2s ease;
@@ -942,7 +1066,6 @@ export default function BookingForm({ business, slug }) {
         }
         .form-input:focus {
           border-color: var(--brand-color);
-          box-shadow: 0 0 0 3px rgba(var(--brand-color-rgb), 0.08);
         }
         .form-textarea {
           resize: vertical;
@@ -950,12 +1073,12 @@ export default function BookingForm({ business, slug }) {
           font-family: inherit;
         }
         .validation-warning {
-          font-size: 12px;
-          color: #64748b;
+          font-size: 11.5px;
+          color: #8e8e93;
           margin-top: 4px;
         }
 
-        /* Action buttons footer */
+        /* Action footers */
         .footer-actions {
           display: flex;
           justify-content: space-between;
@@ -965,20 +1088,20 @@ export default function BookingForm({ business, slug }) {
         .back-button {
           background: #ffffff;
           color: #475569;
-          border: 2px solid #e2e8f0;
+          border: 2px solid #e5e5ea;
           padding: 14px 24px;
           border-radius: 14px;
           font-weight: 700;
           font-size: 14px;
           cursor: pointer;
           transition: all 0.2s ease;
+          outline: none;
         }
         .back-button:hover {
-          background: #f8fafc;
+          background: #f2f2f7;
           border-color: #cbd5e1;
         }
 
-        /* Error block */
         .error-banner {
           background: #fef2f2;
           border: 2px solid #fecaca;
@@ -986,14 +1109,77 @@ export default function BookingForm({ business, slug }) {
           border-radius: 12px;
           padding: 12px 16px;
           font-size: 13.5px;
-          font-weight: 600;
+          font-weight: 700;
           margin-bottom: 20px;
           display: flex;
           align-items: center;
           gap: 8px;
         }
 
-        /* Success screen animations */
+        /* Mobile bottom fixed summary panel */
+        .sticky-summary {
+          position: fixed;
+          bottom: 0;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 100%;
+          max-width: 480px;
+          background: #ffffff;
+          border-top: 1px solid #e2e8f0;
+          border-radius: 24px 24px 0 0;
+          padding: 16px 20px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          z-index: 100;
+          box-shadow: 0 -8px 25px rgba(0, 0, 0, 0.06);
+          box-sizing: border-box;
+        }
+        .summary-info {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+        .summary-text {
+          font-size: 12px;
+          font-weight: 700;
+          color: #8e8e93;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+        .summary-total {
+          font-size: 20px;
+          font-weight: 900;
+          color: #0f172a;
+        }
+        .next-button {
+          background: var(--brand-color);
+          color: #ffffff;
+          border: none;
+          padding: 14px 26px;
+          border-radius: 14px;
+          font-weight: 800;
+          font-size: 14.5px;
+          cursor: pointer;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          box-shadow: 0 4px 12px rgba(var(--brand-color-rgb), 0.2);
+          outline: none;
+        }
+        .next-button:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 16px rgba(var(--brand-color-rgb), 0.3);
+        }
+        .next-button:disabled {
+          background: #e5e5ea;
+          color: #8e8e93;
+          cursor: not-allowed;
+          box-shadow: none;
+        }
+
+        /* Success screen checkmark animations */
         .success-card {
           text-align: center;
           padding: 24px 12px;
@@ -1058,7 +1244,7 @@ export default function BookingForm({ business, slug }) {
           border: none;
           padding: 14px 28px;
           border-radius: 14px;
-          font-weight: 700;
+          font-weight: 800;
           font-size: 14px;
           cursor: pointer;
           display: inline-flex;
@@ -1068,6 +1254,7 @@ export default function BookingForm({ business, slug }) {
           text-decoration: none;
           margin-top: 24px;
           box-shadow: 0 4px 12px rgba(26, 115, 232, 0.2);
+          outline: none;
         }
         .gcal-btn:hover {
           background: #1557b0;
@@ -1079,17 +1266,18 @@ export default function BookingForm({ business, slug }) {
           margin-top: 14px;
           background: transparent;
           color: #475569;
-          border: 2px solid #e2e8f0;
+          border: 2px solid #e5e5ea;
           padding: 12px 24px;
           border-radius: 14px;
-          font-weight: 700;
+          font-weight: 800;
           font-size: 13.5px;
           cursor: pointer;
           transition: all 0.2s ease;
           width: 100%;
+          outline: none;
         }
         .another-booking-btn:hover {
-          background: #f8fafc;
+          background: #f2f2f7;
           border-color: #cbd5e1;
         }
 
@@ -1104,39 +1292,65 @@ export default function BookingForm({ business, slug }) {
           color: #475569;
           line-height: 1.5;
         }
+
+        /* Slide Transition Animations */
+        .slide-container {
+          animation-duration: 0.35s;
+          animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+          animation-fill-mode: forwards;
+        }
+        .slide-forward {
+          animation-name: slideForward;
+        }
+        .slide-backward {
+          animation-name: slideBackward;
+        }
+        @keyframes slideForward {
+          from { transform: translateX(20px); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideBackward {
+          from { transform: translateX(-20px); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
       `}</style>
 
-      {/* Wizard Step Stepper (only steps 1-4) */}
+      {/* Segmented Progress Bar */}
       {step <= 4 && (
-        <div className="wizard-stepper">
-          <div 
-            className="wizard-stepper-progress" 
-            style={{ width: `${((step - 1) / 3) * 100}%` }}
-          />
-          <div className={`step-dot ${step >= 1 ? "completed" : ""} ${step === 1 ? "active" : ""}`}>
-            1
-            <span className="step-label">Servicios</span>
+        <div className="progress-bar-container">
+          {[1, 2, 3, 4].map(idx => (
+            <div key={idx} className={`progress-segment ${step >= idx ? "active" : ""}`} />
+          ))}
+        </div>
+      )}
+
+      {/* Dynamic Header */}
+      {step <= 4 && headerDetails.title && (
+        <div className="step-header-container">
+          <div className="step-title-row">
+            <span className="step-title-icon">{headerDetails.icon}</span>
+            <h2 className="step-title-text">{headerDetails.title}</h2>
           </div>
-          <div className={`step-dot ${step > 2 ? "completed" : ""} ${step === 2 ? "active" : ""}`}>
-            2
-            <span className="step-label">Personal</span>
-          </div>
-          <div className={`step-dot ${step > 3 ? "completed" : ""} ${step === 3 ? "active" : ""}`}>
-            3
-            <span className="step-label">Fecha</span>
-          </div>
-          <div className={`step-dot ${step > 4 ? "completed" : ""} ${step === 4 ? "active" : ""}`}>
-            4
-            <span className="step-label">Datos</span>
-          </div>
+          <p className="step-subtitle-text">{headerDetails.subtitle}</p>
         </div>
       )}
 
       {/* STEP 1: SELECT SERVICES */}
       {step === 1 && (
-        <div className="services-list-container">
-          <h2 className="step-title">Selecciona los servicios</h2>
-          <p className="step-subtitle">Elige uno o más servicios que deseas reservar.</p>
+        <div className={`slide-container slide-${direction}`} key="step1">
+          {/* Categories Tab selector */}
+          <div className="category-tabs-container">
+            {categories.map(cat => (
+              <button
+                key={cat}
+                type="button"
+                className={`category-tab ${activeCategory === cat ? "active" : ""}`}
+                onClick={() => setActiveCategory(cat)}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
 
           <div className="search-container">
             <svg className="search-icon" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
@@ -1152,44 +1366,54 @@ export default function BookingForm({ business, slug }) {
             />
           </div>
 
-          {filteredServices.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "40px 10px", color: "#64748b" }}>
-              Ningún servicio coincide con tu búsqueda.
-            </div>
-          ) : (
-            filteredServices.map(service => {
-              const isSelected = selectedServices.some(s => s.id === service.id);
-              return (
-                <div
-                  key={service.id}
-                  className={`service-card ${isSelected ? "selected" : ""}`}
-                  onClick={() => toggleService(service)}
-                >
-                  <div className="custom-checkbox">
-                    <svg viewBox="0 0 24 24">
-                      <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                  </div>
-                  <div className="service-info">
-                    <div className="service-header-line">
-                      <h3 className="service-title">{service.name}</h3>
-                      <span className="service-price">
-                        {service.price === 0 ? "Gratis" : `$${new Intl.NumberFormat("es-AR").format(service.price)}`}
-                      </span>
+          <div className="services-list-container">
+            {filteredServices.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "40px 10px", color: "#8e8e93", fontSize: "14px" }}>
+                Ningún servicio coincide con tu selección.
+              </div>
+            ) : (
+              filteredServices.map((service, index) => {
+                const isSelected = selectedServices.some(s => s.id === service.id);
+                return (
+                  <div
+                    key={service.id}
+                    className={`service-card ${isSelected ? "selected" : ""}`}
+                    style={{ backgroundColor: getPastelBg(index) }}
+                    onClick={() => toggleService(service)}
+                  >
+                    <div className="service-info">
+                      <div className="service-header-line">
+                        <h3 className="service-title">{service.name}</h3>
+                        <span className="service-price">
+                          {service.price === 0 ? "Gratis" : `$${new Intl.NumberFormat("es-AR").format(service.price)}`}
+                        </span>
+                      </div>
+                      {service.description && (
+                        <p className="service-desc">{service.description}</p>
+                      )}
+                      <div className="service-badge-container">
+                        <span className="service-badge">
+                          ⏱ {service.duration || 30} min
+                        </span>
+                        {service.category && (
+                          <span className="outlined-badge">
+                            {service.category}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    {service.description && (
-                      <p className="service-desc">{service.description}</p>
-                    )}
-                    <span className="service-badge">
-                      ⏱ {service.duration || 30} min
-                    </span>
+                    <div className="select-check-circle" style={{ marginLeft: "10px", marginTop: "2px" }}>
+                      <svg viewBox="0 0 24 24">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    </div>
                   </div>
-                </div>
-              );
-            })
-          )}
+                );
+              })
+            )}
+          </div>
 
-          {/* Sticky summary footer */}
+          {/* Fixed bottom panel */}
           <div className="sticky-summary">
             <div className="summary-info">
               <span className="summary-text">
@@ -1203,7 +1427,7 @@ export default function BookingForm({ business, slug }) {
               type="button"
               className="next-button"
               disabled={selectedServices.length === 0}
-              onClick={() => setStep(2)}
+              onClick={() => changeStep(2)}
             >
               Siguiente
               <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
@@ -1216,57 +1440,117 @@ export default function BookingForm({ business, slug }) {
 
       {/* STEP 2: SELECT PROFESSIONAL */}
       {step === 2 && (
-        <div className="professionals-container">
-          <h2 className="step-title">Elige un profesional</h2>
-          <p className="step-subtitle">Selecciona a quién prefieres para realizar tu cita.</p>
+        <div className={`slide-container slide-${direction}`} key="step2">
+          {/* Superposed avatars */}
+          {eligibleWorkers.length > 0 && (
+            <div className="overlap-avatars-container">
+              {workerAvatars.map((worker, index) => {
+                const initials = `${worker.firstName?.charAt(0) || ""}${worker.lastName?.charAt(0) || ""}`.toUpperCase();
+                return (
+                  <div 
+                    key={worker.id} 
+                    className="overlap-avatar"
+                    style={{ zIndex: 5 - index, backgroundColor: getPastelBg(index) }}
+                  >
+                    {initials}
+                  </div>
+                );
+              })}
+              {workerRemaining > 0 && (
+                <div className="overlap-avatar badge-avatar" style={{ zIndex: 0 }}>
+                  +{workerRemaining}
+                </div>
+              )}
+            </div>
+          )}
 
           {eligibleWorkers.length === 0 ? (
             <div style={{ textAlign: "center", padding: "20px 0" }}>
               <div className="error-banner">
                 ⚠️ Ninguno de nuestros profesionales realiza todos los servicios seleccionados al mismo tiempo.
               </div>
-              <button type="button" className="back-button" onClick={() => setStep(1)} style={{ width: "100%" }}>
+              <button type="button" className="back-button" onClick={() => changeStep(1)} style={{ width: "100%" }}>
                 Volver a Servicios
               </button>
             </div>
           ) : (
             <>
-              <div className="professional-grid">
-                {/* Any option */}
+              <div className="professional-list">
+                {/* Any/No Preference Worker Card */}
                 <div 
-                  className={`worker-card ${selectedWorkerId === "any" ? "selected" : ""}`}
+                  className={`worker-card ${selectedWorkerId === "any" ? "selected-expanded" : ""}`}
+                  style={{ backgroundColor: selectedWorkerId === "any" ? getPastelBg(3) : "#ffffff" }}
                   onClick={() => handleWorkerChange("any")}
                 >
-                  <div className="worker-avatar">✨</div>
-                  <div className="worker-name">Sin preferencia</div>
-                  <div className="worker-role">El profesional disponible más rápido</div>
+                  <div className="worker-main-row">
+                    <div className="worker-avatar-circle">✨</div>
+                    <div className="worker-identity">
+                      <h4 className="worker-name-title">Sin preferencia</h4>
+                      <p className="worker-role-title">Asignar al profesional libre más rápido</p>
+                    </div>
+                    <div className="select-check-circle">
+                      <svg viewBox="0 0 24 24">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    </div>
+                  </div>
+                  {selectedWorkerId === "any" && (
+                    <div className="worker-details-area">
+                      Buscaremos al profesional de nuestro equipo que tenga disponibilidad para la combinación de todos tus servicios en el horario que elijas.
+                    </div>
+                  )}
                 </div>
 
-                {eligibleWorkers.map(worker => {
+                {/* Normal Professional Cards */}
+                {eligibleWorkers.map((worker, index) => {
                   const initials = `${worker.firstName?.charAt(0) || ""}${worker.lastName?.charAt(0) || ""}`.toUpperCase();
                   const isSelected = selectedWorkerId === worker.id;
+                  
+                  // Get names of services this worker can perform
+                  const workerServicesList = services
+                    .filter(s => worker.serviceIds.includes(s.id))
+                    .map(s => s.name)
+                    .slice(0, 3)
+                    .join(", ");
+
                   return (
                     <div 
                       key={worker.id}
-                      className={`worker-card ${isSelected ? "selected" : ""}`}
+                      className={`worker-card ${isSelected ? "selected-expanded" : ""}`}
+                      style={{ backgroundColor: isSelected ? getPastelBg(index) : "#ffffff" }}
                       onClick={() => handleWorkerChange(worker.id)}
                     >
-                      <div className="worker-avatar">{initials}</div>
-                      <div className="worker-name">{worker.name}</div>
-                      <div className="worker-role">{worker.roleTitle || "Profesional"}</div>
+                      <div className="worker-main-row">
+                        <div className="worker-avatar-circle">{initials}</div>
+                        <div className="worker-identity">
+                          <h4 className="worker-name-title">{worker.name}</h4>
+                          <p className="worker-role-title">{worker.roleTitle || "Profesional"}</p>
+                        </div>
+                        <div className="select-check-circle">
+                          <svg viewBox="0 0 24 24">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                          </svg>
+                        </div>
+                      </div>
+                      
+                      {isSelected && (
+                        <div className="worker-details-area">
+                          <strong>Especialista en:</strong> {workerServicesList} {worker.serviceIds.length > 3 ? "y más." : "."}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
               </div>
 
               <div className="footer-actions">
-                <button type="button" className="back-button" onClick={() => setStep(1)}>
+                <button type="button" className="back-button" onClick={() => changeStep(1)}>
                   Atrás
                 </button>
                 <button 
                   type="button" 
                   className="next-button"
-                  onClick={() => setStep(3)}
+                  onClick={() => changeStep(3)}
                 >
                   Siguiente
                   <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
@@ -1279,14 +1563,11 @@ export default function BookingForm({ business, slug }) {
         </div>
       )}
 
-      {/* STEP 3: DATE AND HOUR CALENDAR */}
+      {/* STEP 3: DATE AND SLOTS */}
       {step === 3 && (
-        <div>
-          <h2 className="step-title">Fecha y hora</h2>
-          <p className="step-subtitle">Selecciona el día y la hora de tu reserva.</p>
-
+        <div className={`slide-container slide-${direction}`} key="step3">
           <div className="calendar-wrapper">
-            {/* Month selector styled Aug, 2023 style */}
+            {/* Month selector centrado styled Aug, 2023 style */}
             <div className="month-selector">
               <button 
                 type="button" 
@@ -1336,51 +1617,62 @@ export default function BookingForm({ business, slug }) {
             <div className="slots-container">
               <div className="skeleton-block" style={{ height: "20px", width: "40%", marginBottom: "12px", borderRadius: "6px" }} />
               <div className="slots-grid">
-                <div className="skeleton-block" style={{ height: "42px", borderRadius: "12px" }} />
-                <div className="skeleton-block" style={{ height: "42px", borderRadius: "12px" }} />
-                <div className="skeleton-block" style={{ height: "42px", borderRadius: "12px" }} />
-                <div className="skeleton-block" style={{ height: "42px", borderRadius: "12px" }} />
+                <div className="skeleton-block" style={{ height: "38px", borderRadius: "999px" }} />
+                <div className="skeleton-block" style={{ height: "38px", borderRadius: "999px" }} />
+                <div className="skeleton-block" style={{ height: "38px", borderRadius: "999px" }} />
+                <div className="skeleton-block" style={{ height: "38px", borderRadius: "999px" }} />
               </div>
             </div>
           ) : selectedDateStr ? (
             slots.length === 0 ? (
-              <div className="slots-container" style={{ textAlign: "center", padding: "20px 0", color: "#ef4444", fontWeight: "600" }}>
+              <div className="slots-container" style={{ textAlign: "center", padding: "20px 0", color: "#ef4444", fontWeight: "700" }}>
                 ⚠️ No hay horarios disponibles para el {formatSelectedDateHeader(selectedDateStr)}.
               </div>
             ) : (
               <div className="slots-container">
-                <div style={{ fontWeight: "700", fontSize: "14px", color: "#0f172a", marginBottom: "12px" }}>
-                  Horarios disponibles para el {formatSelectedDateHeader(selectedDateStr)}:
+                <div style={{ fontWeight: "800", fontSize: "14px", color: "#0f172a", marginBottom: "12px" }}>
+                  Horarios para el {formatSelectedDateHeader(selectedDateStr)}:
                 </div>
                 <div className="slots-grid">
-                  {slots.map(slot => (
-                    <button
-                      key={slot}
-                      type="button"
-                      className={`slot-btn ${selectedSlot === slot ? "selected" : ""}`}
-                      onClick={() => setSelectedSlot(slot)}
-                    >
-                      {slot} hs
-                    </button>
-                  ))}
+                  {allSlots.map(slot => {
+                    const isAvailable = slots.includes(slot);
+                    const isSelected = selectedSlot === slot;
+                    
+                    let slotClass = "slot-pill ";
+                    if (isSelected) slotClass += "selected";
+                    else if (isAvailable) slotClass += "available";
+                    else slotClass += "occupied";
+
+                    return (
+                      <button
+                        key={slot}
+                        type="button"
+                        className={slotClass}
+                        disabled={!isAvailable}
+                        onClick={() => isAvailable && setSelectedSlot(slot)}
+                      >
+                        {slot}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )
           ) : (
-            <div style={{ textAlign: "center", padding: "30px 10px", color: "#94a3b8", fontSize: "14px" }}>
-              Selecciona un día disponible en el calendario.
+            <div style={{ textAlign: "center", padding: "30px 10px", color: "#8e8e93", fontSize: "14px" }}>
+              Selecciona un día disponible en la cinta de fechas.
             </div>
           )}
 
           <div className="footer-actions">
-            <button type="button" className="back-button" onClick={() => setStep(2)}>
+            <button type="button" className="back-button" onClick={() => changeStep(2)}>
               Atrás
             </button>
             <button 
               type="button" 
               className="next-button"
               disabled={!selectedDateStr || !selectedSlot}
-              onClick={() => setStep(4)}
+              onClick={() => changeStep(4)}
             >
               Siguiente
               <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
@@ -1393,10 +1685,7 @@ export default function BookingForm({ business, slug }) {
 
       {/* STEP 4: CLIENT DATA AND CONFIRM */}
       {step === 4 && (
-        <form onSubmit={handleConfirmBooking}>
-          <h2 className="step-title">Tus Datos</h2>
-          <p className="step-subtitle">Completa tus datos personales para finalizar la reserva.</p>
-
+        <form onSubmit={handleConfirmBooking} className={`slide-container slide-${direction}`} key="step4">
           <div className="summary-card">
             <h3 className="summary-title">Resumen del Turno</h3>
             <div className="summary-item" style={{ alignItems: "center" }}>
@@ -1405,13 +1694,13 @@ export default function BookingForm({ business, slug }) {
                 <strong style={{ display: "block" }}>{selectedServices.map(s => s.name).join(", ")}</strong>
                 <button
                   type="button"
-                  onClick={() => setStep(1)}
+                  onClick={() => changeStep(1)}
                   style={{
                     background: "transparent",
                     border: "none",
                     color: "var(--brand-color)",
                     fontSize: "12px",
-                    fontWeight: "700",
+                    fontWeight: "800",
                     cursor: "pointer",
                     padding: "2px 0 0 0",
                     textDecoration: "underline",
@@ -1455,26 +1744,14 @@ export default function BookingForm({ business, slug }) {
           )}
 
           <div className="form-group">
-            <label className="form-label">Nombre *</label>
+            <label className="form-label">Nombre y Apellido *</label>
             <input
               type="text"
               className="form-input"
-              placeholder="Tu nombre"
-              value={form.firstName}
+              placeholder="Tu nombre completo"
+              value={form.clientName}
               required
-              onChange={(e) => setForm({ ...form, firstName: e.target.value })}
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Apellido *</label>
-            <input
-              type="text"
-              className="form-input"
-              placeholder="Tu apellido"
-              value={form.lastName}
-              required
-              onChange={(e) => setForm({ ...form, lastName: e.target.value })}
+              onChange={(e) => setForm({ ...form, clientName: e.target.value })}
             />
           </div>
 
@@ -1483,13 +1760,13 @@ export default function BookingForm({ business, slug }) {
             <input
               type="tel"
               className="form-input"
-              placeholder="Ej: 1123456789 (mínimo 8 dígitos)"
-              value={form.phone}
+              placeholder="Ej: 1123456789"
+              value={form.phone || form.clientPhone}
               required
-              onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              onChange={(e) => setForm({ ...form, phone: e.target.value, clientPhone: e.target.value })}
             />
             <div className="validation-warning">
-              {!form.phone ? "Requerido para recordatorios por WhatsApp" : 
+              {!inputPhone ? "Requerido para recordatorios por WhatsApp" : 
                 isPhoneValid ? "✓ Teléfono válido" : "⚠️ Debe contener solo números y al menos 8 dígitos"}
             </div>
           </div>
@@ -1499,27 +1776,27 @@ export default function BookingForm({ business, slug }) {
             <input
               type="email"
               className="form-input"
-              placeholder="Ej: tuemail@correo.com"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              placeholder="tuemail@correo.com"
+              value={form.email || form.clientEmail}
+              onChange={(e) => setForm({ ...form, email: e.target.value, clientEmail: e.target.value })}
             />
-            <div className="validation-warning" style={{ color: "#64748b" }}>
+            <div className="validation-warning" style={{ color: "#8e8e93" }}>
               Para recibir la confirmación por correo electrónico
             </div>
           </div>
 
           <div className="form-group">
-            <label className="form-label">Aclaración o Notas (Opcional)</label>
+            <label className="form-label">Notas o Aclaraciones (Opcional)</label>
             <textarea
               className="form-input form-textarea"
-              placeholder="Algún detalle adicional..."
+              placeholder="Escribe alguna aclaración si la necesitas..."
               value={form.notes}
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
             />
           </div>
 
           <div className="footer-actions">
-            <button type="button" className="back-button" onClick={() => setStep(3)} disabled={submitting}>
+            <button type="button" className="back-button" onClick={() => changeStep(3)} disabled={submitting}>
               Atrás
             </button>
             <button 
@@ -1542,13 +1819,13 @@ export default function BookingForm({ business, slug }) {
               <path className="success-checkmark__check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
             </svg>
           </div>
-          <h2 className="step-title" style={{ color: "#10b981" }}>¡Reserva Confirmada!</h2>
-          <p style={{ color: "#475569", fontSize: "14.5px", lineHeight: "1.5", margin: "8px 0 24px" }}>
+          <h2 className="step-title" style={{ color: "#10b981", fontWeight: "900" }}>¡Reserva Confirmada!</h2>
+          <p style={{ color: "#8e8e93", fontSize: "14.5px", lineHeight: "1.5", margin: "8px 0 24px", fontWeight: "500" }}>
             {business.bookingConfirmationMessage || "¡Tu reserva ha sido confirmada con éxito!"}
           </p>
 
           <div className="details-box">
-            <div style={{ fontWeight: "700", color: "#0f172a", marginBottom: "8px", fontSize: "14px", textTransform: "uppercase" }}>Detalles:</div>
+            <div style={{ fontWeight: "800", color: "#0f172a", marginBottom: "8px", fontSize: "13.5px", textTransform: "uppercase", letterSpacing: "0.5px" }}>Detalles:</div>
             <div><strong>Servicios:</strong> {selectedServices.map(s => s.name).join(", ")}</div>
             <div><strong>Profesional:</strong> {
               createdBookings[0]?.worker 

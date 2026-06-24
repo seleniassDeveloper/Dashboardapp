@@ -20,7 +20,7 @@ import ErrorBoundary from "./ErrorBoundary.jsx";
 import LandingPage from "./landing/LandingPage.jsx";
 import DashboardAppRoute from "./DashboardAppRoute.jsx";
 import HowItWorks from "./views/HowItWorks";
-import PublicBookingPage from "./views/booking/PublicBookingPage.jsx";
+import BookingPage from "./booking/BookingPage.jsx";
 import BookingSuccess from "./views/booking/BookingSuccess.jsx";
 import QuickAddBookingPage from "./views/booking/QuickAddBookingPage.jsx";
 import AcceptInviteView from "./views/AcceptInviteView.jsx";
@@ -35,7 +35,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         <Route path="/" element={<LandingPage />} />
         <Route path="/guide" element={<HowItWorks />} />
         <Route path="/manual" element={<ManualView />} />
-        <Route path="/booking/:businessSlug" element={<PublicBookingPage />} />
+        <Route path="/booking/:businessSlug" element={<BookingPage />} />
         <Route path="/booking/:businessSlug/success" element={<BookingSuccess />} />
         <Route path="/booking/:businessSlug/add" element={<QuickAddBookingPage />} />
         <Route path="/invite/:token" element={<AcceptInviteView />} />
