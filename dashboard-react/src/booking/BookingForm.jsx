@@ -29,9 +29,11 @@ export default function BookingForm({ business, slug }) {
   const [selectedWorkerId, setSelectedWorkerId] = useState("any");
 
   // Step 3: Date & Hour
-  const today = new Date();
-  const [currentMonth, setCurrentMonth] = useState(today.getMonth());
-  const [currentYear, setCurrentYear] = useState(today.getFullYear());
+  const [startDate, setStartDate] = useState(() => {
+    const d = new Date();
+    d.setHours(0,0,0,0);
+    return d;
+  });
   const [selectedDate, setSelectedDate] = useState(null); // Date object
   const [selectedDateStr, setSelectedDateStr] = useState(""); // "YYYY-MM-DD"
   const [slots, setSlots] = useState([]);
@@ -147,72 +149,91 @@ export default function BookingForm({ business, slug }) {
     setSlots([]);
   };
 
-  // Month navigation
-  const prevMonth = () => {
-    if (currentYear === today.getFullYear() && currentMonth === today.getMonth()) return;
-    if (currentMonth === 0) {
-      setCurrentMonth(11);
-      setCurrentYear(currentYear - 1);
-    } else {
-      setCurrentMonth(currentMonth - 1);
-    }
+  // Month navigation (for header)
+  const handleMonthChange = (direction) => {
+    setStartDate(prev => {
+      let year = prev.getFullYear();
+      let month = prev.getMonth() + direction;
+      if (month < 0) {
+        month = 11;
+        year -= 1;
+      } else if (month > 11) {
+        month = 0;
+        year += 1;
+      }
+      
+      const todayDate = new Date();
+      todayDate.setHours(0,0,0,0);
+      
+      let targetDate = new Date(year, month, 1);
+      if (targetDate.getFullYear() === todayDate.getFullYear() && targetDate.getMonth() === todayDate.getMonth()) {
+        return todayDate;
+      }
+      if (targetDate < todayDate) {
+        return todayDate;
+      }
+      return targetDate;
+    });
   };
 
-  const nextMonth = () => {
-    if (currentMonth === 11) {
-      setCurrentMonth(0);
-      setCurrentYear(currentYear + 1);
-    } else {
-      setCurrentMonth(currentMonth + 1);
-    }
+  // Days strip navigation (shifting by 5 days)
+  const handleStripShift = (direction) => {
+    setStartDate(prev => {
+      const nextDate = new Date(prev);
+      nextDate.setDate(nextDate.getDate() + direction * 5);
+      const todayDate = new Date();
+      todayDate.setHours(0,0,0,0);
+      if (nextDate < todayDate) {
+        return todayDate;
+      }
+      return nextDate;
+    });
   };
 
-  // Calendar generation
-  const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
-  const getFirstDayOfMonthOffset = (year, month) => {
-    const firstDay = new Date(year, month, 1).getDay();
-    return firstDay === 0 ? 6 : firstDay - 1; // Shift Monday to 0
-  };
+  // Day names for the strip
+  const dayNamesShort = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
-  const daysCount = getDaysInMonth(currentYear, currentMonth);
-  const offset = getFirstDayOfMonthOffset(currentYear, currentMonth);
-  const monthNames = [
-    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
-  ];
-  const weekdays = ["Lu", "Ma", "Mi", "Ju", "Vi", "Sá", "Do"];
-
-  const calendarCells = [];
-  for (let i = 0; i < offset; i++) {
-    calendarCells.push(<div key={`empty-${i}`} className="calendar-day-cell empty" />);
-  }
-
-  for (let d = 1; d <= daysCount; d++) {
-    const cellDate = new Date(currentYear, currentMonth, d);
-    const cellDateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-    
-    const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const isPast = cellDate < todayDate;
+  // Render 5 days in the week view strip
+  const dayStripCells = [];
+  const tempDate = new Date(startDate);
+  for (let i = 0; i < 5; i++) {
+    const cellDate = new Date(tempDate);
+    const cellDateStr = `${cellDate.getFullYear()}-${String(cellDate.getMonth() + 1).padStart(2, "0")}-${String(cellDate.getDate()).padStart(2, "0")}`;
     
     const isSelected = selectedDateStr === cellDateStr;
     const isToday = cellDate.getDate() === today.getDate() && cellDate.getMonth() === today.getMonth() && cellDate.getFullYear() === today.getFullYear();
+    const dayName = dayNamesShort[cellDate.getDay()];
+    const dayNum = String(cellDate.getDate()).padStart(2, "0");
     
-    calendarCells.push(
+    dayStripCells.push(
       <div
-        key={`day-${d}`}
-        className={`calendar-day-cell ${isPast ? "disabled" : ""} ${isSelected ? "selected" : ""} ${isToday ? "today" : ""}`}
+        key={cellDateStr}
+        className={`day-strip-item ${isSelected ? "selected" : ""} ${isToday ? "today" : ""}`}
         onClick={() => {
-          if (!isPast) {
-            setSelectedDateStr(cellDateStr);
-            setSelectedDate(cellDate);
-            fetchSlotsForDate(cellDateStr, selectedWorkerId);
-          }
+          setSelectedDateStr(cellDateStr);
+          setSelectedDate(cellDate);
+          fetchSlotsForDate(cellDateStr, selectedWorkerId);
         }}
       >
-        {d}
+        <span className="day-strip-name">{dayName}</span>
+        <span className="day-strip-num">{dayNum}</span>
       </div>
     );
+    tempDate.setDate(tempDate.getDate() + 1);
   }
+
+  // Formatting month label Aug, 2023 style
+  const formatMonthLabel = (date) => {
+    const monthsShort = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+    const monthName = monthsShort[date.getMonth()];
+    const year = date.getFullYear();
+    return `${monthName}, ${year}`;
+  };
+
+  const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const startDateOnly = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+  const isStripLeftDisabled = startDateOnly <= todayDateOnly;
+  const isMonthLeftDisabled = startDate.getFullYear() === today.getFullYear() && startDate.getMonth() === today.getMonth();
 
   // Formatting date header
   const formatSelectedDateHeader = (dateStr) => {
@@ -699,102 +720,134 @@ export default function BookingForm({ business, slug }) {
           font-weight: 500;
         }
 
-        /* Calendar Styling */
+        /* Schedule/Calendar Strip Styling */
         .calendar-wrapper {
           border: 1px solid #f1f5f9;
-          border-radius: 20px;
-          padding: 16px;
+          border-radius: 24px;
+          padding: 20px;
           background: #ffffff;
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.015);
         }
-        .calendar-header {
+        .month-selector {
           display: flex;
-          justify-content: space-between;
           align-items: center;
-          margin-bottom: 16px;
-          padding: 0 4px;
+          justify-content: space-between;
+          background: #f8fafc;
+          border-radius: 14px;
+          padding: 8px 12px;
+          margin-bottom: 20px;
         }
-        .calendar-title {
-          font-weight: 700;
-          font-size: 16px;
-          color: #0f172a;
-          text-transform: capitalize;
+        .month-nav-btn {
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          width: 32px;
+          height: 32px;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          color: #475569;
+          font-weight: bold;
+          font-size: 14px;
+          outline: none;
         }
-        .calendar-nav-btn {
+        .month-nav-btn:hover:not(:disabled) {
           background: #f1f5f9;
-          border: none;
-          width: 36px;
-          height: 36px;
+          color: #0f172a;
+          border-color: #cbd5e1;
+        }
+        .month-nav-btn:disabled {
+          opacity: 0.4;
+          cursor: not-allowed;
+        }
+        .month-label {
+          font-weight: 700;
+          font-size: 15px;
+          color: #1e293b;
+        }
+
+        .days-strip-container {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 6px;
+        }
+        .strip-nav-btn {
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          width: 32px;
+          height: 32px;
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
           cursor: pointer;
           transition: all 0.2s ease;
-          font-size: 16px;
           color: #475569;
+          font-weight: bold;
+          font-size: 13px;
+          outline: none;
+          box-shadow: 0 2px 5px rgba(0,0,0,0.02);
         }
-        .calendar-nav-btn:hover:not(:disabled) {
-          background: #e2e8f0;
+        .strip-nav-btn:hover:not(:disabled) {
+          background: #f1f5f9;
           color: #0f172a;
+          border-color: #cbd5e1;
         }
-        .calendar-nav-btn:disabled {
+        .strip-nav-btn:disabled {
           opacity: 0.35;
           cursor: not-allowed;
         }
-        .calendar-grid {
-          display: grid;
-          grid-template-columns: repeat(7, 1fr);
+        
+        .days-strip-list {
+          display: flex;
+          justify-content: space-between;
+          flex-grow: 1;
           gap: 6px;
         }
-        .calendar-day-label {
-          font-size: 11px;
-          font-weight: 700;
-          color: #94a3b8;
-          padding: 8px 0;
-          text-align: center;
-          text-transform: uppercase;
-        }
-        .calendar-day-cell {
-          aspect-ratio: 1;
+        .day-strip-item {
           display: flex;
+          flex-direction: column;
           align-items: center;
           justify-content: center;
-          border-radius: 50%;
-          font-size: 13.5px;
-          font-weight: 600;
-          color: #334155;
+          width: 54px;
+          height: 78px;
+          border-radius: 14px;
           cursor: pointer;
-          transition: all 0.2s ease;
-          user-select: none;
+          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+          background: #ffffff;
+          border: 1px solid transparent;
         }
-        .calendar-day-cell:hover:not(.disabled):not(.selected):not(.empty) {
-          background: #f1f5f9;
+        .day-strip-item:hover:not(.selected) {
+          background: #f8fafc;
         }
-        .calendar-day-cell.selected {
+        .day-strip-item.selected {
           background: var(--brand-color);
           color: #ffffff;
+          box-shadow: 0 6px 16px rgba(var(--brand-color-rgb), 0.3);
+        }
+        .day-strip-item.today:not(.selected) {
+          border: 1.5px solid var(--brand-color);
+        }
+        .day-strip-name {
+          font-size: 11px;
+          font-weight: 600;
+          color: #64748b;
+          text-transform: capitalize;
+          margin-bottom: 4px;
+        }
+        .day-strip-item.selected .day-strip-name {
+          color: rgba(255, 255, 255, 0.85);
+        }
+        .day-strip-num {
+          font-size: 17px;
           font-weight: 700;
-          box-shadow: 0 4px 10px rgba(var(--brand-color-rgb), 0.25);
+          color: #0f172a;
         }
-        .calendar-day-cell.disabled {
-          color: #cbd5e1;
-          cursor: not-allowed;
-          text-decoration: line-through;
-          background: transparent;
-        }
-        .calendar-day-cell.today {
-          border: 2px solid var(--brand-color);
-          color: var(--brand-color);
-        }
-        .calendar-day-cell.today.selected {
-          border-color: transparent;
+        .day-strip-item.selected .day-strip-num {
           color: #ffffff;
-        }
-        .calendar-day-cell.empty {
-          cursor: default;
-          background: transparent;
-          visibility: hidden;
         }
 
         /* Slots container */
@@ -1233,32 +1286,48 @@ export default function BookingForm({ business, slug }) {
           <p className="step-subtitle">Selecciona el día y la hora de tu reserva.</p>
 
           <div className="calendar-wrapper">
-            <div className="calendar-header">
+            {/* Month selector styled Aug, 2023 style */}
+            <div className="month-selector">
               <button 
                 type="button" 
-                className="calendar-nav-btn" 
-                onClick={prevMonth}
-                disabled={currentYear === today.getFullYear() && currentMonth === today.getMonth()}
+                className="month-nav-btn" 
+                onClick={() => handleMonthChange(-1)}
+                disabled={isMonthLeftDisabled}
               >
-                &larr;
+                &lt;
               </button>
-              <div className="calendar-title">
-                {monthNames[currentMonth]} {currentYear}
+              <div className="month-label">
+                {formatMonthLabel(startDate)}
               </div>
               <button 
                 type="button" 
-                className="calendar-nav-btn" 
-                onClick={nextMonth}
+                className="month-nav-btn" 
+                onClick={() => handleMonthChange(1)}
               >
-                &rarr;
+                &gt;
               </button>
             </div>
 
-            <div className="calendar-grid">
-              {weekdays.map(w => (
-                <div key={w} className="calendar-day-label">{w}</div>
-              ))}
-              {calendarCells}
+            {/* Days strip view with navigation */}
+            <div className="days-strip-container">
+              <button
+                type="button"
+                className="strip-nav-btn"
+                onClick={() => handleStripShift(-1)}
+                disabled={isStripLeftDisabled}
+              >
+                &lt;
+              </button>
+              <div className="days-strip-list">
+                {dayStripCells}
+              </div>
+              <button
+                type="button"
+                className="strip-nav-btn"
+                onClick={() => handleStripShift(1)}
+              >
+                &gt;
+              </button>
             </div>
           </div>
 
@@ -1330,9 +1399,28 @@ export default function BookingForm({ business, slug }) {
 
           <div className="summary-card">
             <h3 className="summary-title">Resumen del Turno</h3>
-            <div className="summary-item">
+            <div className="summary-item" style={{ alignItems: "center" }}>
               <span>Servicios:</span>
-              <strong>{selectedServices.map(s => s.name).join(", ")}</strong>
+              <div style={{ textAlign: "right" }}>
+                <strong style={{ display: "block" }}>{selectedServices.map(s => s.name).join(", ")}</strong>
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    color: "var(--brand-color)",
+                    fontSize: "12px",
+                    fontWeight: "700",
+                    cursor: "pointer",
+                    padding: "2px 0 0 0",
+                    textDecoration: "underline",
+                    outline: "none"
+                  }}
+                >
+                  + Agregar/Cambiar servicios
+                </button>
+              </div>
             </div>
             <div className="summary-item">
               <span>Duración:</span>

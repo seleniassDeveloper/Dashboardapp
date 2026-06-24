@@ -502,7 +502,21 @@ export async function createPublicBooking(req, res) {
       });
     }
 
-    if (!client) {
+    if (client) {
+      // Si el nombre ingresado difiere, actualizamos el cliente en la base de datos para alinearlo
+      const inputFirst = firstName.trim();
+      const inputLast = lastName.trim();
+      if (client.firstName !== inputFirst || client.lastName !== inputLast) {
+        client = await prisma.client.update({
+          where: { id: client.id },
+          data: {
+            firstName: inputFirst,
+            lastName: inputLast,
+            email: email?.trim() || client.email
+          }
+        });
+      }
+    } else {
       client = await prisma.client.create({
         data: {
           firstName: firstName.trim(),
