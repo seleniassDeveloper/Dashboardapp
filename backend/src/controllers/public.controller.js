@@ -491,36 +491,47 @@ export async function createPublicBooking(req, res) {
 
     // 3. Buscar o crear cliente en el contexto del negocio
     let client = null;
+    const inputFirst = firstName.trim();
+    const inputLast = lastName.trim();
+
+    // Buscar coincidencia de primer nombre y email/teléfono
     if (email?.trim()) {
       client = await prisma.client.findFirst({
-        where: { email: email.trim(), businessId: biz.id },
+        where: {
+          email: email.trim(),
+          firstName: { equals: inputFirst, mode: 'insensitive' },
+          businessId: biz.id
+        },
       });
     }
     if (!client && phone?.trim()) {
       client = await prisma.client.findFirst({
-        where: { phone: phone.trim(), businessId: biz.id },
+        where: {
+          phone: phone.trim(),
+          firstName: { equals: inputFirst, mode: 'insensitive' },
+          businessId: biz.id
+        },
       });
     }
 
     if (client) {
-      // Si el nombre ingresado difiere, actualizamos el cliente en la base de datos para alinearlo
-      const inputFirst = firstName.trim();
-      const inputLast = lastName.trim();
-      if (client.firstName !== inputFirst || client.lastName !== inputLast) {
+      // Si el apellido o el email ingresado difiere, lo actualizamos para completarlo o corregirlo,
+      // pero como ya confirmamos que es el mismo primer nombre, es seguro hacerlo.
+      if (client.lastName !== inputLast || (email?.trim() && client.email !== email.trim())) {
         client = await prisma.client.update({
           where: { id: client.id },
           data: {
-            firstName: inputFirst,
-            lastName: inputLast,
+            lastName: inputLast || client.lastName,
             email: email?.trim() || client.email
           }
         });
       }
     } else {
+      // Si no existe ningún cliente con este contacto y mismo primer nombre, creamos uno nuevo
       client = await prisma.client.create({
         data: {
-          firstName: firstName.trim(),
-          lastName: lastName.trim(),
+          firstName: inputFirst,
+          lastName: inputLast,
           phone: phone?.trim() || null,
           email: email?.trim() || null,
           businessId: biz.id,
