@@ -609,7 +609,9 @@ export async function sendManualConfirmationEmail(req, res) {
     console.error("Error al enviar email manual de confirmación:", error);
     let errMsg = "Error al enviar el email de confirmación.";
     if (error?.code === "EAUTH" || error?.message?.includes("BadCredentials") || error?.message?.includes("Username and Password not accepted")) {
-      errMsg = "Las credenciales de correo (Gmail/SMTP) configuradas en el archivo .env son incorrectas o inválidas. Por favor verifique EMAIL_USER y EMAIL_PASS (App Password) en el .env.";
+      errMsg = "Las credenciales de correo (Gmail/SMTP) configuradas son incorrectas o inválidas. Por favor verifique EMAIL_USER y EMAIL_PASS (App Password).";
+    } else if (error?.code === "ETIMEDOUT" || error?.code === "ECONNREFUSED") {
+      errMsg = "Error de conexión SMTP (Timeout/Refused). Si estás en producción (ej. Render/Railway), estos proveedores bloquean los puertos SMTP salientes (25, 465, 587) por defecto. Solicita a soporte de tu hosting que los desbloquee para tu cuenta.";
     }
     return res.status(500).json({
       error: errMsg,
