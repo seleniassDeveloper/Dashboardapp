@@ -54,6 +54,16 @@ export async function triggerWorkflows(businessId, triggerType, context, limitWo
 
     const matchingWorkflows = workflows.filter(w => {
       if (limitWorkflowIds && !limitWorkflowIds.includes(w.id)) return false;
+
+      // If triggered immediately (no limitWorkflowIds), exclude workflows with BEFORE_APPOINTMENT
+      if (!limitWorkflowIds) {
+        if (w.trigger && typeof w.trigger === "object" && w.trigger.config?.triggerTiming === "BEFORE_APPOINTMENT") return false;
+        if (Array.isArray(w.steps)) {
+          const triggerNode = w.steps.find(n => n.type === "trigger");
+          if (triggerNode && triggerNode.config?.triggerTiming === "BEFORE_APPOINTMENT") return false;
+        }
+      }
+
       if (w.trigger && matchTrigger(w.trigger.type)) return true;
       if (Array.isArray(w.steps)) {
         return w.steps.some(n => n.type === "trigger" && matchTrigger(n.subtype));

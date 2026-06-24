@@ -69,12 +69,39 @@ export default function WorkflowInspector({
 
   // Handle nested metadata config change
   const handleConfigChange = (key, value) => {
+    const nextConfig = {
+      ...(node.config || {}),
+      [key]: value
+    };
+
+    let nextDescription = node.description;
+    
+    // Auto-update trigger description based on timing configuration
+    if (node.type === "trigger" && ["nueva-cita", "cita-confirmada", "cita-cancelada", "cita-finalizada", "cambio-estado-cita"].includes(node.subtype)) {
+      const timing = nextConfig.triggerTiming || "IMMEDIATE";
+      if (timing === "IMMEDIATE") {
+        nextDescription = isEs 
+          ? "Se ejecuta al instante al ocurrir el evento." 
+          : "Triggers immediately when the event occurs.";
+      } else {
+        const val = nextConfig.timeValue !== undefined ? nextConfig.timeValue : 24;
+        const rawUnit = nextConfig.timeUnit || "horas";
+        let displayUnit = rawUnit;
+        if (!isEs) {
+          if (rawUnit === "minutos") displayUnit = "minutes";
+          else if (rawUnit === "horas") displayUnit = "hours";
+          else if (rawUnit === "dias") displayUnit = "days";
+        }
+        nextDescription = isEs 
+          ? `${val} ${displayUnit} antes de la cita.`
+          : `${val} ${displayUnit} before the appointment.`;
+      }
+    }
+
     onUpdateNode({
       ...node,
-      config: {
-        ...(node.config || {}),
-        [key]: value
-      }
+      description: nextDescription,
+      config: nextConfig
     });
   };
 
@@ -446,6 +473,69 @@ export default function WorkflowInspector({
                   placeholder={isEs ? "Ej: Todos los lunes a las 9:00 AM" : "e.g., Every Monday at 9:00 AM"}
                 />
               </Form.Group>
+            </div>
+          )}
+
+          {/* 2.7 APPOINTMENT TRIGGER TIMING SETTINGS */}
+          {node.type === "trigger" && ["nueva-cita", "cita-confirmada", "cita-cancelada", "cita-finalizada", "cambio-estado-cita"].includes(node.subtype) && (
+            <div className="d-grid gap-3 pt-2 border-top">
+              <span className="small fw-bold text-orange-700 d-block">
+                {isEs ? "⚡ Configuración de Disparo (Timing)" : "⚡ Trigger Timing Settings"}
+              </span>
+
+              <Form.Group>
+                <Form.Label className="smaller text-muted fw-bold">
+                  {isEs ? "¿Cuándo debe ejecutarse este flujo?" : "When should this flow execute?"}
+                </Form.Label>
+                <Form.Select 
+                  value={node.config?.triggerTiming || "IMMEDIATE"}
+                  onChange={(e) => handleConfigChange("triggerTiming", e.target.value)}
+                  className="rounded-xl border-gray-200 small"
+                >
+                  <option value="IMMEDIATE">
+                    {isEs ? "Al instante (cuando ocurre el evento)" : "Immediately (when the event occurs)"}
+                  </option>
+                  <option value="BEFORE_APPOINTMENT">
+                    {isEs ? "Antes de la fecha/hora de la cita" : "Before the appointment date/time"}
+                  </option>
+                </Form.Select>
+              </Form.Group>
+
+              {(node.config?.triggerTiming || "IMMEDIATE") === "BEFORE_APPOINTMENT" && (
+                <Row className="g-2">
+                  <Col xs={6}>
+                    <Form.Group>
+                      <Form.Label className="smaller text-muted fw-bold">
+                        {isEs ? "Anticipación" : "Time Before"}
+                      </Form.Label>
+                      <Form.Control
+                        type="number"
+                        min="1"
+                        value={node.config?.timeValue || 24}
+                        onChange={(e) => handleConfigChange("timeValue", Number(e.target.value))}
+                        className="rounded-xl border-gray-200 small"
+                        required
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col xs={6}>
+                    <Form.Group>
+                      <Form.Label className="smaller text-muted fw-bold">
+                        {isEs ? "Unidad" : "Unit"}
+                      </Form.Label>
+                      <Form.Select 
+                        value={node.config?.timeUnit || "horas"}
+                        onChange={(e) => handleConfigChange("timeUnit", e.target.value)}
+                        className="rounded-xl border-gray-200 small"
+                      >
+                        <option value="minutos">{isEs ? "Minutos" : "Minutes"}</option>
+                        <option value="horas">{isEs ? "Horas" : "Hours"}</option>
+                        <option value="dias">{isEs ? "Días" : "Days"}</option>
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                </Row>
+              )}
             </div>
           )}
 
