@@ -81,6 +81,9 @@ export default function WorkflowBuilder({
   const [nodes, setNodes] = useState([]);
   const [transitions, setTransitions] = useState([]);
 
+  const [editorMode, setEditorMode] = useState("quick"); // "quick" | "visual"
+  const [isComplex, setIsComplex] = useState(false);
+
   // Custom workflow components state
   const [customTriggers, setCustomTriggers] = useState(() => {
     try {
@@ -128,6 +131,9 @@ export default function WorkflowBuilder({
     setSelectedNodeId(null);
     setExecutingNodeId(null);
 
+    let loadedNodes = [];
+    let loadedTrans = [];
+
     if (isEdit) {
       setName(initialData.name || "");
       setDescription(initialData.description || "");
@@ -139,20 +145,21 @@ export default function WorkflowBuilder({
       const transList = Array.isArray(initialData.transitions) ? initialData.transitions : [];
 
       if (stepsList.some(s => s.x !== undefined)) {
-        setNodes(stepsList);
-        setTransitions(transList);
+        loadedNodes = stepsList;
+        loadedTrans = transList;
       } else {
         // Build linear nodes from old templates
         const triggerType = initialData.trigger?.type || "nueva-cita";
         const builtNodes = [
           { 
-            id: "node-trigger", 
-            name: t("workflowsBuilder.builder.triggerTitle", { defaultValue: "⚡ Disparador" }), 
+            id: "trigger-1", 
+            name: t(`workflowsBuilder.nodes.${triggerType}.name`, { defaultValue: "⚡ Disparador" }), 
             type: "trigger", 
             subtype: triggerType, 
-            x: 100, 
-            y: 200, 
-            description: isEs ? "Carga de disparo del sistema" : "System trigger payload" 
+            x: 150, 
+            y: 250, 
+            config: initialData.trigger?.config || {},
+            description: t(`workflowsBuilder.nodes.${triggerType}.desc`, { defaultValue: "" }) 
           }
         ];
 
@@ -162,8 +169,8 @@ export default function WorkflowBuilder({
             name: s.name || `${isEs ? "Paso" : "Step"} ${idx + 1}`,
             type: "action",
             subtype: s.type || "whatsapp",
-            x: 100 + (idx + 1) * 300,
-            y: 200,
+            x: 150 + (idx + 1) * 350,
+            y: 250,
             config: s.config || {},
             description: s.description || (isEs ? "Acción del flujo" : "Flow action")
           });
@@ -179,28 +186,215 @@ export default function WorkflowBuilder({
           });
         }
 
-        setNodes(builtNodes);
-        setTransitions(builtTrans);
+        loadedNodes = builtNodes;
+        loadedTrans = builtTrans;
       }
     } else {
       setName("");
       setDescription("");
       setStatus("DRAFT");
-      // Preload simple trigger node
-      setNodes([
-        { 
-          id: "trigger-1", 
-          name: t("workflowsBuilder.nodes.nueva-cita.name", { defaultValue: "📅 Nueva Cita" }), 
-          type: "trigger", 
-          subtype: "nueva-cita", 
-          x: 120, 
-          y: 220, 
-          description: t("workflowsBuilder.nodes.nueva-cita.desc", { defaultValue: "Se ejecuta al agendar cita." }) 
+      
+      // Preload simple trigger + action + transition
+      const defaultTrigger = { 
+        id: "trigger-1", 
+        name: t("workflowsBuilder.nodes.nueva-cita.name", { defaultValue: "📅 Nueva Cita" }), 
+        type: "trigger", 
+        subtype: "nueva-cita", 
+        x: 150, 
+        y: 250, 
+        config: { triggerTiming: "IMMEDIATE" },
+        description: t("workflowsBuilder.nodes.nueva-cita.desc", { defaultValue: "Se ejecuta al agendar cita." }) 
+      };
+
+      const defaultAction = {
+        id: "action-1",
+        name: t("workflowsBuilder.nodes.whatsapp.name", { defaultValue: "📱 WhatsApp" }),
+        type: "action",
+        subtype: "whatsapp",
+        x: 500,
+        y: 250,
+        description: t("workflowsBuilder.nodes.whatsapp.desc", { defaultValue: "Manda mensaje por enlace WhatsApp." }),
+        config: {
+          message: isEs 
+            ? "Hola {{cliente}}! Tu cita de {{servicio}} con {{profesional}} está registrada." 
+            : "Hi {{cliente}}! Your appointment for {{servicio}} with {{profesional}} is registered."
         }
-      ]);
-      setTransitions([]);
+      };
+
+      loadedNodes = [defaultTrigger, defaultAction];
+      loadedTrans = [{
+        id: "trans-1",
+        from: "trigger-1",
+        to: "action-1"
+      }];
     }
+
+    // Evaluate complexity & auto-heal if 1 trigger and 0 actions
+    const triggers = loadedNodes.filter(n => n.type === "trigger");
+    let actions = loadedNodes.filter(n => n.type === "action");
+    let others = loadedNodes.filter(n => n.type !== "trigger" && n.type !== "action");
+
+    if (triggers.length === 1 && actions.length === 0 && others.length === 0) {
+      const defaultAction = {
+        id: "action-1",
+        name: t("workflowsBuilder.nodes.whatsapp.name", { defaultValue: "📱 WhatsApp" }),
+        type: "action",
+        subtype: "whatsapp",
+        x: 500,
+        y: 250,
+        description: t("workflowsBuilder.nodes.whatsapp.desc", { defaultValue: "Manda mensaje por enlace WhatsApp." }),
+        config: {
+          message: isEs 
+            ? "Hola {{cliente}}! Tu cita de {{servicio}} con {{profesional}} está registrada." 
+            : "Hi {{cliente}}! Your appointment for {{servicio}} with {{profesional}} is registered."
+        }
+      };
+      loadedNodes = [...loadedNodes, defaultAction];
+      loadedTrans = [...loadedTrans, {
+        id: "trans-1",
+        from: triggers[0].id,
+        to: "action-1"
+      }];
+      actions = [defaultAction];
+    }
+
+    const hasComplexity = triggers.length > 1 || actions.length > 1 || others.length > 0;
+    setIsComplex(hasComplexity);
+    if (hasComplexity) {
+      setEditorMode("visual");
+    } else {
+      setEditorMode("quick");
+    }
+    setNodes(loadedNodes);
+    setTransitions(loadedTrans);
   }, [show, isEdit, initialData]);
+
+  const quickTriggerNode = nodes.find(n => n.type === "trigger");
+  const quickActionNode = nodes.find(n => n.type === "action");
+
+  const handleQuickTriggerSubtypeChange = (subtype) => {
+    if (!quickTriggerNode) return;
+    const item = SYNC_TRIGGERS.find((tItem) => tItem.subtype === subtype);
+    const displayName = item ? item.name : subtype;
+    const displayDesc = item ? item.desc : "";
+
+    setNodes((prev) =>
+      prev.map((n) =>
+        n.type === "trigger"
+          ? {
+              ...n,
+              subtype,
+              name: displayName,
+              description: displayDesc,
+            }
+          : n
+      )
+    );
+  };
+
+  const handleQuickTriggerConfigChange = (key, value) => {
+    if (!quickTriggerNode) return;
+    const nextConfig = {
+      ...(quickTriggerNode.config || {}),
+      [key]: value,
+    };
+
+    let nextDescription = quickTriggerNode.description;
+    const timing = nextConfig.triggerTiming || "IMMEDIATE";
+    if (timing === "IMMEDIATE") {
+      nextDescription = isEs 
+        ? "Se ejecuta al instante al ocurrir el evento." 
+        : "Triggers immediately when the event occurs.";
+    } else {
+      const val = nextConfig.timeValue !== undefined ? nextConfig.timeValue : 24;
+      const rawUnit = nextConfig.timeUnit || "horas";
+      let displayUnit = rawUnit;
+      if (!isEs) {
+        if (rawUnit === "minutos") displayUnit = "minutes";
+        else if (rawUnit === "horas") displayUnit = "hours";
+        else if (rawUnit === "dias") displayUnit = "days";
+      }
+      nextDescription = isEs 
+        ? `${val} ${displayUnit} antes de la cita.`
+        : `${val} ${displayUnit} before the appointment.`;
+    }
+
+    setNodes((prev) =>
+      prev.map((n) =>
+        n.type === "trigger"
+          ? {
+              ...n,
+              description: nextDescription,
+              config: nextConfig,
+            }
+          : n
+      )
+    );
+  };
+
+  const handleQuickActionSubtypeChange = (subtype) => {
+    if (!quickActionNode) return;
+    const item = SYNC_ACTIONS.find((aItem) => aItem.subtype === subtype);
+    const displayName = item ? item.name : subtype;
+    const displayDesc = item ? item.desc : "";
+
+    const nextConfig = { ...(quickActionNode.config || {}) };
+    if (subtype === "email" && !nextConfig.subject) {
+      nextConfig.subject = isEs ? "Notificación de Turno" : "Appointment Alert";
+    }
+    if (subtype === "notificacion" && !nextConfig.title) {
+      nextConfig.title = isEs ? "Confirmación de Turno" : "Appointment Alert";
+    }
+
+    setNodes((prev) =>
+      prev.map((n) =>
+        n.type === "action"
+          ? {
+              ...n,
+              subtype,
+              name: displayName,
+              description: displayDesc,
+              config: nextConfig,
+            }
+          : n
+      )
+    );
+  };
+
+  const handleQuickActionConfigChange = (key, value) => {
+    if (!quickActionNode) return;
+    setNodes((prev) =>
+      prev.map((n) =>
+        n.type === "action"
+          ? {
+              ...n,
+              config: {
+                ...(n.config || {}),
+                [key]: value,
+              },
+            }
+          : n
+      )
+    );
+  };
+
+  const insertQuickVariable = (variable) => {
+    const textarea = document.getElementById("quick-message-editor");
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = quickActionNode?.config?.message || "";
+    const updated = text.substring(0, start) + `{{${variable}}}` + text.substring(end);
+    
+    handleQuickActionConfigChange("message", updated);
+    
+    // Reset focus
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + variable.length + 4, start + variable.length + 4);
+    }, 50);
+  };
 
   const selectedNode = nodes.find(n => n.id === selectedNodeId);
 
@@ -439,138 +633,426 @@ export default function WorkflowBuilder({
           </div>
         </header>
 
+        <div className="d-flex mb-3 gap-2 border-bottom pb-2">
+          <button
+            onClick={() => setEditorMode("quick")}
+            className={`d-flex align-items-center gap-2 px-4 py-2 fw-bold rounded-xl border-0 transition-all ${
+              editorMode === "quick" ? "bg-purple-600 text-white shadow-sm" : "bg-white border text-muted hover-bg-gray-100"
+            }`}
+            style={{ fontSize: "13px" }}
+            disabled={isComplex}
+            title={isComplex ? t("workflowsBuilder.builder.quickModeWarn") : ""}
+          >
+            <span>✨ {t("workflowsBuilder.builder.quickMode", { defaultValue: "Configuración Rápida" })}</span>
+          </button>
+
+          <button
+            onClick={() => setEditorMode("visual")}
+            className={`d-flex align-items-center gap-2 px-4 py-2 fw-bold rounded-xl border-0 transition-all ${
+              editorMode === "visual" ? "bg-purple-600 text-white shadow-sm" : "bg-white border text-muted hover-bg-gray-100"
+            }`}
+            style={{ fontSize: "13px" }}
+          >
+            <span>🎨 {t("workflowsBuilder.builder.visualMode", { defaultValue: "Diseñador Visual" })}</span>
+          </button>
+        </div>
+
         {error && <Alert variant="danger" className="rounded-2xl mb-3 shadow-sm">{error}</Alert>}
         {successMsg && <Alert variant="success" className="rounded-2xl mb-3 shadow-sm">{successMsg}</Alert>}
 
-        {/* WORKSPACE MAIN ROW */}
-        <Row className="g-3 flex-grow-1" style={{ height: "calc(100vh - 130px)", overflow: "hidden" }}>
-          
-          {/* LEFT SIDEBAR: COMPONENTS CATALOG SELECTOR */}
-          <Col lg={3} md={4} className="h-100 d-flex flex-column" style={{ overflow: "hidden" }}>
-            <Card className="card-premium border-0 shadow-sm bg-white p-3 rounded-2xl h-100 d-flex flex-column" style={{ overflow: "hidden" }}>
-              <div className="fw-black text-gray-900 small mb-3 px-1 text-uppercase tracking-wider" style={{ fontSize: "10.5px" }}>
-                {isEs ? "Nodos del Constructor" : "Constructor Nodes"}
-              </div>
-
-              <div className="flex-grow-1 overflow-auto pe-1 scrollbar-none" style={{ overflowY: "auto" }}>
-                {/* CATEGORÍA 1: TRIGGERS */}
-                <div className="mb-3.5">
-                  <div className="d-flex justify-content-between align-items-center mb-2 px-1">
-                    <span className="smaller text-orange-600 fw-bold text-uppercase tracking-wider" style={{ fontSize: "8.5px" }}>
-                      {t("workflowsBuilder.builder.triggerTitle", { defaultValue: "⚡ Disparadores (Triggers)" })}
-                    </span>
-                    <button 
-                      onClick={() => { setCreateType("trigger"); setNewItemIntegration("webhook-inbound"); setShowCreateModal(true); }}
-                      className="btn btn-xs p-0 text-orange-600 hover-text-orange-800 border-0 d-flex align-items-center bg-transparent"
-                      title={isEs ? "Crear disparador personalizado" : "Create custom trigger"}
-                    >
-                      <Plus size={14} />
-                    </button>
-                  </div>
-                  <div className="d-flex flex-column gap-1.5">
-                    {[...SYNC_TRIGGERS, ...customTriggers].map((tItem) => (
-                      <button
-                        key={tItem.subtype}
-                        onClick={() => handleAddComponent(tItem)}
-                        className="btn btn-outline-orange w-100 rounded-xl px-2.5 py-1.8 text-start small border-orange-200 hover-bg-orange-50 d-grid gap-0.5"
-                      >
-                        <strong className="text-gray-800" style={{ fontSize: "11.5px" }}>
-                          {tItem.subtype.startsWith("custom-") ? tItem.name : t(`workflowsBuilder.nodes.${tItem.subtype}.name`, { defaultValue: tItem.name })}
-                        </strong>
-                        <span className="smaller text-muted" style={{ fontSize: "9.5px", lineHeight: "1.2" }}>
-                          {tItem.subtype.startsWith("custom-") ? tItem.desc : t(`workflowsBuilder.nodes.${tItem.subtype}.desc`, { defaultValue: tItem.desc })}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* CATEGORÍA 2: ACTIONS */}
-                <div className="mb-3.5">
-                  <div className="d-flex justify-content-between align-items-center mb-2 px-1">
-                    <span className="smaller text-purple-600 fw-bold text-uppercase tracking-wider" style={{ fontSize: "8.5px" }}>
-                      {t("workflowsBuilder.builder.actionTitle", { defaultValue: "🟢 Acciones del Sistema" })}
-                    </span>
-                    <button 
-                      onClick={() => { setCreateType("action"); setNewItemIntegration("whatsapp"); setShowCreateModal(true); }}
-                      className="btn btn-xs p-0 text-purple-600 hover-text-purple-800 border-0 d-flex align-items-center bg-transparent"
-                      title={isEs ? "Crear acción personalizada" : "Create custom action"}
-                    >
-                      <Plus size={14} />
-                    </button>
-                  </div>
-                  <div className="d-flex flex-column gap-1.5">
-                    {[...SYNC_ACTIONS, ...customActions].map((a) => (
-                      <button
-                        key={a.subtype}
-                        onClick={() => handleAddComponent(a)}
-                        className="btn btn-outline-purple w-100 rounded-xl px-2.5 py-1.8 text-start small border-purple-200 hover-bg-purple-50 d-grid gap-0.5"
-                      >
-                        <strong className="text-gray-800" style={{ fontSize: "11.5px" }}>
-                          {a.subtype.startsWith("custom-") ? a.name : t(`workflowsBuilder.nodes.${a.subtype}.name`, { defaultValue: a.name })}
-                        </strong>
-                        <span className="smaller text-muted" style={{ fontSize: "9.5px", lineHeight: "1.2" }}>
-                          {a.subtype.startsWith("custom-") ? a.desc : t(`workflowsBuilder.nodes.${a.subtype}.desc`, { defaultValue: a.desc })}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* CATEGORÍA 3: LOGICS */}
+        {editorMode === "quick" ? (
+          <div className="flex-grow-1 overflow-auto bg-light bg-opacity-40 p-4 rounded-2xl border mb-3" style={{ height: "calc(100vh - 185px)" }}>
+            <div className="mx-auto" style={{ maxWidth: "800px" }}>
+              <div className="card-premium border bg-white p-4 rounded-2xl shadow-sm d-grid gap-4">
+                
+                {/* Header info */}
                 <div>
-                  <span className="smaller text-amber-600 fw-bold px-1 text-uppercase tracking-wider d-block mb-2" style={{ fontSize: "8.5px" }}>
-                    {t("workflowsBuilder.builder.logicTitle", { defaultValue: "🔀 Control de Flujo" })}
-                  </span>
-                  <div className="d-flex flex-column gap-1.5">
-                    {SYNC_LOGIC.map((l) => (
-                      <button
-                        key={l.subtype}
-                        onClick={() => handleAddComponent(l)}
-                        className="btn btn-outline-amber w-100 rounded-xl px-2.5 py-1.8 text-start small border-amber-200 hover-bg-amber-50 d-grid gap-0.5"
+                  <h4 className="fw-black text-gray-900 mb-1">
+                    {t("workflowsBuilder.builder.quickMode", { defaultValue: "Configuración Rápida" })}
+                  </h4>
+                  <p className="text-muted small mb-0">
+                    {t("workflowsBuilder.builder.quickModeSubtitle", { defaultValue: "Configura cuándo se dispara el recordatorio y qué va a decir en una sola pantalla cómoda." })}
+                  </p>
+                </div>
+
+                <hr className="my-0 text-gray-200" />
+                
+                {/* 1. General settings */}
+                <Row className="g-3">
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="small fw-bold text-gray-700">
+                        {isEs ? "Nombre de la automatización" : "Automation Name"} *
+                      </Form.Label>
+                      <Form.Control
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder={t("workflowsBuilder.builder.placeholderName", { defaultValue: "Nombre de la automatización..." })}
+                        className="rounded-xl border-gray-200"
+                        required
+                      />
+                    </Form.Group>
+                  </Col>
+                  
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="small fw-bold text-gray-700">
+                        {isEs ? "Estado de publicación" : "Publication Status"}
+                      </Form.Label>
+                      <Form.Select
+                        value={status}
+                        onChange={(e) => setStatus(e.target.value)}
+                        className="rounded-xl border-gray-200"
                       >
-                        <strong className="text-gray-800" style={{ fontSize: "11.5px" }}>{t(`workflowsBuilder.nodes.${l.subtype}.name`, { defaultValue: l.name })}</strong>
-                        <span className="smaller text-muted" style={{ fontSize: "9.5px", lineHeight: "1.2" }}>{t(`workflowsBuilder.nodes.${l.subtype}.desc`, { defaultValue: l.desc })}</span>
-                      </button>
-                    ))}
-                  </div>
+                        <option value="DRAFT">📋 {isEs ? "Borrador" : "Draft"}</option>
+                        <option value="ACTIVE">🟢 {isEs ? "Activo" : "Active"}</option>
+                        <option value="PAUSED">🟡 {isEs ? "Pausado" : "Paused"}</option>
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+
+                  <Col md={12}>
+                    <Form.Group>
+                      <Form.Label className="small fw-bold text-gray-700">
+                        {isEs ? "Descripción" : "Description"}
+                      </Form.Label>
+                      <Form.Control
+                        type="text"
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        placeholder={isEs ? "Escribe una breve descripción del flujo..." : "Write a brief description..."}
+                        className="rounded-xl border-gray-200"
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
+
+                <hr className="my-0 text-gray-200" />
+
+                {/* 2. TRIGGER SETTINGS */}
+                <div className="p-4 bg-orange bg-opacity-5 rounded-2xl border border-orange-100">
+                  <h5 className="h6 fw-black text-orange-700 mb-3 d-flex align-items-center gap-2">
+                    <span>⚡ 1. ¿Cuándo se debe enviar? (Disparador)</span>
+                  </h5>
+                  
+                  <Row className="g-3">
+                    <Col md={6}>
+                      <Form.Group>
+                        <Form.Label className="smaller text-muted fw-bold">
+                          {isEs ? "Evento del Sistema" : "System Event"}
+                        </Form.Label>
+                        <Form.Select
+                          value={quickTriggerNode?.subtype || "nueva-cita"}
+                          onChange={(e) => handleQuickTriggerSubtypeChange(e.target.value)}
+                          className="rounded-xl border-gray-200"
+                        >
+                          {SYNC_TRIGGERS.map((st) => (
+                            <option key={st.subtype} value={st.subtype}>
+                              {st.name}
+                            </option>
+                          ))}
+                        </Form.Select>
+                      </Form.Group>
+                    </Col>
+
+                    <Col md={6}>
+                      <Form.Group>
+                        <Form.Label className="smaller text-muted fw-bold">
+                          {isEs ? "Momento de Ejecución" : "Execution Timing"}
+                        </Form.Label>
+                        <Form.Select
+                          value={quickTriggerNode?.config?.triggerTiming || "IMMEDIATE"}
+                          onChange={(e) => handleQuickTriggerConfigChange("triggerTiming", e.target.value)}
+                          className="rounded-xl border-gray-200"
+                        >
+                          <option value="IMMEDIATE">
+                            {isEs ? "Al instante (cuando ocurre el evento)" : "Immediately (when the event occurs)"}
+                          </option>
+                          <option value="BEFORE_APPOINTMENT">
+                            {isEs ? "Antes de la fecha/hora de la cita" : "Before the appointment date/time"}
+                          </option>
+                        </Form.Select>
+                      </Form.Group>
+                    </Col>
+
+                    {(quickTriggerNode?.config?.triggerTiming || "IMMEDIATE") === "BEFORE_APPOINTMENT" && (
+                      <>
+                        <Col md={6}>
+                          <Form.Group>
+                            <Form.Label className="smaller text-muted fw-bold">
+                              {isEs ? "Anticipación" : "Time Before"}
+                            </Form.Label>
+                            <Form.Control
+                              type="number"
+                              min="1"
+                              value={quickTriggerNode?.config?.timeValue !== undefined ? quickTriggerNode.config.timeValue : 24}
+                              onChange={(e) => handleQuickTriggerConfigChange("timeValue", Number(e.target.value))}
+                              className="rounded-xl border-gray-200"
+                              required
+                            />
+                          </Form.Group>
+                        </Col>
+                        
+                        <Col md={6}>
+                          <Form.Group>
+                            <Form.Label className="smaller text-muted fw-bold">
+                              {isEs ? "Unidad de Tiempo" : "Time Unit"}
+                            </Form.Label>
+                            <Form.Select
+                              value={quickTriggerNode?.config?.timeUnit || "horas"}
+                              onChange={(e) => handleQuickTriggerConfigChange("timeUnit", e.target.value)}
+                              className="rounded-xl border-gray-200"
+                            >
+                              <option value="minutos">{isEs ? "Minutos" : "Minutes"}</option>
+                              <option value="horas">{isEs ? "Horas" : "Hours"}</option>
+                              <option value="dias">{isEs ? "Días" : "Days"}</option>
+                            </Form.Select>
+                          </Form.Group>
+                        </Col>
+                      </>
+                    )}
+                  </Row>
+                </div>
+
+                {/* 3. ACTION SETTINGS */}
+                <div className="p-4 bg-purple bg-opacity-5 rounded-2xl border border-purple-100">
+                  <h5 className="h6 fw-black text-purple-700 mb-3 d-flex align-items-center gap-2">
+                    <span>📱 2. ¿Qué se va a enviar? (Mensaje)</span>
+                  </h5>
+
+                  <Row className="g-3">
+                    <Col md={12}>
+                      <Form.Group>
+                        <Form.Label className="smaller text-muted fw-bold">
+                          {isEs ? "Canal de Envío" : "Delivery Channel"}
+                        </Form.Label>
+                        <Form.Select
+                          value={quickActionNode?.subtype || "whatsapp"}
+                          onChange={(e) => handleQuickActionSubtypeChange(e.target.value)}
+                          className="rounded-xl border-gray-200"
+                        >
+                          <option value="whatsapp">📱 WhatsApp</option>
+                          <option value="email">✉️ Correo Email</option>
+                          <option value="notificacion">🔔 Alerta Push</option>
+                        </Form.Select>
+                      </Form.Group>
+                    </Col>
+
+                    {quickActionNode?.subtype === "email" && (
+                      <Col md={12}>
+                        <Form.Group>
+                          <Form.Label className="smaller text-muted fw-bold">
+                            {isEs ? "Asunto del Correo" : "Email Subject"} *
+                          </Form.Label>
+                          <Form.Control
+                            type="text"
+                            value={quickActionNode?.config?.subject || ""}
+                            onChange={(e) => handleQuickActionConfigChange("subject", e.target.value)}
+                            placeholder={isEs ? "Ej: Recordatorio de tu turno en Aura Studio" : "e.g., Reminder of your appointment"}
+                            className="rounded-xl border-gray-200"
+                            required
+                          />
+                        </Form.Group>
+                      </Col>
+                    )}
+
+                    {quickActionNode?.subtype === "notificacion" && (
+                      <Col md={12}>
+                        <Form.Group>
+                          <Form.Label className="smaller text-muted fw-bold">
+                            {isEs ? "Título de la Alerta" : "Alert Title"} *
+                          </Form.Label>
+                          <Form.Control
+                            type="text"
+                            value={quickActionNode?.config?.title || ""}
+                            onChange={(e) => handleQuickActionConfigChange("title", e.target.value)}
+                            placeholder={isEs ? "Ej: Nueva cita agendada" : "e.g., New appointment booked"}
+                            className="rounded-xl border-gray-200"
+                            required
+                          />
+                        </Form.Group>
+                      </Col>
+                    )}
+
+                    <Col md={12}>
+                      <Form.Group>
+                        <div className="d-flex justify-content-between mb-1">
+                          <Form.Label className="smaller text-muted fw-bold mb-0">
+                            {isEs ? "Mensaje con Variables" : "Message with Variables"}
+                          </Form.Label>
+                          <Badge bg="purple-soft" className="text-purple-600 rounded-pill px-2" style={{ fontSize: "9px" }}>
+                            {isEs ? "Editor Dinámico" : "Dynamic Editor"}
+                          </Badge>
+                        </div>
+                        <Form.Control
+                          id="quick-message-editor"
+                          as="textarea"
+                          rows={5}
+                          value={quickActionNode?.config?.message || ""}
+                          onChange={(e) => handleQuickActionConfigChange("message", e.target.value)}
+                          className="rounded-xl border-gray-200 small font-mono"
+                          placeholder={isEs ? "Escribe tu mensaje..." : "Type your message..."}
+                          style={{ fontSize: "12px", lineHeight: "1.4" }}
+                          required
+                        />
+                      </Form.Group>
+                    </Col>
+
+                    {/* Chips for variables */}
+                    <Col md={12}>
+                      <span className="smaller text-muted fw-semibold d-block mb-1.5">
+                        {isEs ? "Inyectar variables en el mensaje:" : "Inject variables in the message:"}
+                      </span>
+                      <div className="d-flex flex-wrap gap-1.5">
+                        {["cliente", "fecha", "hora", "profesional", "servicio", "saldo", "sucursal"].map((v) => (
+                          <button
+                            key={v}
+                            type="button"
+                            onClick={() => insertQuickVariable(v)}
+                            className="btn btn-xs btn-outline-purple bg-light bg-opacity-40 px-2 py-1 rounded-pill small fw-semibold text-purple-700 hover-bg-purple-100"
+                            style={{ fontSize: "10.5px" }}
+                          >
+                            +{v}
+                          </button>
+                        ))}
+                      </div>
+                    </Col>
+                  </Row>
                 </div>
               </div>
-            </Card>
-          </Col>
+            </div>
+          </div>
+        ) : (
+          <Row className="g-3 flex-grow-1 mb-3" style={{ height: "calc(100vh - 185px)", overflow: "hidden" }}>
+            
+            {/* LEFT SIDEBAR: COMPONENTS CATALOG SELECTOR */}
+            <Col lg={3} md={4} className="h-100 d-flex flex-column" style={{ overflow: "hidden" }}>
+              <Card className="card-premium border-0 shadow-sm bg-white p-3 rounded-2xl h-100 d-flex flex-column" style={{ overflow: "hidden" }}>
+                <div className="fw-black text-gray-900 small mb-3 px-1 text-uppercase tracking-wider" style={{ fontSize: "10.5px" }}>
+                  {isEs ? "Nodos del Constructor" : "Constructor Nodes"}
+                </div>
 
-          {/* MAIN GRAPHICS CANVAS WORKSPACE */}
-          <Col lg={6} md={5} className="h-100 d-flex flex-column">
-            <WorkflowCanvas
-              nodes={nodes}
-              transitions={transitions}
-              selectedNodeId={selectedNodeId}
-              executingNodeId={executingNodeId}
-              onSelectNode={handleSelectNode}
-              onDeleteNode={handleDeleteNode}
-              onUpdateNodePosition={handleUpdateNodePosition}
-              onStartConnection={handleAddConnection}
-            />
-          </Col>
+                <div className="flex-grow-1 overflow-auto pe-1 scrollbar-none" style={{ overflowY: "auto" }}>
+                  {/* CATEGORÍA 1: TRIGGERS */}
+                  <div className="mb-3.5">
+                    <div className="d-flex justify-content-between align-items-center mb-2 px-1">
+                      <span className="smaller text-orange-600 fw-bold text-uppercase tracking-wider" style={{ fontSize: "8.5px" }}>
+                        {t("workflowsBuilder.builder.triggerTitle", { defaultValue: "⚡ Disparadores (Triggers)" })}
+                      </span>
+                      <button 
+                        onClick={() => { setCreateType("trigger"); setNewItemIntegration("webhook-inbound"); setShowCreateModal(true); }}
+                        className="btn btn-xs p-0 text-orange-600 hover-text-orange-800 border-0 d-flex align-items-center bg-transparent"
+                        title={isEs ? "Crear disparador personalizado" : "Create custom trigger"}
+                      >
+                        <Plus size={14} />
+                      </button>
+                    </div>
+                    <div className="d-flex flex-column gap-1.5">
+                      {[...SYNC_TRIGGERS, ...customTriggers].map((tItem) => (
+                        <button
+                          key={tItem.subtype}
+                          onClick={() => handleAddComponent(tItem)}
+                          className="btn btn-outline-orange w-100 rounded-xl px-2.5 py-1.8 text-start small border-orange-200 hover-bg-orange-50 d-grid gap-0.5"
+                        >
+                          <strong className="text-gray-800" style={{ fontSize: "11.5px" }}>
+                            {tItem.subtype.startsWith("custom-") ? tItem.name : t(`workflowsBuilder.nodes.${tItem.subtype}.name`, { defaultValue: tItem.name })}
+                          </strong>
+                          <span className="smaller text-muted" style={{ fontSize: "9.5px", lineHeight: "1.2" }}>
+                            {tItem.subtype.startsWith("custom-") ? tItem.desc : t(`workflowsBuilder.nodes.${tItem.subtype}.desc`, { defaultValue: tItem.desc })}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-          {/* RIGHT SIDEBAR: INSPECTOR OR SIMULATOR */}
-          <Col lg={3} md={3} className="h-100 d-flex flex-column" style={{ overflow: "hidden" }}>
-            {showDebugger ? (
-              <WorkflowSimulator
-                workflow={{ id: initialData?.id || "temp", trigger: nodes.find(n => n.type === "trigger") }}
+                  {/* CATEGORÍA 2: ACTIONS */}
+                  <div className="mb-3.5">
+                    <div className="d-flex justify-content-between align-items-center mb-2 px-1">
+                      <span className="smaller text-purple-600 fw-bold text-uppercase tracking-wider" style={{ fontSize: "8.5px" }}>
+                        {t("workflowsBuilder.builder.actionTitle", { defaultValue: "🟢 Acciones del Sistema" })}
+                      </span>
+                      <button 
+                        onClick={() => { setCreateType("action"); setNewItemIntegration("whatsapp"); setShowCreateModal(true); }}
+                        className="btn btn-xs p-0 text-purple-600 hover-text-purple-800 border-0 d-flex align-items-center bg-transparent"
+                        title={isEs ? "Crear acción personalizada" : "Create custom action"}
+                      >
+                        <Plus size={14} />
+                      </button>
+                    </div>
+                    <div className="d-flex flex-column gap-1.5">
+                      {[...SYNC_ACTIONS, ...customActions].map((a) => (
+                        <button
+                          key={a.subtype}
+                          onClick={() => handleAddComponent(a)}
+                          className="btn btn-outline-purple w-100 rounded-xl px-2.5 py-1.8 text-start small border-purple-200 hover-bg-purple-50 d-grid gap-0.5"
+                        >
+                          <strong className="text-gray-800" style={{ fontSize: "11.5px" }}>
+                            {a.subtype.startsWith("custom-") ? a.name : t(`workflowsBuilder.nodes.${a.subtype}.name`, { defaultValue: a.name })}
+                          </strong>
+                          <span className="smaller text-muted" style={{ fontSize: "9.5px", lineHeight: "1.2" }}>
+                            {a.subtype.startsWith("custom-") ? a.desc : t(`workflowsBuilder.nodes.${a.subtype}.desc`, { defaultValue: a.desc })}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* CATEGORÍA 3: LOGICS */}
+                  <div>
+                    <span className="smaller text-amber-600 fw-bold px-1 text-uppercase tracking-wider d-block mb-2" style={{ fontSize: "8.5px" }}>
+                      {t("workflowsBuilder.builder.logicTitle", { defaultValue: "🔀 Control de Flujo" })}
+                    </span>
+                    <div className="d-flex flex-column gap-1.5">
+                      {SYNC_LOGIC.map((l) => (
+                        <button
+                          key={l.subtype}
+                          onClick={() => handleAddComponent(l)}
+                          className="btn btn-outline-amber w-100 rounded-xl px-2.5 py-1.8 text-start small border-amber-200 hover-bg-amber-50 d-grid gap-0.5"
+                        >
+                          <strong className="text-gray-800" style={{ fontSize: "11.5px" }}>{t(`workflowsBuilder.nodes.${l.subtype}.name`, { defaultValue: l.name })}</strong>
+                          <span className="smaller text-muted" style={{ fontSize: "9.5px", lineHeight: "1.2" }}>{t(`workflowsBuilder.nodes.${l.subtype}.desc`, { defaultValue: l.desc })}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </Col>
+
+            {/* MAIN GRAPHICS CANVAS WORKSPACE */}
+            <Col lg={6} md={5} className="h-100 d-flex flex-column">
+              <WorkflowCanvas
                 nodes={nodes}
                 transitions={transitions}
-                onHighlightNode={(nodeId) => setExecutingNodeId(nodeId)}
-                onResetHighlights={() => setExecutingNodeId(null)}
+                selectedNodeId={selectedNodeId}
+                executingNodeId={executingNodeId}
+                onSelectNode={handleSelectNode}
+                onDeleteNode={handleDeleteNode}
+                onUpdateNodePosition={handleUpdateNodePosition}
+                onStartConnection={handleAddConnection}
               />
-            ) : (
-              <WorkflowInspector
-                node={selectedNode}
-                onUpdateNode={handleUpdateNode}
-              />
-            )}
-          </Col>
-        </Row>
+            </Col>
+
+            {/* RIGHT SIDEBAR: INSPECTOR OR SIMULATOR */}
+            <Col lg={3} md={3} className="h-100 d-flex flex-column" style={{ overflow: "hidden" }}>
+              {showDebugger ? (
+                <WorkflowSimulator
+                  workflow={{ id: initialData?.id || "temp", trigger: nodes.find(n => n.type === "trigger") }}
+                  nodes={nodes}
+                  transitions={transitions}
+                  onHighlightNode={(nodeId) => setExecutingNodeId(nodeId)}
+                  onResetHighlights={() => setExecutingNodeId(null)}
+                />
+              ) : (
+                <WorkflowInspector
+                  node={selectedNode}
+                  onUpdateNode={handleUpdateNode}
+                />
+              )}
+            </Col>
+          </Row>
+        )}
       </Container>
       
       <style>{`

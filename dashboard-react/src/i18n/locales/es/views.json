@@ -381,7 +381,11 @@
       "close": "Cerrar",
       "triggerTitle": "📅 Disparador",
       "actionTitle": "⚡ Acción",
-      "logicTitle": "🧠 Lógica y Control"
+      "logicTitle": "🧠 Lógica y Control",
+      "quickMode": "Configuración Rápida",
+      "visualMode": "Diseñador Visual",
+      "quickModeWarn": "Este flujo contiene una estructura compleja (varias acciones o condiciones). Por favor, utiliza el Diseñador Visual para editarlo.",
+      "quickModeSubtitle": "Configura cuándo se dispara el recordatorio y qué va a decir en una sola pantalla cómoda."
     },
     "nodes": {
       "nueva-cita": { "name": "📅 Nueva Cita", "desc": "Se ejecuta al agendar cita." },

@@ -380,7 +380,11 @@
       "close": "Close",
       "triggerTitle": "📅 Trigger",
       "actionTitle": "⚡ Action",
-      "logicTitle": "🧠 Logic & Control"
+      "logicTitle": "🧠 Logic & Control",
+      "quickMode": "Quick Configuration",
+      "visualMode": "Visual Designer",
+      "quickModeWarn": "This flow contains a complex structure (multiple actions or conditions). Please use the Visual Designer to edit it.",
+      "quickModeSubtitle": "Configure when the reminder triggers and what it will say on a single user-friendly screen."
     },
     "nodes": {
       "nueva-cita": { "name": "📅 New Appointment", "desc": "Triggers when booking an appointment." },
