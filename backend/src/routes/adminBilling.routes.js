@@ -1,4 +1,5 @@
 import { Router } from "express";
+import crypto from "crypto";
 import prisma from "../prisma.js";
 import requireAuth from "../middleware/requireAuth.js";
 import requireAdmin from "../middleware/requireAdmin.js";
@@ -111,6 +112,125 @@ router.get("/businesses", async (req, res) => {
   } catch (error) {
     console.error("Error listing admin businesses for billing:", error);
     return res.status(500).json({ success: false, error: "No se pudieron obtener los negocios." });
+  }
+});
+
+router.post("/businesses", async (req, res) => {
+  try {
+    const {
+      name,
+      slug,
+      ownerEmail,
+      plan,
+      subscriptionStatus,
+      trialEndsAt,
+      currentPeriodEnd,
+      gracePeriodEndsAt,
+      industry,
+      timezone
+    } = req.body;
+
+    if (!name || !slug || !ownerEmail) {
+      return res.status(400).json({ success: false, error: "Nombre, Slug y Email del dueño son obligatorios." });
+    }
+
+    const cleanSlug = slug.trim().replace(/[^a-zA-Z0-9-]/g, "").toLowerCase();
+    
+    // Check if slug exists
+    const existingBiz = await prisma.business.findUnique({ where: { slug: cleanSlug } });
+    if (existingBiz) {
+      return res.status(409).json({ success: false, error: "El slug ya está en uso por otro negocio." });
+    }
+
+    const emailLower = ownerEmail.trim().toLowerCase();
+    let user = await prisma.user.findUnique({ where: { email: emailLower } });
+
+    if (!user) {
+      try {
+        const auth = getFirebaseAuth();
+        const fbUser = await auth.getUserByEmail(emailLower);
+        if (fbUser) {
+          user = await prisma.user.create({
+            data: {
+              id: fbUser.uid,
+              email: fbUser.email,
+              name: fbUser.displayName || "Usuario SaaS",
+              status: "active"
+            }
+          });
+        }
+      } catch (fbErr) {
+        console.log("Firebase user not found during business creation:", fbErr.message);
+      }
+    }
+
+    if (!user) {
+      const tempId = "temp-" + Math.random().toString(36).substring(2, 15);
+      user = await prisma.user.create({
+        data: {
+          id: tempId,
+          email: emailLower,
+          name: "Usuario Invitado",
+          status: "active"
+        }
+      });
+    }
+
+    // Ensure ownerRole exists
+    let ownerRole = await prisma.role.findFirst({
+      where: { key: "owner", businessId: null }
+    });
+    if (!ownerRole) {
+      ownerRole = await prisma.role.create({
+        data: {
+          key: "owner",
+          name: "Owner / Dueño",
+          description: "Acceso total del sistema.",
+          isSystemRole: true
+        }
+      });
+    }
+
+    const newBiz = await prisma.business.create({
+      data: {
+        name,
+        slug: cleanSlug,
+        plan: plan || "starter",
+        subscriptionStatus: subscriptionStatus || "trialing",
+        trialEndsAt: trialEndsAt ? new Date(trialEndsAt) : null,
+        currentPeriodEnd: currentPeriodEnd ? new Date(currentPeriodEnd) : null,
+        gracePeriodEndsAt: gracePeriodEndsAt ? new Date(gracePeriodEndsAt) : null,
+        industry: industry || null,
+        timezone: timezone || "America/Argentina/Buenos_Aires",
+        ownerId: user.id
+      }
+    });
+
+    await prisma.businessMember.create({
+      data: {
+        userId: user.id,
+        businessId: newBiz.id,
+        role: "owner",
+        status: "ACTIVE",
+        roleId: ownerRole.id
+      }
+    });
+
+    await prisma.subscription.create({
+      data: {
+        businessId: newBiz.id,
+        planCode: newBiz.plan,
+        status: newBiz.subscriptionStatus,
+        interval: "month",
+        provider: "mercadopago",
+        currentPeriodEnd: newBiz.currentPeriodEnd
+      }
+    });
+
+    return res.status(201).json({ success: true, business: newBiz });
+  } catch (error) {
+    console.error("Error creating business manual override:", error);
+    return res.status(500).json({ success: false, error: "No se pudo crear el negocio." });
   }
 });
 
@@ -252,6 +372,23 @@ router.post("/businesses/:id/override", async (req, res) => {
   }
 });
 
+router.delete("/businesses/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const biz = await prisma.business.findUnique({ where: { id } });
+    if (!biz) {
+      return res.status(404).json({ success: false, error: "Negocio no encontrado." });
+    }
+
+    await prisma.business.delete({ where: { id } });
+
+    return res.json({ success: true, message: "Negocio eliminado exitosamente." });
+  } catch (error) {
+    console.error("Error deleting business:", error);
+    return res.status(500).json({ success: false, error: "No se pudo eliminar el negocio." });
+  }
+});
+
 // GET pending plan requests
 router.get("/requests", async (req, res) => {
   try {
@@ -274,6 +411,33 @@ router.get("/requests", async (req, res) => {
   } catch (error) {
     console.error("Error fetching plan requests:", error);
     return res.status(500).json({ success: false, error: "No se pudieron obtener las solicitudes de planes." });
+  }
+});
+
+router.post("/requests", async (req, res) => {
+  try {
+    const { businessId, requestedPlan, status } = req.body;
+    if (!businessId || !requestedPlan) {
+      return res.status(400).json({ success: false, error: "businessId y requestedPlan son requeridos." });
+    }
+    const biz = await prisma.business.findUnique({ where: { id: businessId } });
+    if (!biz) {
+      return res.status(404).json({ success: false, error: "Negocio no encontrado." });
+    }
+
+    const newRequest = await prisma.planRequest.create({
+      data: {
+        businessId,
+        requestedPlan,
+        status: status || "PENDING",
+        approvalToken: crypto.randomBytes(32).toString("hex")
+      }
+    });
+
+    return res.status(201).json({ success: true, request: newRequest });
+  } catch (error) {
+    console.error("Error creating plan request:", error);
+    return res.status(500).json({ success: false, error: "No se pudo crear la solicitud de plan." });
   }
 });
 

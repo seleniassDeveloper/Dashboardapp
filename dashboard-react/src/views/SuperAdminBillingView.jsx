@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Container, Table, Badge, Button, Modal, Form, Card, Row, Col, Spinner, Alert } from "react-bootstrap";
-import { Edit2, Shield, DollarSign, Users, Award, AlertCircle } from "lucide-react";
+import { Edit2, Shield, DollarSign, Users, Award, AlertCircle, Plus, Trash2 } from "lucide-react";
 import api from "../lib/api.js";
 import { useAuth } from "../auth/AuthProvider.jsx";
 
@@ -29,6 +29,31 @@ export default function SuperAdminBillingView() {
     gracePeriodEndsAt: ""
   });
   const [overrideLoading, setOverrideLoading] = useState(false);
+
+  // Create business modal state
+  const [showCreateBizModal, setShowCreateBizModal] = useState(false);
+  const [createBizForm, setCreateBizForm] = useState({
+    name: "",
+    ownerEmail: "",
+    slug: "",
+    industry: "",
+    timezone: "America/Argentina/Buenos_Aires",
+    plan: "starter",
+    subscriptionStatus: "trialing",
+    trialEndsAt: "",
+    currentPeriodEnd: "",
+    gracePeriodEndsAt: ""
+  });
+  const [createBizLoading, setCreateBizLoading] = useState(false);
+
+  // Create request modal state
+  const [showCreateRequestModal, setShowCreateRequestModal] = useState(false);
+  const [createRequestForm, setCreateRequestForm] = useState({
+    businessId: "",
+    requestedPlan: "starter",
+    status: "PENDING"
+  });
+  const [createRequestLoading, setCreateRequestLoading] = useState(false);
 
   // User edit modal state
   const [showUserModal, setShowUserModal] = useState(false);
@@ -118,6 +143,87 @@ export default function SuperAdminBillingView() {
       setError(err.response?.data?.error || "Error al aplicar la modificación manual.");
     } finally {
       setOverrideLoading(false);
+    }
+  };
+
+  const handleCreateBiz = async () => {
+    setCreateBizLoading(true);
+    setError("");
+    try {
+      const payload = {
+        name: createBizForm.name,
+        ownerEmail: createBizForm.ownerEmail,
+        slug: createBizForm.slug,
+        industry: createBizForm.industry || undefined,
+        timezone: createBizForm.timezone || undefined,
+        plan: createBizForm.plan,
+        subscriptionStatus: createBizForm.subscriptionStatus,
+        trialEndsAt: createBizForm.trialEndsAt || null,
+        currentPeriodEnd: createBizForm.currentPeriodEnd || null,
+        gracePeriodEndsAt: createBizForm.gracePeriodEndsAt || null
+      };
+
+      const res = await api.post("/admin/billing/businesses", payload);
+      if (res.data?.success) {
+        setShowCreateBizModal(false);
+        setCreateBizForm({
+          name: "",
+          ownerEmail: "",
+          slug: "",
+          industry: "",
+          timezone: "America/Argentina/Buenos_Aires",
+          plan: "starter",
+          subscriptionStatus: "trialing",
+          trialEndsAt: "",
+          currentPeriodEnd: "",
+          gracePeriodEndsAt: ""
+        });
+        await fetchAdminBillingData();
+      }
+    } catch (err) {
+      setError(err.response?.data?.error || "Error al crear el nuevo negocio.");
+    } finally {
+      setCreateBizLoading(false);
+    }
+  };
+
+  const handleDeleteBiz = async (bizId) => {
+    if (!window.confirm("¿Seguro que deseas eliminar este inquilino de forma definitiva? Se borrará el negocio y TODA su información asociada en cascada (servicios, clientes, citas, etc.). Esta acción no se puede deshacer.")) return;
+    setError("");
+    try {
+      const res = await api.delete(`/admin/billing/businesses/${bizId}`);
+      if (res.data?.success) {
+        await fetchAdminBillingData();
+      }
+    } catch (err) {
+      setError(err.response?.data?.error || "Error al eliminar el negocio.");
+    }
+  };
+
+  const handleCreateRequest = async () => {
+    setCreateRequestLoading(true);
+    setError("");
+    try {
+      const payload = {
+        businessId: createRequestForm.businessId,
+        requestedPlan: createRequestForm.requestedPlan,
+        status: createRequestForm.status
+      };
+
+      const res = await api.post("/admin/billing/requests", payload);
+      if (res.data?.success) {
+        setShowCreateRequestModal(false);
+        setCreateRequestForm({
+          businessId: "",
+          requestedPlan: "starter",
+          status: "PENDING"
+        });
+        await fetchAdminBillingData();
+      }
+    } catch (err) {
+      setError(err.response?.data?.error || "Error al crear la solicitud de plan.");
+    } finally {
+      setCreateRequestLoading(false);
     }
   };
 
@@ -447,7 +553,31 @@ export default function SuperAdminBillingView() {
       {/* List Card */}
       <Card className="border-0 shadow-sm rounded-4" style={{ background: "#fff" }}>
         <Card.Body className="p-4">
-          <h2 className="fw-bold h6 mb-3 text-dark">Empresas e Inquilinos</h2>
+          <div className="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+            <h2 className="fw-bold h6 mb-0 text-dark">Empresas e Inquilinos ({data.businesses?.length || 0})</h2>
+            <div className="d-flex gap-2">
+              <Button
+                variant="purple"
+                size="sm"
+                onClick={() => setShowCreateRequestModal(true)}
+                className="rounded-pill px-3 py-1.5 text-white bg-purple-600 hover-bg-purple-700 border-0 d-inline-flex align-items-center gap-1.5"
+                style={{ fontSize: "12.5px" }}
+              >
+                <Plus size={14} />
+                Crear Solicitud
+              </Button>
+              <Button
+                variant="success"
+                size="sm"
+                onClick={() => setShowCreateBizModal(true)}
+                className="rounded-pill px-3 py-1.5 text-white bg-success hover-bg-success-dark border-0 d-inline-flex align-items-center gap-1.5"
+                style={{ fontSize: "12.5px" }}
+              >
+                <Plus size={14} />
+                Crear Negocio
+              </Button>
+            </div>
+          </div>
           
           <Table responsive className="mb-0">
             <thead>
@@ -480,16 +610,28 @@ export default function SuperAdminBillingView() {
                   <td className="py-3">{b.currentPeriodEnd ? new Date(b.currentPeriodEnd).toLocaleDateString() : "-"}</td>
                   <td className="py-3 fw-bold text-success">${b.mrr}</td>
                   <td className="py-3 text-end">
-                    <Button 
-                      variant="outline-primary" 
-                      size="sm"
-                      onClick={() => handleOpenOverride(b)}
-                      className="rounded-pill px-3 py-1 font-bold d-inline-flex align-items-center gap-1.5"
-                      style={{ fontSize: "11.5px" }}
-                    >
-                      <Edit2 size={12} />
-                      Modificar
-                    </Button>
+                    <div className="d-flex justify-content-end gap-2">
+                      <Button 
+                        variant="outline-primary" 
+                        size="sm"
+                        onClick={() => handleOpenOverride(b)}
+                        className="rounded-pill px-3 py-1 font-bold d-inline-flex align-items-center gap-1.5"
+                        style={{ fontSize: "11.5px" }}
+                      >
+                        <Edit2 size={12} />
+                        Modificar
+                      </Button>
+                      <Button 
+                        variant="outline-danger" 
+                        size="sm"
+                        onClick={() => handleDeleteBiz(b.id)}
+                        className="rounded-pill px-3 py-1 font-bold d-inline-flex align-items-center gap-1.5"
+                        style={{ fontSize: "11.5px" }}
+                      >
+                        <Trash2 size={12} />
+                        Eliminar
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -821,6 +963,255 @@ export default function SuperAdminBillingView() {
                   {userLoading ? "Guardando..." : "Guardar Cambios"}
                 </Button>
               </div>
+            </div>
+          </Form>
+        </Modal.Body>
+      </Modal>
+
+      {/* Create Business Modal */}
+      <Modal show={showCreateBizModal} onHide={() => setShowCreateBizModal(false)} centered size="lg">
+        <Modal.Header closeButton className="border-0 pb-0">
+          <Modal.Title className="fw-bold h5 text-dark d-flex align-items-center gap-2">
+            <Plus size={20} className="text-success" />
+            <span>Crear Nuevo Negocio (Inquilino)</span>
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="p-4">
+          <Form onSubmit={(e) => { e.preventDefault(); handleCreateBiz(); }}>
+            <Row className="g-4">
+              {/* Columna 1: Información General */}
+              <Col lg={6} className="border-end pe-lg-4">
+                <h6 className="fw-bold text-uppercase text-success mb-3 small d-flex align-items-center gap-1.5" style={{ letterSpacing: "0.5px" }}>
+                  <Users size={14} />
+                  <span>Datos Generales</span>
+                </h6>
+                
+                <Form.Group className="mb-3">
+                  <Form.Label className="fw-semibold small text-muted mb-1">Nombre del Negocio</Form.Label>
+                  <Form.Control 
+                    type="text"
+                    value={createBizForm.name}
+                    onChange={(e) => {
+                      const name = e.target.value;
+                      const slug = name.toLowerCase()
+                        .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // remove accents
+                        .replace(/[^a-z0-9\s-]/g, "") // remove special chars
+                        .trim()
+                        .replace(/\s+/g, "-"); // replace spaces with hyphens
+                      setCreateBizForm({ ...createBizForm, name, slug });
+                    }}
+                    className="small py-2"
+                    placeholder="Nombre del negocio"
+                    required
+                  />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label className="fw-semibold small text-muted mb-1">Email del Negocio (Dueño)</Form.Label>
+                  <Form.Control 
+                    type="email"
+                    value={createBizForm.ownerEmail}
+                    onChange={(e) => setCreateBizForm({ ...createBizForm, ownerEmail: e.target.value })}
+                    className="small py-2 font-monospace"
+                    placeholder="ejemplo@negocio.com"
+                    required
+                  />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label className="fw-semibold small text-muted mb-1">Slug (Identificador Web)</Form.Label>
+                  <Form.Control 
+                    type="text"
+                    value={createBizForm.slug}
+                    onChange={(e) => setCreateBizForm({ ...createBizForm, slug: e.target.value.replace(/[^a-zA-Z0-9-]/g, "").toLowerCase() })}
+                    className="small py-2 font-monospace"
+                    placeholder="slug-del-negocio"
+                    required
+                  />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label className="fw-semibold small text-muted mb-1">Rubro</Form.Label>
+                  <Form.Control 
+                    type="text"
+                    value={createBizForm.industry}
+                    onChange={(e) => setCreateBizForm({ ...createBizForm, industry: e.target.value })}
+                    className="small py-2"
+                    placeholder="Ej: Estética, Barbería"
+                  />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label className="fw-semibold small text-muted mb-1">Zona Horaria</Form.Label>
+                  <Form.Control 
+                    type="text"
+                    value={createBizForm.timezone}
+                    onChange={(e) => setCreateBizForm({ ...createBizForm, timezone: e.target.value })}
+                    className="small py-2 font-monospace"
+                    placeholder="America/Argentina/Buenos_Aires"
+                  />
+                </Form.Group>
+              </Col>
+
+              {/* Columna 2: Suscripción y Fechas */}
+              <Col lg={6} className="ps-lg-4">
+                <h6 className="fw-bold text-uppercase text-success mb-3 small d-flex align-items-center gap-1.5" style={{ letterSpacing: "0.5px" }}>
+                  <DollarSign size={14} />
+                  <span>Suscripción y Fechas</span>
+                </h6>
+
+                <Form.Group className="mb-3">
+                  <Form.Label className="fw-semibold small text-muted mb-1">Plan</Form.Label>
+                  <Form.Select 
+                    value={createBizForm.plan}
+                    onChange={(e) => setCreateBizForm({ ...createBizForm, plan: e.target.value })}
+                    className="small py-2"
+                  >
+                    <option value="starter">Starter ($19/mo)</option>
+                    <option value="pro">Pro ($49/mo)</option>
+                    <option value="business">Business ($99/mo)</option>
+                  </Form.Select>
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label className="fw-semibold small text-muted mb-1">Estado del SaaS</Form.Label>
+                  <Form.Select 
+                    value={createBizForm.subscriptionStatus}
+                    onChange={(e) => setCreateBizForm({ ...createBizForm, subscriptionStatus: e.target.value })}
+                    className="small py-2"
+                  >
+                    <option value="trialing">Trialing (En Prueba)</option>
+                    <option value="active">Active (Activo / Pago aprobado)</option>
+                    <option value="past_due">Past Due (Pago demorado)</option>
+                    <option value="canceled">Canceled (Cancelado)</option>
+                    <option value="suspended">Suspended (Suspendido / Bloqueado)</option>
+                  </Form.Select>
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label className="fw-semibold small text-muted mb-1">Fin de Trial</Form.Label>
+                  <Form.Control 
+                    type="date"
+                    value={createBizForm.trialEndsAt}
+                    onChange={(e) => setCreateBizForm({ ...createBizForm, trialEndsAt: e.target.value })}
+                    className="small py-2"
+                  />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label className="fw-semibold small text-muted mb-1">Fin Período de Pago</Form.Label>
+                  <Form.Control 
+                    type="date"
+                    value={createBizForm.currentPeriodEnd}
+                    onChange={(e) => setCreateBizForm({ ...createBizForm, currentPeriodEnd: e.target.value })}
+                    className="small py-2"
+                  />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label className="fw-semibold small text-muted mb-1">Fin Período de Gracia (Dunning)</Form.Label>
+                  <Form.Control 
+                    type="date"
+                    value={createBizForm.gracePeriodEndsAt}
+                    onChange={(e) => setCreateBizForm({ ...createBizForm, gracePeriodEndsAt: e.target.value })}
+                    className="small py-2"
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <div className="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+              <Button 
+                variant="outline-secondary" 
+                onClick={() => setShowCreateBizModal(false)}
+                className="rounded-pill px-4 small"
+              >
+                Cancelar
+              </Button>
+              <Button 
+                type="submit"
+                variant="success" 
+                disabled={createBizLoading}
+                className="rounded-pill px-4 small text-white bg-success hover-bg-success-dark border-0"
+              >
+                {createBizLoading ? "Creando..." : "Crear Negocio"}
+              </Button>
+            </div>
+          </Form>
+        </Modal.Body>
+      </Modal>
+
+      {/* Create Plan Request Modal */}
+      <Modal show={showCreateRequestModal} onHide={() => setShowCreateRequestModal(false)} centered>
+        <Modal.Header closeButton className="border-0 pb-0">
+          <Modal.Title className="fw-bold h5 text-dark d-flex align-items-center gap-2">
+            <Plus size={20} className="text-purple-600" />
+            <span>Crear Solicitud de Cambio de Plan</span>
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="p-4">
+          <Form onSubmit={(e) => { e.preventDefault(); handleCreateRequest(); }}>
+            <Form.Group className="mb-3">
+              <Form.Label className="fw-semibold small text-muted mb-1">Seleccionar Negocio / Inquilino</Form.Label>
+              <Form.Select 
+                value={createRequestForm.businessId}
+                onChange={(e) => setCreateRequestForm({ ...createRequestForm, businessId: e.target.value })}
+                className="small py-2"
+                required
+              >
+                <option value="">-- Seleccionar Negocio --</option>
+                {data.businesses?.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name} ({b.slug})
+                  </option>
+                ))}
+              </Form.Select>
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label className="fw-semibold small text-muted mb-1">Plan Solicitado</Form.Label>
+              <Form.Select 
+                value={createRequestForm.requestedPlan}
+                onChange={(e) => setCreateRequestForm({ ...createRequestForm, requestedPlan: e.target.value })}
+                className="small py-2"
+                required
+              >
+                <option value="starter">Starter ($19/mo)</option>
+                <option value="pro">Pro ($49/mo)</option>
+                <option value="business">Business ($99/mo)</option>
+              </Form.Select>
+            </Form.Group>
+
+            <Form.Group className="mb-4">
+              <Form.Label className="fw-semibold small text-muted mb-1">Estado Inicial</Form.Label>
+              <Form.Select 
+                value={createRequestForm.status}
+                onChange={(e) => setCreateRequestForm({ ...createRequestForm, status: e.target.value })}
+                className="small py-2"
+                required
+              >
+                <option value="PENDING">Pendiente de Aprobación (PENDING)</option>
+                <option value="APPROVED">Aprobado Directo (APPROVED)</option>
+                <option value="REJECTED">Rechazado (REJECTED)</option>
+              </Form.Select>
+            </Form.Group>
+
+            <div className="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+              <Button 
+                variant="outline-secondary" 
+                onClick={() => setShowCreateRequestModal(false)}
+                className="rounded-pill px-4 small"
+              >
+                Cancelar
+              </Button>
+              <Button 
+                type="submit"
+                variant="purple" 
+                disabled={createRequestLoading}
+                className="rounded-pill px-4 small text-white bg-purple-600 hover-bg-purple-700 border-0"
+              >
+                {createRequestLoading ? "Creando..." : "Crear Solicitud"}
+              </Button>
             </div>
           </Form>
         </Modal.Body>
