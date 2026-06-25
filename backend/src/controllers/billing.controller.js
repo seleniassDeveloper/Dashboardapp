@@ -2,8 +2,7 @@ import prisma from "../prisma.js";
 import crypto from "crypto";
 import { sendReminderEmail } from "../services/mailer.js";
 import { MercadoPagoProvider } from "../services/billing/mercadopago.provider.js";
-
-const paymentProvider = new MercadoPagoProvider();
+import { StripeProvider } from "../services/billing/stripe.provider.js";
 
 export async function getPlans(req, res) {
   try {
@@ -59,7 +58,7 @@ export async function getSubscription(req, res) {
 
 export async function checkout(req, res) {
   try {
-    const { planCode, interval } = req.body;
+    const { planCode, interval, provider } = req.body;
     const businessId = req.businessId;
 
     if (!planCode || !interval) {
@@ -142,7 +141,10 @@ export async function checkout(req, res) {
       });
     }
 
-    const { providerSubId, checkoutUrl } = await paymentProvider.createSubscription(
+    const providerName = provider === "stripe" ? "stripe" : "mercadopago";
+    const activeProvider = providerName === "stripe" ? new StripeProvider() : new MercadoPagoProvider();
+
+    const { providerSubId, checkoutUrl } = await activeProvider.createSubscription(
       business,
       plan,
       interval,
@@ -157,6 +159,7 @@ export async function checkout(req, res) {
         interval,
         status: "pending",
         providerSubId,
+        provider: providerName,
         cancelAtPeriodEnd: false
       },
       create: {
@@ -165,7 +168,7 @@ export async function checkout(req, res) {
         interval,
         status: "pending",
         providerSubId,
-        provider: "mercadopago"
+        provider: providerName
       }
     });
 
@@ -189,7 +192,8 @@ export async function cancel(req, res) {
       return res.status(404).json({ success: false, error: "No se encontró una suscripción activa para cancelar." });
     }
 
-    await paymentProvider.cancelSubscription(subscription.providerSubId);
+    const provider = subscription.provider === "stripe" ? new StripeProvider() : new MercadoPagoProvider();
+    await provider.cancelSubscription(subscription.providerSubId);
 
     // Mark subscription to cancel at period end in database
     await prisma.subscription.update({
@@ -205,30 +209,43 @@ export async function cancel(req, res) {
 }
 
 export async function webhook(req, res) {
-  const payload = req.body;
-  
-  // Idempotency: verify event has not been processed yet
-  const eventId = payload.id ? String(payload.id) : `evt_${Date.now()}`;
+  const isStripe = !!req.headers["stripe-signature"];
+  const provider = isStripe ? new StripeProvider() : new MercadoPagoProvider();
   
   try {
+    // 2. Parse details from webhook payload using PaymentProvider
+    const event = await provider.parseEvent(req.body, req.headers);
+    console.log("Parsed webhook event:", event);
+
+    const eventId = event.eventId;
+
     // 1. Check if event is processed
     const alreadyProcessed = await prisma.webhookEvent.findUnique({ where: { eventId } });
     if (alreadyProcessed) {
       return res.status(200).json({ success: true, message: "Event already processed (idempotent)" });
     }
 
-    // 2. Parse details from webhook payload using PaymentProvider
-    const event = await paymentProvider.parseEvent(payload);
-    console.log("Parsed webhook event:", event);
+    let payloadJson;
+    if (isStripe) {
+      if (Buffer.isBuffer(req.body)) {
+        payloadJson = JSON.parse(req.body.toString("utf8"));
+      } else if (typeof req.body === "string") {
+        payloadJson = JSON.parse(req.body);
+      } else {
+        payloadJson = req.body || {};
+      }
+    } else {
+      payloadJson = req.body || {};
+    }
 
     if (!event.providerSubId) {
       // Create record to block repeat notifications of un-mapped webhooks
       await prisma.webhookEvent.create({
         data: {
           eventId,
-          provider: "mercadopago",
-          type: payload.type || "unknown",
-          payload: payload || {}
+          provider: isStripe ? "stripe" : "mercadopago",
+          type: event.type || "unknown",
+          payload: payloadJson
         }
       });
       return res.status(200).json({ success: true, message: "Event ignored: no subscription relation." });
@@ -254,9 +271,9 @@ export async function webhook(req, res) {
       await tx.webhookEvent.create({
         data: {
           eventId,
-          provider: "mercadopago",
+          provider: isStripe ? "stripe" : "mercadopago",
           type: event.type,
-          payload: payload || {}
+          payload: payloadJson
         }
       });
 
@@ -275,7 +292,7 @@ export async function webhook(req, res) {
               gracePeriodEndsAt: null
             }
           });
-        } else if (event.status === "cancelled" || event.status === "cancelled") {
+        } else if (event.status === "cancelled" || event.status === "canceled") {
           await tx.subscription.update({
             where: { id: subscription.id },
             data: { status: "canceled" }
@@ -288,7 +305,7 @@ export async function webhook(req, res) {
       }
 
       if (event.type === "payment") {
-        const isApproved = event.status === "approved" || event.status === "approved";
+        const isApproved = event.status === "approved" || event.status === "active";
         
         await tx.payment.create({
           data: {

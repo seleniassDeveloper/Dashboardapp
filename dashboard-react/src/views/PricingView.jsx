@@ -1,11 +1,15 @@
 import React, { useState } from "react";
 import { Container, Row, Col, Card, Button, Form, Alert } from "react-bootstrap";
 import { Check, ShieldCheck, ArrowRight, Sparkles, LogOut, Info } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider.jsx";
 import api from "../lib/api.js";
 
 export default function PricingView({ blocked = false, subscriptionStatus = "" }) {
   const { logout, user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const initialProvider = searchParams.get("provider") || "mercadopago";
+  const [provider, setProvider] = useState(initialProvider);
   const [billingCycle, setBillingCycle] = useState("month"); // 'month' | 'year'
   const [loadingPlan, setLoadingPlan] = useState(null);
   const [error, setError] = useState("");
@@ -74,7 +78,8 @@ export default function PricingView({ blocked = false, subscriptionStatus = "" }
     try {
       const res = await api.post("/billing/checkout", {
         planCode,
-        interval: billingCycle
+        interval: billingCycle,
+        provider
       });
 
       if (res.data?.success) {
@@ -161,6 +166,26 @@ export default function PricingView({ blocked = false, subscriptionStatus = "" }
             >
               Anual <span className="badge bg-success bg-opacity-20 text-success ms-1 small" style={{ fontSize: "10px" }}>Ahorra 20%</span>
             </button>
+          </div>
+
+          <div className="d-block mt-3">
+            <span className="text-muted small fw-bold d-block mb-1.5" style={{ letterSpacing: "0.5px", fontSize: "11px" }}>MÉTODO DE PAGO</span>
+            <div className="d-inline-flex align-items-center bg-white p-1.5 rounded-pill shadow-sm border">
+              <button
+                onClick={() => setProvider("mercadopago")}
+                className={`btn px-4 py-1.5 rounded-pill fw-bold Transition-all ${provider === "mercadopago" ? "bg-purple-600 text-white shadow-sm" : "text-muted bg-transparent border-0"}`}
+                style={provider === "mercadopago" ? { backgroundColor: "#7c3aed", border: 0 } : { fontSize: "13px" }}
+              >
+                🏦 MercadoPago
+              </button>
+              <button
+                onClick={() => setProvider("stripe")}
+                className={`btn px-4 py-1.5 rounded-pill fw-bold Transition-all ${provider === "stripe" ? "bg-purple-600 text-white shadow-sm" : "text-muted bg-transparent border-0"}`}
+                style={provider === "stripe" ? { backgroundColor: "#7c3aed", border: 0 } : { fontSize: "13px" }}
+              >
+                💳 Tarjeta / Internacional
+              </button>
+            </div>
           </div>
         </div>
 
@@ -264,7 +289,7 @@ export default function PricingView({ blocked = false, subscriptionStatus = "" }
 
         <div className="text-center mt-5 text-muted small d-flex align-items-center justify-content-center gap-2">
           <ShieldCheck size={16} className="text-success" />
-          <span>Pagos protegidos de forma segura por MercadoPago.</span>
+          <span>Pagos protegidos de forma segura por MercadoPago y Stripe.</span>
         </div>
       </Container>
     </div>

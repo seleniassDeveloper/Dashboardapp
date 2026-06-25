@@ -22,6 +22,7 @@ export default function SubscriptionSettingsView() {
   const planCode = searchParams.get("planCode") || "";
   const interval = searchParams.get("interval") || "";
   const price = searchParams.get("price") || "";
+  const provider = searchParams.get("provider") || "mercadopago";
 
   const fetchSubscriptionDetails = async () => {
     setLoading(true);
@@ -69,26 +70,43 @@ export default function SubscriptionSettingsView() {
   const handleSimulatePayment = async () => {
     setSimLoading(true);
     try {
-      // 1. Trigger subscription authorized webhook event
-      await api.post("/billing/webhook", {
-        id: `sim_evt_${Math.random().toString(36).substr(2, 9)}`,
-        type: "subscription_preapproval",
-        action: "created",
-        data: { id: providerSubId },
-        mock_status: "authorized",
-        mock_amount: Number(price)
-      });
+      if (provider === "stripe") {
+        // Trigger Stripe simulation webhook events
+        await api.post("/billing/webhook", {
+          id: `sim_evt_${Math.random().toString(36).substr(2, 9)}`,
+          type: "checkout.session.completed",
+          mock_status: "active",
+          mock_subscription_id: providerSubId,
+          mock_business_id: subData?.business?.id || "",
+          mock_plan_code: planCode,
+          mock_amount: Number(price)
+        }, {
+          headers: {
+            "stripe-signature": "mock_signature_here"
+          }
+        });
+      } else {
+        // 1. Trigger subscription authorized webhook event (MercadoPago)
+        await api.post("/billing/webhook", {
+          id: `sim_evt_${Math.random().toString(36).substr(2, 9)}`,
+          type: "subscription_preapproval",
+          action: "created",
+          data: { id: providerSubId },
+          mock_status: "authorized",
+          mock_amount: Number(price)
+        });
 
-      // 2. Trigger payment approved webhook event
-      await api.post("/billing/webhook", {
-        id: `sim_evt_pay_${Math.random().toString(36).substr(2, 9)}`,
-        type: "payment",
-        action: "payment.created",
-        data: { id: `pay_${Math.random().toString(36).substr(2, 9)}` },
-        mock_status: "approved",
-        mock_subscription_id: providerSubId,
-        mock_amount: Number(price)
-      });
+        // 2. Trigger payment approved webhook event (MercadoPago)
+        await api.post("/billing/webhook", {
+          id: `sim_evt_pay_${Math.random().toString(36).substr(2, 9)}`,
+          type: "payment",
+          action: "payment.created",
+          data: { id: `pay_${Math.random().toString(36).substr(2, 9)}` },
+          mock_status: "approved",
+          mock_subscription_id: providerSubId,
+          mock_amount: Number(price)
+        });
+      }
 
       setSimSuccess(true);
       setTimeout(() => {
@@ -207,7 +225,7 @@ export default function SubscriptionSettingsView() {
           <div className="d-flex flex-wrap gap-2.5 mt-4 pt-4 border-top">
             <Button 
               variant="purple" 
-              href="/app/pricing"
+              href={`/app/pricing?provider=${subData?.subscription?.provider || "mercadopago"}`}
               className="rounded-pill px-4.5 py-2 small fw-bold text-white bg-purple-600 hover-bg-purple-700 border-0"
               style={{ fontSize: "12.5px" }}
             >
@@ -274,7 +292,7 @@ export default function SubscriptionSettingsView() {
       <Modal show={showSimModal} onHide={() => setShowSimModal(false)} centered backdrop="static" className="sandbox-modal">
         <Modal.Header className="border-0 pb-0 justify-content-center">
           <Modal.Title className="fw-black h4 text-purple-600 text-center">
-            MercadoPago Sandbox Simulator
+            {provider === "stripe" ? "Stripe Sandbox Simulator" : "MercadoPago Sandbox Simulator"}
           </Modal.Title>
         </Modal.Header>
         <Modal.Body className="p-4 text-center">
@@ -290,7 +308,7 @@ export default function SubscriptionSettingsView() {
                 <CreditCard size={32} />
               </div>
               <p className="text-secondary small mb-4">
-                Estás en el simulador local de pagos. Al hacer clic en el botón de abajo, se enviará una notificación webhook simulada al backend 
+                Estás en el simulador local de pagos. Al hacer clic en el botón de abajo, se enviará una notificación webhook simulada de {provider === "stripe" ? "Stripe" : "MercadoPago"} al backend 
                 para activar el plan <strong>{planCode?.toUpperCase()}</strong> ({interval === "month" ? "Mensual" : "Anual"}) por un valor de <strong>${(price / 100).toFixed(2)} USD</strong>.
               </p>
 

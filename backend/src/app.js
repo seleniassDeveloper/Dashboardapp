@@ -82,6 +82,15 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Webhook raw body parser for Stripe signature verification
+app.use("/api/billing/webhook", (req, res, next) => {
+  if (req.headers["stripe-signature"]) {
+    express.raw({ type: "application/json" })(req, res, next);
+  } else {
+    express.json({ limit: "15mb" })(req, res, next);
+  }
+});
+
 app.use(express.json({ limit: "15mb" }));
 app.use("/uploads", express.static(resolve(process.cwd(), "uploads")));
 app.use(requestLogger);
