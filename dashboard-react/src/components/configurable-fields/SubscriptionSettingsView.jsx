@@ -16,13 +16,7 @@ export default function SubscriptionSettingsView() {
   const [showSimModal, setShowSimModal] = useState(false);
   const [simLoading, setSimLoading] = useState(false);
   const [simSuccess, setSimSuccess] = useState(false);
-
-  const mockCheckout = searchParams.get("mock_checkout") === "true";
-  const providerSubId = searchParams.get("providerSubId") || "";
-  const planCode = searchParams.get("planCode") || "";
-  const interval = searchParams.get("interval") || "";
-  const price = searchParams.get("price") || "";
-  const provider = searchParams.get("provider") || "stripe";
+  const [simData, setSimData] = useState(null);
 
   const fetchSubscriptionDetails = async () => {
     setLoading(true);
@@ -42,11 +36,33 @@ export default function SubscriptionSettingsView() {
 
   useEffect(() => {
     fetchSubscriptionDetails();
+  }, []);
 
+  useEffect(() => {
+    const mockCheckout = searchParams.get("mock_checkout") === "true";
+    const providerSubId = searchParams.get("providerSubId");
+    
     if (mockCheckout && providerSubId) {
+      setSimData({
+        providerSubId,
+        planCode: searchParams.get("planCode") || "",
+        interval: searchParams.get("interval") || "",
+        price: searchParams.get("price") || "",
+        provider: searchParams.get("provider") || "stripe"
+      });
       setShowSimModal(true);
+
+      // Limpiar params de la URL inmediatamente para evitar bucles al refrescar
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete("mock_checkout");
+      nextParams.delete("providerSubId");
+      nextParams.delete("planCode");
+      nextParams.delete("interval");
+      nextParams.delete("price");
+      nextParams.delete("provider");
+      setSearchParams(nextParams, { replace: true });
     }
-  }, [searchParams]);
+  }, [searchParams, setSearchParams]);
 
   const handleCancelSub = async () => {
     if (!window.confirm("¿Estás seguro de que deseas cancelar la renovación automática de tu suscripción? Conservarás el acceso hasta finalizar el período pago.")) {
@@ -68,18 +84,19 @@ export default function SubscriptionSettingsView() {
   };
 
   const handleSimulatePayment = async () => {
+    if (!simData) return;
     setSimLoading(true);
     try {
-      if (provider === "stripe") {
+      if (simData.provider === "stripe") {
         // Trigger Stripe simulation webhook events
         await api.post("/billing/webhook", {
           id: `sim_evt_${Math.random().toString(36).substr(2, 9)}`,
           type: "checkout.session.completed",
           mock_status: "active",
-          mock_subscription_id: providerSubId,
+          mock_subscription_id: simData.providerSubId,
           mock_business_id: subData?.business?.id || "",
-          mock_plan_code: planCode,
-          mock_amount: Number(price)
+          mock_plan_code: simData.planCode,
+          mock_amount: Number(simData.price)
         }, {
           headers: {
             "stripe-signature": "mock_signature_here"
@@ -91,9 +108,9 @@ export default function SubscriptionSettingsView() {
           id: `sim_evt_${Math.random().toString(36).substr(2, 9)}`,
           type: "subscription_preapproval",
           action: "created",
-          data: { id: providerSubId },
+          data: { id: simData.providerSubId },
           mock_status: "authorized",
-          mock_amount: Number(price)
+          mock_amount: Number(simData.price)
         });
 
         // 2. Trigger payment approved webhook event (MercadoPago)
@@ -103,21 +120,14 @@ export default function SubscriptionSettingsView() {
           action: "payment.created",
           data: { id: `pay_${Math.random().toString(36).substr(2, 9)}` },
           mock_status: "approved",
-          mock_subscription_id: providerSubId,
-          mock_amount: Number(price)
+          mock_subscription_id: simData.providerSubId,
+          mock_amount: Number(simData.price)
         });
       }
 
       setSimSuccess(true);
       setTimeout(() => {
         setShowSimModal(false);
-        // Clear query parameters
-        searchParams.delete("mock_checkout");
-        searchParams.delete("providerSubId");
-        searchParams.delete("planCode");
-        searchParams.delete("interval");
-        searchParams.delete("price");
-        setSearchParams(searchParams);
         // Reload page to sync state
         window.location.reload();
       }, 2000);
@@ -292,7 +302,7 @@ export default function SubscriptionSettingsView() {
       <Modal show={showSimModal} onHide={() => setShowSimModal(false)} centered backdrop="static" className="sandbox-modal">
         <Modal.Header className="border-0 pb-0 justify-content-center">
           <Modal.Title className="fw-black h4 text-purple-600 text-center">
-            {provider === "stripe" ? "Stripe Sandbox Simulator" : "MercadoPago Sandbox Simulator"}
+            {simData?.provider === "stripe" ? "Stripe Sandbox Simulator" : "MercadoPago Sandbox Simulator"}
           </Modal.Title>
         </Modal.Header>
         <Modal.Body className="p-4 text-center">
@@ -308,15 +318,15 @@ export default function SubscriptionSettingsView() {
                 <CreditCard size={32} />
               </div>
               <p className="text-secondary small mb-4">
-                Estás en el simulador local de pagos. Al hacer clic en el botón de abajo, se enviará una notificación webhook simulada de {provider === "stripe" ? "Stripe" : "MercadoPago"} al backend 
-                para activar el plan <strong>{planCode?.toUpperCase()}</strong> ({interval === "month" ? "Mensual" : "Anual"}) por un valor de <strong>${(price / 100).toFixed(2)} USD</strong>.
+                Estás en el simulador local de pagos. Al hacer clic en el botón de abajo, se enviará una notificación webhook simulada de {simData?.provider === "stripe" ? "Stripe" : "MercadoPago"} al backend 
+                para activar el plan <strong>{simData?.planCode?.toUpperCase()}</strong> ({simData?.interval === "month" ? "Mensual" : "Anual"}) por un valor de <strong>${(Number(simData?.price) / 100).toFixed(2)} USD</strong>.
               </p>
 
               <div className="alert bg-light border-0 p-3 rounded-3 mb-4 text-start font-monospace smaller" style={{ fontSize: "11.5px" }}>
-                <div><strong>Subscription ID:</strong> {providerSubId}</div>
-                <div><strong>Plan Code:</strong> {planCode}</div>
-                <div><strong>Interval:</strong> {interval}</div>
-                <div><strong>Amount:</strong> ${(price / 100).toFixed(2)}</div>
+                <div><strong>Subscription ID:</strong> {simData?.providerSubId}</div>
+                <div><strong>Plan Code:</strong> {simData?.planCode}</div>
+                <div><strong>Interval:</strong> {simData?.interval}</div>
+                <div><strong>Amount:</strong> ${(Number(simData?.price) / 100).toFixed(2)}</div>
               </div>
 
               <div className="d-flex flex-column gap-2">
