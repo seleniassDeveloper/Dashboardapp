@@ -337,14 +337,53 @@ export default function SuperAdminBillingView() {
   };
 
   const getStatusBadge = (status) => {
-    const map = {
-      trialing: "info",
-      active: "success",
-      past_due: "warning",
-      canceled: "secondary",
-      suspended: "danger"
+    const classMap = {
+      trialing: "badge-sa-trialing",
+      active: "badge-sa-active",
+      past_due: "badge-sa-past_due",
+      canceled: "badge-sa-canceled",
+      suspended: "badge-sa-suspended"
     };
-    return <Badge bg={map[status] || "light"} className="rounded-pill text-uppercase">{status}</Badge>;
+    const dotMap = {
+      trialing: "🔵",
+      active: "🟢",
+      past_due: "🟡",
+      canceled: "⚪",
+      suspended: "🔴"
+    };
+    return (
+      <span className={`badge-sa ${classMap[status] || "badge-sa-canceled"} text-uppercase`}>
+        <span style={{ fontSize: "8px", verticalAlign: "middle" }}>{dotMap[status] || "⚪"}</span>
+        {status}
+      </span>
+    );
+  };
+
+  const getPlanBadge = (plan) => {
+    const map = {
+      starter: { bg: "rgba(100, 116, 139, 0.1)", color: "#475569", border: "rgba(100, 116, 139, 0.2)" },
+      pro: { bg: "rgba(124, 58, 237, 0.1)", color: "#6d28d9", border: "rgba(124, 58, 237, 0.2)" },
+      business: { bg: "rgba(236, 72, 153, 0.1)", color: "#db2777", border: "rgba(236, 72, 153, 0.2)" }
+    };
+    const style = map[plan] || map.starter;
+    return (
+      <span className="badge-sa text-uppercase" style={{ backgroundColor: style.bg, color: style.color, border: `1px solid ${style.border}`, padding: "0.25rem 0.6rem", fontSize: "0.7rem", fontWeight: "600", borderRadius: "9999px" }}>
+        {plan}
+      </span>
+    );
+  };
+
+  const getUserStatusBadge = (status) => {
+    const classMap = {
+      active: "badge-sa-active",
+      pending: "badge-sa-past_due",
+      rejected: "badge-sa-suspended"
+    };
+    return (
+      <span className={`badge-sa ${classMap[status] || "badge-sa-canceled"} text-uppercase`}>
+        {status}
+      </span>
+    );
   };
 
   if (loading) {
@@ -357,8 +396,192 @@ export default function SuperAdminBillingView() {
   }
 
   return (
-    <Container fluid className="py-4 px-md-5">
-      <header className="mb-4 d-flex align-items-center justify-content-between flex-wrap gap-3">
+    <Container fluid className="sa-console-container py-4 px-md-5">
+      <style>{`
+        .sa-console-container {
+          background: radial-gradient(circle at top right, rgba(124, 58, 237, 0.04), transparent 45%),
+                      radial-gradient(circle at bottom left, rgba(16, 185, 129, 0.03), transparent 45%),
+                      #f8fafc;
+          min-height: 100vh;
+          font-family: 'Inter', sans-serif;
+          color: #1e293b;
+        }
+
+        .sa-header {
+          background: rgba(255, 255, 255, 0.85);
+          backdrop-filter: blur(16px);
+          border: 1px solid rgba(226, 232, 240, 0.8);
+          border-radius: 20px;
+          padding: 1.75rem;
+          box-shadow: 0 10px 25px -5px rgba(148, 163, 184, 0.05);
+        }
+
+        .sa-kpi-card {
+          transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+          border: 1px solid rgba(226, 232, 240, 0.9) !important;
+          border-radius: 20px !important;
+          background: #ffffff !important;
+        }
+
+        .sa-kpi-card:hover {
+          transform: translateY(-6px);
+          box-shadow: 0 20px 35px -10px rgba(124, 58, 237, 0.12) !important;
+          border-color: rgba(124, 58, 237, 0.25) !important;
+        }
+
+        .sa-card {
+          border: 1px solid rgba(226, 232, 240, 0.9) !important;
+          box-shadow: 0 10px 30px -10px rgba(148, 163, 184, 0.06) !important;
+          border-radius: 20px !important;
+          overflow: hidden;
+          background: #ffffff !important;
+          transition: all 0.3s ease;
+        }
+
+        .sa-card:hover {
+          box-shadow: 0 15px 35px -5px rgba(148, 163, 184, 0.1) !important;
+        }
+
+        .sa-table {
+          vertical-align: middle;
+        }
+
+        .sa-table th {
+          font-weight: 600;
+          text-transform: uppercase;
+          font-size: 0.72rem;
+          letter-spacing: 0.06em;
+          color: #64748b;
+          border-bottom: 2px solid #f1f5f9;
+          padding: 1.1rem 0.8rem;
+          background-color: #f8fafc;
+        }
+
+        .sa-table td {
+          padding: 1.25rem 0.8rem;
+          border-bottom: 1px solid #f1f5f9;
+          color: #334155;
+        }
+
+        .sa-row-hover {
+          transition: background-color 0.2s ease;
+        }
+
+        .sa-row-hover:hover {
+          background-color: rgba(241, 245, 249, 0.4);
+        }
+
+        /* Premium Buttons */
+        .btn-premium-purple {
+          background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+          color: #fff !important;
+          border: none;
+          box-shadow: 0 4px 12px rgba(124, 58, 237, 0.15);
+          transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .btn-premium-purple:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 20px rgba(124, 58, 237, 0.25);
+          filter: brightness(1.05);
+        }
+
+        .btn-premium-purple:active {
+          transform: translateY(0);
+        }
+
+        .btn-premium-success {
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+          color: #fff !important;
+          border: none;
+          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+          transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .btn-premium-success:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 20px rgba(16, 185, 129, 0.25);
+          filter: brightness(1.05);
+        }
+
+        .btn-premium-success:active {
+          transform: translateY(0);
+        }
+
+        /* Status Badges */
+        .badge-sa {
+          padding: 0.35rem 0.75rem;
+          font-weight: 600;
+          letter-spacing: 0.04em;
+          font-size: 0.7rem;
+          border-radius: 9999px;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.35rem;
+        }
+
+        .badge-sa-active {
+          background: rgba(16, 185, 129, 0.08);
+          color: #065f46;
+          border: 1px solid rgba(16, 185, 129, 0.18);
+        }
+
+        .badge-sa-trialing {
+          background: rgba(59, 130, 246, 0.08);
+          color: #1e40af;
+          border: 1px solid rgba(59, 130, 246, 0.18);
+        }
+
+        .badge-sa-past_due {
+          background: rgba(245, 158, 11, 0.08);
+          color: #92400e;
+          border: 1px solid rgba(245, 158, 11, 0.18);
+        }
+
+        .badge-sa-suspended {
+          background: rgba(239, 68, 68, 0.08);
+          color: #991b1b;
+          border: 1px solid rgba(239, 68, 68, 0.18);
+        }
+
+        .badge-sa-canceled {
+          background: rgba(100, 116, 139, 0.08);
+          color: #334155;
+          border: 1px solid rgba(100, 116, 139, 0.18);
+        }
+
+        /* Modals and Forms */
+        .modal-content {
+          border-radius: 24px !important;
+          border: 1px solid rgba(226, 232, 240, 0.8) !important;
+          box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.12) !important;
+          overflow: hidden;
+        }
+
+        .modal-header {
+          background: #f8fafc;
+          border-bottom: 1px solid #f1f5f9 !important;
+          padding: 1.5rem 1.75rem !important;
+        }
+
+        .modal-body {
+          padding: 1.75rem !important;
+        }
+
+        .form-control, .form-select {
+          border: 1px solid #cbd5e1;
+          border-radius: 12px;
+          padding: 0.6rem 0.9rem;
+          font-size: 0.9rem;
+          transition: all 0.2s ease;
+        }
+
+        .form-control:focus, .form-select:focus {
+          border-color: #a78bfa !important;
+          box-shadow: 0 0 0 4px rgba(167, 139, 250, 0.18) !important;
+        }
+      `}</style>
+      <header className="mb-4 d-flex align-items-center justify-content-between flex-wrap gap-3 sa-header">
         <div className="d-flex align-items-center gap-2">
           <Shield size={24} className="text-purple-600" />
           <div>
@@ -379,7 +602,7 @@ export default function SuperAdminBillingView() {
       {/* KPI Stats widgets */}
       <Row className="g-4 mb-4">
         <Col md={6} lg={4}>
-          <Card className="border-0 shadow-sm rounded-4" style={{ background: "#fff" }}>
+          <Card className="border-0 shadow-sm rounded-4 sa-kpi-card">
             <Card.Body className="d-flex align-items-center gap-3 p-4">
               <div className="p-3 bg-success bg-opacity-10 text-success rounded-circle">
                 <DollarSign size={24} />
@@ -392,7 +615,7 @@ export default function SuperAdminBillingView() {
           </Card>
         </Col>
         <Col md={6} lg={4}>
-          <Card className="border-0 shadow-sm rounded-4" style={{ background: "#fff" }}>
+          <Card className="border-0 shadow-sm rounded-4 sa-kpi-card">
             <Card.Body className="d-flex align-items-center gap-3 p-4">
               <div className="p-3 bg-purple-50 text-purple-600 rounded-circle">
                 <Users size={24} />
@@ -405,7 +628,7 @@ export default function SuperAdminBillingView() {
           </Card>
         </Col>
         <Col md={6} lg={4}>
-          <Card className="border-0 shadow-sm rounded-4" style={{ background: "#fff" }}>
+          <Card className="border-0 shadow-sm rounded-4 sa-kpi-card">
             <Card.Body className="d-flex align-items-center gap-3 p-4">
               <div className="p-3 bg-info bg-opacity-10 text-info rounded-circle">
                 <Award size={24} />
@@ -422,7 +645,7 @@ export default function SuperAdminBillingView() {
       </Row>
 
       {requests.length > 0 && (
-        <Card className="border-0 shadow-sm rounded-4 mb-4 border-warning" style={{ background: "#fff", borderLeft: "4px solid #f59e0b" }}>
+        <Card className="border-0 shadow-sm rounded-4 mb-4 border-warning sa-card" style={{ background: "#fff", borderLeft: "4px solid #f59e0b" }}>
           <Card.Body className="p-4">
             <div className="d-flex align-items-center justify-content-between mb-3">
               <div className="d-flex align-items-center gap-2">
@@ -439,7 +662,7 @@ export default function SuperAdminBillingView() {
               </Button>
             </div>
             
-            <Table responsive className="mb-0">
+            <Table responsive className="mb-0 sa-table">
               <thead>
                 <tr className="border-bottom text-muted smaller uppercase">
                   <th className="py-2.5">Fecha</th>
@@ -451,11 +674,11 @@ export default function SuperAdminBillingView() {
               </thead>
               <tbody>
                 {requests.map((r) => (
-                  <tr key={r.id} className="border-bottom small align-middle">
+                  <tr key={r.id} className="border-bottom small align-middle sa-row-hover">
                     <td className="py-3 text-muted">{new Date(r.createdAt).toLocaleDateString()}</td>
                     <td className="py-3 fw-bold text-dark">{r.business?.name}</td>
-                    <td className="py-3"><Badge bg="secondary" className="uppercase">{r.business?.plan}</Badge></td>
-                    <td className="py-3"><Badge bg="primary" className="uppercase">{r.requestedPlan}</Badge></td>
+                    <td className="py-3">{getPlanBadge(r.business?.plan)}</td>
+                    <td className="py-3">{getPlanBadge(r.requestedPlan)}</td>
                     <td className="py-3 text-end">
                       <div className="d-flex justify-content-end gap-2">
                         <Button 
@@ -494,14 +717,14 @@ export default function SuperAdminBillingView() {
       )}
 
       {pendingUsers.length > 0 && (
-        <Card className="border-0 shadow-sm rounded-4 mb-4 border-primary" style={{ background: "#fff", borderLeft: "4px solid #3b82f6" }}>
+        <Card className="border-0 shadow-sm rounded-4 mb-4 border-primary sa-card" style={{ background: "#fff", borderLeft: "4px solid #3b82f6" }}>
           <Card.Body className="p-4">
             <div className="d-flex align-items-center gap-2 mb-3">
               <Users className="text-primary" size={20} />
               <h2 className="fw-bold h6 mb-0 text-dark">Nuevos Usuarios (Pendientes de Aprobación) ({pendingUsers.filter(u => u.status === "pending").length})</h2>
             </div>
             
-            <Table responsive className="mb-0">
+            <Table responsive className="mb-0 sa-table">
               <thead>
                 <tr className="border-bottom text-muted smaller uppercase">
                   <th className="py-2.5">Fecha</th>
@@ -513,12 +736,12 @@ export default function SuperAdminBillingView() {
               </thead>
               <tbody>
                 {pendingUsers.map((u) => (
-                  <tr key={u.id} className="border-bottom small align-middle">
+                  <tr key={u.id} className="border-bottom small align-middle sa-row-hover">
                     <td className="py-3 text-muted">{new Date(u.createdAt).toLocaleDateString()}</td>
                     <td className="py-3 fw-bold text-dark">{u.email}</td>
                     <td className="py-3">{u.name || `${u.firstName || ""} ${u.lastName || ""}`.trim() || "-"}</td>
                     <td className="py-3">
-                      <Badge bg={u.status === "pending" ? "warning" : "danger"} className="uppercase">{u.status}</Badge>
+                      {getUserStatusBadge(u.status)}
                     </td>
                     <td className="py-3 text-end">
                       <div className="d-flex justify-content-end gap-2">
@@ -551,7 +774,7 @@ export default function SuperAdminBillingView() {
       )}
 
       {/* List Card */}
-      <Card className="border-0 shadow-sm rounded-4" style={{ background: "#fff" }}>
+      <Card className="border-0 shadow-sm rounded-4 sa-card">
         <Card.Body className="p-4">
           <div className="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
             <h2 className="fw-bold h6 mb-0 text-dark">Empresas e Inquilinos ({data.businesses?.length || 0})</h2>
@@ -560,7 +783,7 @@ export default function SuperAdminBillingView() {
                 variant="purple"
                 size="sm"
                 onClick={() => setShowCreateRequestModal(true)}
-                className="rounded-pill px-3 py-1.5 text-white bg-purple-600 hover-bg-purple-700 border-0 d-inline-flex align-items-center gap-1.5"
+                className="rounded-pill px-3 py-1.5 btn-premium-purple d-inline-flex align-items-center gap-1.5"
                 style={{ fontSize: "12.5px" }}
               >
                 <Plus size={14} />
@@ -570,7 +793,7 @@ export default function SuperAdminBillingView() {
                 variant="success"
                 size="sm"
                 onClick={() => setShowCreateBizModal(true)}
-                className="rounded-pill px-3 py-1.5 text-white bg-success hover-bg-success-dark border-0 d-inline-flex align-items-center gap-1.5"
+                className="rounded-pill px-3 py-1.5 btn-premium-success d-inline-flex align-items-center gap-1.5"
                 style={{ fontSize: "12.5px" }}
               >
                 <Plus size={14} />
@@ -579,7 +802,7 @@ export default function SuperAdminBillingView() {
             </div>
           </div>
           
-          <Table responsive className="mb-0">
+          <Table responsive className="mb-0 sa-table">
             <thead>
               <tr className="border-bottom text-muted smaller uppercase">
                 <th className="py-2.5">Nombre Negocio</th>
@@ -595,7 +818,7 @@ export default function SuperAdminBillingView() {
             </thead>
             <tbody>
               {data.businesses?.map((b) => (
-                <tr key={b.id} className="border-bottom small align-middle">
+                <tr key={b.id} className="border-bottom small align-middle sa-row-hover">
                   <td className="py-3">
                     <strong className="text-dark">{b.name}</strong>
                     <span className="text-muted smaller d-block mt-0.5" style={{ fontSize: "10.5px" }}>ID: {b.id}</span>
@@ -603,7 +826,7 @@ export default function SuperAdminBillingView() {
                   <td className="py-3 font-monospace text-muted small">{b.ownerEmail || "-"}</td>
                   <td className="py-3 font-monospace text-muted">{b.slug}</td>
                   <td className="py-3">
-                    <Badge bg="light" className="text-dark border uppercase">{b.plan}</Badge>
+                    {getPlanBadge(b.plan)}
                   </td>
                   <td className="py-3">{getStatusBadge(b.subscriptionStatus)}</td>
                   <td className="py-3">{b.trialEndsAt ? new Date(b.trialEndsAt).toLocaleDateString() : "-"}</td>
@@ -641,11 +864,11 @@ export default function SuperAdminBillingView() {
       </Card>
 
       {/* Usuarios Registrados en el Sistema */}
-      <Card className="border-0 shadow-sm rounded-4 mt-4" style={{ background: "#fff" }}>
+      <Card className="border-0 shadow-sm rounded-4 mt-4 sa-card">
         <Card.Body className="p-4">
           <h2 className="fw-bold h6 mb-3 text-dark">Usuarios Registrados en el Sistema</h2>
           
-          <Table responsive className="mb-0">
+          <Table responsive className="mb-0 sa-table">
             <thead>
               <tr className="border-bottom text-muted smaller uppercase">
                 <th className="py-2.5">Nombre / Email</th>
@@ -657,7 +880,7 @@ export default function SuperAdminBillingView() {
             </thead>
             <tbody>
               {allUsers?.map((u) => (
-                <tr key={u.id} className="border-bottom small align-middle">
+                <tr key={u.id} className="border-bottom small align-middle sa-row-hover">
                   <td className="py-3">
                     <strong className="text-dark d-block">{u.name || "Usuario SaaS"}</strong>
                     <span className="text-muted smaller font-monospace">{u.email}</span>
@@ -677,9 +900,7 @@ export default function SuperAdminBillingView() {
                     )}
                   </td>
                   <td className="py-3">
-                    <Badge bg={u.status === "active" ? "success" : u.status === "pending" ? "warning" : "danger"} className="uppercase">
-                      {u.status || "active"}
-                    </Badge>
+                    {getUserStatusBadge(u.status || "active")}
                   </td>
                   <td className="py-3 text-muted">
                     {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "-"}
