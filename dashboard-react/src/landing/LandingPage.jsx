@@ -1015,7 +1015,7 @@ export default function LandingPage() {
                       <Check size={16} style={{ color: '#8b5cf6' }} /> {t("pricing.starter.f4")}
                     </li>
                   </ul>
-                  <button onClick={handleFreeTrial} className="btn-outline-premium w-100 py-3 fw-bold mt-auto" style={{ borderRadius: '12px', background: '#f8fafc', color: '#1e293b', border: '1px solid rgba(15, 23, 42, 0.08)' }}>
+                  <button onClick={() => navigate("/app/pricing?plan=starter&provider=stripe")} className="btn-outline-premium w-100 py-3 fw-bold mt-auto" style={{ borderRadius: '12px', background: '#f8fafc', color: '#1e293b', border: '1px solid rgba(15, 23, 42, 0.08)' }}>
                     {t("pricing.cta")}
                   </button>
                 </div>
@@ -1050,7 +1050,7 @@ export default function LandingPage() {
                       <Check size={16} style={{ color: 'var(--lp-accent)' }} /> {t("pricing.growth.f5")}
                     </li>
                   </ul>
-                  <button onClick={handleFreeTrial} className="btn-premium w-100 py-3 fw-bold mt-auto text-white bg-purple-600 border-0" style={{ borderRadius: '12px', background: 'var(--lp-accent)' }}>
+                  <button onClick={() => navigate("/app/pricing?plan=pro&provider=stripe")} className="btn-premium w-100 py-3 fw-bold mt-auto text-white bg-purple-600 border-0" style={{ borderRadius: '12px', background: 'var(--lp-accent)' }}>
                     {t("pricing.cta")}
                   </button>
                 </div>
@@ -1082,7 +1082,7 @@ export default function LandingPage() {
                       <Check size={16} style={{ color: 'var(--lp-accent)' }} /> {t("pricing.aipro.f5")}
                     </li>
                   </ul>
-                  <button onClick={handleFreeTrial} className="btn-outline-premium w-100 py-3 fw-bold mt-auto" style={{ borderRadius: '12px', background: '#f8fafc', color: '#1e293b', border: '1px solid rgba(15, 23, 42, 0.08)' }}>
+                  <button onClick={() => navigate("/app/pricing?plan=business&provider=stripe")} className="btn-outline-premium w-100 py-3 fw-bold mt-auto" style={{ borderRadius: '12px', background: '#f8fafc', color: '#1e293b', border: '1px solid rgba(15, 23, 42, 0.08)' }}>
                     {t("pricing.cta")}
                   </button>
                 </div>

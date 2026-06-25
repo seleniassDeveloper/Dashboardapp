@@ -16,10 +16,10 @@ export class StripeProvider extends PaymentProvider {
     let priceId = "";
     if (plan.code === "starter") {
       priceId = process.env.STRIPE_PRICE_STARTER;
-    } else if (plan.code === "growth") {
-      priceId = process.env.STRIPE_PRICE_GROWTH;
-    } else if (plan.code === "aipro") {
-      priceId = process.env.STRIPE_PRICE_AIPRO;
+    } else if (plan.code === "pro" || plan.code === "growth") {
+      priceId = process.env.STRIPE_PRICE_PRO || process.env.STRIPE_PRICE_GROWTH;
+    } else if (plan.code === "business" || plan.code === "aipro") {
+      priceId = process.env.STRIPE_PRICE_BUSINESS || process.env.STRIPE_PRICE_AIPRO;
     }
 
     if (!priceId) {

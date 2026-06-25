@@ -7,7 +7,7 @@ import api from "../lib/api.js";
 
 export default function PricingView({ blocked = false, subscriptionStatus = "" }) {
   const { logout, user } = useAuth();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const initialProvider = searchParams.get("provider") || "mercadopago";
   const [provider, setProvider] = useState(initialProvider);
   const [billingCycle, setBillingCycle] = useState("month"); // 'month' | 'year'
@@ -104,6 +104,19 @@ export default function PricingView({ blocked = false, subscriptionStatus = "" }
       setLoadingPlan(null);
     }
   };
+
+  React.useEffect(() => {
+    const planParam = searchParams.get("plan");
+    if (planParam && ["starter", "pro", "business"].includes(planParam)) {
+      // Clear plan param from searchParams so it doesn't trigger again on page load
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete("plan");
+      setSearchParams(nextParams, { replace: true });
+      
+      // Auto trigger plan select
+      handleSelectPlan(planParam);
+    }
+  }, [searchParams]);
 
   return (
     <div 
