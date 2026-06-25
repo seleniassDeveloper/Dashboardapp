@@ -8,7 +8,7 @@ import api from "../lib/api.js";
 export default function PricingView({ blocked = false, subscriptionStatus = "" }) {
   const { logout, user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialProvider = searchParams.get("provider") || "mercadopago";
+  const initialProvider = searchParams.get("provider") || "stripe";
   const [provider, setProvider] = useState(initialProvider);
   const [billingCycle, setBillingCycle] = useState("month"); // 'month' | 'year'
   const [loadingPlan, setLoadingPlan] = useState(null);

@@ -80,7 +80,7 @@ export async function checkout(req, res) {
     // INTERCEPT PRO AND BUSINESS FOR MANUAL ACCESS NOTIFICATION
 
 
-    const providerName = provider === "stripe" ? "stripe" : "mercadopago";
+    const providerName = provider === "mercadopago" ? "mercadopago" : "stripe";
     const activeProvider = providerName === "stripe" ? new StripeProvider() : new MercadoPagoProvider();
 
     const { providerSubId, checkoutUrl } = await activeProvider.createSubscription(

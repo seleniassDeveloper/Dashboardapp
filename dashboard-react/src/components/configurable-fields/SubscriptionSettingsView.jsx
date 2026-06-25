@@ -22,7 +22,7 @@ export default function SubscriptionSettingsView() {
   const planCode = searchParams.get("planCode") || "";
   const interval = searchParams.get("interval") || "";
   const price = searchParams.get("price") || "";
-  const provider = searchParams.get("provider") || "mercadopago";
+  const provider = searchParams.get("provider") || "stripe";
 
   const fetchSubscriptionDetails = async () => {
     setLoading(true);
@@ -225,7 +225,7 @@ export default function SubscriptionSettingsView() {
           <div className="d-flex flex-wrap gap-2.5 mt-4 pt-4 border-top">
             <Button 
               variant="purple" 
-              href={`/app/pricing?provider=${subData?.subscription?.provider || "mercadopago"}`}
+              href={`/app/pricing?provider=${subData?.subscription?.provider || "stripe"}`}
               className="rounded-pill px-4.5 py-2 small fw-bold text-white bg-purple-600 hover-bg-purple-700 border-0"
               style={{ fontSize: "12.5px" }}
             >
