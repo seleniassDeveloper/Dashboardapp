@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { Container, Row, Col, Card, Button, Form, Alert } from "react-bootstrap";
-import { Check, ShieldCheck, ArrowRight, Sparkles, LogOut, Info } from "lucide-react";
+import { Container, Row, Col, Card, Button, Form, Alert, Modal } from "react-bootstrap";
+import { Check, ShieldCheck, ArrowRight, Sparkles, LogOut, Info, CreditCard, Send } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider.jsx";
 import api from "../lib/api.js";
@@ -14,6 +14,8 @@ export default function PricingView({ blocked = false, subscriptionStatus = "" }
   const [loadingPlan, setLoadingPlan] = useState(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedPlanCode, setSelectedPlanCode] = useState(null);
 
   const plans = [
     {
@@ -71,15 +73,21 @@ export default function PricingView({ blocked = false, subscriptionStatus = "" }
     }
   ];
 
-  const handleSelectPlan = async (planCode) => {
-    setLoadingPlan(planCode);
+  const handleOpenPaymentModal = (planCode) => {
+    setSelectedPlanCode(planCode);
+    setShowPaymentModal(true);
+  };
+
+  const handleConfirmPayment = async (chosenProvider) => {
+    setShowPaymentModal(false);
+    setLoadingPlan(selectedPlanCode);
     setError("");
     setSuccess("");
     try {
       const res = await api.post("/billing/checkout", {
-        planCode,
+        planCode: selectedPlanCode,
         interval: billingCycle,
-        provider
+        provider: chosenProvider
       });
 
       if (res.data?.success) {
@@ -102,6 +110,7 @@ export default function PricingView({ blocked = false, subscriptionStatus = "" }
       );
     } finally {
       setLoadingPlan(null);
+      setSelectedPlanCode(null);
     }
   };
 
@@ -113,8 +122,8 @@ export default function PricingView({ blocked = false, subscriptionStatus = "" }
       nextParams.delete("plan");
       setSearchParams(nextParams, { replace: true });
       
-      // Auto trigger plan select
-      handleSelectPlan(planParam);
+      // Auto trigger plan select modal
+      handleOpenPaymentModal(planParam);
     }
   }, [searchParams]);
 
@@ -286,7 +295,7 @@ export default function PricingView({ blocked = false, subscriptionStatus = "" }
                     <Button
                       variant={p.popular ? "purple" : "outline-purple"}
                       disabled={isLoading}
-                      onClick={() => handleSelectPlan(p.code)}
+                      onClick={() => handleOpenPaymentModal(p.code)}
                       className="w-100 rounded-pill py-2.5 fw-bold d-flex align-items-center justify-content-center gap-2 border-purple-opacity shadow-sm"
                       style={p.popular ? { backgroundColor: "#7c3aed", color: "#fff", border: 0 } : { fontSize: "13px" }}
                     >
@@ -305,6 +314,96 @@ export default function PricingView({ blocked = false, subscriptionStatus = "" }
           <span>Pagos protegidos de forma segura por MercadoPago y Stripe.</span>
         </div>
       </Container>
+
+      {/* Payment Selection Modal */}
+      <Modal show={showPaymentModal} onHide={() => setShowPaymentModal(false)} centered backdrop="static">
+        <Modal.Header closeButton className="border-0 pb-0">
+          <Modal.Title className="fw-black h4 text-dark text-center w-100">
+            Selecciona tu Método de Pago
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="p-4">
+          <p className="text-muted text-center small mb-4">
+            Estás a punto de adquirir el plan <strong>{selectedPlanCode?.toUpperCase()}</strong> ({billingCycle === "month" ? "Mensual" : "Anual"}). Selecciona una de las siguientes opciones:
+          </p>
+
+          <div className="d-flex flex-column gap-3">
+            {/* Stripe */}
+            <Card 
+              className="border shadow-sm rounded-3 p-3 text-start" 
+              onClick={() => handleConfirmPayment("stripe")}
+              style={{ cursor: "pointer", transition: "all 0.2s" }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = "translateY(-2px)"}
+              onMouseLeave={(e) => e.currentTarget.style.transform = "translateY(0)"}
+            >
+              <div className="d-flex align-items-center gap-3">
+                <div className="p-2.5 rounded-circle bg-purple-50 text-purple-600 d-flex align-items-center justify-content-center" style={{ width: "45px", height: "45px" }}>
+                  <CreditCard size={22} style={{ color: "#7c3aed" }} />
+                </div>
+                <div>
+                  <h5 className="fw-bold h6 mb-1 text-dark">Tarjeta de Crédito / Débito (Stripe)</h5>
+                  <p className="text-muted smaller mb-0" style={{ fontSize: "11.5px" }}>
+                    Pago internacional seguro. Incluye 30 días de prueba gratuita.
+                  </p>
+                </div>
+              </div>
+            </Card>
+
+            {/* Mercado Pago */}
+            <Card 
+              className="border shadow-sm rounded-3 p-3 text-start" 
+              onClick={() => handleConfirmPayment("mercadopago")}
+              style={{ cursor: "pointer", transition: "all 0.2s" }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = "translateY(-2px)"}
+              onMouseLeave={(e) => e.currentTarget.style.transform = "translateY(0)"}
+            >
+              <div className="d-flex align-items-center gap-3">
+                <div className="p-2.5 rounded-circle bg-info bg-opacity-10 text-info d-flex align-items-center justify-content-center" style={{ width: "45px", height: "45px" }}>
+                  <span style={{ fontSize: "20px" }}>🏦</span>
+                </div>
+                <div>
+                  <h5 className="fw-bold h6 mb-1 text-dark">Mercado Pago</h5>
+                  <p className="text-muted smaller mb-0" style={{ fontSize: "11.5px" }}>
+                    Transferencias y tarjetas locales de Latinoamérica.
+                  </p>
+                </div>
+              </div>
+            </Card>
+
+            {/* Manual Admin Request */}
+            <Card 
+              className="border shadow-sm rounded-3 p-3 text-start" 
+              onClick={() => handleConfirmPayment("manual")}
+              style={{ cursor: "pointer", transition: "all 0.2s", borderLeft: "4px solid #10b981" }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = "translateY(-2px)"}
+              onMouseLeave={(e) => e.currentTarget.style.transform = "translateY(0)"}
+            >
+              <div className="d-flex align-items-center gap-3">
+                <div className="p-2.5 rounded-circle bg-success bg-opacity-10 text-success d-flex align-items-center justify-content-center" style={{ width: "45px", height: "45px" }}>
+                  <Send size={20} style={{ color: "#10b981" }} />
+                </div>
+                <div>
+                  <h5 className="fw-bold h6 mb-1 text-dark">Solicitar acceso manual (Sin pagar)</h5>
+                  <p className="text-muted smaller mb-0" style={{ fontSize: "11.5px" }}>
+                    Envía una solicitud al administrador para activar el plan sin pagar ahora.
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          <div className="text-center mt-4">
+            <Button 
+              variant="outline-secondary" 
+              onClick={() => setShowPaymentModal(false)}
+              className="rounded-pill px-4 py-1.5 small border"
+              style={{ fontSize: "12.5px" }}
+            >
+              Cancelar
+            </Button>
+          </div>
+        </Modal.Body>
+      </Modal>
     </div>
   );
 }

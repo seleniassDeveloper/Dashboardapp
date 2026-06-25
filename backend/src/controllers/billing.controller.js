@@ -77,8 +77,50 @@ export async function checkout(req, res) {
 
     const email = req.user?.email || `${businessId}@auradash.com`;
 
-    // INTERCEPT PRO AND BUSINESS FOR MANUAL ACCESS NOTIFICATION
+    if (provider === "manual") {
+      await prisma.planRequest.deleteMany({
+        where: {
+          businessId,
+          status: "PENDING"
+        }
+      });
 
+      const approvalToken = crypto.randomBytes(32).toString("hex");
+      await prisma.planRequest.create({
+        data: {
+          businessId,
+          requestedPlan: planCode,
+          status: "PENDING",
+          approvalToken
+        }
+      });
+
+      await prisma.subscription.upsert({
+        where: { businessId },
+        update: {
+          planCode,
+          interval,
+          status: "pending",
+          providerSubId: `manual_${businessId}_${Date.now()}`,
+          provider: "manual",
+          cancelAtPeriodEnd: false
+        },
+        create: {
+          businessId,
+          planCode,
+          interval,
+          status: "pending",
+          providerSubId: `manual_${businessId}_${Date.now()}`,
+          provider: "manual"
+        }
+      });
+
+      return res.status(201).json({
+        success: true,
+        isRequest: true,
+        message: "Tu solicitud de acceso manual ha sido enviada al administrador. Se activará una vez que sea aprobada."
+      });
+    }
 
     const providerName = provider === "mercadopago" ? "mercadopago" : "stripe";
     const activeProvider = providerName === "stripe" ? new StripeProvider() : new MercadoPagoProvider();
