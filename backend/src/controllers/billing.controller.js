@@ -78,68 +78,7 @@ export async function checkout(req, res) {
     const email = req.user?.email || `${businessId}@auradash.com`;
 
     // INTERCEPT PRO AND BUSINESS FOR MANUAL ACCESS NOTIFICATION
-    if (planCode === "pro" || planCode === "business") {
-      let approvalToken;
-      try {
-        const existingReq = await prisma.planRequest.findFirst({
-          where: { businessId, requestedPlan: planCode, status: "PENDING" }
-        });
 
-        if (existingReq) {
-          approvalToken = existingReq.approvalToken;
-          // No enviar correo repetido si ya existe, solo avisar al usuario.
-          return res.status(200).json({
-            success: true,
-            isRequest: true,
-            message: "Ya tienes una solicitud pendiente para este plan. Nos pondremos en contacto pronto."
-          });
-        }
-
-        approvalToken = crypto.randomBytes(32).toString("hex");
-        // Guardar solicitud en la DB
-        await prisma.planRequest.create({
-          data: {
-            businessId,
-            requestedPlan: planCode,
-            approvalToken
-          }
-        });
-      } catch (err) {
-        console.error("[Billing] Error crítico guardando la solicitud en la base de datos:", err);
-        return res.status(500).json({ success: false, error: "No se pudo registrar la solicitud en la base de datos." });
-      }
-
-      // Enviar el correo en SEGUNDO PLANO (fire-and-forget) para no bloquear la
-      // respuesta HTTP. El envío SMTP puede tardar varios segundos y antes
-      // provocaba "timeout of 30000ms" en el navegador. Respondemos de inmediato.
-      const baseUrl = process.env.API_URL || "https://dashboard-api-r6j9.onrender.com";
-      const magicLink = `${baseUrl}/api/billing/quick-approve?token=${approvalToken}`;
-      const emailHtml = `
-            <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 10px;">
-              <h2 style="color: #7c3aed;">Nueva Solicitud de Módulo</h2>
-              <p>El negocio con ID <b>${business.id}</b> y correo de contacto <b>${email}</b> ha solicitado acceso al plan <b>${planCode.toUpperCase()}</b>.</p>
-              <p>Puedes aprobar este acceso instantáneamente haciendo clic en el siguiente botón:</p>
-              <div style="text-align: center; margin: 30px 0;">
-                <a href="${magicLink}" style="background-color: #10b981; color: white; padding: 14px 28px; text-decoration: none; border-radius: 50px; font-weight: bold; font-size: 16px; display: inline-block;">✅ Aprobar Acceso Ahora</a>
-              </div>
-              <p style="font-size: 12px; color: #888;">También puedes gestionarlo desde el panel SaaS Admin dentro del Dashboard.</p>
-            </div>
-          `;
-      const adminEmail = process.env.ADMIN_EMAIL || "seleniadeveloper@gmail.com";
-      sendReminderEmail({
-        to: adminEmail,
-        subject: `🚀 Solicitud de Acceso a Módulo ${planCode.toUpperCase()}`,
-        html: emailHtml,
-      })
-      .then(() => console.log("[Billing] Correo de solicitud enviado correctamente."))
-      .catch((err) => console.error("[Billing] Error enviando el correo (no bloqueó la respuesta):", err));
-
-      return res.status(200).json({
-        success: true,
-        isRequest: true,
-        message: "Tu solicitud ha sido enviada. Nos pondremos en contacto pronto para habilitar tu acceso."
-      });
-    }
 
     const providerName = provider === "stripe" ? "stripe" : "mercadopago";
     const activeProvider = providerName === "stripe" ? new StripeProvider() : new MercadoPagoProvider();
@@ -209,7 +148,7 @@ export async function cancel(req, res) {
 }
 
 export async function webhook(req, res) {
-  const isStripe = !!req.headers["stripe-signature"];
+  const isStripe = !!req.headers?.["stripe-signature"];
   const provider = isStripe ? new StripeProvider() : new MercadoPagoProvider();
   
   try {

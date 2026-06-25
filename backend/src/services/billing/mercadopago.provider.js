@@ -28,7 +28,11 @@ export class MercadoPagoProvider extends PaymentProvider {
           frequency: 1,
           frequency_type: interval === "month" ? "months" : "years",
           transaction_amount: priceInMainCurrency,
-          currency_id: plan.currency || "USD"
+          currency_id: plan.currency || "USD",
+          free_trial: {
+            frequency: 1,
+            frequency_type: "months"
+          }
         },
         payer_email: email,
         status: "pending"

@@ -29,6 +29,10 @@ async function runTests() {
       res.jsonData = data;
       return res;
     };
+    res.send = (text) => {
+      res.sendData = text;
+      return res;
+    };
     return res;
   };
 
@@ -104,6 +108,7 @@ async function runTests() {
 
     // Mock Webhook request for approved subscription status update
     const req = {
+      headers: {},
       body: {
         id: `evt_test_${Date.now()}`,
         type: "subscription_preapproval",
@@ -138,6 +143,7 @@ async function runTests() {
 
     // Mock payment failed webhook event
     const reqPayFail = {
+      headers: {},
       body: {
         id: `evt_test_pay_${Date.now()}`,
         type: "payment",

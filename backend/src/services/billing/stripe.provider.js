@@ -43,6 +43,7 @@ export class StripeProvider extends PaymentProvider {
         planCode: plan.code,
       },
       subscription_data: {
+        trial_period_days: 30,
         metadata: {
           businessId: business.id,
           planCode: plan.code,
