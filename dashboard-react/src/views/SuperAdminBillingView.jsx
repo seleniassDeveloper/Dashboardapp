@@ -894,13 +894,10 @@ export default function SuperAdminBillingView() {
               <Table responsive className="mb-0 sa-table">
                 <thead>
                   <tr className="border-bottom text-muted smaller uppercase">
-                    <th className="py-2.5">Nombre Negocio</th>
-                    <th className="py-2.5">Email del Negocio</th>
-                    <th className="py-2.5">Slug</th>
+                    <th className="py-2.5">Negocio / Info</th>
                     <th className="py-2.5">Plan</th>
                     <th className="py-2.5">Estado</th>
-                    <th className="py-2.5">Fin Trial</th>
-                    <th className="py-2.5">Fin Período</th>
+                    <th className="py-2.5">Vencimiento</th>
                     <th className="py-2.5">MRR</th>
                     <th className="py-2.5 text-end">Acciones</th>
                   </tr>
@@ -909,17 +906,31 @@ export default function SuperAdminBillingView() {
                   {data.businesses?.map((b) => (
                     <tr key={b.id} className="border-bottom small align-middle sa-row-hover">
                       <td className="py-3">
-                        <strong className="text-dark">{b.name}</strong>
-                        <span className="text-muted smaller d-block mt-0.5" style={{ fontSize: "10.5px" }}>ID: {b.id}</span>
+                        <strong className="text-dark d-block">{b.name}</strong>
+                        <span className="text-muted smaller font-monospace d-block" style={{ fontSize: "10px", lineHeight: "1.3" }}>
+                          ID: {b.id} <span className="text-slate-300">|</span> Slug: {b.slug}
+                        </span>
+                        {b.ownerEmail && (
+                          <span className="text-muted smaller d-block mt-0.5" style={{ fontSize: "10px" }}>
+                            📧 {b.ownerEmail}
+                          </span>
+                        )}
                       </td>
-                      <td className="py-3 font-monospace text-muted small">{b.ownerEmail || "-"}</td>
-                      <td className="py-3 font-monospace text-muted">{b.slug}</td>
                       <td className="py-3">
                         {getPlanBadge(b.plan)}
                       </td>
                       <td className="py-3">{getStatusBadge(b.subscriptionStatus)}</td>
-                      <td className="py-3">{b.trialEndsAt ? new Date(b.trialEndsAt).toLocaleDateString() : "-"}</td>
-                      <td className="py-3">{b.currentPeriodEnd ? new Date(b.currentPeriodEnd).toLocaleDateString() : "-"}</td>
+                      <td className="py-3 text-muted" style={{ fontSize: "11.5px" }}>
+                        {b.subscriptionStatus === "trialing" && b.trialEndsAt ? (
+                          <span className="text-info fw-semibold">Trial: {new Date(b.trialEndsAt).toLocaleDateString()}</span>
+                        ) : b.subscriptionStatus === "active" && b.currentPeriodEnd ? (
+                          <span className="text-success fw-semibold">Renovación: {new Date(b.currentPeriodEnd).toLocaleDateString()}</span>
+                        ) : b.trialEndsAt ? (
+                          <span>Trial: {new Date(b.trialEndsAt).toLocaleDateString()}</span>
+                        ) : b.currentPeriodEnd ? (
+                          <span>Fin: {new Date(b.currentPeriodEnd).toLocaleDateString()}</span>
+                        ) : "-"}
+                      </td>
                       <td className="py-3 fw-bold text-success">${b.mrr}</td>
                       <td className="py-3 text-end">
                         <div className="d-flex justify-content-end gap-2">

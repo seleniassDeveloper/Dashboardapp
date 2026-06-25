@@ -111,6 +111,25 @@ export async function checkout(req, res) {
       }
     });
 
+    // Clean up previous pending requests for this business to avoid clutter
+    await prisma.planRequest.deleteMany({
+      where: {
+        businessId,
+        status: "PENDING"
+      }
+    });
+
+    // Create a pending plan request so it appears in the SuperAdmin console
+    const approvalToken = crypto.randomBytes(32).toString("hex");
+    await prisma.planRequest.create({
+      data: {
+        businessId,
+        requestedPlan: planCode,
+        status: "PENDING",
+        approvalToken
+      }
+    });
+
     return res.status(201).json({
       success: true,
       checkoutUrl,
