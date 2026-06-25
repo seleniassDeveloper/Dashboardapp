@@ -54,6 +54,7 @@ export default function SuperAdminBillingView() {
     status: "PENDING"
   });
   const [createRequestLoading, setCreateRequestLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("overview");
 
   // User edit modal state
   const [showUserModal, setShowUserModal] = useState(false);
@@ -453,14 +454,56 @@ export default function SuperAdminBillingView() {
           letter-spacing: 0.06em;
           color: #64748b;
           border-bottom: 2px solid #f1f5f9;
-          padding: 1.1rem 0.8rem;
+          padding: 0.7rem 0.8rem;
           background-color: #f8fafc;
         }
 
         .sa-table td {
-          padding: 1.25rem 0.8rem;
+          padding: 0.65rem 0.8rem;
           border-bottom: 1px solid #f1f5f9;
           color: #334155;
+        }
+
+        .sa-table-container {
+          max-height: 400px;
+          overflow-y: auto;
+        }
+
+        /* Tab Selectors */
+        .sa-tabs-container {
+          display: flex;
+          gap: 0.5rem;
+          margin-bottom: 1.5rem;
+          background: rgba(241, 245, 249, 0.8);
+          padding: 0.4rem;
+          border-radius: 9999px;
+          border: 1px solid rgba(226, 232, 240, 0.8);
+          width: fit-content;
+        }
+
+        .btn-sa-tab {
+          border-radius: 9999px !important;
+          padding: 0.5rem 1.5rem !important;
+          font-weight: 600 !important;
+          font-size: 0.85rem !important;
+          border: none !important;
+          transition: all 0.2s ease !important;
+          color: #64748b !important;
+          background: transparent !important;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.4rem;
+        }
+
+        .btn-sa-tab:hover {
+          color: #1e293b !important;
+          background: rgba(255, 255, 255, 0.5) !important;
+        }
+
+        .btn-sa-tab.active {
+          background: #ffffff !important;
+          color: #7c3aed !important;
+          box-shadow: 0 4px 12px -1px rgba(148, 163, 184, 0.12) !important;
         }
 
         .sa-row-hover {
@@ -597,339 +640,390 @@ export default function SuperAdminBillingView() {
         )}
       </header>
 
+      {/* Tab Selectors */}
+      <div className="sa-tabs-container">
+        <button
+          onClick={() => setActiveTab("overview")}
+          className={`btn-sa-tab ${activeTab === "overview" ? "active" : ""}`}
+        >
+          <span>📊 Resumen</span>
+          {requests.length + pendingUsers.filter(u => u.status === "pending").length > 0 && (
+            <Badge bg="danger" className="rounded-pill" style={{ padding: "0.25rem 0.5rem", fontSize: "0.68rem" }}>
+              {requests.length + pendingUsers.filter(u => u.status === "pending").length}
+            </Badge>
+          )}
+        </button>
+        <button
+          onClick={() => setActiveTab("businesses")}
+          className={`btn-sa-tab ${activeTab === "businesses" ? "active" : ""}`}
+        >
+          <span>🏢 Inquilinos</span>
+        </button>
+        <button
+          onClick={() => setActiveTab("users")}
+          className={`btn-sa-tab ${activeTab === "users" ? "active" : ""}`}
+        >
+          <span>👥 Usuarios</span>
+        </button>
+      </div>
+
       {error && <Alert variant="danger" className="border-0 shadow-sm mb-4 small">{error}</Alert>}
 
-      {/* KPI Stats widgets */}
-      <Row className="g-4 mb-4">
-        <Col md={6} lg={4}>
-          <Card className="border-0 shadow-sm rounded-4 sa-kpi-card">
-            <Card.Body className="d-flex align-items-center gap-3 p-4">
-              <div className="p-3 bg-success bg-opacity-10 text-success rounded-circle">
-                <DollarSign size={24} />
-              </div>
-              <div>
-                <span className="text-muted smaller d-block mb-0.5">SaaS MRR Estimado</span>
-                <strong className="h3 fw-black text-dark">${data.estimatedMRR} USD</strong>
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={6} lg={4}>
-          <Card className="border-0 shadow-sm rounded-4 sa-kpi-card">
-            <Card.Body className="d-flex align-items-center gap-3 p-4">
-              <div className="p-3 bg-purple-50 text-purple-600 rounded-circle">
-                <Users size={24} />
-              </div>
-              <div>
-                <span className="text-muted smaller d-block mb-0.5">Total Inquilinos (Business)</span>
-                <strong className="h3 fw-black text-dark">{data.businesses?.length || 0}</strong>
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={6} lg={4}>
-          <Card className="border-0 shadow-sm rounded-4 sa-kpi-card">
-            <Card.Body className="d-flex align-items-center gap-3 p-4">
-              <div className="p-3 bg-info bg-opacity-10 text-info rounded-circle">
-                <Award size={24} />
-              </div>
-              <div>
-                <span className="text-muted smaller d-block mb-0.5">Suscripciones Activas</span>
-                <strong className="h3 fw-black text-dark">
-                  {data.businesses?.filter(b => b.subscriptionStatus === "active").length || 0}
-                </strong>
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
+      {activeTab === "overview" && (
+        <>
+          {/* KPI Stats widgets */}
+          <Row className="g-4 mb-4">
+            <Col md={6} lg={4}>
+              <Card className="border-0 shadow-sm rounded-4 sa-kpi-card">
+                <Card.Body className="d-flex align-items-center gap-3 p-4">
+                  <div className="p-3 bg-success bg-opacity-10 text-success rounded-circle">
+                    <DollarSign size={24} />
+                  </div>
+                  <div>
+                    <span className="text-muted smaller d-block mb-0.5">SaaS MRR Estimado</span>
+                    <strong className="h3 fw-black text-dark">${data.estimatedMRR} USD</strong>
+                  </div>
+                </Card.Body>
+              </Card>
+            </Col>
+            <Col md={6} lg={4}>
+              <Card className="border-0 shadow-sm rounded-4 sa-kpi-card">
+                <Card.Body className="d-flex align-items-center gap-3 p-4">
+                  <div className="p-3 bg-purple-50 text-purple-600 rounded-circle">
+                    <Users size={24} />
+                  </div>
+                  <div>
+                    <span className="text-muted smaller d-block mb-0.5">Total Inquilinos (Business)</span>
+                    <strong className="h3 fw-black text-dark">{data.businesses?.length || 0}</strong>
+                  </div>
+                </Card.Body>
+              </Card>
+            </Col>
+            <Col md={6} lg={4}>
+              <Card className="border-0 shadow-sm rounded-4 sa-kpi-card">
+                <Card.Body className="d-flex align-items-center gap-3 p-4">
+                  <div className="p-3 bg-info bg-opacity-10 text-info rounded-circle">
+                    <Award size={24} />
+                  </div>
+                  <div>
+                    <span className="text-muted smaller d-block mb-0.5">Suscripciones Activas</span>
+                    <strong className="h3 fw-black text-dark">
+                      {data.businesses?.filter(b => b.subscriptionStatus === "active").length || 0}
+                    </strong>
+                  </div>
+                </Card.Body>
+              </Card>
+            </Col>
+          </Row>
 
-      {requests.length > 0 && (
-        <Card className="border-0 shadow-sm rounded-4 mb-4 border-warning sa-card" style={{ background: "#fff", borderLeft: "4px solid #f59e0b" }}>
-          <Card.Body className="p-4">
-            <div className="d-flex align-items-center justify-content-between mb-3">
-              <div className="d-flex align-items-center gap-2">
-                <AlertCircle className="text-warning" size={20} />
-                <h2 className="fw-bold h6 mb-0 text-dark">Solicitudes de Acceso Pendientes ({requests.length})</h2>
+          {requests.length > 0 && (
+            <Card className="border-0 shadow-sm rounded-4 mb-4 border-warning sa-card" style={{ background: "#fff", borderLeft: "4px solid #f59e0b" }}>
+              <Card.Body className="p-4">
+                <div className="d-flex align-items-center justify-content-between mb-3">
+                  <div className="d-flex align-items-center gap-2">
+                    <AlertCircle className="text-warning" size={20} />
+                    <h2 className="fw-bold h6 mb-0 text-dark">Solicitudes de Acceso Pendientes ({requests.length})</h2>
+                  </div>
+                  <Button 
+                    variant="outline-secondary" 
+                    size="sm" 
+                    className="rounded-pill px-3"
+                    onClick={handleCleanProcessed}
+                  >
+                    Limpiar procesadas
+                  </Button>
+                </div>
+                
+                <div className="sa-table-container">
+                  <Table responsive className="mb-0 sa-table">
+                    <thead>
+                      <tr className="border-bottom text-muted smaller uppercase">
+                        <th className="py-2.5">Fecha</th>
+                        <th className="py-2.5">Negocio</th>
+                        <th className="py-2.5">Plan Actual</th>
+                        <th className="py-2.5">Plan Solicitado</th>
+                        <th className="py-2.5 text-end">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {requests.map((r) => (
+                        <tr key={r.id} className="border-bottom small align-middle sa-row-hover">
+                          <td className="py-3 text-muted">{new Date(r.createdAt).toLocaleDateString()}</td>
+                          <td className="py-3 fw-bold text-dark">{r.business?.name}</td>
+                          <td className="py-3">{getPlanBadge(r.business?.plan)}</td>
+                          <td className="py-3">{getPlanBadge(r.requestedPlan)}</td>
+                          <td className="py-3 text-end">
+                            <div className="d-flex justify-content-end gap-2">
+                              <Button 
+                                variant="outline-danger" 
+                                size="sm" 
+                                className="rounded-pill px-3"
+                                onClick={() => handleRejectRequest(r.id)}
+                              >
+                                Rechazar
+                              </Button>
+                              <Button 
+                                variant="success" 
+                                size="sm" 
+                                className="rounded-pill px-3 text-white border-0"
+                                onClick={() => handleApproveRequest(r.id)}
+                              >
+                                Aprobar Acceso
+                              </Button>
+                              <Button 
+                                variant="outline-secondary" 
+                                size="sm" 
+                                className="rounded-circle p-1"
+                                onClick={() => handleDeleteRequest(r.id)}
+                                title="Eliminar solicitud"
+                              >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                </div>
+              </Card.Body>
+            </Card>
+          )}
+
+          {pendingUsers.length > 0 && (
+            <Card className="border-0 shadow-sm rounded-4 mb-4 border-primary sa-card" style={{ background: "#fff", borderLeft: "4px solid #3b82f6" }}>
+              <Card.Body className="p-4">
+                <div className="d-flex align-items-center gap-2 mb-3">
+                  <Users className="text-primary" size={20} />
+                  <h2 className="fw-bold h6 mb-0 text-dark">Nuevos Usuarios (Pendientes de Aprobación) ({pendingUsers.filter(u => u.status === "pending").length})</h2>
+                </div>
+                
+                <div className="sa-table-container">
+                  <Table responsive className="mb-0 sa-table">
+                    <thead>
+                      <tr className="border-bottom text-muted smaller uppercase">
+                        <th className="py-2.5">Fecha</th>
+                        <th className="py-2.5">Email</th>
+                        <th className="py-2.5">Nombre</th>
+                        <th className="py-2.5">Estado</th>
+                        <th className="py-2.5 text-end">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pendingUsers.map((u) => (
+                        <tr key={u.id} className="border-bottom small align-middle sa-row-hover">
+                          <td className="py-3 text-muted">{new Date(u.createdAt).toLocaleDateString()}</td>
+                          <td className="py-3 fw-bold text-dark">{u.email}</td>
+                          <td className="py-3">{u.name || `${u.firstName || ""} ${u.lastName || ""}`.trim() || "-"}</td>
+                          <td className="py-3">
+                            {getUserStatusBadge(u.status)}
+                          </td>
+                          <td className="py-3 text-end">
+                            <div className="d-flex justify-content-end gap-2">
+                              {u.status !== "rejected" && (
+                                <Button 
+                                  variant="outline-danger" 
+                                  size="sm" 
+                                  className="rounded-pill px-3"
+                                  onClick={() => handleRejectUser(u.id)}
+                                >
+                                  Rechazar
+                                </Button>
+                              )}
+                              <Button 
+                                variant="success" 
+                                size="sm" 
+                                className="rounded-pill px-3 text-white border-0"
+                                onClick={() => handleApproveUser(u.id)}
+                              >
+                                Aprobar Acceso
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                </div>
+              </Card.Body>
+            </Card>
+          )}
+
+          {requests.length === 0 && pendingUsers.filter(u => u.status === "pending").length === 0 && (
+            <Card className="border-0 shadow-sm rounded-4 p-5 text-center sa-card mb-4">
+              <div className="p-3 bg-purple-50 text-purple-600 rounded-circle mx-auto mb-3" style={{ width: "fit-content" }}>
+                <Shield size={36} />
               </div>
-              <Button 
-                variant="outline-secondary" 
-                size="sm" 
-                className="rounded-pill px-3"
-                onClick={handleCleanProcessed}
-              >
-                Limpiar procesadas
-              </Button>
-            </div>
-            
-            <Table responsive className="mb-0 sa-table">
-              <thead>
-                <tr className="border-bottom text-muted smaller uppercase">
-                  <th className="py-2.5">Fecha</th>
-                  <th className="py-2.5">Negocio</th>
-                  <th className="py-2.5">Plan Actual</th>
-                  <th className="py-2.5">Plan Solicitado</th>
-                  <th className="py-2.5 text-end">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {requests.map((r) => (
-                  <tr key={r.id} className="border-bottom small align-middle sa-row-hover">
-                    <td className="py-3 text-muted">{new Date(r.createdAt).toLocaleDateString()}</td>
-                    <td className="py-3 fw-bold text-dark">{r.business?.name}</td>
-                    <td className="py-3">{getPlanBadge(r.business?.plan)}</td>
-                    <td className="py-3">{getPlanBadge(r.requestedPlan)}</td>
-                    <td className="py-3 text-end">
-                      <div className="d-flex justify-content-end gap-2">
-                        <Button 
-                          variant="outline-danger" 
-                          size="sm" 
-                          className="rounded-pill px-3"
-                          onClick={() => handleRejectRequest(r.id)}
-                        >
-                          Rechazar
-                        </Button>
-                        <Button 
-                          variant="success" 
-                          size="sm" 
-                          className="rounded-pill px-3 text-white border-0"
-                          onClick={() => handleApproveRequest(r.id)}
-                        >
-                          Aprobar Acceso
-                        </Button>
-                        <Button 
-                          variant="outline-secondary" 
-                          size="sm" 
-                          className="rounded-circle p-1"
-                          onClick={() => handleDeleteRequest(r.id)}
-                          title="Eliminar solicitud"
-                        >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          </Card.Body>
-        </Card>
+              <h3 className="fw-bold text-dark h5 mb-2">¡Todo al día, Administrador!</h3>
+              <p className="text-muted small mb-0">No hay nuevas solicitudes de planes ni usuarios pendientes de aprobación en este momento.</p>
+            </Card>
+          )}
+        </>
       )}
 
-      {pendingUsers.length > 0 && (
-        <Card className="border-0 shadow-sm rounded-4 mb-4 border-primary sa-card" style={{ background: "#fff", borderLeft: "4px solid #3b82f6" }}>
+      {activeTab === "businesses" && (
+        <Card className="border-0 shadow-sm rounded-4 sa-card">
           <Card.Body className="p-4">
-            <div className="d-flex align-items-center gap-2 mb-3">
-              <Users className="text-primary" size={20} />
-              <h2 className="fw-bold h6 mb-0 text-dark">Nuevos Usuarios (Pendientes de Aprobación) ({pendingUsers.filter(u => u.status === "pending").length})</h2>
+            <div className="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+              <h2 className="fw-bold h6 mb-0 text-dark">Empresas e Inquilinos ({data.businesses?.length || 0})</h2>
+              <div className="d-flex gap-2">
+                <Button
+                  variant="purple"
+                  size="sm"
+                  onClick={() => setShowCreateRequestModal(true)}
+                  className="rounded-pill px-3 py-1.5 btn-premium-purple d-inline-flex align-items-center gap-1.5"
+                  style={{ fontSize: "12.5px" }}
+                >
+                  <Plus size={14} />
+                  Crear Solicitud
+                </Button>
+                <Button
+                  variant="success"
+                  size="sm"
+                  onClick={() => setShowCreateBizModal(true)}
+                  className="rounded-pill px-3 py-1.5 btn-premium-success d-inline-flex align-items-center gap-1.5"
+                  style={{ fontSize: "12.5px" }}
+                >
+                  <Plus size={14} />
+                  Crear Negocio
+                </Button>
+              </div>
             </div>
             
-            <Table responsive className="mb-0 sa-table">
-              <thead>
-                <tr className="border-bottom text-muted smaller uppercase">
-                  <th className="py-2.5">Fecha</th>
-                  <th className="py-2.5">Email</th>
-                  <th className="py-2.5">Nombre</th>
-                  <th className="py-2.5">Estado</th>
-                  <th className="py-2.5 text-end">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pendingUsers.map((u) => (
-                  <tr key={u.id} className="border-bottom small align-middle sa-row-hover">
-                    <td className="py-3 text-muted">{new Date(u.createdAt).toLocaleDateString()}</td>
-                    <td className="py-3 fw-bold text-dark">{u.email}</td>
-                    <td className="py-3">{u.name || `${u.firstName || ""} ${u.lastName || ""}`.trim() || "-"}</td>
-                    <td className="py-3">
-                      {getUserStatusBadge(u.status)}
-                    </td>
-                    <td className="py-3 text-end">
-                      <div className="d-flex justify-content-end gap-2">
-                        {u.status !== "rejected" && (
+            <div className="sa-table-container">
+              <Table responsive className="mb-0 sa-table">
+                <thead>
+                  <tr className="border-bottom text-muted smaller uppercase">
+                    <th className="py-2.5">Nombre Negocio</th>
+                    <th className="py-2.5">Email del Negocio</th>
+                    <th className="py-2.5">Slug</th>
+                    <th className="py-2.5">Plan</th>
+                    <th className="py-2.5">Estado</th>
+                    <th className="py-2.5">Fin Trial</th>
+                    <th className="py-2.5">Fin Período</th>
+                    <th className="py-2.5">MRR</th>
+                    <th className="py-2.5 text-end">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.businesses?.map((b) => (
+                    <tr key={b.id} className="border-bottom small align-middle sa-row-hover">
+                      <td className="py-3">
+                        <strong className="text-dark">{b.name}</strong>
+                        <span className="text-muted smaller d-block mt-0.5" style={{ fontSize: "10.5px" }}>ID: {b.id}</span>
+                      </td>
+                      <td className="py-3 font-monospace text-muted small">{b.ownerEmail || "-"}</td>
+                      <td className="py-3 font-monospace text-muted">{b.slug}</td>
+                      <td className="py-3">
+                        {getPlanBadge(b.plan)}
+                      </td>
+                      <td className="py-3">{getStatusBadge(b.subscriptionStatus)}</td>
+                      <td className="py-3">{b.trialEndsAt ? new Date(b.trialEndsAt).toLocaleDateString() : "-"}</td>
+                      <td className="py-3">{b.currentPeriodEnd ? new Date(b.currentPeriodEnd).toLocaleDateString() : "-"}</td>
+                      <td className="py-3 fw-bold text-success">${b.mrr}</td>
+                      <td className="py-3 text-end">
+                        <div className="d-flex justify-content-end gap-2">
+                          <Button 
+                            variant="outline-primary" 
+                            size="sm"
+                            onClick={() => handleOpenOverride(b)}
+                            className="rounded-pill px-3 py-1 font-bold d-inline-flex align-items-center gap-1.5"
+                            style={{ fontSize: "11.5px" }}
+                          >
+                            <Edit2 size={12} />
+                            Modificar
+                          </Button>
                           <Button 
                             variant="outline-danger" 
-                            size="sm" 
-                            className="rounded-pill px-3"
-                            onClick={() => handleRejectUser(u.id)}
+                            size="sm"
+                            onClick={() => handleDeleteBiz(b.id)}
+                            className="rounded-pill px-3 py-1 font-bold d-inline-flex align-items-center gap-1.5"
+                            style={{ fontSize: "11.5px" }}
                           >
-                            Rechazar
+                            <Trash2 size={12} />
+                            Eliminar
                           </Button>
-                        )}
-                        <Button 
-                          variant="success" 
-                          size="sm" 
-                          className="rounded-pill px-3 text-white border-0"
-                          onClick={() => handleApproveUser(u.id)}
-                        >
-                          Aprobar Acceso
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            </div>
           </Card.Body>
         </Card>
       )}
 
-      {/* List Card */}
-      <Card className="border-0 shadow-sm rounded-4 sa-card">
-        <Card.Body className="p-4">
-          <div className="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
-            <h2 className="fw-bold h6 mb-0 text-dark">Empresas e Inquilinos ({data.businesses?.length || 0})</h2>
-            <div className="d-flex gap-2">
-              <Button
-                variant="purple"
-                size="sm"
-                onClick={() => setShowCreateRequestModal(true)}
-                className="rounded-pill px-3 py-1.5 btn-premium-purple d-inline-flex align-items-center gap-1.5"
-                style={{ fontSize: "12.5px" }}
-              >
-                <Plus size={14} />
-                Crear Solicitud
-              </Button>
-              <Button
-                variant="success"
-                size="sm"
-                onClick={() => setShowCreateBizModal(true)}
-                className="rounded-pill px-3 py-1.5 btn-premium-success d-inline-flex align-items-center gap-1.5"
-                style={{ fontSize: "12.5px" }}
-              >
-                <Plus size={14} />
-                Crear Negocio
-              </Button>
+      {activeTab === "users" && (
+        <Card className="border-0 shadow-sm rounded-4 mt-4 sa-card">
+          <Card.Body className="p-4">
+            <h2 className="fw-bold h6 mb-3 text-dark">Usuarios Registrados en el Sistema</h2>
+            
+            <div className="sa-table-container">
+              <Table responsive className="mb-0 sa-table">
+                <thead>
+                  <tr className="border-bottom text-muted smaller uppercase">
+                    <th className="py-2.5">Nombre / Email</th>
+                    <th className="py-2.5">Negocios y Roles</th>
+                    <th className="py-2.5">Estado de Cuenta</th>
+                    <th className="py-2.5">Fecha de Registro</th>
+                    <th className="py-2.5 text-end">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {allUsers?.map((u) => (
+                    <tr key={u.id} className="border-bottom small align-middle sa-row-hover">
+                      <td className="py-3">
+                        <strong className="text-dark d-block">{u.name || "Usuario SaaS"}</strong>
+                        <span className="text-muted smaller font-monospace">{u.email}</span>
+                      </td>
+                      <td className="py-3">
+                        {u.memberships && u.memberships.length > 0 ? (
+                          u.memberships.map((m, idx) => (
+                            <div key={m.id || idx} className="mb-1">
+                              <span className="fw-bold">{m.business?.name || "Sin nombre"}</span>{" "}
+                              <Badge bg="purple" className="text-white text-uppercase" style={{ fontSize: "9px" }}>
+                                {m.role || "colaborador"}
+                              </Badge>
+                            </div>
+                          ))
+                        ) : (
+                          <span className="text-muted smaller italic">Sin negocios asociados (Nuevo)</span>
+                        )}
+                      </td>
+                      <td className="py-3">
+                        {getUserStatusBadge(u.status || "active")}
+                      </td>
+                      <td className="py-3 text-muted">
+                        {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "-"}
+                      </td>
+                      <td className="py-3 text-end">
+                        <Button 
+                          variant="outline-primary" 
+                          size="sm"
+                          onClick={() => handleOpenUserModal(u)}
+                          className="rounded-pill px-3 py-1 font-bold d-inline-flex align-items-center gap-1.5"
+                          style={{ fontSize: "11.5px" }}
+                        >
+                          <Edit2 size={12} />
+                          Modificar
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                  {(!allUsers || allUsers.length === 0) && (
+                    <tr>
+                      <td colSpan={5} className="text-center text-muted py-4 small">
+                        No se encontraron usuarios registrados.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </Table>
             </div>
-          </div>
-          
-          <Table responsive className="mb-0 sa-table">
-            <thead>
-              <tr className="border-bottom text-muted smaller uppercase">
-                <th className="py-2.5">Nombre Negocio</th>
-                <th className="py-2.5">Email del Negocio</th>
-                <th className="py-2.5">Slug</th>
-                <th className="py-2.5">Plan</th>
-                <th className="py-2.5">Estado</th>
-                <th className="py-2.5">Fin Trial</th>
-                <th className="py-2.5">Fin Período</th>
-                <th className="py-2.5">MRR</th>
-                <th className="py-2.5 text-end">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.businesses?.map((b) => (
-                <tr key={b.id} className="border-bottom small align-middle sa-row-hover">
-                  <td className="py-3">
-                    <strong className="text-dark">{b.name}</strong>
-                    <span className="text-muted smaller d-block mt-0.5" style={{ fontSize: "10.5px" }}>ID: {b.id}</span>
-                  </td>
-                  <td className="py-3 font-monospace text-muted small">{b.ownerEmail || "-"}</td>
-                  <td className="py-3 font-monospace text-muted">{b.slug}</td>
-                  <td className="py-3">
-                    {getPlanBadge(b.plan)}
-                  </td>
-                  <td className="py-3">{getStatusBadge(b.subscriptionStatus)}</td>
-                  <td className="py-3">{b.trialEndsAt ? new Date(b.trialEndsAt).toLocaleDateString() : "-"}</td>
-                  <td className="py-3">{b.currentPeriodEnd ? new Date(b.currentPeriodEnd).toLocaleDateString() : "-"}</td>
-                  <td className="py-3 fw-bold text-success">${b.mrr}</td>
-                  <td className="py-3 text-end">
-                    <div className="d-flex justify-content-end gap-2">
-                      <Button 
-                        variant="outline-primary" 
-                        size="sm"
-                        onClick={() => handleOpenOverride(b)}
-                        className="rounded-pill px-3 py-1 font-bold d-inline-flex align-items-center gap-1.5"
-                        style={{ fontSize: "11.5px" }}
-                      >
-                        <Edit2 size={12} />
-                        Modificar
-                      </Button>
-                      <Button 
-                        variant="outline-danger" 
-                        size="sm"
-                        onClick={() => handleDeleteBiz(b.id)}
-                        className="rounded-pill px-3 py-1 font-bold d-inline-flex align-items-center gap-1.5"
-                        style={{ fontSize: "11.5px" }}
-                      >
-                        <Trash2 size={12} />
-                        Eliminar
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
-        </Card.Body>
-      </Card>
-
-      {/* Usuarios Registrados en el Sistema */}
-      <Card className="border-0 shadow-sm rounded-4 mt-4 sa-card">
-        <Card.Body className="p-4">
-          <h2 className="fw-bold h6 mb-3 text-dark">Usuarios Registrados en el Sistema</h2>
-          
-          <Table responsive className="mb-0 sa-table">
-            <thead>
-              <tr className="border-bottom text-muted smaller uppercase">
-                <th className="py-2.5">Nombre / Email</th>
-                <th className="py-2.5">Negocios y Roles</th>
-                <th className="py-2.5">Estado de Cuenta</th>
-                <th className="py-2.5">Fecha de Registro</th>
-                <th className="py-2.5 text-end">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {allUsers?.map((u) => (
-                <tr key={u.id} className="border-bottom small align-middle sa-row-hover">
-                  <td className="py-3">
-                    <strong className="text-dark d-block">{u.name || "Usuario SaaS"}</strong>
-                    <span className="text-muted smaller font-monospace">{u.email}</span>
-                  </td>
-                  <td className="py-3">
-                    {u.memberships && u.memberships.length > 0 ? (
-                      u.memberships.map((m, idx) => (
-                        <div key={m.id || idx} className="mb-1">
-                          <span className="fw-bold">{m.business?.name || "Sin nombre"}</span>{" "}
-                          <Badge bg="purple" className="text-white text-uppercase" style={{ fontSize: "9px" }}>
-                            {m.role || "colaborador"}
-                          </Badge>
-                        </div>
-                      ))
-                    ) : (
-                      <span className="text-muted smaller italic">Sin negocios asociados (Nuevo)</span>
-                    )}
-                  </td>
-                  <td className="py-3">
-                    {getUserStatusBadge(u.status || "active")}
-                  </td>
-                  <td className="py-3 text-muted">
-                    {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "-"}
-                  </td>
-                  <td className="py-3 text-end">
-                    <Button 
-                      variant="outline-primary" 
-                      size="sm"
-                      onClick={() => handleOpenUserModal(u)}
-                      className="rounded-pill px-3 py-1 font-bold d-inline-flex align-items-center gap-1.5"
-                      style={{ fontSize: "11.5px" }}
-                    >
-                      <Edit2 size={12} />
-                      Modificar
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-              {(!allUsers || allUsers.length === 0) && (
-                <tr>
-                  <td colSpan={5} className="text-center text-muted py-4 small">
-                    No se encontraron usuarios registrados.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </Table>
-        </Card.Body>
-      </Card>
+          </Card.Body>
+        </Card>
+      )}
 
       {/* Override Subscription Modal */}
       <Modal show={showOverrideModal} onHide={() => setShowOverrideModal(false)} centered size="lg">
