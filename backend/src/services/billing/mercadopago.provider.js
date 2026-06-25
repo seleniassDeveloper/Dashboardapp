@@ -7,7 +7,7 @@ export class MercadoPagoProvider extends PaymentProvider {
       const providerSubId = `mock_sub_${Math.random().toString(36).substr(2, 9)}`;
       const price = interval === "month" ? plan.priceMonth : plan.priceYear;
       // Redirect to settings with mock parameters to prompt simulation modal
-      const checkoutUrl = `/app/settings?tab=subscription&mock_checkout=true&providerSubId=${providerSubId}&planCode=${plan.code}&interval=${interval}&price=${price}`;
+      const checkoutUrl = `/app/settings?tab=subscription&mock_checkout=true&providerSubId=${providerSubId}&planCode=${plan.code}&interval=${interval}&price=${price}&provider=mercadopago`;
       return { providerSubId, checkoutUrl };
     }
 
