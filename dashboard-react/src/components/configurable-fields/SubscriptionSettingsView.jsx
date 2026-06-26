@@ -87,53 +87,25 @@ export default function SubscriptionSettingsView() {
     if (!simData) return;
     setSimLoading(true);
     try {
-      if (simData.provider === "stripe") {
-        // Trigger Stripe simulation webhook events
-        await api.post("/billing/webhook", {
-          id: `sim_evt_${Math.random().toString(36).substr(2, 9)}`,
-          type: "checkout.session.completed",
-          mock_status: "active",
-          mock_subscription_id: simData.providerSubId,
-          mock_business_id: subData?.business?.id || "",
-          mock_plan_code: simData.planCode,
-          mock_amount: Number(simData.price)
-        }, {
-          headers: {
-            "stripe-signature": "mock_signature_here"
-          }
-        });
-      } else {
-        // 1. Trigger subscription authorized webhook event (MercadoPago)
-        await api.post("/billing/webhook", {
-          id: `sim_evt_${Math.random().toString(36).substr(2, 9)}`,
-          type: "subscription_preapproval",
-          action: "created",
-          data: { id: simData.providerSubId },
-          mock_status: "authorized",
-          mock_amount: Number(simData.price)
-        });
-
-        // 2. Trigger payment approved webhook event (MercadoPago)
-        await api.post("/billing/webhook", {
-          id: `sim_evt_pay_${Math.random().toString(36).substr(2, 9)}`,
-          type: "payment",
-          action: "payment.created",
-          data: { id: `pay_${Math.random().toString(36).substr(2, 9)}` },
-          mock_status: "approved",
-          mock_subscription_id: simData.providerSubId,
-          mock_amount: Number(simData.price)
-        });
-      }
-
+      await api.post("/billing/webhook", {
+        id: `sim_evt_${Math.random().toString(36).substr(2, 9)}`,
+        type: "checkout.session.completed",
+        mock_status: "active",
+        mock_subscription_id: simData.providerSubId,
+        mock_business_id: subData?.business?.id || "",
+        mock_plan_code: simData.planCode,
+        mock_amount: Number(simData.price)
+      }, {
+        headers: { "stripe-signature": "mock_signature_here" }
+      });
       setSimSuccess(true);
       setTimeout(() => {
         setShowSimModal(false);
-        // Reload page to sync state
         window.location.reload();
       }, 2000);
     } catch (err) {
       console.error("Mock simulation webhook error:", err);
-      alert("La simulación de pago falló. Revisa la consola.");
+      alert("La simulación falló. Revisa la consola.");
     } finally {
       setSimLoading(false);
     }
@@ -302,7 +274,7 @@ export default function SubscriptionSettingsView() {
       <Modal show={showSimModal} onHide={() => setShowSimModal(false)} centered backdrop="static" className="sandbox-modal">
         <Modal.Header className="border-0 pb-0 justify-content-center">
           <Modal.Title className="fw-black h4 text-purple-600 text-center">
-            {simData?.provider === "stripe" ? "Stripe Sandbox Simulator" : "MercadoPago Sandbox Simulator"}
+            Stripe Sandbox Simulator
           </Modal.Title>
         </Modal.Header>
         <Modal.Body className="p-4 text-center">
@@ -318,7 +290,7 @@ export default function SubscriptionSettingsView() {
                 <CreditCard size={32} />
               </div>
               <p className="text-secondary small mb-4">
-                Estás en el simulador local de pagos. Al hacer clic en el botón de abajo, se enviará una notificación webhook simulada de {simData?.provider === "stripe" ? "Stripe" : "MercadoPago"} al backend 
+                Estás en el simulador local de pagos. Al hacer clic en el botón de abajo, se enviará una notificación webhook simulada de Stripe Checkout al backend 
                 para activar el plan <strong>{simData?.planCode?.toUpperCase()}</strong> ({simData?.interval === "month" ? "Mensual" : "Anual"}) por un valor de <strong>${(Number(simData?.price) / 100).toFixed(2)} USD</strong>.
               </p>
 
