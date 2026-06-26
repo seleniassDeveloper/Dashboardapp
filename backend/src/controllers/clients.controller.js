@@ -66,7 +66,7 @@ export async function createClient(req, res) {
 
     return res.status(201).json(created);
   } catch (e) {
-    console.error("CREATE CLIENT ERROR:", e);
+    console.error("[clients] create:", e?.message || e);
     return res.status(500).json({ error: "Error creando cliente." });
   }
 }
@@ -117,7 +117,7 @@ export async function updateClient(req, res) {
 
     return res.json(updated);
   } catch (e) {
-    console.error("UPDATE CLIENT ERROR:", e);
+    console.error("[clients] update:", e?.message || e);
     return res.status(500).json({ error: "Error actualizando cliente." });
   }
 }
@@ -159,7 +159,7 @@ export async function listClients(req, res) {
 
     return res.json(decryptedClients);
   } catch (e) {
-    console.error("LIST CLIENTS ERROR:", e);
+    console.error("[clients] list:", e?.message || e);
     return res.status(500).json({
       error: "Error listando clientes.",
       detail: e?.message,
@@ -184,7 +184,7 @@ export async function deleteClient(req, res) {
 
     return res.json({ ok: true });
   } catch (e) {
-    console.error("DELETE CLIENT ERROR:", e);
+    console.error("[clients] delete:", e?.message || e);
     return res.status(500).json({ error: "Error eliminando cliente." });
   }
 }
@@ -206,7 +206,7 @@ export async function getClientAppointments(req, res) {
 
     return res.json(appts);
   } catch (e) {
-    console.error("CLIENT APPOINTMENTS ERROR:", e);
+    console.error("[clients] getClientAppointments:", e?.message || e);
     return res
       .status(500)
       .json({ error: "Error cargando historial de citas." });
@@ -267,7 +267,7 @@ export async function getClientClinicalHistory(req, res) {
 
     return res.json(history);
   } catch (e) {
-    console.error("GET CLINICAL HISTORY ERROR:", e);
+    console.error("[clients] getClientClinicalHistory:", e?.message || e);
     return res.status(500).json({ error: "Error obteniendo el historial clínico del cliente." });
   }
 }
@@ -335,7 +335,7 @@ export async function createClientClinicalHistory(req, res) {
 
     return res.status(201).json(created);
   } catch (e) {
-    console.error("CREATE CLINICAL HISTORY ERROR:", e);
+    console.error("[clients] createClientClinicalHistory:", e?.message || e);
     return res.status(500).json({ error: "Error creando la entrada en el historial clínico." });
   }
 }
@@ -402,7 +402,7 @@ export async function updateClientClinicalHistory(req, res) {
 
     return res.json(updated);
   } catch (e) {
-    console.error("UPDATE CLINICAL HISTORY ERROR:", e);
+    console.error("[clients] updateClientClinicalHistory:", e?.message || e);
     return res.status(500).json({ error: "Error actualizando la entrada en el historial clínico." });
   }
 }
@@ -435,7 +435,7 @@ export async function deleteClientClinicalHistory(req, res) {
 
     return res.json({ ok: true });
   } catch (e) {
-    console.error("DELETE CLINICAL HISTORY ERROR:", e);
+    console.error("[clients] deleteClientClinicalHistory:", e?.message || e);
     return res.status(500).json({ error: "Error eliminando la entrada del historial clínico." });
   }
 }
@@ -480,7 +480,7 @@ export async function uploadClientPhoto(req, res) {
 
     return res.json({ photoUrl: savedPath, client: updated });
   } catch (e) {
-    console.error("UPLOAD CLIENT PHOTO ERROR:", e);
+    console.error("[clients] uploadClientPhoto:", e?.message || e);
     return res.status(500).json({ error: "Error subiendo la foto de perfil del cliente." });
   }
 }

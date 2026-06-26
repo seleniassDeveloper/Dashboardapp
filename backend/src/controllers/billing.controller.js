@@ -11,7 +11,7 @@ export async function getPlans(req, res) {
     });
     return res.json({ success: true, plans });
   } catch (error) {
-    console.error("Error fetching plans:", error);
+    console.error("[billing] getPlans:", error?.message || error);
     return res.status(500).json({ success: false, error: "No se pudieron obtener los planes de facturación." });
   }
 }
@@ -51,7 +51,7 @@ export async function getSubscription(req, res) {
       subscription: business.subscription
     });
   } catch (error) {
-    console.error("Error fetching subscription status:", error);
+    console.error("[billing] getSubscription:", error?.message || error);
     return res.status(500).json({ success: false, error: "No se pudo obtener el estado de la suscripción." });
   }
 }
@@ -178,7 +178,7 @@ export async function checkout(req, res) {
       providerSubId
     });
   } catch (error) {
-    console.error("Error during checkout setup:", error);
+    console.error("[billing] checkout:", error?.message || error);
     return res.status(500).json({ success: false, error: error.message || "Error al iniciar el checkout." });
   }
 }
@@ -203,7 +203,7 @@ export async function cancel(req, res) {
 
     return res.json({ success: true, message: "Tu suscripción ha sido cancelada y no se renovará en el próximo período." });
   } catch (error) {
-    console.error("Error canceling subscription:", error);
+    console.error("[billing] cancel:", error?.message || error);
     return res.status(500).json({ success: false, error: error.message || "Error al cancelar la suscripción." });
   }
 }
@@ -359,12 +359,12 @@ export async function webhook(req, res) {
     });
 
     if (shouldSendEmail) {
-      sendSubscriptionActivationEmail(subscription.businessId, subscription.planCode, subscription.interval).catch(console.error);
+      sendSubscriptionActivationEmail(subscription.businessId, subscription.planCode, subscription.interval).catch(err => console.error("[billing] sendSubscriptionActivationEmailError:", err?.message || err));
     }
 
     return res.status(200).send("Webhook Processed");
   } catch (error) {
-    console.error("Webhook Error:", error);
+    console.error("[billing] webhook:", error?.message || error);
     return res.status(400).send(`Webhook Error: ${error.message}`);
   }
 }
@@ -401,7 +401,7 @@ export async function quickApprove(req, res) {
 
     const sub = await prisma.subscription.findUnique({ where: { businessId: request.businessId } });
     const interval = sub?.interval || "month";
-    sendSubscriptionActivationEmail(request.businessId, request.requestedPlan, interval).catch(console.error);
+    sendSubscriptionActivationEmail(request.businessId, request.requestedPlan, interval).catch(err => console.error("[billing] sendSubscriptionActivationEmailError:", err?.message || err));
 
     return res.status(200).send(`
       <div style="font-family: sans-serif; text-align: center; margin-top: 50px;">
@@ -414,7 +414,7 @@ export async function quickApprove(req, res) {
     `);
 
   } catch (error) {
-    console.error("Quick Approve Error:", error);
+    console.error("[billing] quickApprove:", error?.message || error);
     return res.status(500).send("<h1>Error Interno del Servidor</h1>");
   }
 }
@@ -498,6 +498,6 @@ async function sendSubscriptionActivationEmail(businessId, planCode, interval) {
 
     console.log(`[mailer] Correo de confirmación de suscripción enviado correctamente a ${recipientEmail} para el negocio ${businessId}`);
   } catch (error) {
-    console.error("[mailer] Error enviando correo de confirmación de suscripción:", error);
+    console.error("[billing] sendSubscriptionActivationEmail:", error?.message || error);
   }
 }

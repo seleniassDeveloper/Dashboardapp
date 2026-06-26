@@ -76,7 +76,7 @@ export async function getPublicBusiness(req, res) {
 
     return res.json(biz);
   } catch (error) {
-    console.error("Error obteniendo negocio público:", error);
+    console.error("[public] getPublicBusiness:", error?.message || error);
     return res.status(500).json({ error: "Error interno al consultar el negocio." });
   }
 }
@@ -95,7 +95,7 @@ export async function getPublicServices(req, res) {
     });
     return res.json(services);
   } catch (error) {
-    console.error("Error obteniendo servicios públicos:", error);
+    console.error("[public] getPublicServices:", error?.message || error);
     return res.status(500).json({ error: "Error al listar servicios." });
   }
 }
@@ -127,7 +127,7 @@ export async function getPublicProfessionals(req, res) {
 
     return res.json(formatted);
   } catch (error) {
-    console.error("Error obteniendo profesionales públicos:", error);
+    console.error("[public] getPublicProfessionals:", error?.message || error);
     return res.status(500).json({ error: "Error al listar profesionales." });
   }
 }
@@ -359,7 +359,7 @@ export async function getPublicAvailability(req, res) {
     const sortedSlots = Array.from(allAvailableSlots).sort();
     return res.json(sortedSlots);
   } catch (error) {
-    console.error("Error calculando disponibilidad:", error);
+    console.error("[public] getPublicAvailability:", error?.message || error);
     return res.status(500).json({ error: "Error al calcular slots disponibles." });
   }
 }
@@ -617,14 +617,14 @@ export async function createPublicBooking(req, res) {
         .then(({ syncAppointmentToGoogleCalendar }) => {
           syncAppointmentToGoogleCalendar(appt.id);
         })
-        .catch((err) => console.error("Error importando googleService:", err));
+        .catch((err) => console.error("[public] importGoogleServiceError:", err?.message || err));
     }
 
     // Trigger workflows for public bookings
     for (const appt of createdAppointments) {
-      triggerWorkflows(biz.id, "appointment_created", appt).catch(err => console.error("Error triggering appointment_created workflow:", err));
+      triggerWorkflows(biz.id, "appointment_created", appt).catch(err => console.error("[public] triggerAppointmentCreatedWorkflowError:", err?.message || err));
       if (appt.downpaymentPaid && appt.downpaymentPaid > 0) {
-        triggerWorkflows(biz.id, "payment_received", appt).catch(err => console.error("Error triggering payment_received workflow:", err));
+        triggerWorkflows(biz.id, "payment_received", appt).catch(err => console.error("[public] triggerPaymentReceivedWorkflowError:", err?.message || err));
       }
     }
 
@@ -701,9 +701,10 @@ export async function createPublicBooking(req, res) {
           subject: subjectStr,
           html: mailHtml,
           smtpConfig: biz?.integrations?.smtp
-        });console.log(`Email de confirmación unificado enviado exitosamente a ${client.email}`);
+        });
+        console.log(`[mailer] Confirmación enviada OK`);
       } catch (err) {
-        console.error("Error al enviar el email de confirmación:", err);
+        console.error("[public] sendConfirmationEmail:", err?.message || err);
       }
     }
 
@@ -714,7 +715,7 @@ export async function createPublicBooking(req, res) {
       bookings: createdAppointments,
     });
   } catch (error) {
-    console.error("Error creando reserva pública:", error);
+    console.error("[public] createPublicBooking:", error?.message || error);
     if (error.message && error.message.includes("acaba de ser reservado")) {
       return res.status(409).json({ error: error.message });
     }
@@ -764,7 +765,7 @@ export async function googleOAuthCallback(req, res) {
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
     return res.redirect(`${frontendUrl}/settings?google_sync=success`);
   } catch (error) {
-    console.error("Error en googleOAuthCallback:", error);
+    console.error("[public] googleOAuthCallback:", error?.message || error);
     return res.status(500).send(`Error al conectar con Google: ${error.message}`);
   }
 }
@@ -810,7 +811,7 @@ export async function reportPublicError(req, res) {
 
     return res.status(200).json({ ok: true, message: "Reporte enviado con éxito." });
   } catch (error) {
-    console.error("Error al enviar reporte de soporte:", error);
+    console.error("[public] reportPublicError:", error?.message || error);
     return res.status(500).json({ error: "No se pudo enviar el reporte por correo. Inténtalo más tarde." });
   }
 }
@@ -826,7 +827,7 @@ export async function triggerPublicWorkflowWebhook(req, res) {
     
     return res.status(200).json({ ok: true, result });
   } catch (error) {
-    console.error("Error triggering public workflow webhook:", error);
+    console.error("[public] triggerPublicWorkflowWebhook:", error?.message || error);
     return res.status(400).json({ error: error.message || "Error al ejecutar webhook." });
   }
 }

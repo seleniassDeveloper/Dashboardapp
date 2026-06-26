@@ -80,7 +80,7 @@ export async function getWidgets(req, res) {
 
     return res.json(widgets);
   } catch (error) {
-    console.error("Error obteniendo widgets:", error);
+    console.error("[dashboard] getWidgets:", error?.message || error);
     return res.status(500).json({ error: "Error interno al obtener widgets." });
   }
 }
@@ -107,7 +107,7 @@ export async function createWidget(req, res) {
 
     return res.status(201).json(widget);
   } catch (error) {
-    console.error("Error creando widget:", error);
+    console.error("[dashboard] createWidget:", error?.message || error);
     return res.status(500).json({ error: "Error interno al crear widget." });
   }
 }
@@ -130,7 +130,7 @@ export async function updateWidget(req, res) {
 
     return res.json(widget);
   } catch (error) {
-    console.error("Error actualizando widget:", error);
+    console.error("[dashboard] updateWidget:", error?.message || error);
     return res.status(500).json({ error: "Error interno al actualizar widget." });
   }
 }
@@ -156,7 +156,7 @@ export async function updateLayouts(req, res) {
 
     return res.json({ ok: true, message: "Layouts actualizados." });
   } catch (error) {
-    console.error("Error actualizando layouts en lote:", error);
+    console.error("[dashboard] updateLayouts:", error?.message || error);
     return res.status(500).json({ error: "Error interno al guardar distribución." });
   }
 }
@@ -176,7 +176,7 @@ export async function deleteWidget(req, res) {
 
     return res.json({ success: true });
   } catch (error) {
-    console.error("Error eliminando widget:", error);
+    console.error("[dashboard] deleteWidget:", error?.message || error);
     return res.status(500).json({ error: "Error interno al eliminar widget." });
   }
 }
@@ -190,7 +190,7 @@ export async function restoreDefaults(req, res) {
     });
     return res.json({ success: true, message: "Widgets restaurados a sus valores por defecto." });
   } catch (error) {
-    console.error("Error restaurando widgets:", error);
+    console.error("[dashboard] restoreDefaults:", error?.message || error);
     return res.status(500).json({ error: "Error al restaurar widgets." });
   }
 }

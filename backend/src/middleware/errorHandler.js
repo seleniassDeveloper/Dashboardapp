@@ -12,7 +12,12 @@ export function errorHandler(err, req, res, _next) {
   const status = err.status || err.statusCode || 500;
 
   if (status >= 500) {
-    console.error("[api]", err);
+    if (isProd) {
+      // En producción: solo loguear método, ruta y mensaje — sin stack ni datos internos
+      console.error(`[api] ${status} ${req.method} ${req.path} - ${err.message}`);
+    } else {
+      console.error("[api]", err);
+    }
   }
 
   const message =
@@ -22,6 +27,7 @@ export function errorHandler(err, req, res, _next) {
 
   res.status(status).json({
     error: message,
-    detail: err.message || null, // Always send detail to help Selenia debug in the frontend
+    // detail solo en desarrollo: en producción nunca exponer internals al cliente
+    ...(isProd ? {} : { detail: err.message || null }),
   });
 }

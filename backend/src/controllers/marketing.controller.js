@@ -32,7 +32,7 @@ export async function listPosts(req, res) {
 
     return res.json(posts);
   } catch (err) {
-    console.error("Error listing marketing posts:", err);
+    console.error("[marketing] listPosts:", err?.message || err);
     return res.status(500).json({ error: "Error interno al listar publicaciones de marketing." });
   }
 }
@@ -71,7 +71,7 @@ export async function createPost(req, res) {
 
     return res.status(201).json(post);
   } catch (err) {
-    console.error("Error creating marketing post:", err);
+    console.error("[marketing] createPost:", err?.message || err);
     return res.status(500).json({ error: "Error interno al crear la publicación de marketing." });
   }
 }
@@ -109,7 +109,7 @@ export async function updatePost(req, res) {
 
     return res.json(updated);
   } catch (err) {
-    console.error("Error updating marketing post:", err);
+    console.error("[marketing] updatePost:", err?.message || err);
     return res.status(500).json({ error: "Error interno al actualizar la publicación." });
   }
 }
@@ -133,7 +133,7 @@ export async function deletePost(req, res) {
 
     return res.json({ success: true, message: "Publicación eliminada correctamente." });
   } catch (err) {
-    console.error("Error deleting marketing post:", err);
+    console.error("[marketing] deletePost:", err?.message || err);
     return res.status(500).json({ error: "Error interno al eliminar la publicación." });
   }
 }
@@ -201,7 +201,7 @@ Incluye una línea en blanco al final e inserta 4 o 5 hashtags relevantes y popu
           });
         }
       } catch (aiErr) {
-        console.error("OpenAI call failed, running template fallback:", aiErr);
+        console.error("[marketing] generateCaptionOpenAIFailure:", aiErr?.message || aiErr);
       }
     }
 
@@ -209,7 +209,7 @@ Incluye una línea en blanco al final e inserta 4 o 5 hashtags relevantes y popu
     const fallbackText = getFallbackCaption(serviceName, rubro, format, cta, tone, businessName, isEn);
     return res.json(fallbackText);
   } catch (err) {
-    console.error("Error generating marketing caption:", err);
+    console.error("[marketing] generateCaption:", err?.message || err);
     return res.status(500).json({ error: "Error al generar el pie de foto por IA." });
   }
 }

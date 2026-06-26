@@ -216,7 +216,7 @@ async function seedInventoryIfNeeded() {
       console.log("Inventario ERP auto-seeded successfully.");
     }
   } catch (err) {
-    console.error("Error seeding inventory ERP:", err);
+    console.error("[inventory] seedInventoryIfNeeded:", err?.message || err);
   }
 }
 
@@ -254,7 +254,7 @@ export async function getInventoryDashboardData(req, res) {
       }
     });
   } catch (error) {
-    console.error("Error in getInventoryDashboardData:", error);
+    console.error("[inventory] getInventoryDashboardData:", error?.message || error);
     return res.status(500).json({ error: "Error calculando métricas de inventario." });
   }
 }
@@ -268,7 +268,7 @@ export async function listProducts(req, res) {
     });
     return res.status(200).json(list);
   } catch (error) {
-    console.error("Error listing products:", error);
+    console.error("[inventory] listProducts:", error?.message || error);
     return res.status(500).json({ error: "Error leyendo catálogo de productos." });
   }
 }
@@ -362,7 +362,7 @@ export async function createProduct(req, res) {
 
     return res.status(201).json(product);
   } catch (error) {
-    console.error("Error creating product:", error);
+    console.error("[inventory] createProduct:", error?.message || error);
     return res.status(500).json({ error: "Error creando producto en catálogo." });
   }
 }
@@ -442,7 +442,7 @@ export async function updateProduct(req, res) {
 
     return res.status(200).json(product);
   } catch (error) {
-    console.error("Error updating product:", error);
+    console.error("[inventory] updateProduct:", error?.message || error);
     return res.status(500).json({ error: "Error editando producto." });
   }
 }
@@ -453,7 +453,7 @@ export async function deleteProduct(req, res) {
     await prisma.product.delete({ where: { id } });
     return res.status(200).json({ success: true });
   } catch (error) {
-    console.error("Error deleting product:", error);
+    console.error("[inventory] deleteProduct:", error?.message || error);
     return res.status(500).json({ error: "Error eliminando producto." });
   }
 }
@@ -466,7 +466,7 @@ export async function listSuppliers(req, res) {
     });
     return res.status(200).json(list);
   } catch (error) {
-    console.error("Error listing suppliers:", error);
+    console.error("[inventory] listSuppliers:", error?.message || error);
     return res.status(500).json({ error: "Error listando proveedores." });
   }
 }
@@ -489,7 +489,7 @@ export async function createSupplier(req, res) {
     });
     return res.status(201).json(s);
   } catch (error) {
-    console.error("Error creating supplier:", error);
+    console.error("[inventory] createSupplier:", error?.message || error);
     return res.status(500).json({ error: "Error creando proveedor." });
   }
 }
@@ -513,7 +513,7 @@ export async function updateSupplier(req, res) {
     });
     return res.status(200).json(s);
   } catch (error) {
-    console.error("Error updating supplier:", error);
+    console.error("[inventory] updateSupplier:", error?.message || error);
     return res.status(500).json({ error: "Error editando proveedor." });
   }
 }
@@ -524,7 +524,7 @@ export async function deleteSupplier(req, res) {
     await prisma.supplier.delete({ where: { id } });
     return res.status(200).json({ success: true });
   } catch (error) {
-    console.error("Error deleting supplier:", error);
+    console.error("[inventory] deleteSupplier:", error?.message || error);
     return res.status(500).json({ error: "Error al borrar proveedor." });
   }
 }
@@ -538,7 +538,7 @@ export async function listMovements(req, res) {
     });
     return res.status(200).json(list);
   } catch (error) {
-    console.error("Error listing movements:", error);
+    console.error("[inventory] listMovements:", error?.message || error);
     return res.status(500).json({ error: "Error cargando bitácora." });
   }
 }
@@ -598,7 +598,7 @@ export async function createMovement(req, res) {
 
     return res.status(201).json(mov);
   } catch (error) {
-    console.error("Error creating stock movement:", error);
+    console.error("[inventory] createMovement:", error?.message || error);
     return res.status(500).json({ error: "Error registrando movimiento de inventario." });
   }
 }
@@ -611,7 +611,7 @@ export async function listBatches(req, res) {
     });
     return res.status(200).json(list);
   } catch (error) {
-    console.error("Error listing batches:", error);
+    console.error("[inventory] listBatches:", error?.message || error);
     return res.status(500).json({ error: "Error listando lotes." });
   }
 }
@@ -679,7 +679,7 @@ export async function createBatch(req, res) {
 
     return res.status(201).json(batch);
   } catch (error) {
-    console.error("Error creating batch:", error);
+    console.error("[inventory] createBatch:", error?.message || error);
     return res.status(500).json({ error: "Error al crear lote contable." });
   }
 }
@@ -693,7 +693,7 @@ export async function listRules(req, res) {
     });
     return res.status(200).json(list);
   } catch (error) {
-    console.error("Error listing rules:", error);
+    console.error("[inventory] listRules:", error?.message || error);
     return res.status(500).json({ error: "Error listando reglas de consumo." });
   }
 }
@@ -722,7 +722,7 @@ export async function createRule(req, res) {
 
     return res.status(201).json(rule);
   } catch (error) {
-    console.error("Error creating rule:", error);
+    console.error("[inventory] createRule:", error?.message || error);
     return res.status(500).json({ error: "Error configurando regla técnica." });
   }
 }
@@ -733,7 +733,7 @@ export async function deleteRule(req, res) {
     await prisma.serviceConsumptionRule.delete({ where: { id } });
     return res.status(200).json({ success: true });
   } catch (error) {
-    console.error("Error deleting rule:", error);
+    console.error("[inventory] deleteRule:", error?.message || error);
     return res.status(500).json({ error: "Error al borrar regla técnica." });
   }
 }
@@ -748,7 +748,7 @@ export async function listPurchaseOrders(req, res) {
     });
     return res.status(200).json(list);
   } catch (error) {
-    console.error("Error listing orders:", error);
+    console.error("[inventory] listPurchaseOrders:", error?.message || error);
     return res.status(500).json({ error: "Error listando órdenes de compra." });
   }
 }
@@ -787,7 +787,7 @@ export async function createPurchaseOrder(req, res) {
 
     return res.status(201).json(order);
   } catch (error) {
-    console.error("Error creating order:", error);
+    console.error("[inventory] createPurchaseOrder:", error?.message || error);
     return res.status(500).json({ error: "Error creando orden de compra." });
   }
 }
@@ -868,7 +868,7 @@ export async function updateOrderStatus(req, res) {
 
     return res.status(200).json(updated);
   } catch (error) {
-    console.error("Error updating order status:", error);
+    console.error("[inventory] updateOrderStatus:", error?.message || error);
     return res.status(500).json({ error: "Error actualizando estado de orden." });
   }
 }

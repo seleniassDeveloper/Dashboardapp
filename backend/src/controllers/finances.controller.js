@@ -15,7 +15,7 @@ async function seedBranchesIfNeeded() {
       console.log("Sucursales seeded successfully.");
     }
   } catch (err) {
-    console.error("Error seeding branches:", err);
+    console.error("[finances] seedBranchesIfNeeded:", err?.message || err);
   }
 }
 
@@ -207,7 +207,7 @@ export async function getFinanceDashboardData(req, res) {
       }))
     });
   } catch (error) {
-    console.error("Error en getFinanceDashboardData:", error);
+    console.error("[finances] getFinanceDashboardData:", error?.message || error);
     return res.status(500).json({
       error: "Error calculando métricas ERP financieras.",
       detail: error?.message || "Unknown error"
@@ -228,7 +228,7 @@ export async function listExpenses(req, res) {
     });
     return res.status(200).json(list);
   } catch (error) {
-    console.error("Error listing expenses:", error);
+    console.error("[finances] listExpenses:", error?.message || error);
     return res.status(500).json({ error: "Error listando gastos." });
   }
 }
@@ -274,7 +274,7 @@ export async function createExpense(req, res) {
 
     return res.status(201).json(expense);
   } catch (error) {
-    console.error("Error creating expense:", error);
+    console.error("[finances] createExpense:", error?.message || error);
     return res.status(500).json({ error: "Error creando gasto." });
   }
 }
@@ -291,7 +291,7 @@ export async function listCashClosings(req, res) {
     });
     return res.status(200).json(list);
   } catch (error) {
-    console.error("Error listing closings:", error);
+    console.error("[finances] listCashClosings:", error?.message || error);
     return res.status(500).json({ error: "Error leyendo cierres de caja." });
   }
 }
@@ -341,7 +341,7 @@ export async function createCashClosing(req, res) {
 
     return res.status(201).json(closing);
   } catch (error) {
-    console.error("Error creating closing:", error);
+    console.error("[finances] createCashClosing:", error?.message || error);
     return res.status(500).json({ error: "Error cerrando caja." });
   }
 }
@@ -358,7 +358,7 @@ export async function listSalaryPayments(req, res) {
     });
     return res.status(200).json(payments);
   } catch (error) {
-    console.error("Error listing salary payments:", error);
+    console.error("[finances] listSalaryPayments:", error?.message || error);
     return res.status(500).json({ error: "Error listando liquidaciones de sueldo." });
   }
 }
@@ -411,7 +411,7 @@ export async function createSalaryPayment(req, res) {
 
     return res.status(201).json(payment);
   } catch (error) {
-    console.error("Error creating salary payment:", error);
+    console.error("[finances] createSalaryPayment:", error?.message || error);
     return res.status(500).json({ error: "Error al liquidar pago." });
   }
 }
@@ -437,7 +437,7 @@ export async function listBankMovements(req, res) {
     });
     return res.status(200).json(list);
   } catch (error) {
-    console.error("Error listing bank movements:", error);
+    console.error("[finances] listBankMovements:", error?.message || error);
     return res.status(500).json({ error: "Error listando movimientos bancarios." });
   }
 }
@@ -461,7 +461,7 @@ export async function reconcileMovement(req, res) {
 
     return res.status(200).json(updated);
   } catch (error) {
-    console.error("Error reconciling movement:", error);
+    console.error("[finances] reconcileMovement:", error?.message || error);
     return res.status(500).json({ error: "Error actualizando conciliación bancaria." });
   }
 }
@@ -475,7 +475,7 @@ export async function listAuditLogs(req, res) {
     });
     return res.status(200).json(list);
   } catch (error) {
-    console.error("Error listing audit logs:", error);
+    console.error("[finances] listAuditLogs:", error?.message || error);
     return res.status(500).json({ error: "Error al leer bitácora de auditorías." });
   }
 }
@@ -490,7 +490,7 @@ export async function listBranches(req, res) {
     });
     return res.status(200).json(list);
   } catch (error) {
-    console.error("Error listing branches:", error);
+    console.error("[finances] listBranches:", error?.message || error);
     return res.status(500).json({ error: "Error al leer sucursales." });
   }
 }
@@ -539,7 +539,7 @@ export async function createBranch(req, res) {
 
     return res.status(201).json(branch);
   } catch (error) {
-    console.error("Error creating branch:", error);
+    console.error("[finances] createBranch:", error?.message || error);
     return res.status(500).json({ error: "Error creando sucursal." });
   }
 }
@@ -595,7 +595,7 @@ export async function updateBranch(req, res) {
 
     return res.status(200).json(updated);
   } catch (error) {
-    console.error("Error updating branch:", error);
+    console.error("[finances] updateBranch:", error?.message || error);
     return res.status(500).json({ error: "Error actualizando sucursal." });
   }
 }
@@ -629,7 +629,7 @@ export async function deleteBranch(req, res) {
 
     return res.status(200).json({ success: true, message: "Sucursal eliminada correctamente." });
   } catch (error) {
-    console.error("Error deleting branch:", error);
+    console.error("[finances] deleteBranch:", error?.message || error);
     return res.status(500).json({ error: "Error eliminando sucursal." });
   }
 }
@@ -663,7 +663,7 @@ export async function deleteExpense(req, res) {
 
     return res.status(200).json({ success: true, message: "Gasto eliminado correctamente." });
   } catch (error) {
-    console.error("Error deleting expense:", error);
+    console.error("[finances] deleteExpense:", error?.message || error);
     return res.status(500).json({ error: "Error eliminando gasto de la base de datos." });
   }
 }

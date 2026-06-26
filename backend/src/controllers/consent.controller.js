@@ -21,7 +21,7 @@ export async function getTemplates(req, res) {
 
     return res.json(templates);
   } catch (error) {
-    console.error("GET TEMPLATES ERROR:", error);
+    console.error("[consent] getTemplates:", error?.message || error);
     return res.status(500).json({ error: "Error obteniendo plantillas." });
   }
 }
@@ -119,7 +119,7 @@ export async function createTemplate(req, res) {
 
     return res.status(201).json(newTemplate);
   } catch (error) {
-    console.error("CREATE TEMPLATE ERROR:", error);
+    console.error("[consent] createTemplate:", error?.message || error);
     return res.status(500).json({ error: "Error guardando plantilla." });
   }
 }
@@ -152,7 +152,7 @@ export async function deleteTemplate(req, res) {
 
     return res.json({ ok: true });
   } catch (error) {
-    console.error("DELETE TEMPLATE ERROR:", error);
+    console.error("[consent] deleteTemplate:", error?.message || error);
     return res.status(500).json({ error: "Error eliminando plantilla." });
   }
 }
@@ -198,7 +198,7 @@ export async function createConsentRequest(req, res) {
 
     return res.status(201).json(request);
   } catch (error) {
-    console.error("CREATE REQUEST ERROR:", error);
+    console.error("[consent] createConsentRequest:", error?.message || error);
     return res.status(500).json({ error: "Error generando solicitud de consentimiento." });
   }
 }
@@ -270,7 +270,7 @@ export async function getPublicConsentDetails(req, res) {
       business: request.business
     });
   } catch (error) {
-    console.error("GET PUBLIC CONSENT DETAILS ERROR:", error);
+    console.error("[consent] getPublicConsentDetails:", error?.message || error);
     return res.status(500).json({ error: "Error obteniendo datos del consentimiento." });
   }
 }
@@ -390,10 +390,10 @@ export async function signConsent(req, res) {
     import("../services/workflowEngine.js")
       .then(({ triggerWorkflows }) => {
         if (request.appointmentId) {
-          triggerWorkflows(request.businessId, "consent_signed", { appointmentId: request.appointmentId, consentRecordId: record.id }).catch(err => console.error(err));
+          triggerWorkflows(request.businessId, "consent_signed", { appointmentId: request.appointmentId, consentRecordId: record.id }).catch(err => console.error("[consent] triggerWorkflowsError:", err?.message || err));
         }
       })
-      .catch(err => console.error("Error importing workflowEngine:", err));
+      .catch(err => console.error("[consent] importWorkflowEngineError:", err?.message || err));
 
     // Update Client's current medical summary (allergies and medicalNotes)
     // Client.allergies is kept as plain text on client sheet for easy alerts
@@ -449,7 +449,7 @@ export async function signConsent(req, res) {
           smtpConfig
         });
       } catch (mailError) {
-        console.error("Error sending copy email to client:", mailError);
+        console.error("[consent] signConsentMailCopyError:", mailError?.message || mailError);
       }
     }
 
@@ -458,7 +458,7 @@ export async function signConsent(req, res) {
       recordId: record.id
     });
   } catch (error) {
-    console.error("SIGN CONSENT ERROR:", error);
+    console.error("[consent] signConsent:", error?.message || error);
     return res.status(500).json({ error: "Error procesando la firma del consentimiento." });
   }
 }
@@ -505,7 +505,7 @@ export async function getClientConsentRecords(req, res) {
         const decryptedStr = decryptData(record.medicalDeclarations);
         medicalDecls = decryptedStr ? JSON.parse(decryptedStr) : null;
       } catch (decErr) {
-        console.error("Error parsing decrypted medical declarations:", decErr);
+        console.error("[consent] decryptMedicalDeclarationsError:", decErr?.message || decErr);
       }
 
       return {
@@ -517,7 +517,7 @@ export async function getClientConsentRecords(req, res) {
 
     return res.json(decryptedRecords);
   } catch (error) {
-    console.error("GET CLIENT RECORDS ERROR:", error);
+    console.error("[consent] getClientConsentRecords:", error?.message || error);
     return res.status(500).json({ error: "Error cargando historial de consentimientos." });
   }
 }
@@ -563,7 +563,7 @@ export async function getConsentRecordById(req, res) {
       const decryptedStr = decryptData(record.medicalDeclarations);
       medicalDecls = decryptedStr ? JSON.parse(decryptedStr) : null;
     } catch (decErr) {
-      console.error("Error parsing decrypted declarations:", decErr);
+      console.error("[consent] decryptConsentRecordDeclarationsError:", decErr?.message || decErr);
     }
 
     return res.json({
@@ -572,7 +572,7 @@ export async function getConsentRecordById(req, res) {
       medicalDeclarations: medicalDecls
     });
   } catch (error) {
-    console.error("GET RECORD BY ID ERROR:", error);
+    console.error("[consent] getConsentRecordById:", error?.message || error);
     return res.status(500).json({ error: "Error cargando detalles del consentimiento." });
   }
 }
@@ -604,7 +604,7 @@ export async function getClientConsentRequests(req, res) {
 
     return res.json(requests);
   } catch (error) {
-    console.error("GET CLIENT REQUESTS ERROR:", error);
+    console.error("[consent] getClientConsentRequests:", error?.message || error);
     return res.status(500).json({ error: "Error cargando solicitudes de consentimiento del cliente." });
   }
 }

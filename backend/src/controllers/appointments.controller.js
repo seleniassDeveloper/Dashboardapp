@@ -43,7 +43,7 @@ export async function getAppointments(req, res) {
         await syncGoogleCalendarToDb(req.businessId);
       }
     } catch (syncErr) {
-      console.error("[Google Sync getAppointments Error]:", syncErr);
+      console.error("[appointments] syncGoogleCalendar:", syncErr?.message || syncErr);
     }
 
     const whereClause = { businessId: req.businessId };
@@ -81,7 +81,7 @@ export async function getAppointments(req, res) {
 
     return res.status(200).json(appointments);
   } catch (error) {
-    console.error("Error obteniendo citas:", error);
+    console.error("[appointments] getAppointments:", error?.message || error);
 
     return res.status(500).json({
       error: "Error obteniendo citas",
@@ -116,7 +116,7 @@ export async function checkAppointmentAvailability(req, res) {
 
     return res.status(200).json(result);
   } catch (error) {
-    console.error("Error verificando disponibilidad:", error);
+    console.error("[appointments] checkAvailability:", error?.message || error);
     return res.status(500).json({
       error: "Error verificando disponibilidad.",
       detail: error?.message || "Unknown error",
@@ -225,7 +225,7 @@ export async function createAppointment(req, res) {
         created.push(appt);
 
         // Record transition immediately in transaction or await after
-        await recordStatusTransition(req.businessId, appt.id, "CREATED", appt.status || "PENDING").catch(err => console.error("Error logging initial transition:", err));
+        await recordStatusTransition(req.businessId, appt.id, "CREATED", appt.status || "PENDING").catch(err => console.error("[appointments] recordStatusTransitionError:", err?.message || err));
 
         currentStartsAt = new Date(currentStartsAt.getTime() + (svc.duration || 30) * 60 * 1000);
       }
@@ -238,14 +238,14 @@ export async function createAppointment(req, res) {
         .then(({ syncAppointmentToGoogleCalendar }) => {
           syncAppointmentToGoogleCalendar(appt.id);
         })
-        .catch((err) => console.error("Error importando googleService:", err));
+        .catch((err) => console.error("[appointments] importGoogleServiceError:", err?.message || err));
         
-      triggerWorkflows(req.businessId, "appointment_created", appt).catch(err => console.error("Error triggering workflows:", err));
+      triggerWorkflows(req.businessId, "appointment_created", appt).catch(err => console.error("[appointments] triggerWorkflowsError:", err?.message || err));
     }
 
     return res.status(201).json(createdAppointments[0]);
   } catch (e) {
-    console.error("Error creando la cita:", e);
+    console.error("[appointments] createAppointment:", e?.message || e);
 
     if (e.message === "CONFLICT") {
       return res.status(409).json({ error: "El horario seleccionado acaba de ser reservado por alguien más." });
@@ -350,9 +350,9 @@ export async function updateAppointment(req, res) {
     });
 
     if (isStatusChanged) {
-      recordStatusTransition(req.businessId, id, oldStatus, status).catch(err => console.error(err));
-      triggerWorkflows(req.businessId, "status_changed", appt).catch(err => console.error("Error triggering status changed workflows:", err));
-      triggerWorkflows(req.businessId, status, appt).catch(err => console.error("Error triggering status workflows:", err));
+      recordStatusTransition(req.businessId, id, oldStatus, status).catch(err => console.error("[appointments] recordStatusTransitionError:", err?.message || err));
+      triggerWorkflows(req.businessId, "status_changed", appt).catch(err => console.error("[appointments] triggerWorkflowsStatusChangedError:", err?.message || err));
+      triggerWorkflows(req.businessId, status, appt).catch(err => console.error("[appointments] triggerWorkflowsStatusError:", err?.message || err));
     }
 
     // Sincronizar con Google Calendar en segundo plano
@@ -364,7 +364,7 @@ export async function updateAppointment(req, res) {
 
     return res.status(200).json(appt);
   } catch (e) {
-    console.error("Error actualizando la cita:", e);
+    console.error("[appointments] updateAppointment:", e?.message || e);
 
     return res.status(500).json({
       error: "Error actualizando la cita.",
@@ -412,7 +412,7 @@ export async function deleteAppointment(req, res) {
 
     return res.status(200).json({ ok: true });
   } catch (e) {
-    console.error("Error eliminando cita:", e);
+    console.error("[appointments] deleteAppointment:", e?.message || e);
 
     return res.status(500).json({
       error: "Error eliminando cita.",
@@ -428,7 +428,7 @@ export async function getBusinessConfig(req, res) {
     });
     return res.json(biz);
   } catch (error) {
-    console.error("Error obteniendo config del negocio:", error);
+    console.error("[appointments] getBusinessConfig:", error?.message || error);
     return res.status(500).json({ error: "Error obteniendo configuración del negocio." });
   }
 }
@@ -486,7 +486,7 @@ export async function updateBusinessConfig(req, res) {
 
     return res.json(updated);
   } catch (error) {
-    console.error("Error actualizando config del negocio:", error);
+    console.error("[appointments] updateBusinessConfig:", error?.message || error);
     return res.status(500).json({ error: "Error actualizando configuración del negocio." });
   }
 }
@@ -606,7 +606,7 @@ export async function sendManualConfirmationEmail(req, res) {
       message: "Email de confirmación enviado exitosamente.",
     });
   } catch (error) {
-    console.error("Error al enviar email manual de confirmación:", error);
+    console.error("[appointments] sendManualConfirmationEmail:", error?.message || error);
     let errMsg = "Error al enviar el email de confirmación.";
     if (error?.code === "EAUTH" || error?.message?.includes("BadCredentials") || error?.message?.includes("Username and Password not accepted")) {
       errMsg = "Las credenciales de correo (Gmail/SMTP) configuradas son incorrectas o inválidas. Por favor verifique EMAIL_USER y EMAIL_PASS (App Password).";
@@ -658,11 +658,11 @@ export async function finalizeAppointment(req, res) {
     const oldStatus = appt.status;
     const isStatusChanged = oldStatus !== "DONE";
     if (isStatusChanged) {
-      recordStatusTransition(appt.businessId, id, oldStatus, "DONE").catch(err => console.error(err));
-      triggerWorkflows(appt.businessId, "status_changed", updatedAppt, limitWorkflowIds).catch(err => console.error("Error triggering status changed workflows:", err));
-      triggerWorkflows(appt.businessId, "done", updatedAppt, limitWorkflowIds).catch(err => console.error("Error triggering done workflow:", err));
+      recordStatusTransition(appt.businessId, id, oldStatus, "DONE").catch(err => console.error("[appointments] recordStatusTransitionError:", err?.message || err));
+      triggerWorkflows(appt.businessId, "status_changed", updatedAppt, limitWorkflowIds).catch(err => console.error("[appointments] triggerWorkflowsStatusChangedError:", err?.message || err));
+      triggerWorkflows(appt.businessId, "done", updatedAppt, limitWorkflowIds).catch(err => console.error("[appointments] triggerWorkflowsDoneError:", err?.message || err));
     }
-    triggerWorkflows(appt.businessId, "payment_received", updatedAppt, limitWorkflowIds).catch(err => console.error("Error triggering payment_received workflow:", err));
+    triggerWorkflows(appt.businessId, "payment_received", updatedAppt, limitWorkflowIds).catch(err => console.error("[appointments] triggerWorkflowsPaymentReceivedError:", err?.message || err));
 
     // Send email receipt if requested and client has email
     if (sendEmail && appt.client?.email) {
@@ -732,7 +732,7 @@ export async function finalizeAppointment(req, res) {
           smtpConfig
         });
       } catch (emailErr) {
-        console.error("Error sending receipt email:", emailErr);
+        console.error("[appointments] sendReceiptEmail:", emailErr?.message || emailErr);
       }
     }
 
@@ -863,7 +863,7 @@ export async function finalizeAppointment(req, res) {
         });
       }
     } catch (invErr) {
-      console.error("Error al procesar el descuento automático de inventario:", invErr);
+      console.error("[appointments] processInventoryDeduction:", invErr?.message || invErr);
     }
 
     return res.status(200).json({
@@ -873,7 +873,7 @@ export async function finalizeAppointment(req, res) {
       photos: savedPhotos
     });
   } catch (error) {
-    console.error("Error al finalizar servicio:", error);
+    console.error("[appointments] finalizeAppointment:", error?.message || error);
     return res.status(500).json({
       error: "Error al finalizar el servicio.",
       detail: error?.message || "Unknown error"
@@ -969,7 +969,7 @@ export async function getSlaStats(req, res) {
       totalTransitions: histories.length
     });
   } catch (error) {
-    console.error("Error obtaining SLA stats:", error);
+    console.error("[appointments] getSlaStats:", error?.message || error);
     return res.status(500).json({ error: "Error obteniendo estadísticas del SLA." });
   }
 }
@@ -1040,7 +1040,7 @@ export async function uploadAppointmentPhoto(req, res) {
 
     return res.status(201).json(photoRecord);
   } catch (error) {
-    console.error("Error al subir foto de la cita:", error);
+    console.error("[appointments] uploadAppointmentPhoto:", error?.message || error);
     return res.status(500).json({
       error: "Error interno al subir la foto de la cita.",
       detail: error?.message || "Unknown error"
@@ -1086,14 +1086,14 @@ export async function deleteAppointmentPhoto(req, res) {
         try {
           fs.unlinkSync(localPath);
         } catch (err) {
-          console.error("Error al eliminar foto local:", err);
+          console.error("[appointments] deleteLocalPhotoError:", err?.message || err);
         }
       }
     }
 
     return res.json({ success: true, message: "Foto eliminada correctamente del historial." });
   } catch (error) {
-    console.error("Error al eliminar foto:", error);
+    console.error("[appointments] deleteAppointmentPhoto:", error?.message || error);
     return res.status(500).json({
       error: "Error interno al eliminar la foto.",
       detail: error?.message || "Unknown error"
@@ -1132,7 +1132,7 @@ export async function updateAppointmentPhotoMetadata(req, res) {
 
     return res.json(updated);
   } catch (error) {
-    console.error("Error al actualizar metadatos de la foto:", error);
+    console.error("[appointments] updateAppointmentPhotoMetadata:", error?.message || error);
     return res.status(500).json({
       error: "Error interno al actualizar los metadatos de la foto.",
       detail: error?.message || "Unknown error"
