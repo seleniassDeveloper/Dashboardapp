@@ -6,23 +6,7 @@ import ServiceModal from "../header/services/ServiceModal.jsx";
 import ServiceDetailModal from "../header/services/ServiceDetailModal.jsx";
 import api from "../lib/api.js";
 
-// Categorías para filtrar
-const CATEGORIES = [
-  "Estilismo",
-  "Corte y Peinado",
-  "Coloración",
-  "Tratamiento Capilar",
-  "Manicura y Pedicura",
-  "Depilación",
-  "Estética Corporal",
-  "Estética Facial",
-  "Masajes",
-  "Odontología General",
-  "Ortodoncia",
-  "Medicina Estética",
-  "Nutrición",
-  "Otros"
-];
+import { useBusinessModel } from "../hooks/useBusinessModel.js";
 
 function currency(n) {
   return new Intl.NumberFormat("es-AR", {
@@ -34,6 +18,7 @@ function currency(n) {
 
 export default function ServicesView() {
   const { t } = useTranslation("views");
+  const { serviceCategories } = useBusinessModel();
   const [servicesList, setServicesList] = useState([]);
   const [workersList, setWorkersList] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -218,7 +203,7 @@ export default function ServicesView() {
                 className="rounded-xl border-gray-200 focus-ring-purple"
               >
                 <option value="">Todas las categorías</option>
-                {CATEGORIES.map(cat => (
+                {serviceCategories.map(cat => (
                   <option key={cat} value={cat}>{cat}</option>
                 ))}
               </Form.Select>

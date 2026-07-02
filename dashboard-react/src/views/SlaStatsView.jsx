@@ -4,6 +4,7 @@ import { Clock, ArrowRight, User, Filter, RefreshCw, Activity, AlertTriangle, Ch
 import { useTranslation } from "react-i18next";
 import { useAppointmentsStore } from "../gadgets/appointments/AppointmentsProvider.jsx";
 import api from "../lib/api.js";
+import { useBusinessModel } from "../hooks/useBusinessModel.js";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
 // Helper to format duration in seconds into human-readable text
@@ -22,6 +23,7 @@ export default function SlaStatsView() {
   const { i18n } = useTranslation("views");
   const isEs = i18n.language === "es";
   const { appointmentStatuses } = useAppointmentsStore();
+  const { appointmentStatuses: modelDefaultStatuses } = useBusinessModel();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -56,16 +58,8 @@ export default function SlaStatsView() {
 
   // Map status key to label and color
   const getStatusDetails = (statusKey) => {
-    const defaultStatuses = [
-      { key: "PENDING", label: isEs ? "Pendiente" : "Pending", color: "#d97706" },
-      { key: "CONFIRMED", label: isEs ? "Confirmada" : "Confirmed", color: "#10b981" },
-      { key: "CANCELLED", label: isEs ? "Cancelada" : "Cancelled", color: "#ef4444" },
-      { key: "DONE", label: isEs ? "Finalizada" : "Finished", color: "#6b7280" },
-      { key: "CREATED", label: isEs ? "Creada" : "Created", color: "#6366f1" }
-    ];
-
     const found = appointmentStatuses?.find(s => s.key === statusKey) || 
-                  defaultStatuses.find(s => s.key === statusKey);
+                  modelDefaultStatuses?.find(s => s.key === statusKey);
 
     return found || { key: statusKey, label: statusKey, color: "#6b7280" };
   };

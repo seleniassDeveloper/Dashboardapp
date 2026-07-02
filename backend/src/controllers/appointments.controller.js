@@ -449,10 +449,22 @@ export async function updateBusinessConfig(req, res) {
       bookingDownpaymentAmount,
       bookingDownpaymentMethod,
       appointmentStatuses,
+      model,
     } = req.body;
 
     if (!name || !slug) {
       return res.status(400).json({ error: "El nombre y el slug del negocio son obligatorios." });
+    }
+
+    if (model !== undefined) {
+      const currentBusiness = await prisma.business.findUnique({
+        where: { id: req.businessId },
+        select: { model: true }
+      });
+      const isSuper = req.user?.email === "seleniadeveloper@gmail.com";
+      if (currentBusiness?.model && !isSuper) {
+        return res.status(403).json({ error: "Solo el Súper-Admin puede cambiar el modelo de negocio después del onboarding." });
+      }
     }
 
     const cleanedSlug = slug.toLowerCase().trim().replace(/[^a-z0-9-_]/g, "");
@@ -482,6 +494,7 @@ export async function updateBusinessConfig(req, res) {
         bookingDownpaymentAmount: bookingDownpaymentAmount ? Number(bookingDownpaymentAmount) : null,
         bookingDownpaymentMethod: bookingDownpaymentMethod || "mock_mercadopago",
         appointmentStatuses: appointmentStatuses !== undefined ? appointmentStatuses : undefined,
+        model: model !== undefined ? model : undefined,
       }
     });
 

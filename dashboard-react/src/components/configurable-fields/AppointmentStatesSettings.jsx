@@ -4,17 +4,11 @@ import { Plus, Trash2, Edit2, Check, X, ShieldAlert, Sparkles } from "lucide-rea
 import { useTranslation } from "react-i18next";
 import api from "../../lib/api.js";
 
-const DEFAULT_STATUSES = [
-  { key: "PENDING", label: "Pendiente", color: "#d97706" },
-  { key: "CONFIRMED", label: "Confirmada", color: "#10b981" },
-  { key: "IN_PROGRESS", label: "En Curso", color: "#3b82f6" },
-  { key: "PENDING_PAYMENT", label: "Por Cobrar", color: "#ec4899" },
-  { key: "CANCELLED", label: "Cancelada", color: "#ef4444" },
-  { key: "DONE", label: "Finalizada", color: "#6b7280" }
-];
+import { useBusinessModel } from "../../hooks/useBusinessModel.js";
 
 export default function AppointmentStatesSettings() {
   const { t, i18n } = useTranslation("views");
+  const { appointmentStatuses } = useBusinessModel();
   const isEs = i18n.language === "es";
 
   const [loading, setLoading] = useState(true);
@@ -41,7 +35,7 @@ export default function AppointmentStatesSettings() {
         if (savedStatuses && Array.isArray(savedStatuses) && savedStatuses.length > 0) {
           setStatuses(savedStatuses);
         } else {
-          setStatuses(DEFAULT_STATUSES);
+          setStatuses(appointmentStatuses);
         }
       }
     } catch (e) {

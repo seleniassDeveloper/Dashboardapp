@@ -6,11 +6,12 @@ import { useAuth } from "../../auth/AuthProvider";
 import { useNavigate } from "react-router-dom";
 import { Search, Bell, PenSquare, LogOut, Menu } from "lucide-react";
 import LanguageSwitcher from "../language/LanguageSwitcher.jsx";
+import SuperAdminModelSelector from "./SuperAdminModelSelector.jsx";
 
 export default function TopBar({ onMenuClick, onEditBrand, onSearchClick }) {
   const { t } = useTranslation("nav");
   const { brand } = useBrand();
-  const { logout, business } = useAuth();
+  const { logout, business, user } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -53,6 +54,7 @@ export default function TopBar({ onMenuClick, onEditBrand, onSearchClick }) {
       </div>
 
       <div className="topbar__actions">
+        {user?.email === "seleniadeveloper@gmail.com" && <SuperAdminModelSelector />}
         <LanguageSwitcher />
         <button className="topbar__btn" title={t("topbar.notifications")}>
           <Bell size={18} />

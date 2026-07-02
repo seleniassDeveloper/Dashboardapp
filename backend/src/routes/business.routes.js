@@ -133,6 +133,7 @@ router.post("/setup", async (req, res) => {
           ownerId: firebaseUid,
           logo: logo || null,
           industry: rubro || null,
+          model: rubro || null,
           description: `Negocio de rubro ${rubro || "Servicios"}`,
           bookingEnabled: true,
           bookingPrimaryColor: "#7c3aed"

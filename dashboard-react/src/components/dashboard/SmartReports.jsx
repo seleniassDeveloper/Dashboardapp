@@ -28,10 +28,11 @@ import {
   Copy,
   RefreshCw,
   Trash2,
-  HelpCircle,
   BarChart2,
   Plus
 } from "lucide-react";
+import { HelpCircle, ChevronRight, Settings } from "lucide-react";
+import { useBusinessModel } from "../../hooks/useBusinessModel.js";
 import {
   ResponsiveContainer,
   BarChart,
@@ -157,6 +158,7 @@ const INITIAL_GADGETS_DATA = [
 ];
 
 export default function SmartReports({ appointments = [], clients = [], workers = [], services = [] }) {
+  const { terms } = useBusinessModel();
   const { i18n } = useTranslation("dashboard");
   const isEs = i18n.language === "es";
   const currency = (n) => currencyHelper(n, isEs);
@@ -769,7 +771,16 @@ export default function SmartReports({ appointments = [], clients = [], workers 
         );
 
       case "table":
-        const headers = g.tableHeaders || ["Col 1", "Col 2"];
+        const rawHeaders = g.tableHeaders || ["Col 1", "Col 2"];
+        const headers = rawHeaders.map(h => {
+          if (h === "Cliente") return terms.client.s;
+          if (h === "Clientes") return terms.client.p;
+          if (h === "Profesional") return terms.professional.s;
+          if (h === "Profesionales") return terms.professional.p;
+          if (h === "Servicio") return terms.service.s;
+          if (h === "Servicios") return terms.service.p;
+          return h;
+        });
         const rows = g.tableRows || [];
         if (rows.length === 0) {
           return (

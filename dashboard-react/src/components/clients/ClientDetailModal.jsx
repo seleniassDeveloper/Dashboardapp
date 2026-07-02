@@ -12,6 +12,7 @@ import api from "../../lib/api.js";
 import { usePermissions } from "../../auth/PermissionProvider.jsx";
 import { useBusiness } from "../../auth/BusinessContext.jsx";
 import { useTranslation } from "react-i18next";
+import { useBusinessModel } from "../../hooks/useBusinessModel.js";
 
 function currency(n) {
   return new Intl.NumberFormat("es-AR", {
@@ -187,42 +188,10 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
   const [favoriteProducts, setFavoriteProducts] = useState("");
   const [internalNotes, setInternalNotes] = useState("");
 
-  // Lógica Adaptativa por Rubro (isMedicalBusiness)
-  const isMedical = useMemo(() => {
-    const medicalModels = [
-      "dentistry",
-      "medical_clinic",
-      "dermatology",
-      "aesthetic_clinic",
-      "medical_spa",
-      "physiotherapy",
-      "nutrition",
-      "psychology"
-    ];
-
-    const model = String(business?.model || "").toLowerCase().trim();
-    if (model && medicalModels.includes(model)) return true;
-
-    const industry = String(business?.industry || "").toLowerCase().trim();
-    if (!industry) return false;
-
-    // Check aesthetic keywords for exclusions
-    const aestheticKeywords = [
-      "salon", "estetica", "estética", "barberia", "barbería", "spa", "nails", "uñas", "beauty", "peluqueria", "peluquería"
-    ];
-    if (aestheticKeywords.some(kw => industry.includes(kw))) {
-      return false;
-    }
-
-    const clinicalKeywords = [
-      "dentistry", "medical_clinic", "dermatology", "aesthetic_clinic", "medical_spa",
-      "physiotherapy", "nutrition", "psychology",
-      "odontologia", "odontología", "clínica", "clinica", "medicina", "veterinaria", "fisioterapia", "nutricion", "nutrición", "psicologia", "psicología"
-    ];
-    return clinicalKeywords.some(kw => industry.includes(kw));
-  }, [business]);
-
-  const requiresClinicalHistory = isMedical;
+  // Lógica Adaptativa por Rubro (useBusinessModel)
+  const { model, clinicalEntryType, clinicalEntryTypes, terms } = useBusinessModel();
+  const isMedical = model === "clinic";
+  const requiresClinicalHistory = ["clinic", "salon", "spa", "barber", "custom"].includes(model);
 
   // Consentimientos (Digital Consent) states
   const [consentsList, setConsentsList] = useState([]);
@@ -338,20 +307,10 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
     setEntryNotes("");
     setAppointmentId("");
     
-    const model = String(business?.model || business?.industry || "").toLowerCase();
-    if (model.includes("dent") || model.includes("odont")) {
-      setEntryType("dentistry");
-      setEntryTitle("Consulta Odontológica");
-    } else if (model.includes("hair") || model.includes("pelu") || model.includes("beauty") || model.includes("salon")) {
-      setEntryType("hair_formula");
-      setEntryTitle("Fórmula de Color");
-    } else if (model.includes("estet") || model.includes("aesthetic") || model.includes("spa") || model.includes("dermat")) {
-      setEntryType("aesthetic");
-      setEntryTitle("Tratamiento de Estética");
-    } else {
-      setEntryType("clinical");
-      setEntryTitle("Evolución Clínica General");
-    }
+    const defaultType = clinicalEntryType || "clinical";
+    const foundType = clinicalEntryTypes?.find(t => t.value === defaultType);
+    setEntryType(defaultType);
+    setEntryTitle(foundType ? foundType.label : "Evolución General");
 
     setColorFormula(""); setOxidant(""); setExposureTime(""); setBrandUsed(""); setTechniqueApplied(""); setExpectedResult(""); setPostServiceObs("");
     setToothPiece(""); setDentistryDiagnosis(""); setProcedureApplied(""); setMaterialUsed(""); setEvolutionStatus(""); setNextAppointmentDate("");
@@ -780,8 +739,8 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
           </div>
           <div className="d-flex align-items-center gap-2">
             <Badge bg="light" className="text-dark border rounded-pill px-3 py-2 small d-flex align-items-center gap-1.5 shadow-sm">
-              <Cake size={13} className="text-pink-500" />
-              <span>{business?.industry || "Socio"}</span>
+              <User size={13} className="text-purple-500" />
+              <span>{terms.client.s}</span>
             </Badge>
             {crmData && renderLoyaltyBadge(crmData.metrics?.loyaltyStatus)}
           </div>
@@ -1279,19 +1238,10 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
                               onChange={(e) => setEntryType(e.target.value)}
                               className="rounded-xl border-gray-200 focus-ring-purple"
                             >
-                              {isMedical ? (
-                                <>
-                                  <option value="clinical">Clínica Médica / Evolución</option>
-                                  <option value="dentistry">Odontología</option>
-                                  <option value="general">Consulta General / Notas</option>
-                                </>
-                              ) : (
-                                <>
-                                  <option value="hair_formula">Peluquería / Colorimetría</option>
-                                  <option value="aesthetic">Estética / Spa / Manicuría</option>
-                                  <option value="general">Consulta / Nota Técnica</option>
-                                </>
-                              )}
+                              {clinicalEntryTypes?.map(t => (
+                                <option key={t.value} value={t.value}>{t.label}</option>
+                              ))}
+                              <option value="general">Consulta / Nota Técnica General</option>
                             </Form.Select>
                           </Form.Group>
                         </Col>

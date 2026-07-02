@@ -9,66 +9,77 @@ import api from "../lib/api.js";
 import { useAuth } from "../auth/AuthProvider.jsx";
 
 const RUBROS = [
-  { id: "Estética", label: "Estética y Bienestar", icon: Heart, color: "#ec4899" },
-  { id: "Barbería", label: "Barbería y Peluquería", icon: Scissors, color: "#3b82f6" },
-  { id: "Clínica", label: "Clínica o Consultorio", icon: Plus, color: "#10b981" },
-  { id: "Gimnasio", label: "Gimnasio o Fitness", icon: Sparkles, color: "#f59e0b" },
-  { id: "Otro", label: "Otro Rubro de Servicios", icon: Layout, color: "#6b7280" }
+  { id: "salon", label: "Estética y Bienestar", icon: Heart, color: "#ec4899" },
+  { id: "barber", label: "Barbería y Peluquería", icon: Scissors, color: "#3b82f6" },
+  { id: "clinic", label: "Clínica o Consultorio", icon: Plus, color: "#10b981" },
+  { id: "gym", label: "Gimnasio o Fitness", icon: Sparkles, color: "#f59e0b" },
+  { id: "spa", label: "Spa & Wellness", icon: Sparkles, color: "#06b6d4" },
+  { id: "custom", label: "Otro Rubro de Servicios", icon: Layout, color: "#6b7280" }
 ];
 
 const SERVICE_TEMPLATES_ES = {
-  "Estética": [
+  salon: [
     { name: "Manicuría Básica", duration: 40, price: 12000, category: "Manicuría" },
     { name: "Limpieza Facial Profunda", duration: 60, price: 25000, category: "Facial" },
     { name: "Masaje Descontracturante", duration: 60, price: 30000, category: "Masajes" },
     { name: "Perfilado de Cejas", duration: 20, price: 8000, category: "Cejas y Pestañas" }
   ],
-  "Barbería": [
+  barber: [
     { name: "Corte de Cabello Clásico", duration: 45, price: 15000, category: "Cabello" },
     { name: "Afeitado y Perfilado de Barba", duration: 30, price: 8000, category: "Barba" },
     { name: "Corte + Barba Premium", duration: 75, price: 20000, category: "Combos" },
     { name: "Coloración Completa", duration: 90, price: 35000, category: "Color" }
   ],
-  "Clínica": [
+  clinic: [
     { name: "Consulta Médica General", duration: 30, price: 20000, category: "Consulta" },
     { name: "Chequeo Preventivo Completo", duration: 45, price: 25000, category: "Evaluación" },
     { name: "Consulta Especializada", duration: 30, price: 35000, category: "Especialidad" }
   ],
-  "Gimnasio": [
+  gym: [
     { name: "Sesión Personal Trainer", duration: 60, price: 15000, category: "Entrenamiento" },
     { name: "Evaluación Física Inicial", duration: 45, price: 12000, category: "Evaluación" },
     { name: "Clase de Pilates Reformer", duration: 60, price: 10000, category: "Clases" }
   ],
-  "Otro": [
+  spa: [
+    { name: "Circuito Spa Termal", duration: 90, price: 40000, category: "Circuitos" },
+    { name: "Masaje Relajante con Piedras Calientes", duration: 60, price: 35000, category: "Masajes" },
+    { name: "Exfoliación Corporal Completa", duration: 45, price: 28000, category: "Tratamientos" }
+  ],
+  custom: [
     { name: "Servicio Estándar", duration: 30, price: 8000, category: "General" },
     { name: "Servicio Premium", duration: 60, price: 15000, category: "General" }
   ]
 };
 
 const SERVICE_TEMPLATES_EN = {
-  "Estética": [
+  salon: [
     { name: "Basic Manicure", duration: 40, price: 15, category: "Manicure" },
     { name: "Deep Facial Cleansing", duration: 60, price: 35, category: "Facial" },
     { name: "Decontracting Massage", duration: 60, price: 45, category: "Massage" },
     { name: "Eyebrow Shaping", duration: 20, price: 12, category: "Brows & Lashes" }
   ],
-  "Barbería": [
+  barber: [
     { name: "Classic Haircut", duration: 45, price: 20, category: "Hair" },
     { name: "Shave & Beard Trim", duration: 30, price: 12, category: "Beard" },
     { name: "Premium Cut + Beard Combo", duration: 75, price: 30, category: "Combos" },
     { name: "Full Hair Coloring", duration: 90, price: 50, category: "Color" }
   ],
-  "Clínica": [
+  clinic: [
     { name: "General Medical Consultation", duration: 30, price: 40, category: "Consultation" },
     { name: "Full Preventive Checkup", duration: 45, price: 55, category: "Evaluation" },
     { name: "Specialized Consultation", duration: 30, price: 70, category: "Specialty" }
   ],
-  "Gimnasio": [
+  gym: [
     { name: "Personal Trainer Session", duration: 60, price: 25, category: "Training" },
     { name: "Initial Physical Evaluation", duration: 45, price: 20, category: "Evaluation" },
     { name: "Pilates Reformer Class", duration: 60, price: 15, category: "Classes" }
   ],
-  "Otro": [
+  spa: [
+    { name: "Thermal Spa Circuit", duration: 90, price: 40, category: "Circuits" },
+    { name: "Relaxing Hot Stone Massage", duration: 60, price: 35, category: "Massages" },
+    { name: "Full Body Scrub", duration: 45, price: 25, category: "Treatments" }
+  ],
+  custom: [
     { name: "Standard Service", duration: 30, price: 15, category: "General" },
     { name: "Premium Service", duration: 60, price: 25, category: "General" }
   ]
@@ -105,7 +116,7 @@ export default function OnboardingView() {
 
   // --- PASO 1: Datos de Negocio ---
   const [bizName, setBizName] = useState("");
-  const [rubro, setRubro] = useState("Estética");
+  const [rubro, setRubro] = useState("salon");
   const [slug, setSlug] = useState("");
   const [logo, setLogo] = useState("");
 
@@ -138,7 +149,7 @@ export default function OnboardingView() {
   // Cargar plantilla por defecto al cambiar rubro o idioma
   useEffect(() => {
     const templates = isEn ? SERVICE_TEMPLATES_EN : SERVICE_TEMPLATES_ES;
-    const currentTemplates = templates[rubro] || templates["Otro"];
+    const currentTemplates = templates[rubro] || templates["custom"];
     setServices(currentTemplates.map(s => ({ ...s, checked: true, id: Math.random().toString() })));
   }, [rubro, isEn]);
 

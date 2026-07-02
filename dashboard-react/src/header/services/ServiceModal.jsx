@@ -4,23 +4,7 @@ import { User, Mail, Phone, Calendar, Briefcase, Shield, Sparkles, Clock, Dollar
 import { useAppointmentsStore } from "../../gadgets/appointments/AppointmentsProvider.jsx";
 import api from "../../lib/api.js";
 
-// Categorías predefinidas comunes
-const PRESET_CATEGORIES = [
-  "Estilismo",
-  "Corte y Peinado",
-  "Coloración",
-  "Tratamiento Capilar",
-  "Manicura y Pedicura",
-  "Depilación",
-  "Estética Corporal",
-  "Estética Facial",
-  "Masajes",
-  "Odontología General",
-  "Ortodoncia",
-  "Medicina Estética",
-  "Nutrición",
-  "Otros"
-];
+import { useBusinessModel } from "../../hooks/useBusinessModel.js";
 
 // Colores identificadores predefinidos
 const PRESET_COLORS = [
@@ -38,6 +22,7 @@ const PRESET_COLORS = [
 export default function ServiceModal({ show, onHide, editService = null }) {
   const store = useAppointmentsStore?.();
   const refreshAll = store?.fetchServices;
+  const { serviceCategories } = useBusinessModel();
 
   const [activeTab, setActiveTab] = useState("general");
   const [saving, setSaving] = useState(false);
@@ -47,7 +32,13 @@ export default function ServiceModal({ show, onHide, editService = null }) {
   // TAB 1: INFORMACIÓN BÁSICA
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("Estilismo");
+  const [category, setCategory] = useState("");
+
+  useEffect(() => {
+    if (!category && serviceCategories && serviceCategories.length > 0) {
+      setCategory(serviceCategories[0]);
+    }
+  }, [serviceCategories, category]);
   const [status, setStatus] = useState("active");
   const [availableOnline, setAvailableOnline] = useState(true);
   const [color, setColor] = useState("#10b981");
@@ -372,7 +363,7 @@ export default function ServiceModal({ show, onHide, editService = null }) {
                           onChange={(e) => setCategory(e.target.value)}
                           className="modern-input"
                         >
-                          {PRESET_CATEGORIES.map(cat => (
+                          {serviceCategories.map(cat => (
                             <option key={cat} value={cat}>{cat}</option>
                           ))}
                         </Form.Select>
