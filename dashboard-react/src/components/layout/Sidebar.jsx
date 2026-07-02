@@ -275,8 +275,8 @@ export default function Sidebar({
               </div>
             )}
             <Link
-              to="/app/superadmin/billing"
-              className={`sidebar__item ${location.pathname === "/app/superadmin/billing" ? "sidebar__item--active" : ""}`}
+              to="/app/superadmin"
+              className={`sidebar__item ${location.pathname === "/app/superadmin" ? "sidebar__item--active" : ""}`}
               onClick={() => onClose()}
             >
               <div className="sidebar__item-icon">
@@ -290,7 +290,7 @@ export default function Sidebar({
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -10 }}
                   >
-                    Control Billing
+                    Consola SaaS
                   </motion.span>
                 )}
               </AnimatePresence>

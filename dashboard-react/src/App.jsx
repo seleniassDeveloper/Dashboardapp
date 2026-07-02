@@ -52,7 +52,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={
           isSuperAdmin && !business ? (
-            <Navigate to="/superadmin/billing" replace />
+            <Navigate to="/superadmin" replace />
           ) : (
             <DashboardView />
           )
@@ -200,7 +200,7 @@ export default function App() {
         <Route path="/pricing" element={<PricingView />} />
         
         <Route 
-          path="/superadmin/billing" 
+          path="/superadmin" 
           element={
             isSuperAdmin ? (
               <SuperAdminBillingView />

@@ -1,13 +1,24 @@
 import { Router } from "express";
 import { z } from "zod";
 import requireAuth from "../middleware/requireAuth.js";
-import requireAdmin from "../middleware/requireAdmin.js";
 import { getFirebaseAuth } from "../services/firebaseAdmin.js";
 import prisma from "../prisma.js";
+import { isSuperAdmin } from "../utils/superadmin.js";
 
 const router = Router();
 
-router.use(requireAuth, requireAdmin);
+// Middleware para restringir todo acceso solo a Super-Admin
+const requireSuperAdmin = (req, res, next) => {
+  if (!isSuperAdmin(req.user?.email)) {
+    return res.status(403).json({ 
+      success: false, 
+      error: "Acceso denegado. Se requiere cuenta de Super-Admin Global." 
+    });
+  }
+  next();
+};
+
+router.use(requireAuth, requireSuperAdmin);
 
 router.get("/users", async (_req, res) => {
   try {

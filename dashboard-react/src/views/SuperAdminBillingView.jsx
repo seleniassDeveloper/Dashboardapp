@@ -26,7 +26,8 @@ export default function SuperAdminBillingView() {
     subscriptionStatus: "active",
     trialEndsAt: "",
     currentPeriodEnd: "",
-    gracePeriodEndsAt: ""
+    gracePeriodEndsAt: "",
+    provider: "free"
   });
   const [overrideLoading, setOverrideLoading] = useState(false);
 
@@ -42,7 +43,8 @@ export default function SuperAdminBillingView() {
     subscriptionStatus: "trialing",
     trialEndsAt: "",
     currentPeriodEnd: "",
-    gracePeriodEndsAt: ""
+    gracePeriodEndsAt: "",
+    provider: "free"
   });
   const [createBizLoading, setCreateBizLoading] = useState(false);
 
@@ -67,15 +69,22 @@ export default function SuperAdminBillingView() {
   });
   const [userLoading, setUserLoading] = useState(false);
 
+  // Audit logs & Cross-tenant states
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [selectedCrossBizId, setSelectedCrossBizId] = useState("");
+  const [crossTenantData, setCrossTenantData] = useState(null);
+  const [crossTenantLoading, setCrossTenantLoading] = useState(false);
+
   const fetchAdminBillingData = async () => {
     setLoading(true);
     setError("");
     try {
-      const [bizRes, reqsRes, usersRes, allUsersRes] = await Promise.all([
+      const [bizRes, reqsRes, usersRes, allUsersRes, logsRes] = await Promise.all([
         api.get("/admin/billing/businesses"),
         api.get("/admin/billing/requests"),
         api.get("/admin/users/pending"),
-        api.get("/admin/users/all")
+        api.get("/admin/users/all"),
+        api.get("/admin/billing/audit-logs")
       ]);
       if (bizRes.data?.success) {
         setData(bizRes.data);
@@ -89,11 +98,31 @@ export default function SuperAdminBillingView() {
       if (allUsersRes.data?.success) {
         setAllUsers(allUsersRes.data.users);
       }
+      if (logsRes.data?.success) {
+        setAuditLogs(logsRes.data.logs);
+      }
     } catch (err) {
       console.error("Error fetching superadmin billing data:", err);
       setError("No tienes permisos de Administrador Global o el servidor no respondió.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleFetchCrossTenantData = async (bizId) => {
+    if (!bizId) return;
+    setCrossTenantLoading(true);
+    setCrossTenantData(null);
+    setError("");
+    try {
+      const res = await api.get(`/admin/billing/businesses/${bizId}/data`);
+      if (res.data?.success) {
+        setCrossTenantData(res.data);
+      }
+    } catch (err) {
+      setError(err.response?.data?.error || "Error al cargar los datos del inquilino.");
+    } finally {
+      setCrossTenantLoading(false);
     }
   };
 
@@ -113,7 +142,8 @@ export default function SuperAdminBillingView() {
       subscriptionStatus: biz.subscriptionStatus || "active",
       trialEndsAt: biz.trialEndsAt ? biz.trialEndsAt.substring(0, 10) : "",
       currentPeriodEnd: biz.currentPeriodEnd ? biz.currentPeriodEnd.substring(0, 10) : "",
-      gracePeriodEndsAt: biz.gracePeriodEndsAt ? biz.gracePeriodEndsAt.substring(0, 10) : ""
+      gracePeriodEndsAt: biz.gracePeriodEndsAt ? biz.gracePeriodEndsAt.substring(0, 10) : "",
+      provider: biz.provider || "free"
     });
     setShowOverrideModal(true);
   };
@@ -132,7 +162,8 @@ export default function SuperAdminBillingView() {
         subscriptionStatus: overrideForm.subscriptionStatus,
         trialEndsAt: overrideForm.trialEndsAt || null,
         currentPeriodEnd: overrideForm.currentPeriodEnd || null,
-        gracePeriodEndsAt: overrideForm.gracePeriodEndsAt || null
+        gracePeriodEndsAt: overrideForm.gracePeriodEndsAt || null,
+        provider: overrideForm.provider
       };
 
       const res = await api.post(`/admin/billing/businesses/${selectedBiz.id}/override`, payload);
@@ -161,7 +192,8 @@ export default function SuperAdminBillingView() {
         subscriptionStatus: createBizForm.subscriptionStatus,
         trialEndsAt: createBizForm.trialEndsAt || null,
         currentPeriodEnd: createBizForm.currentPeriodEnd || null,
-        gracePeriodEndsAt: createBizForm.gracePeriodEndsAt || null
+        gracePeriodEndsAt: createBizForm.gracePeriodEndsAt || null,
+        provider: createBizForm.provider
       };
 
       const res = await api.post("/admin/billing/businesses", payload);
@@ -177,7 +209,8 @@ export default function SuperAdminBillingView() {
           subscriptionStatus: "trialing",
           trialEndsAt: "",
           currentPeriodEnd: "",
-          gracePeriodEndsAt: ""
+          gracePeriodEndsAt: "",
+          provider: "free"
         });
         await fetchAdminBillingData();
       }
@@ -665,6 +698,18 @@ export default function SuperAdminBillingView() {
         >
           <span>👥 Usuarios</span>
         </button>
+        <button
+          onClick={() => setActiveTab("auditLogs")}
+          className={`btn-sa-tab ${activeTab === "auditLogs" ? "active" : ""}`}
+        >
+          <span>📋 Auditoría</span>
+        </button>
+        <button
+          onClick={() => setActiveTab("crossTenant")}
+          className={`btn-sa-tab ${activeTab === "crossTenant" ? "active" : ""}`}
+        >
+          <span>🔍 Vista Cross-Tenant</span>
+        </button>
       </div>
 
       {error && <Alert variant="danger" className="border-0 shadow-sm mb-4 small">{error}</Alert>}
@@ -918,6 +963,9 @@ export default function SuperAdminBillingView() {
                       </td>
                       <td className="py-3">
                         {getPlanBadge(b.plan)}
+                        <span className="text-muted smaller d-block font-monospace mt-0.5" style={{ fontSize: "9px" }}>
+                          Método: {b.provider || "free"}
+                        </span>
                       </td>
                       <td className="py-3">{getStatusBadge(b.subscriptionStatus)}</td>
                       <td className="py-3 text-muted" style={{ fontSize: "11.5px" }}>
@@ -1036,6 +1084,200 @@ export default function SuperAdminBillingView() {
         </Card>
       )}
 
+      {activeTab === "auditLogs" && (
+        <Card className="border-0 shadow-sm rounded-4 mt-4 sa-card animate-fade-in">
+          <Card.Body className="p-4">
+            <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+              <h2 className="fw-bold h6 mb-0 text-dark">Registro de Auditoría de Super-Admin</h2>
+              <Button variant="outline-secondary" size="sm" onClick={fetchAdminBillingData} className="rounded-pill px-3">
+                🔄 Recargar Logs
+              </Button>
+            </div>
+            
+            <div className="sa-table-container">
+              <Table responsive className="mb-0 sa-table">
+                <thead>
+                  <tr className="border-bottom text-muted smaller uppercase">
+                    <th className="py-2.5">Timestamp</th>
+                    <th className="py-2.5">Acción</th>
+                    <th className="py-2.5">Super-Admin</th>
+                    <th className="py-2.5">IP</th>
+                    <th className="py-2.5">Detalles / Negocio Afectado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {auditLogs?.map((log) => {
+                    const meta = log.metadata || {};
+                    return (
+                      <tr key={log.id} className="border-bottom small align-middle sa-row-hover">
+                        <td className="py-3 text-muted" style={{ whiteSpace: "nowrap" }}>
+                          {log.createdAt ? new Date(log.createdAt).toLocaleString() : "-"}
+                        </td>
+                        <td className="py-3">
+                          <Badge bg="dark" className="text-white font-monospace text-uppercase" style={{ fontSize: "10px" }}>
+                            {log.action}
+                          </Badge>
+                        </td>
+                        <td className="py-3 font-semibold text-purple-600">
+                          {meta.userEmail || "Sistema"}
+                        </td>
+                        <td className="py-3 font-monospace text-muted smaller">
+                          {meta.ip || "-"}
+                        </td>
+                        <td className="py-3">
+                          <div className="fw-bold text-dark">{meta.name || "N/A"} {meta.slug ? `(${meta.slug})` : ""}</div>
+                          <span className="text-muted smaller d-block">
+                            {JSON.stringify(meta)}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {(!auditLogs || auditLogs.length === 0) && (
+                    <tr>
+                      <td colSpan={5} className="text-center text-muted py-4 small">
+                        No se registraron acciones en el log de auditoría todavía.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </Table>
+            </div>
+          </Card.Body>
+        </Card>
+      )}
+
+      {activeTab === "crossTenant" && (
+        <Card className="border-0 shadow-sm rounded-4 mt-4 sa-card animate-fade-in">
+          <Card.Body className="p-4">
+            <h2 className="fw-bold h6 mb-3 text-dark">Vista Cross-Tenant de Negocios (Modo Solo-Lectura)</h2>
+            <p className="text-muted small mb-4">
+              Esta sección permite consultar métricas contables, turnos recientes y miembros de cualquier inquilino del sistema. Las consultas quedan registradas en el log de auditoría.
+            </p>
+
+            {/* TODO: Implementar MFA e IP Allowlist en el backend para este bloque en el futuro */}
+            {/* IP Allowlist placeholder check: if (userIp !== allowedIp) return <Alert variant='danger'>IP no autorizada para Cross-Tenant.</Alert>; */}
+
+            <Form.Group className="mb-4">
+              <Form.Label className="fw-semibold small text-muted mb-1">Seleccionar Negocio a Inspeccionar</Form.Label>
+              <div className="d-flex gap-2">
+                <Form.Select
+                  value={selectedCrossBizId}
+                  onChange={(e) => setSelectedCrossBizId(e.target.value)}
+                  className="small py-2"
+                  style={{ maxWidth: "450px" }}
+                >
+                  <option value="">-- Elige un negocio del sistema --</option>
+                  {data.businesses?.map(b => (
+                    <option key={b.id} value={b.id}>
+                      {b.name} (Plan: {b.plan} - ID: {b.id.substring(0,8)}...)
+                    </option>
+                  ))}
+                </Form.Select>
+                <Button
+                  onClick={() => handleFetchCrossTenantData(selectedCrossBizId)}
+                  disabled={!selectedCrossBizId || crossTenantLoading}
+                  className="btn-premium-purple px-4 rounded-pill d-flex align-items-center gap-1.5"
+                >
+                  {crossTenantLoading && <Spinner animation="border" size="sm" className="me-1" />}
+                  <span>Inspeccionar</span>
+                </Button>
+              </div>
+            </Form.Group>
+
+            {crossTenantData && (
+              <div className="border-top pt-4 mt-4 animate-fade-in">
+                <h3 className="h6 fw-bold text-uppercase text-purple-600 mb-3 small" style={{ letterSpacing: "0.5px" }}>
+                  Resultados de la Inspección
+                </h3>
+                
+                <Row className="g-4 mb-4">
+                  <Col md={3}>
+                    <Card className="bg-light border-0 rounded-3 p-3">
+                      <span className="text-muted small d-block mb-1">Total Clientes</span>
+                      <strong className="h4 text-dark mb-0">{crossTenantData.metrics?.clients}</strong>
+                    </Card>
+                  </Col>
+                  <Col md={3}>
+                    <Card className="bg-light border-0 rounded-3 p-3">
+                      <span className="text-muted small d-block mb-1">Total Turnos</span>
+                      <strong className="h4 text-dark mb-0">{crossTenantData.metrics?.appointments}</strong>
+                    </Card>
+                  </Col>
+                  <Col md={3}>
+                    <Card className="bg-light border-0 rounded-3 p-3">
+                      <span className="text-muted small d-block mb-1">Total Servicios</span>
+                      <strong className="h4 text-dark mb-0">{crossTenantData.metrics?.services}</strong>
+                    </Card>
+                  </Col>
+                  <Col md={3}>
+                    <Card className="bg-light border-0 rounded-3 p-3">
+                      <span className="text-muted small d-block mb-1">Profesionales</span>
+                      <strong className="h4 text-dark mb-0">{crossTenantData.metrics?.workers}</strong>
+                    </Card>
+                  </Col>
+                </Row>
+
+                <Row className="g-4">
+                  <Col lg={5}>
+                    <Card className="border rounded-3 p-3 bg-white h-100">
+                      <h4 className="fw-bold h6 text-dark border-bottom pb-2 mb-3">Miembros del Negocio</h4>
+                      <ul className="list-unstyled mb-0">
+                        {crossTenantData.members?.map((m) => (
+                          <li key={m.id} className="mb-2.5 pb-2 border-bottom last-border-0">
+                            <strong className="text-dark small d-block">{m.user?.name || "Usuario"}</strong>
+                            <span className="text-muted smaller font-monospace">{m.user?.email}</span>{" "}
+                            <Badge bg="purple" className="text-white text-uppercase" style={{ fontSize: "8px" }}>
+                              {m.role}
+                            </Badge>
+                          </li>
+                        ))}
+                      </ul>
+                    </Card>
+                  </Col>
+
+                  <Col lg={7}>
+                    <Card className="border rounded-3 p-3 bg-white h-100">
+                      <h4 className="fw-bold h6 text-dark border-bottom pb-2 mb-3">Turnos Recientes</h4>
+                      {crossTenantData.recentAppointments && crossTenantData.recentAppointments.length > 0 ? (
+                        <div className="table-responsive">
+                          <Table responsive size="sm" className="mb-0 small">
+                            <thead>
+                              <tr className="text-muted smaller">
+                                <th>Fecha</th>
+                                <th>Cliente</th>
+                                <th>Profesional</th>
+                                <th>Estado</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {crossTenantData.recentAppointments.map((app) => (
+                                <tr key={app.id}>
+                                  <td className="py-2 text-muted">{new Date(app.date).toLocaleDateString()}</td>
+                                  <td className="py-2 fw-semibold text-dark">{app.client?.name || "N/A"}</td>
+                                  <td className="py-2">{app.worker?.name || "N/A"}</td>
+                                  <td className="py-2">
+                                    <Badge bg={app.status === "DONE" ? "success" : "secondary"} className="text-uppercase" style={{ fontSize: "9px" }}>
+                                      {app.status}
+                                    </Badge>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </Table>
+                        </div>
+                      ) : (
+                        <span className="text-muted small italic">No hay citas registradas en este inquilino.</span>
+                      )}
+                    </Card>
+                  </Col>
+                </Row>
+              </div>
+            )}
+          </Card.Body>
+        </Card>
+      )}
+
       {/* Override Subscription Modal */}
       <Modal show={showOverrideModal} onHide={() => setShowOverrideModal(false)} centered size="lg">
         <Modal.Header closeButton className="border-0 pb-0">
@@ -1149,6 +1391,20 @@ export default function SuperAdminBillingView() {
                     <option value="past_due">Past Due (Pago demorado)</option>
                     <option value="canceled">Canceled (Cancelado)</option>
                     <option value="suspended">Suspended (Suspendido / Bloqueado)</option>
+                  </Form.Select>
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label className="fw-semibold small text-muted mb-1">Método / Proveedor de Pago</Form.Label>
+                  <Form.Select 
+                    value={overrideForm.provider}
+                    onChange={(e) => setOverrideForm({ ...overrideForm, provider: e.target.value })}
+                    className="small py-2"
+                  >
+                    <option value="free">Gratuito / Comp (Sin cargo)</option>
+                    <option value="mercadopago">Mercado Pago</option>
+                    <option value="stripe">Stripe</option>
+                    <option value="manual">Manual / Override</option>
                   </Form.Select>
                 </Form.Group>
 
@@ -1411,6 +1667,20 @@ export default function SuperAdminBillingView() {
                     <option value="past_due">Past Due (Pago demorado)</option>
                     <option value="canceled">Canceled (Cancelado)</option>
                     <option value="suspended">Suspended (Suspendido / Bloqueado)</option>
+                  </Form.Select>
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label className="fw-semibold small text-muted mb-1">Método / Proveedor de Pago</Form.Label>
+                  <Form.Select 
+                    value={createBizForm.provider}
+                    onChange={(e) => setCreateBizForm({ ...createBizForm, provider: e.target.value })}
+                    className="small py-2"
+                  >
+                    <option value="free">Gratuito / Comp (Sin cargo)</option>
+                    <option value="mercadopago">Mercado Pago</option>
+                    <option value="stripe">Stripe</option>
+                    <option value="manual">Manual / Override</option>
                   </Form.Select>
                 </Form.Group>
 

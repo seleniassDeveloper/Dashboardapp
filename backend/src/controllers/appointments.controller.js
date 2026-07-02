@@ -12,6 +12,7 @@ import { sendReminderEmail } from "../services/mailer.js";
 import { triggerWorkflows, recordStatusTransition } from "../services/workflowEngine.js";
 import { syncGoogleCalendarToDb } from "../services/googleService.js";
 import { uploadBase64Image } from "../services/storage.service.js";
+import { isSuperAdmin } from "../utils/superadmin.js";
 
 /**
  * Traduce el motivo por el que un horario no está disponible a un código HTTP:
@@ -143,7 +144,7 @@ export async function createAppointment(req, res) {
       return res.status(400).json({ error: "Cliente inválido." });
     }
 
-    const isOwner = req.user?.role === "owner" || req.user?.email === "seleniadeveloper@gmail.com";
+    const isOwner = req.user?.role === "owner" || isSuperAdmin(req.user?.email);
     const shouldBypass = bypassAvailability === true && isOwner;
 
     const biz = await prisma.business.findUnique({
@@ -998,7 +999,7 @@ export async function uploadAppointmentPhoto(req, res) {
     // Seguridad: Si es un profesional, validar que la cita le pertenezca
     const userRole = String(req.user?.role || "").toLowerCase();
     const userEmail = String(req.user?.email || "").toLowerCase();
-    const isOwnerOrAdmin = userRole === "owner" || userRole === "admin" || userEmail === "seleniadeveloper@gmail.com";
+    const isOwnerOrAdmin = userRole === "owner" || userRole === "admin" || isSuperAdmin(userEmail);
 
     if (!isOwnerOrAdmin) {
       const worker = await prisma.worker.findFirst({ where: { businessId: req.businessId,
@@ -1069,7 +1070,7 @@ export async function deleteAppointmentPhoto(req, res) {
     // Seguridad: Solo administradores pueden eliminar
     const userRole = String(req.user?.role || "").toLowerCase();
     const userEmail = String(req.user?.email || "").toLowerCase();
-    const isOwnerOrAdmin = userRole === "owner" || userRole === "admin" || userEmail === "seleniadeveloper@gmail.com";
+    const isOwnerOrAdmin = userRole === "owner" || userRole === "admin" || isSuperAdmin(userEmail);
 
     if (!isOwnerOrAdmin) {
       return res.status(403).json({ error: "Acceso denegado. Solo los administradores pueden eliminar fotos." });

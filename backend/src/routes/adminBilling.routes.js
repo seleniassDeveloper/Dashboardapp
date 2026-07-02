@@ -2,26 +2,24 @@ import { Router } from "express";
 import crypto from "crypto";
 import prisma from "../prisma.js";
 import requireAuth from "../middleware/requireAuth.js";
-import requireAdmin from "../middleware/requireAdmin.js";
 import { getFirebaseAuth } from "../services/firebaseAdmin.js";
+import { isSuperAdmin, logSuperAdminAction } from "../utils/superadmin.js";
 
 const router = Router();
 
-// Middleware para restringir modificaciones (POST, PUT, DELETE) solo a seleniadeveloper@gmail.com
-const requireSeleniaAdmin = (req, res, next) => {
-  if (req.method !== "GET") {
-    if (req.user?.email !== "seleniadeveloper@gmail.com") {
-      return res.status(403).json({ 
-        success: false, 
-        error: "Acceso denegado. Solo seleniadeveloper@gmail.com tiene permisos para modificar suscripciones y accesos." 
-      });
-    }
+// Middleware para restringir todo acceso solo a Super-Admin
+const requireSuperAdmin = (req, res, next) => {
+  if (!isSuperAdmin(req.user?.email)) {
+    return res.status(403).json({ 
+      success: false, 
+      error: "Acceso denegado. Se requiere cuenta de Super-Admin Global." 
+    });
   }
   next();
 };
 
-// Require auth, global admin custom claim role, and the Selenia restriction
-router.use(requireAuth, requireAdmin, requireSeleniaAdmin);
+// Require auth and Super-Admin
+router.use(requireAuth, requireSuperAdmin);
 
 router.get("/businesses", async (req, res) => {
   try {
@@ -40,7 +38,12 @@ router.get("/businesses", async (req, res) => {
         userId: true,
         industry: true,
         description: true,
-        timezone: true
+        timezone: true,
+        subscription: {
+          select: {
+            provider: true
+          }
+        }
       },
       orderBy: { createdAt: "desc" }
     });
@@ -100,7 +103,8 @@ router.get("/businesses", async (req, res) => {
       return {
         ...b,
         ownerEmail: ownerEmail || null,
-        mrr: mrrContribution
+        mrr: mrrContribution,
+        provider: b.subscription?.provider || "free"
       };
     });
 
@@ -127,7 +131,8 @@ router.post("/businesses", async (req, res) => {
       currentPeriodEnd,
       gracePeriodEndsAt,
       industry,
-      timezone
+      timezone,
+      provider
     } = req.body;
 
     if (!name || !slug || !ownerEmail) {
@@ -222,9 +227,19 @@ router.post("/businesses", async (req, res) => {
         planCode: newBiz.plan,
         status: newBiz.subscriptionStatus,
         interval: "month",
-        provider: "mercadopago",
+        provider: provider || "free",
         currentPeriodEnd: newBiz.currentPeriodEnd
       }
+    });
+
+    // Registrar acción de auditoría
+    await logSuperAdminAction({
+      userId: req.user?.id || req.user?.uid,
+      userEmail: req.user?.email,
+      action: "superadmin.business.create_free",
+      businessId: newBiz.id,
+      metadata: { name: newBiz.name, plan: newBiz.plan, slug: newBiz.slug, provider: provider || "free" },
+      ip: req.ip || req.headers["x-forwarded-for"] || ""
     });
 
     return res.status(201).json({ success: true, business: newBiz });
@@ -247,7 +262,8 @@ router.post("/businesses/:id/override", async (req, res) => {
       slug,
       industry,
       timezone,
-      ownerEmail
+      ownerEmail,
+      provider
     } = req.body;
 
     const biz = await prisma.business.findUnique({ where: { id } });
@@ -360,10 +376,21 @@ router.post("/businesses/:id/override", async (req, res) => {
         data: {
           planCode: plan !== undefined ? plan : undefined,
           status: subscriptionStatus !== undefined ? subscriptionStatus : undefined,
-          currentPeriodEnd: currentPeriodEnd !== undefined ? (currentPeriodEnd ? new Date(currentPeriodEnd) : null) : undefined
+          currentPeriodEnd: currentPeriodEnd !== undefined ? (currentPeriodEnd ? new Date(currentPeriodEnd) : null) : undefined,
+          provider: provider !== undefined ? provider : undefined
         }
       });
     }
+
+    // Registrar acción de auditoría
+    await logSuperAdminAction({
+      userId: req.user?.id || req.user?.uid,
+      userEmail: req.user?.email,
+      action: "superadmin.business.update_subscription",
+      businessId: id,
+      metadata: { name: updated.name, plan: updated.plan, subscriptionStatus: updated.subscriptionStatus, provider },
+      ip: req.ip || req.headers["x-forwarded-for"] || ""
+    });
 
     return res.json({ success: true, business: updated });
   } catch (error) {
@@ -381,6 +408,16 @@ router.delete("/businesses/:id", async (req, res) => {
     }
 
     await prisma.business.delete({ where: { id } });
+
+    // Registrar acción de auditoría
+    await logSuperAdminAction({
+      userId: req.user?.id || req.user?.uid,
+      userEmail: req.user?.email,
+      action: "superadmin.business.delete",
+      businessId: id,
+      metadata: { name: biz.name, slug: biz.slug },
+      ip: req.ip || req.headers["x-forwarded-for"] || ""
+    });
 
     return res.json({ success: true, message: "Negocio eliminado exitosamente." });
   } catch (error) {
@@ -527,6 +564,86 @@ router.delete("/requests/:id", async (req, res) => {
   } catch (error) {
     console.error("Error deleting plan request:", error);
     return res.status(500).json({ success: false, error: "No se pudo eliminar la solicitud." });
+  }
+});
+
+// GET cross-tenant view for a single business (Super-Admin only)
+router.get("/businesses/:id/data", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const biz = await prisma.business.findUnique({
+      where: { id },
+      include: {
+        subscription: true
+      }
+    });
+    if (!biz) {
+      return res.status(404).json({ success: false, error: "Negocio no encontrado." });
+    }
+
+    const [members, clientCount, appointmentCount, serviceCount, workerCount, recentAppointments] = await Promise.all([
+      prisma.businessMember.findMany({
+        where: { businessId: id },
+        include: {
+          user: {
+            select: { email: true, name: true, status: true }
+          }
+        }
+      }),
+      prisma.client.count({ where: { businessId: id } }),
+      prisma.appointment.count({ where: { businessId: id } }),
+      prisma.service.count({ where: { businessId: id } }),
+      prisma.worker.count({ where: { businessId: id } }),
+      prisma.appointment.findMany({
+        where: { businessId: id },
+        orderBy: { createdAt: "desc" },
+        take: 10,
+        include: {
+          client: { select: { name: true, email: true } },
+          worker: { select: { name: true } }
+        }
+      })
+    ]);
+
+    // Registrar acción de auditoría
+    await logSuperAdminAction({
+      userId: req.user?.id || req.user?.uid,
+      userEmail: req.user?.email,
+      action: "superadmin.business.view_cross_tenant_data",
+      businessId: id,
+      metadata: { name: biz.name, slug: biz.slug },
+      ip: req.ip || req.headers["x-forwarded-for"] || ""
+    });
+
+    return res.json({
+      success: true,
+      business: biz,
+      members,
+      metrics: {
+        clients: clientCount,
+        appointments: appointmentCount,
+        services: serviceCount,
+        workers: workerCount
+      },
+      recentAppointments
+    });
+  } catch (error) {
+    console.error("Error fetching cross-tenant business data:", error);
+    return res.status(500).json({ success: false, error: "No se pudieron obtener los datos del negocio." });
+  }
+});
+
+// GET all audit logs (Super-Admin only)
+router.get("/audit-logs", async (req, res) => {
+  try {
+    const logs = await prisma.auditLog.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 150
+    });
+    return res.json({ success: true, logs });
+  } catch (error) {
+    console.error("Error listing audit logs:", error);
+    return res.status(500).json({ success: false, error: "No se pudieron obtener los registros de auditoría." });
   }
 });
 

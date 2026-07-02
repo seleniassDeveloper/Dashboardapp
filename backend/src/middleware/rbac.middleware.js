@@ -1,4 +1,5 @@
 import { verifyBypassToken } from "../utils/financeCrypto.js";
+import { isSuperAdmin } from "../utils/superadmin.js";
 
 export function requirePermission(permission) {
   return (req, res, next) => {
@@ -7,7 +8,7 @@ export function requirePermission(permission) {
     const userEmail = String(req.user?.email || "").toLowerCase();
 
     // El Owner / Dueño tiene pase absoluto e irrestricto en cualquier módulo
-    if (userRole === "owner" || userEmail === "seleniadeveloper@gmail.com") {
+    if (userRole === "owner" || isSuperAdmin(userEmail)) {
       return next();
     }
 
@@ -31,7 +32,7 @@ export function requireRole(allowedRoles = []) {
     const lcAllowedRoles = allowedRoles.map(r => String(r).toLowerCase());
 
     // El Owner tiene pase por defecto en cualquier rol check
-    if (userRole === "owner" || userEmail === "seleniadeveloper@gmail.com" || lcAllowedRoles.includes(userRole)) {
+    if (userRole === "owner" || isSuperAdmin(userEmail) || lcAllowedRoles.includes(userRole)) {
       return next();
     }
 
@@ -54,7 +55,7 @@ export function requireFinanceAccess(req, res, next) {
   // 1. Si el usuario logueado posee rol OWNER, ADMIN, o FINANCE, o el permiso finance.view, pasa directamente
   if (
     ["owner", "admin", "finance"].includes(userRole) ||
-    userEmail === "seleniadeveloper@gmail.com" ||
+    isSuperAdmin(userEmail) ||
     userPermissions.includes("finance.view")
   ) {
     return next();
