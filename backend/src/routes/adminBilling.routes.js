@@ -131,6 +131,7 @@ router.post("/businesses", async (req, res) => {
       currentPeriodEnd,
       gracePeriodEndsAt,
       industry,
+      model,
       timezone,
       provider
     } = req.body;
@@ -206,6 +207,7 @@ router.post("/businesses", async (req, res) => {
         currentPeriodEnd: currentPeriodEnd ? new Date(currentPeriodEnd) : null,
         gracePeriodEndsAt: gracePeriodEndsAt ? new Date(gracePeriodEndsAt) : null,
         industry: industry || null,
+        model: model || null,
         timezone: timezone || "America/Argentina/Buenos_Aires",
         ownerId: user.id
       }
@@ -261,6 +263,7 @@ router.post("/businesses/:id/override", async (req, res) => {
       name,
       slug,
       industry,
+      model,
       timezone,
       ownerEmail,
       provider
@@ -363,6 +366,7 @@ router.post("/businesses/:id/override", async (req, res) => {
         name: name !== undefined ? name : undefined,
         slug: slug !== undefined ? slug : undefined,
         industry: industry !== undefined ? industry : undefined,
+        model: model !== undefined ? model : undefined,
         timezone: timezone !== undefined ? timezone : undefined,
         ownerId: ownerIdUpdate !== undefined ? ownerIdUpdate : undefined
       }

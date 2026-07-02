@@ -21,6 +21,7 @@ export default function SuperAdminBillingView() {
     ownerEmail: "",
     slug: "",
     industry: "",
+    model: "salon",
     timezone: "",
     plan: "starter",
     subscriptionStatus: "active",
@@ -38,6 +39,7 @@ export default function SuperAdminBillingView() {
     ownerEmail: "",
     slug: "",
     industry: "",
+    model: "salon",
     timezone: "America/Argentina/Buenos_Aires",
     plan: "starter",
     subscriptionStatus: "trialing",
@@ -137,6 +139,7 @@ export default function SuperAdminBillingView() {
       ownerEmail: biz.ownerEmail || "",
       slug: biz.slug || "",
       industry: biz.industry || "",
+      model: biz.model || "salon",
       timezone: biz.timezone || "",
       plan: biz.plan || "starter",
       subscriptionStatus: biz.subscriptionStatus || "active",
@@ -157,6 +160,7 @@ export default function SuperAdminBillingView() {
         ownerEmail: overrideForm.ownerEmail,
         slug: overrideForm.slug,
         industry: overrideForm.industry,
+        model: overrideForm.model,
         timezone: overrideForm.timezone,
         plan: overrideForm.plan,
         subscriptionStatus: overrideForm.subscriptionStatus,
@@ -187,6 +191,7 @@ export default function SuperAdminBillingView() {
         ownerEmail: createBizForm.ownerEmail,
         slug: createBizForm.slug,
         industry: createBizForm.industry || undefined,
+        model: createBizForm.model,
         timezone: createBizForm.timezone || undefined,
         plan: createBizForm.plan,
         subscriptionStatus: createBizForm.subscriptionStatus,
@@ -204,6 +209,7 @@ export default function SuperAdminBillingView() {
           ownerEmail: "",
           slug: "",
           industry: "",
+          model: "salon",
           timezone: "America/Argentina/Buenos_Aires",
           plan: "starter",
           subscriptionStatus: "trialing",
@@ -1348,6 +1354,22 @@ export default function SuperAdminBillingView() {
                 </Form.Group>
 
                 <Form.Group className="mb-3">
+                  <Form.Label className="fw-semibold small text-muted mb-1">Modelo de Negocio (Adaptación UI)</Form.Label>
+                  <Form.Select 
+                    value={overrideForm.model || "salon"}
+                    onChange={(e) => setOverrideForm({ ...overrideForm, model: e.target.value })}
+                    className="small py-2"
+                  >
+                    <option value="salon">Estética / Peluquería (salon)</option>
+                    <option value="barber">Barbería (barber)</option>
+                    <option value="clinic">Clínica / Consultorio (clinic)</option>
+                    <option value="gym">Gimnasio / Fitness (gym)</option>
+                    <option value="spa">Spa & Wellness (spa)</option>
+                    <option value="custom">Personalizado (custom)</option>
+                  </Form.Select>
+                </Form.Group>
+
+                <Form.Group className="mb-3">
                   <Form.Label className="fw-semibold small text-muted mb-1">Zona Horaria</Form.Label>
                   <Form.Control 
                     type="text"
@@ -1621,6 +1643,22 @@ export default function SuperAdminBillingView() {
                     className="small py-2"
                     placeholder="Ej: Estética, Barbería"
                   />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label className="fw-semibold small text-muted mb-1">Modelo de Negocio (Adaptación UI)</Form.Label>
+                  <Form.Select 
+                    value={createBizForm.model || "salon"}
+                    onChange={(e) => setCreateBizForm({ ...createBizForm, model: e.target.value })}
+                    className="small py-2"
+                  >
+                    <option value="salon">Estética / Peluquería (salon)</option>
+                    <option value="barber">Barbería (barber)</option>
+                    <option value="clinic">Clínica / Consultorio (clinic)</option>
+                    <option value="gym">Gimnasio / Fitness (gym)</option>
+                    <option value="spa">Spa & Wellness (spa)</option>
+                    <option value="custom">Personalizado (custom)</option>
+                  </Form.Select>
                 </Form.Group>
 
                 <Form.Group className="mb-3">
