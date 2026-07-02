@@ -4,6 +4,7 @@ import { ensureFirebaseAdmin } from "../services/firebaseAdmin.js";
 
 import { isSuperAdmin } from "../utils/superadmin.js";
 
+// Trigger: Force redeploy on Render to trigger stuck webhooks
 const router = Router();
 
 /** Liveness — Railway healthcheck (siempre 200 si el proceso está arriba). */
