@@ -9,7 +9,8 @@ const router = Router();
 
 // Middleware para restringir todo acceso solo a Super-Admin
 const requireSuperAdmin = (req, res, next) => {
-  if (!isSuperAdmin(req.user?.email)) {
+  const email = req.user?.email || req.dbUser?.email;
+  if (!isSuperAdmin(email)) {
     return res.status(403).json({ 
       success: false, 
       error: "Acceso denegado. Se requiere cuenta de Super-Admin Global." 
