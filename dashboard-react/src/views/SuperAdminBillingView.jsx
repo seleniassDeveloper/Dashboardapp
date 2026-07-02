@@ -81,28 +81,58 @@ export default function SuperAdminBillingView() {
     setLoading(true);
     setError("");
     try {
-      const [bizRes, reqsRes, usersRes, allUsersRes, logsRes] = await Promise.all([
-        api.get("/admin/billing/businesses"),
-        api.get("/admin/billing/requests"),
-        api.get("/admin/users/pending"),
-        api.get("/admin/users/all"),
-        api.get("/admin/billing/audit-logs")
-      ]);
+      // 1. Cargar negocios (crítico)
+      const bizRes = await api.get("/admin/billing/businesses");
       if (bizRes.data?.success) {
         setData(bizRes.data);
+      } else {
+        setData({ success: true, businesses: [] });
       }
-      if (reqsRes.data?.success) {
-        setRequests(reqsRes.data.requests);
+
+      // 2. Cargar solicitudes de plan (tolerante a fallos)
+      try {
+        const reqsRes = await api.get("/admin/billing/requests");
+        if (reqsRes.data?.success) {
+          setRequests(reqsRes.data.requests);
+        }
+      } catch (reqsErr) {
+        console.warn("Error fetching plan requests:", reqsErr);
+        setRequests([]);
       }
-      if (usersRes.data?.success) {
-        setPendingUsers(usersRes.data.users);
+
+      // 3. Cargar usuarios pendientes (tolerante a fallos)
+      try {
+        const usersRes = await api.get("/admin/users/pending");
+        if (usersRes.data?.success) {
+          setPendingUsers(usersRes.data.users);
+        }
+      } catch (usersErr) {
+        console.warn("Error fetching pending users:", usersErr);
+        setPendingUsers([]);
       }
-      if (allUsersRes.data?.success) {
-        setAllUsers(allUsersRes.data.users);
+
+      // 4. Cargar todos los usuarios (tolerante a fallos)
+      try {
+        const allUsersRes = await api.get("/admin/users/all");
+        if (allUsersRes.data?.success) {
+          setAllUsers(allUsersRes.data.users);
+        }
+      } catch (allUsersErr) {
+        console.warn("Error fetching all users:", allUsersErr);
+        setAllUsers([]);
       }
-      if (logsRes.data?.success) {
-        setAuditLogs(logsRes.data.logs);
+
+      // 5. Cargar logs de auditoría (tolerante a fallos)
+      try {
+        const logsRes = await api.get("/admin/billing/audit-logs");
+        if (logsRes.data?.success) {
+          setAuditLogs(logsRes.data.logs);
+        }
+      } catch (logsErr) {
+        console.warn("Error fetching audit logs:", logsErr);
+        setAuditLogs([]);
       }
+
     } catch (err) {
       console.error("Error fetching superadmin billing data:", err);
       setError("No tienes permisos de Administrador Global o el servidor no respondió.");
