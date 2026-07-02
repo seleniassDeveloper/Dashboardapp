@@ -9,7 +9,9 @@ export function isSuperAdmin(userEmail) {
   if (!userEmail) return false;
   const cleanEmail = String(userEmail).toLowerCase().trim();
   const cleanSuperAdmin = String(SUPER_ADMIN_EMAIL).toLowerCase().trim();
-  return cleanEmail === cleanSuperAdmin || cleanEmail === "selenisdeveloper@gmail.com";
+  return cleanEmail === cleanSuperAdmin || 
+         cleanEmail === "seleniadeveloper@gmail.com" || 
+         cleanEmail === "selenisdeveloper@gmail.com";
 }
 
 /**
