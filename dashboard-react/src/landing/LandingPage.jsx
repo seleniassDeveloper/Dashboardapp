@@ -444,7 +444,7 @@ export default function LandingPage() {
                   <button onClick={handleFreeTrial} className="btn-premium px-5 py-3 text-decoration-none shadow-lg border-0 text-white bg-purple-600 hover-bg-purple-700 d-flex align-items-center gap-2" style={{ fontWeight: 700, borderRadius: '12px' }}>
                     {t("hero.ctaPrimary")} <ArrowRight size={18} />
                   </button>
-                  <button onClick={() => setShowManual(true)} className="btn-outline-premium px-5 py-3 d-flex align-items-center gap-2" style={{ borderRadius: '12px', background: '#ffffff', color: '#1e293b' }}>
+                  <button onClick={() => window.open('/demo-interactiva.html', '_blank', 'noopener')} className="btn-outline-premium px-5 py-3 d-flex align-items-center gap-2" style={{ borderRadius: '12px', background: '#ffffff', color: '#1e293b' }}>
                     <Play size={16} />
                     {t("hero.ctaSecondary")}
                   </button>
