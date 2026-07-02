@@ -2,6 +2,8 @@ import { Router } from "express";
 import prisma from "../prisma.js";
 import { ensureFirebaseAdmin } from "../services/firebaseAdmin.js";
 
+import { isSuperAdmin } from "../utils/superadmin.js";
+
 const router = Router();
 
 /** Liveness — Railway healthcheck (siempre 200 si el proceso está arriba). */
@@ -9,7 +11,13 @@ router.get("/", (_req, res) => {
   res.status(200).json({
     ok: true,
     service: "dashboard-api",
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    diagnostics: {
+      isSuperAdminSelenia: isSuperAdmin("seleniadeveloper@gmail.com"),
+      isSuperAdminSelenis: isSuperAdmin("selenisdeveloper@gmail.com"),
+      superAdminEmailConfigured: process.env.SUPER_ADMIN_EMAIL || "default",
+      authDisabled: process.env.AUTH_DISABLED || "false"
+    }
   });
 });
 
