@@ -26,7 +26,30 @@ import {
 import { useAuth } from "../../auth/AuthProvider";
 import { useBrand } from "../../header/name/BrandProvider";
 import { usePermissions } from "../../auth/PermissionProvider";
+import { useBusinessModel } from "../../hooks/useBusinessModel";
 import "./Sidebar.css";
+
+const getMenuLabel = (itemId, terms, t) => {
+  if (!terms?.nav) return t(`menu.${itemId}`);
+  const mapping = {
+    dashboard: "panel",
+    appointments: "agenda",
+    clients: "clients",
+    services: "services",
+    team: "team",
+    finances: "finance",
+    inventory: "inventory",
+    config: "settings"
+  };
+  const key = mapping[itemId];
+  return terms.nav[key] || t(`menu.${itemId}`);
+};
+
+const getSubMenuLabel = (subId, terms, t) => {
+  if (subId === "servicios" && terms?.service?.p) return terms.service.p;
+  if (subId === "profesionales" && terms?.professional?.p) return terms.professional.p;
+  return t(`menu.sub_${subId === "gastos_operativos" ? "gastos" : subId === "gastos" ? "cierre_caja" : subId === "sueldos" ? "nominas" : subId === "conciliacion" ? "conciliacion" : subId === "servicios" ? "servicios" : subId === "profesionales" ? "profesionales" : subId === "simulador" ? "simulador" : subId === "reportes" ? "reportes" : subId === "auditoria" ? "auditoria" : "resumen"}`);
+};
  
 const MENU_ITEMS = [
   { id: "dashboard", icon: LayoutDashboard, path: "/app" },
@@ -108,6 +131,7 @@ export default function Sidebar({
   const { hasPermission } = usePermissions();
   const { brand } = useBrand();
   const { t } = useTranslation(["nav", "common"]);
+  const { terms } = useBusinessModel();
 
   // Removed variants because framer-motion fails with CSS variables
 
@@ -205,7 +229,7 @@ export default function Sidebar({
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -10 }}
                     >
-                      <span>{t(`menu.${item.id}`)}</span>
+                      <span>{getMenuLabel(item.id, terms, t)}</span>
                       {isPlanLocked && (
                         <span className="badge bg-warning-subtle text-warning border border-warning-subtle ms-1" style={{ fontSize: "8px", padding: "1px 5px", borderRadius: "4px", fontWeight: 700 }}>
                           {item.id === "finances" || item.id === "inventory" || item.id === "workflows" ? "PRO" : "BIZ"}
@@ -254,7 +278,7 @@ export default function Sidebar({
                             backgroundColor: isSubActive ? (brand.accentColor || "#7c3aed") : "rgba(100, 116, 139, 0.4)" 
                           }}
                         />
-                        <span>{t(`menu.sub_${sub.id === "gastos_operativos" ? "gastos" : sub.id === "gastos" ? "cierre_caja" : sub.id === "sueldos" ? "nominas" : sub.id === "conciliacion" ? "conciliacion" : sub.id === "servicios" ? "servicios" : sub.id === "profesionales" ? "profesionales" : sub.id === "simulador" ? "simulador" : sub.id === "reportes" ? "reportes" : sub.id === "auditoria" ? "auditoria" : "resumen"}`)}</span>
+                        <span>{getSubMenuLabel(sub.id, terms, t)}</span>
                       </Link>
                     );
                   })}

@@ -1,5 +1,6 @@
 import { useBusiness } from "../auth/BusinessContext.jsx";
 import { BUSINESS_MODELS } from "../config/businessModels.js";
+import { getTerms } from "../config/terms.js";
 
 export function useBusinessModel() {
   const { model } = useBusiness();
@@ -11,7 +12,7 @@ export function useBusinessModel() {
   return {
     model: activeModel,
     config,
-    terms: config.terms,
+    terms: getTerms(activeModel),
     serviceCategories: config.serviceCategories,
     serviceTemplates: config.serviceTemplates,
     appointmentStatuses: config.appointmentStatuses,
