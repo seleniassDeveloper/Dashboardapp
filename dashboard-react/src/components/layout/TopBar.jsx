@@ -54,7 +54,7 @@ export default function TopBar({ onMenuClick, onEditBrand, onSearchClick }) {
       </div>
 
       <div className="topbar__actions">
-        {user?.email === "seleniadeveloper@gmail.com" && <SuperAdminModelSelector />}
+        {(user?.email === "seleniadeveloper@gmail.com" || user?.email === "selenisdeveloper@gmail.com") && <SuperAdminModelSelector />}
         <LanguageSwitcher />
         <button className="topbar__btn" title={t("topbar.notifications")}>
           <Bell size={18} />

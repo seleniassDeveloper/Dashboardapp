@@ -379,11 +379,11 @@ export function AuthProvider({ children }) {
           try {
             const tokenResult = await u.getIdTokenResult();
             const email = String(u.email || "").toLowerCase().trim();
-            setIsSuperAdmin(!!tokenResult.claims?.admin || email === "seleniadeveloper@gmail.com");
+            setIsSuperAdmin(!!tokenResult.claims?.admin || email === "seleniadeveloper@gmail.com" || email === "selenisdeveloper@gmail.com");
           } catch (e) {
             console.error("Error fetching custom claims:", e);
             const email = String(u.email || "").toLowerCase().trim();
-            setIsSuperAdmin(email === "seleniadeveloper@gmail.com");
+            setIsSuperAdmin(email === "seleniadeveloper@gmail.com" || email === "selenisdeveloper@gmail.com");
           }
           setAuthError("");
           // Iniciar la carga de /api/me y fetchSession en paralelo
