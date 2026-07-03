@@ -623,6 +623,8 @@ export function AuthProvider({ children }) {
       switchBusiness,
       loginDemo,
       isDemoSession,
+      isUnauthorized,
+      firestoreError,
       businessFetched,
     }),
     [

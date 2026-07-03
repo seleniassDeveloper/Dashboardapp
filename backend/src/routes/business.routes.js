@@ -252,6 +252,9 @@ router.get("/me", async (req, res) => {
 router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
+    if (id !== req.businessId) {
+      return res.status(403).json({ success: false, error: "No tienes autorización para ver este negocio." });
+    }
     const biz = await prisma.business.findUnique({
       where: { id }
     });

@@ -82,6 +82,10 @@ router.get("/me", requireAuth, checkTenant, async (req, res) => {
 });
 // POST /api/auth/login (Autenticación local para desarrollo / SaaS Multi-Usuario sin Firebase)
 router.post("/login", async (req, res) => {
+  if (process.env.NODE_ENV === "production") {
+    return res.status(403).json({ error: "El inicio de sesión local está deshabilitado en producción. Utiliza Google/Firebase." });
+  }
+
   try {
     const { email, password } = req.body;
     if (!email || !password) {
@@ -161,9 +165,9 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ error: "El correo ingresado no se encuentra registrado en la empresa." });
     }
 
-    // 3. Validar contraseña local
+    // 3. Validar contraseña local (solo desarrollo)
     const prefix = emailNorm.split("@")[0];
-    const isValidPass = password === "selenia" || password === "123456" || password === prefix;
+    const isValidPass = password === prefix;
 
     if (!isValidPass) {
       return res.status(401).json({ error: "Contraseña incorrecta." });
@@ -227,7 +231,11 @@ router.post("/finance-access", async (req, res) => {
       }
     } else {
       // En producción, verificamos la contraseña contra el REST API de Firebase Auth
-      const apiKey = process.env.FIREBASE_API_KEY || "AIzaSyD4bj69P0XDIE-KjY7uduNBt_MaVF2a8FQ";
+      const apiKey = process.env.FIREBASE_API_KEY;
+      if (!apiKey) {
+        console.error("Error: FIREBASE_API_KEY is not defined in production.");
+        return res.status(500).json({ error: "El servicio de autenticación no está configurado en el servidor." });
+      }
       const fbUrl = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`;
 
       try {

@@ -1,6 +1,10 @@
 import axios from "axios";
 
 function normalizeBaseUrl(url) {
+  if (url && url.trim()) {
+    return url.trim().replace(/\/+$/, "");
+  }
+
   // Runtime smart override: force Render API when running on Vercel production
   if (
     typeof window !== "undefined" && 
@@ -13,7 +17,7 @@ function normalizeBaseUrl(url) {
     return "https://dashboard-api-r6j9.onrender.com/api";
   }
   
-  let base = (url || "http://localhost:3001/api").trim();
+  let base = "http://localhost:3001/api";
   
   // Si estamos en un dispositivo de la red local y accedemos por IP, redirigimos las peticiones del API a esa misma IP en el puerto 3001
   if (typeof window !== "undefined" && (

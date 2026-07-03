@@ -1,6 +1,9 @@
 import crypto from "crypto";
 
-const SECRET = process.env.JWT_SECRET || "finance-bypass-secret-studio-aura-32-chars-long";
+const SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === "production" ? null : "finance-bypass-secret-studio-aura-32-chars-long");
+if (process.env.NODE_ENV === "production" && !SECRET) {
+  throw new Error("CRITICAL SECURITY ERROR: JWT_SECRET is not configured in production.");
+}
 
 /**
  * Genera un token de bypass firmado digitalmente con una validez de 2 horas.

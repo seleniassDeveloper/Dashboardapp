@@ -79,6 +79,13 @@ export async function updateClient(req, res) {
     const { id } = req.params;
     const { firstName, lastName, phone, email, notes, allergies, medicalNotes, photoUrl, marketingConsent } = req.body;
 
+    const existing = await prisma.client.findFirst({
+      where: { id, businessId: req.businessId }
+    });
+    if (!existing) {
+      return res.status(404).json({ error: "Cliente no encontrado en este salón." });
+    }
+
     if (!firstName?.trim() || !lastName?.trim()) {
       return res
         .status(400)
@@ -173,6 +180,12 @@ export async function listClients(req, res) {
 export async function deleteClient(req, res) {
   try {
     const { id } = req.params;
+    const existing = await prisma.client.findFirst({
+      where: { id, businessId: req.businessId }
+    });
+    if (!existing) {
+      return res.status(404).json({ error: "Cliente no encontrado en este salón." });
+    }
 
     // Primero eliminamos en cascada las citas para evitar bloqueos de clave foránea
     await prisma.appointment.deleteMany({

@@ -550,7 +550,9 @@ export async function createMovement(req, res) {
       return res.status(400).json({ error: "Campos productId, diff, type requeridos." });
     }
 
-    const product = await prisma.product.findUnique({ where: { id: productId } });
+    const product = await prisma.product.findFirst({
+      where: { id: productId, businessId: req.businessId }
+    });
     if (!product) return res.status(404).json({ error: "Producto no existe." });
 
     const prevQty = product.stock;

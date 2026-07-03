@@ -50,16 +50,29 @@ export async function getFinanceDashboardData(req, res) {
       }
     });
 
-    const doneAppts = appointments.filter(a => a.status === "DONE" || a.status === "CONFIRMED");
-    const totalRevenues = doneAppts.reduce((sum, a) => sum + Number(a.service?.price || 0), 0);
-    const commissionsPaid = Math.round(totalRevenues * 0.4);
+    const doneAppts = appointments.filter(a => a.status === "DONE");
+    const totalRevenues = doneAppts.reduce((sum, a) => sum + Number(a.finalPrice ?? a.service?.price ?? 0), 0);
+    
+    // Calculate total dynamic commission
+    let commissionsPaid = 0;
+    doneAppts.forEach(a => {
+      const price = Number(a.finalPrice ?? a.service?.price ?? 0);
+      const cType = a.service?.commissionType || "porcentaje";
+      const cVal = a.service?.commissionValue || 0;
+      if (cType === "porcentaje") {
+        commissionsPaid += Math.round(price * (cVal / 100));
+      } else if (cType === "fijo") {
+        commissionsPaid += cVal;
+      }
+    });
+
     const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
     const realProfit = totalRevenues - totalExpenses - commissionsPaid;
     const avgTicket = doneAppts.length > 0 ? Math.round(totalRevenues / doneAppts.length) : 0;
 
     // Loss by cancellations
     const cancelledAppts = appointments.filter(a => a.status === "CANCELLED");
-    const cancellationLoss = cancelledAppts.reduce((sum, a) => sum + Number(a.service?.price || 0), 0);
+    const cancellationLoss = cancelledAppts.reduce((sum, a) => sum + Number(a.finalPrice ?? a.service?.price ?? 0), 0);
 
     // Payment methods distribution
     const paymentMethodsData = [
@@ -71,10 +84,17 @@ export async function getFinanceDashboardData(req, res) {
       { name: "PayPal", value: 0 }
     ];
 
-    doneAppts.forEach((a, idx) => {
-      const price = Number(a.service?.price || 0);
-      const mod = idx % 6;
-      paymentMethodsData[mod].value += price;
+    doneAppts.forEach((a) => {
+      const price = Number(a.finalPrice ?? a.service?.price ?? 0);
+      const rawMethod = String(a.paymentMethod || "").toLowerCase().trim();
+      let index = 0;
+      if (rawMethod.includes("mercado") || rawMethod.includes("mp")) index = 1;
+      else if (rawMethod.includes("visa")) index = 2;
+      else if (rawMethod.includes("master")) index = 3;
+      else if (rawMethod.includes("transf") || rawMethod.includes("bank")) index = 4;
+      else if (rawMethod.includes("payp")) index = 5;
+      else if (rawMethod === "efectivo" || rawMethod === "cash") index = 0;
+      paymentMethodsData[index].value += price;
     });
 
     // Service profitability calculations
@@ -82,31 +102,42 @@ export async function getFinanceDashboardData(req, res) {
     doneAppts.forEach(a => {
       if (!a.service) return;
       const s = a.service;
+      const finalPrice = a.finalPrice !== null && a.finalPrice !== undefined ? Number(a.finalPrice) : s.price;
+      
+      let commission = 0;
+      if (s.commissionType === "porcentaje") {
+        commission = Math.round(finalPrice * (s.commissionValue / 100));
+      } else if (s.commissionType === "fijo") {
+        commission = s.commissionValue;
+      }
+
       if (!serviceMap[s.id]) {
         serviceMap[s.id] = {
           id: s.id,
           name: s.name,
           price: s.price,
           count: 0,
-          totalRevenue: 0
+          totalRevenue: 0,
+          totalCommission: 0
         };
       }
       serviceMap[s.id].count += 1;
-      serviceMap[s.id].totalRevenue += s.price;
+      serviceMap[s.id].totalRevenue += finalPrice;
+      serviceMap[s.id].totalCommission += commission;
     });
 
     const serviceProfitability = Object.values(serviceMap).map(s => {
-      const productCost = Math.round(s.price * 0.22); // 22% estimated product costs
-      const commission = Math.round(s.price * 0.40); // 40% stylist commission
-      const netGain = s.price - productCost - commission;
-      const marginPercent = Math.round((netGain / s.price) * 100);
+      const productCost = Math.round(s.totalRevenue * 0.22);
+      const commission = s.totalCommission;
+      const netGain = s.totalRevenue - productCost - commission;
+      const marginPercent = s.totalRevenue > 0 ? Math.round((netGain / s.totalRevenue) * 100) : 0;
       return {
         ...s,
         productCost,
-        commission,
-        netGain,
+        commission: Math.round(commission / s.count),
+        netGain: Math.round(netGain / s.count),
         marginPercent,
-        totalNetProfit: netGain * s.count
+        totalNetProfit: netGain
       };
     }).sort((a, b) => b.totalRevenue - a.totalRevenue);
 
@@ -115,22 +146,35 @@ export async function getFinanceDashboardData(req, res) {
     doneAppts.forEach(a => {
       if (!a.worker) return;
       const w = a.worker;
+      const finalPrice = a.finalPrice !== null && a.finalPrice !== undefined ? Number(a.finalPrice) : (a.service?.price || 0);
+      
+      let commission = 0;
+      if (a.service) {
+        if (a.service.commissionType === "porcentaje") {
+          commission = Math.round(finalPrice * (a.service.commissionValue / 100));
+        } else if (a.service.commissionType === "fijo") {
+          commission = a.service.commissionValue;
+        }
+      }
+
       if (!workerMap[w.id]) {
         workerMap[w.id] = {
           id: w.id,
           name: `${w.firstName} ${w.lastName}`,
           role: w.roleTitle || "Estilista",
           count: 0,
-          totalRevenue: 0
+          totalRevenue: 0,
+          totalCommission: 0
         };
       }
       workerMap[w.id].count += 1;
-      workerMap[w.id].totalRevenue += Number(a.service?.price || 0);
+      workerMap[w.id].totalRevenue += finalPrice;
+      workerMap[w.id].totalCommission += commission;
     });
 
     const professionalProfitability = Object.values(workerMap).map(w => {
       const avgTkt = w.count > 0 ? Math.round(w.totalRevenue / w.count) : 0;
-      const commission = Math.round(w.totalRevenue * 0.40);
+      const commission = w.totalCommission;
       
       let occupancy = Math.min(95, 40 + w.count * 8);
       let retention = Math.min(98, 55 + w.count * 4);
@@ -147,10 +191,21 @@ export async function getFinanceDashboardData(req, res) {
 
     // Branch comparative metrics
     const branchComparison = branches.map(b => {
-      const bAppts = b.appointments.filter(a => a.status === "DONE" || a.status === "CONFIRMED");
-      const bRevenue = bAppts.reduce((sum, a) => sum + Number(a.service?.price || 0), 0);
+      const bAppts = b.appointments.filter(a => a.status === "DONE");
+      const bRevenue = bAppts.reduce((sum, a) => sum + Number(a.finalPrice ?? a.service?.price ?? 0), 0);
       const bExpenses = b.expenses.reduce((sum, e) => sum + e.amount, 0);
-      const bCommissions = Math.round(bRevenue * 0.4);
+      
+      let bCommissions = 0;
+      bAppts.forEach(a => {
+        const finalPrice = a.finalPrice !== null && a.finalPrice !== undefined ? Number(a.finalPrice) : (a.service?.price || 0);
+        if (a.service) {
+          if (a.service.commissionType === "porcentaje") {
+            bCommissions += Math.round(finalPrice * (a.service.commissionValue / 100));
+          } else if (a.service.commissionType === "fijo") {
+            bCommissions += a.service.commissionValue;
+          }
+        }
+      });
       const bNetProfit = bRevenue - bExpenses - bCommissions;
 
       return {
@@ -451,6 +506,13 @@ export async function reconcileMovement(req, res) {
       return res.status(400).json({ error: "Parámetros id y status obligatorios." });
     }
 
+    const existing = await prisma.bankMovement.findFirst({
+      where: { id, businessId: req.businessId }
+    });
+    if (!existing) {
+      return res.status(404).json({ error: "Movimiento no encontrado." });
+    }
+
     const updated = await prisma.bankMovement.update({
       where: { id },
       data: {
@@ -469,7 +531,11 @@ export async function reconcileMovement(req, res) {
 // GET /api/finances/audit
 export async function listAuditLogs(req, res) {
   try {
-    const list = await prisma.auditLog.findMany({ where: req.businessId ? { businessId: req.businessId } : undefined,
+    if (!req.businessId) {
+      return res.status(400).json({ error: "Falta identificar el comercio." });
+    }
+    const list = await prisma.auditLog.findMany({ 
+      where: { businessId: req.businessId },
       orderBy: { createdAt: "desc" },
       take: 50
     });

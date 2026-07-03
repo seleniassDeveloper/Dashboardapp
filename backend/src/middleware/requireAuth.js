@@ -7,7 +7,11 @@ export default async function requireAuth(req, res, next) {
   const token = header?.startsWith("Bearer ") ? header.slice(7) : null;
 
   // 1. Validar tokens de autenticación local para desarrollo / testing
+  // 1. Verificar si el token es local (solo para desarrollo)
   if (token && token.startsWith("local-token-")) {
+    if (process.env.NODE_ENV === "production") {
+      return res.status(401).json({ error: "Sesión local no permitida en producción." });
+    }
     const userId = token.replace("local-token-", "");
     try {
       const dbUser = await prisma.user.findUnique({
@@ -31,9 +35,9 @@ export default async function requireAuth(req, res, next) {
       // Compatibilidad para desarrollo rápido local sin token
       firebaseUser = { uid: "dev-user", email: "selenisdeveloper@gmail.com", admin: true };
     } else {
-      const bypassToken = process.env.QUICK_BOOKING_TOKEN || "aura-admin-token";
+      const bypassToken = process.env.QUICK_BOOKING_TOKEN || (process.env.NODE_ENV === "production" ? null : "aura-admin-token");
 
-      if (token && token === bypassToken) {
+      if (token && bypassToken && token === bypassToken) {
         firebaseUser = { uid: "quick-booking-user", email: "quick@booking.com", admin: true };
       } else if (!token) {
         return res.status(401).json({ error: "No autenticado. Por favor inicia sesión." });
@@ -49,11 +53,13 @@ export default async function requireAuth(req, res, next) {
           console.error("verifyIdToken failed:", e);
           const msg = String(e?.message || e);
           if (
-            msg.includes("credenciales") ||
-            msg.includes("FIREBASE_SERVICE_ACCOUNT") ||
-            msg.includes("no hay credenciales") ||
-            msg.includes("ENOENT") ||
-            msg.includes("JSON")
+            process.env.NODE_ENV !== "production" && (
+              msg.includes("credenciales") ||
+              msg.includes("FIREBASE_SERVICE_ACCOUNT") ||
+              msg.includes("no hay credenciales") ||
+              msg.includes("ENOENT") ||
+              msg.includes("JSON")
+            )
           ) {
             console.warn("[auth] Firebase Admin no configurado — Habilitando bypass local para desarrollo.");
             firebaseUser = { uid: "quick-booking-user", email: "quick@booking.com", admin: true };

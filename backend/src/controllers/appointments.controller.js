@@ -652,23 +652,165 @@ export async function finalizeAppointment(req, res) {
       return res.status(404).json({ error: "La cita no existe." });
     }
 
+    if (appt.status === "DONE") {
+      return res.status(400).json({ error: "Esta cita ya ha sido finalizada." });
+    }
+
     // Normalize workflow IDs parameter to array if supplied
     let limitWorkflowIds = null;
     if (selectedWorkflowIds) {
       limitWorkflowIds = Array.isArray(selectedWorkflowIds) ? selectedWorkflowIds : [selectedWorkflowIds];
     }
 
-    // 1. Update status to DONE and save payment details
-    const updatedAppt = await prisma.appointment.update({
-      where: { id },
-      data: { 
-        status: "DONE",
-        paymentMethod: paymentMethod || null,
-        finalPrice: finalPrice !== undefined && finalPrice !== null ? Number(finalPrice) : null,
-      },
-      include: { client: true, worker: true, service: true }
+    let updatedAppt;
+    let clinicalNote = null;
+    const savedPhotos = [];
+
+    // Envolver operaciones de base de datos en una sola transacción Prisma para garantizar atomicidad e idempotencia
+    await prisma.$transaction(async (tx) => {
+      // 1. Update status to DONE and save payment details
+      updatedAppt = await tx.appointment.update({
+        where: { id },
+        data: { 
+          status: "DONE",
+          paymentMethod: paymentMethod || null,
+          finalPrice: finalPrice !== undefined && finalPrice !== null ? Number(finalPrice) : null,
+        },
+        include: { client: true, worker: true, service: true }
+      });
+
+      // 2. Save Clinical Note if present
+      if (note && note.trim()) {
+        clinicalNote = await tx.clinicalNote.create({
+          data: {
+            appointmentId: id,
+            clientId: appt.clientId,
+            professionalId: appt.workerId,
+            note: note.trim(),
+            recommendations: recommendations ? recommendations.trim() : null
+          }
+        });
+      }
+
+      // Save before photo if present
+      if (beforePhoto) {
+        const beforeUrl = saveBase64Image(beforePhoto, "before", appt.clientId);
+        if (beforeUrl) {
+          const photoRecord = await tx.appointmentPhoto.create({
+            data: {
+              appointmentId: id,
+              clientId: appt.clientId,
+              type: "before",
+              imageUrl: beforeUrl
+            }
+          });
+          savedPhotos.push(photoRecord);
+        }
+      }
+
+      // Save after photo if present
+      if (afterPhoto) {
+        const afterUrl = saveBase64Image(afterPhoto, "after", appt.clientId);
+        if (afterUrl) {
+          const photoRecord = await tx.appointmentPhoto.create({
+            data: {
+              appointmentId: id,
+              clientId: appt.clientId,
+              type: "after",
+              imageUrl: afterUrl
+            }
+          });
+          savedPhotos.push(photoRecord);
+        }
+      }
+
+      // 3. Descuento automático de insumos del inventario (Consumo por Servicio con estrategia FIFO)
+      const rules = await tx.serviceConsumptionRule.findMany({ 
+        where: { businessId: appt.businessId, serviceId: appt.serviceId },
+        include: { product: true }
+      });
+
+      for (const rule of rules) {
+        const qtyToDeduct = rule.quantity;
+        if (qtyToDeduct <= 0) continue;
+
+        // FIFO: Descontar de lotes activos con stock > 0, ordenados por vencimiento ascendente
+        const activeBatches = await tx.productBatch.findMany({ 
+          where: { 
+            businessId: appt.businessId, 
+            productId: rule.productId,
+            actualQty: { gt: 0 }
+          },
+          orderBy: { expirationDate: "asc" }
+        });
+
+        let remaining = qtyToDeduct;
+        for (const batch of activeBatches) {
+          if (remaining <= 0) break;
+
+          if (batch.actualQty >= remaining) {
+            await tx.productBatch.update({
+              where: { id: batch.id },
+              data: { actualQty: batch.actualQty - remaining }
+            });
+            remaining = 0;
+          } else {
+            remaining -= batch.actualQty;
+            await tx.productBatch.update({
+              where: { id: batch.id },
+              data: { actualQty: 0 }
+            });
+          }
+        }
+
+        // Si el stock en lotes es insuficiente, lanzamos un error para abortar la transacción
+        if (remaining > 0) {
+          throw new Error("Stock insuficiente en los lotes para el producto: " + rule.product.name + ". Faltante: " + remaining);
+        }
+
+        // Actualizar stock general en la tabla Product
+        const newProductStock = Math.max(0, rule.product.stock - qtyToDeduct);
+        await tx.product.update({
+          where: { id: rule.productId },
+          data: { stock: newProductStock }
+        });
+
+        // Actualizar stock en la sucursal de la cita si aplica
+        if (appt.branchId) {
+          const bi = await tx.branchInventory.findUnique({
+            where: {
+              productId_branchId: {
+                productId: rule.productId,
+                branchId: appt.branchId
+              }
+            }
+          });
+          if (bi) {
+            await tx.branchInventory.update({
+              where: { id: bi.id },
+              data: { stock: Math.max(0, bi.stock - qtyToDeduct) }
+            });
+          }
+        }
+
+        // Registrar en bitácora de movimientos
+        await tx.stockMovement.create({
+          data: {
+            productId: rule.productId,
+            prevQty: rule.product.stock,
+            newQty: newProductStock,
+            diff: -qtyToDeduct,
+            type: "automatic",
+            reason: "Consumo automatico por cita finalizada de " + appt.service.name,
+            observation: "Cita #" + id.slice(-5).toUpperCase() + " - Cliente: " + (appt.client ? appt.client.firstName : "") + " " + (appt.client ? appt.client.lastName : ""),
+            branchId: appt.branchId || null,
+            user: "Sistema Auto-Consumo"
+          }
+        });
+      }
     });
 
+    // Operaciones secundarias fuera de la transacción de base de datos
     const oldStatus = appt.status;
     const isStatusChanged = oldStatus !== "DONE";
     if (isStatusChanged) {
@@ -739,145 +881,16 @@ export async function finalizeAppointment(req, res) {
           </div>
         `;
 
+        const { sendReminderEmail } = await import("../utils/email.js");
         await sendReminderEmail({
           to: clientEmail,
-          subject: `Comprobante de Pago #${receiptNumber} - ${businessName}`,
+          subject: "Comprobante de Pago #" + receiptNumber + " - " + businessName,
           html: receiptHtml,
           smtpConfig
         });
       } catch (emailErr) {
         console.error("[appointments] sendReceiptEmail:", emailErr?.message || emailErr);
       }
-    }
-
-    // 2. Save Clinical Note if present
-    let clinicalNote = null;
-    if (note && note.trim()) {
-      clinicalNote = await prisma.clinicalNote.create({
-        data: {
-          appointmentId: id,
-          clientId: appt.clientId,
-          professionalId: appt.workerId,
-          note: note.trim(),
-          recommendations: recommendations ? recommendations.trim() : null
-        }
-      });
-    }
-
-    // Helper to save photos
-    const savedPhotos = [];
-    
-    // Save before photo if present
-    if (beforePhoto) {
-      const beforeUrl = saveBase64Image(beforePhoto, "before", appt.clientId);
-      if (beforeUrl) {
-        const photoRecord = await prisma.appointmentPhoto.create({
-          data: {
-            appointmentId: id,
-            clientId: appt.clientId,
-            type: "before",
-            imageUrl: beforeUrl
-          }
-        });
-        savedPhotos.push(photoRecord);
-      }
-    }
-
-    // Save after photo if present
-    if (afterPhoto) {
-      const afterUrl = saveBase64Image(afterPhoto, "after", appt.clientId);
-      if (afterUrl) {
-        const photoRecord = await prisma.appointmentPhoto.create({
-          data: {
-            appointmentId: id,
-            clientId: appt.clientId,
-            type: "after",
-            imageUrl: afterUrl
-          }
-        });
-        savedPhotos.push(photoRecord);
-      }
-    }
-
-    // 3. Descuento automático de insumos del inventario (Consumo por Servicio con estrategia FIFO)
-    try {
-      const rules = await prisma.serviceConsumptionRule.findMany({ where: { businessId: req.businessId,  serviceId: appt.serviceId },
-        include: { product: true }
-      });
-
-      for (const rule of rules) {
-        const qtyToDeduct = rule.quantity;
-        if (qtyToDeduct <= 0) continue;
-
-        // FIFO: Descontar de lotes activos con stock > 0, ordenados por vencimiento ascendente
-        const activeBatches = await prisma.productBatch.findMany({ where: { businessId: req.businessId, 
-            productId: rule.productId,
-            actualQty: { gt: 0 }
-          },
-          orderBy: { expirationDate: "asc" }
-        });
-
-        let remaining = qtyToDeduct;
-        for (const batch of activeBatches) {
-          if (remaining <= 0) break;
-
-          if (batch.actualQty >= remaining) {
-            await prisma.productBatch.update({
-              where: { id: batch.id },
-              data: { actualQty: batch.actualQty - remaining }
-            });
-            remaining = 0;
-          } else {
-            remaining -= batch.actualQty;
-            await prisma.productBatch.update({
-              where: { id: batch.id },
-              data: { actualQty: 0 }
-            });
-          }
-        }
-
-        // Actualizar stock general en la tabla Product
-        const newProductStock = Math.max(0, rule.product.stock - qtyToDeduct);
-        await prisma.product.update({
-          where: { id: rule.productId },
-          data: { stock: newProductStock }
-        });
-
-        // Actualizar stock en la sucursal de la cita si aplica
-        if (appt.branchId) {
-          const bi = await prisma.branchInventory.findUnique({
-            where: {
-              productId_branchId: {
-                productId: rule.productId,
-                branchId: appt.branchId
-              }
-            }
-          });
-          if (bi) {
-            await prisma.branchInventory.update({
-              where: { id: bi.id },
-              data: { stock: Math.max(0, bi.stock - qtyToDeduct) }
-            });
-          }
-        }
-
-        // Registrar en bitácora de movimientos
-        await prisma.stockMovement.create({
-          data: {
-            productId: rule.productId,
-            prevQty: rule.product.stock,
-            newQty: newProductStock,
-            diff: -qtyToDeduct,
-            type: "automatic",
-            reason: `Consumo automático por cita finalizada de ${appt.service.name}`,
-            observation: `Cita #${id.slice(-5).toUpperCase()} - Cliente: ${appt.client ? appt.client.firstName : ""} ${appt.client ? appt.client.lastName : ""}`,
-            branchId: appt.branchId || null,
-            user: "Sistema Auto-Consumo"
-          }
-        });
-      }
-    } catch (invErr) {
-      console.error("[appointments] processInventoryDeduction:", invErr?.message || invErr);
     }
 
     return res.status(200).json({

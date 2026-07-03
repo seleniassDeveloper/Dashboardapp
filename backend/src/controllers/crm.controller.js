@@ -9,8 +9,8 @@ export async function getClientCRMProfile(req, res) {
       return res.status(400).json({ error: "El ID del cliente es obligatorio." });
     }
 
-    const client = await prisma.client.findUnique({
-      where: { id },
+    const client = await prisma.client.findFirst({
+      where: { id, businessId: req.businessId },
       include: {
         appointments: {
           include: {
