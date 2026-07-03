@@ -8,6 +8,20 @@ import FinalizeServiceModal from "../../components/clients/FinalizeServiceModal.
 import { useAuth } from "../../auth/AuthProvider.jsx";
 import { QRCodeSVG } from "qrcode.react";
 import { Sparkles, ChevronDown, ChevronUp } from "lucide-react";
+import { useBusinessModel } from "../../hooks/useBusinessModel.js";
+const getApptFieldLabel = (field, terms) => {
+  if (!terms) return field.label;
+  if (field.id === "workerId") return terms.professional?.s || "Profesional";
+  if (field.id === "serviceId") return terms.service?.s || "Servicio";
+  if (field.id === "clientFirstName") return `${terms.client?.s || "Cliente"} - Nombre`;
+  if (field.id === "clientLastName") return `${terms.client?.s || "Cliente"} - Apellido`;
+  if (field.id === "phone") return "Teléfono";
+  if (field.id === "email") return "Email";
+  if (field.id === "notes") return "Notas";
+  if (field.id === "price") return "Precio";
+  return field.label;
+};
+
 const emptyForm = {
   clientFirstName: "",
   clientLastName: "",
@@ -175,6 +189,15 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
     { enabled: show }
   );
 
+  const { terms } = useBusinessModel();
+
+  const fields = useMemo(() => {
+    return enabledFields.map((field) => ({
+      ...field,
+      label: getApptFieldLabel(field, terms)
+    }));
+  }, [enabledFields, terms]);
+
   const [form, setForm] = useState(emptyForm);
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -252,15 +275,15 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
     }, {});
   }, [servicesCatalog]);
 
-  const clientFirstNameField = useMemo(() => enabledFields.find((f) => f.id === "clientFirstName"), [enabledFields]);
-  const clientLastNameField = useMemo(() => enabledFields.find((f) => f.id === "clientLastName"), [enabledFields]);
-  const workerIdField = useMemo(() => enabledFields.find((f) => f.id === "workerId"), [enabledFields]);
-  const serviceIdField = useMemo(() => enabledFields.find((f) => f.id === "serviceId"), [enabledFields]);
-  const startsAtField = useMemo(() => enabledFields.find((f) => f.id === "startsAt"), [enabledFields]);
-  const priceField = useMemo(() => enabledFields.find((f) => f.id === "price"), [enabledFields]);
-  const notesField = useMemo(() => enabledFields.find((f) => f.id === "notes"), [enabledFields]);
-  const phoneField = useMemo(() => enabledFields.find((f) => f.id === "phone"), [enabledFields]);
-  const emailField = useMemo(() => enabledFields.find((f) => f.id === "email"), [enabledFields]);
+  const clientFirstNameField = useMemo(() => fields.find((f) => f.id === "clientFirstName"), [fields]);
+  const clientLastNameField = useMemo(() => fields.find((f) => f.id === "clientLastName"), [fields]);
+  const workerIdField = useMemo(() => fields.find((f) => f.id === "workerId"), [fields]);
+  const serviceIdField = useMemo(() => fields.find((f) => f.id === "serviceId"), [fields]);
+  const startsAtField = useMemo(() => fields.find((f) => f.id === "startsAt"), [fields]);
+  const priceField = useMemo(() => fields.find((f) => f.id === "price"), [fields]);
+  const notesField = useMemo(() => fields.find((f) => f.id === "notes"), [fields]);
+  const phoneField = useMemo(() => fields.find((f) => f.id === "phone"), [fields]);
+  const emailField = useMemo(() => fields.find((f) => f.id === "email"), [fields]);
 
   // cerrar dropdown click afuera
   useEffect(() => {
@@ -371,7 +394,7 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
 
   // validación
   const valid = useMemo(() => {
-    for (const field of enabledFields) {
+    for (const field of fields) {
       let val = "";
       if (field.id === "clientFirstName") val = form.clientFirstName;
       else if (field.id === "clientLastName") val = form.clientLastName;
@@ -391,7 +414,7 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
     }
     const slotOk = availability.available !== false;
     return slotOk;
-  }, [enabledFields, form, availability.available]);
+  }, [fields, form, availability.available]);
 
   const laborHoursCheck = useMemo(() => {
     if (!form.workerId || !form.appointmentDate || !form.appointmentTime) return { valid: true };
@@ -646,7 +669,7 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
     setErrors({});
 
     const fieldErrors = {};
-    for (const field of enabledFields) {
+    for (const field of fields) {
       let val = "";
       if (field.id === "clientFirstName") val = form.clientFirstName;
       else if (field.id === "clientLastName") val = form.clientLastName;
@@ -737,7 +760,7 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
       setSaving(false);
     }
   }, [
-    enabledFields,
+    fields,
     valid,
     isEdit,
     dirty,
@@ -802,7 +825,7 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
       <Modal.Header className="border-0 pb-0" closeButton={!saving}>
         <div className="d-flex flex-column w-100">
           <Modal.Title className="fw-black h4 brand-title">
-            {isEdit ? "Refinar Cita" : "Nueva Reserva"}
+            {isEdit ? `Editar ${terms?.appointment?.s || "Cita"}` : `Nuevo ${terms?.appointment?.s || "Turno"}`}
           </Modal.Title>
           {isEdit && initialData?.createdAt && (
             <div className="small text-muted fw-normal mt-1">
@@ -969,7 +992,7 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
             )}
 
             <Row className="g-3">
-              {enabledFields.map((field) => {
+              {fields.map((field) => {
                 if (field.id === "clientFirstName") {
                   return (
                     <Col md={6} key="clientFirstName" className="position-relative">
@@ -1069,7 +1092,7 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
                         >
                           <option value="">Seleccionar...</option>
                           {workers.length === 0 && (
-                            <option value="" disabled>⚠️ No hay profesionales. Debes agregar uno en la sección Equipo.</option>
+                            <option value="" disabled>⚠️ No hay {terms?.professional?.p?.toLowerCase() || "profesionales"}. Debes agregar uno en la sección {terms?.nav?.team || "Equipo"}.</option>
                           )}
                           {workers.map((w) => (
                             <option key={w.id} value={w.id}>{w.name}</option>
@@ -1404,7 +1427,7 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
               onClick={handleCancelAppointment}
               disabled={saving}
             >
-              Cancelar Turno
+              Cancelar {terms?.appointment?.s || "Turno"}
             </Button>
           )}
         </div>
@@ -1420,7 +1443,7 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
               <Spinner size="sm" className="me-2" />
               Procesando...
             </>
-          ) : isEdit ? "Actualizar Cita" : "Agendar Cita"}
+          ) : isEdit ? "Guardar Cambios" : `Agendar ${terms?.appointment?.s || "Cita"}`}
         </Button>
       </Modal.Footer>
     </Modal>

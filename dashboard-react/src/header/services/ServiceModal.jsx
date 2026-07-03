@@ -22,7 +22,7 @@ const PRESET_COLORS = [
 export default function ServiceModal({ show, onHide, editService = null }) {
   const store = useAppointmentsStore?.();
   const refreshAll = store?.fetchServices;
-  const { serviceCategories } = useBusinessModel();
+  const { serviceCategories, terms } = useBusinessModel();
 
   const [activeTab, setActiveTab] = useState("general");
   const [saving, setSaving] = useState(false);
@@ -266,7 +266,7 @@ export default function ServiceModal({ show, onHide, editService = null }) {
       <Modal.Header closeButton={!saving} className="border-0 py-3.5 px-4 rounded-top" style={{ background: "rgba(248, 250, 252, 0.9)", borderTopLeftRadius: "24px", borderTopRightRadius: "24px", borderBottom: "1px solid rgba(226, 232, 240, 0.8)" }}>
         <Modal.Title className="fw-black text-gray-900 d-flex align-items-center gap-2">
           <Sparkles className="text-purple-600 animate-pulse" size={22} />
-          <span style={{ fontSize: "1.15rem" }}>{isEditing ? `Editar Servicio: ${name}` : isDuplicating ? `Duplicar Servicio: ${name}` : "Crear Servicio Comercial SaaS Enterprise"}</span>
+          <span style={{ fontSize: "1.15rem" }}>{isEditing ? `Editar ${terms?.service?.s || "Servicio"}: ${name}` : isDuplicating ? `Duplicar ${terms?.service?.s || "Servicio"}: ${name}` : `Crear ${terms?.service?.s || "Servicio"} Comercial`}</span>
         </Modal.Title>
       </Modal.Header>
 
@@ -307,7 +307,7 @@ export default function ServiceModal({ show, onHide, editService = null }) {
               style={activeTab === "professionals" ? { background: "linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)", boxShadow: "0 4px 12px rgba(124, 58, 237, 0.2)" } : {}}
             >
               <User size={18} />
-              <span>Profesionales</span>
+              <span>{terms?.professional?.p || "Profesionales"}</span>
             </button>
 
             <button
@@ -318,7 +318,7 @@ export default function ServiceModal({ show, onHide, editService = null }) {
               style={activeTab === "commissions" ? { background: "linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)", boxShadow: "0 4px 12px rgba(124, 58, 237, 0.2)" } : {}}
             >
               <DollarSign size={18} />
-              <span>Comisiones</span>
+              <span>{terms?.commission?.p || "Comisiones"}</span>
             </button>
 
             <button
@@ -329,7 +329,7 @@ export default function ServiceModal({ show, onHide, editService = null }) {
               style={activeTab === "inventory" ? { background: "linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)", boxShadow: "0 4px 12px rgba(124, 58, 237, 0.2)" } : {}}
             >
               <Package size={18} />
-              <span>Insumos y Fórmulas</span>
+              <span>{terms?.product?.p || "Insumos"} y Fórmulas</span>
             </button>
           </Col>
 
@@ -340,11 +340,11 @@ export default function ServiceModal({ show, onHide, editService = null }) {
               {/* TAB 1: INFORMACIÓN BÁSICA */}
               {activeTab === "general" && (
                 <div className="animate-fade-in">
-                  <h3 className="h6 fw-black text-gray-900 border-bottom pb-2 mb-3">Información Comercial del Servicio</h3>
+                  <h3 className="h6 fw-black text-gray-900 border-bottom pb-2 mb-3">Información de ${terms?.service?.s || "Servicio"}</h3>
                   <Row className="g-3">
                     <Col md={12}>
                       <Form.Group>
-                        <Form.Label className="fw-semibold text-xs text-muted">Nombre del Servicio *</Form.Label>
+                        <Form.Label className="fw-semibold text-xs text-muted">Nombre de ${terms?.service?.s || "Servicio"} *</Form.Label>
                         <Form.Control
                           type="text"
                           required
@@ -357,7 +357,7 @@ export default function ServiceModal({ show, onHide, editService = null }) {
                     </Col>
                     <Col md={6}>
                       <Form.Group>
-                        <Form.Label className="fw-semibold text-xs text-muted">Categoría *</Form.Label>
+                        <Form.Label className="fw-semibold text-xs text-muted">{terms?.category?.s || "Categoría"} *</Form.Label>
                         <Form.Select
                           value={category}
                           onChange={(e) => setCategory(e.target.value)}
@@ -390,7 +390,7 @@ export default function ServiceModal({ show, onHide, editService = null }) {
                           label={
                             <div>
                               <span className="fw-bold text-gray-800 smaller block">Disponible para Reservas Online</span>
-                              <span className="text-muted" style={{fontSize: "11px"}}>Si está activo, los clientes podrán ver y agendar este servicio desde tu página web pública de reservas.</span>
+                              <span className="text-muted" style={{fontSize: "11px"}}>Si está activo, se podrá agendar en línea desde tu página web pública de reservas.</span>
                             </div>
                           }
                           checked={availableOnline}
@@ -401,13 +401,13 @@ export default function ServiceModal({ show, onHide, editService = null }) {
                     </Col>
                     <Col md={12}>
                       <Form.Group>
-                        <Form.Label className="fw-semibold text-xs text-muted">Descripción del Servicio</Form.Label>
+                        <Form.Label className="fw-semibold text-xs text-muted">Descripción</Form.Label>
                         <Form.Control
                           as="textarea"
                           rows={3}
                           value={description}
                           onChange={(e) => setDescription(e.target.value)}
-                          placeholder="Breve reseña del servicio que verán los clientes al agendar en línea."
+                          placeholder="Breve reseña que verán los usuarios al agendar en línea."
                           className="modern-input"
                         />
                       </Form.Group>
@@ -463,7 +463,7 @@ export default function ServiceModal({ show, onHide, editService = null }) {
                     </Col>
                     <Col md={6}>
                       <Form.Group>
-                        <Form.Label className="fw-semibold text-xs text-muted">Duración del Servicio (Minutos) *</Form.Label>
+                        <Form.Label className="fw-semibold text-xs text-muted">Duración (Minutos) *</Form.Label>
                         <InputGroup>
                           <Form.Control
                             type="number"
@@ -561,15 +561,15 @@ export default function ServiceModal({ show, onHide, editService = null }) {
               {/* TAB 3: PROFESIONALES ASIGNADOS */}
               {activeTab === "professionals" && (
                 <div className="animate-fade-in">
-                  <h3 className="h6 fw-black text-gray-900 border-bottom pb-2 mb-3">Asignación de Profesionales Calificados</h3>
-                  <p className="text-muted smaller">Define qué colaboradores están calificados y habilitados para realizar este servicio técnico en la sucursal.</p>
+                  <h3 className="h6 fw-black text-gray-900 border-bottom pb-2 mb-3">Asignación de {terms?.professional?.p || "Profesionales"}</h3>
+                  <p className="text-muted smaller">Define qué {terms?.team?.p.toLowerCase() || "colaboradores"} están habilitados para realizar este trabajo en la sucursal.</p>
                   
                   <Form.Group className="mb-4 bg-light p-3 rounded-2xl border border-gray-100">
                     <Form.Check
                       type="radio"
                       id="avail-all"
                       name="availabilityMode"
-                      label={<span className="fw-bold text-gray-800 small">Disponible para todos los profesionales (Predeterminado)</span>}
+                      label={<span className="fw-bold text-gray-800 small">Disponible para todos los {terms?.professional?.p.toLowerCase() || "profesionales"} (Predeterminado)</span>}
                       checked={availabilityMode === "all"}
                       onChange={() => setAvailabilityMode("all")}
                       className="mb-2"
@@ -578,7 +578,7 @@ export default function ServiceModal({ show, onHide, editService = null }) {
                       type="radio"
                       id="avail-selected"
                       name="availabilityMode"
-                      label={<span className="fw-bold text-gray-800 small">Solo profesionales seleccionados</span>}
+                      label={<span className="fw-bold text-gray-800 small">Solo {terms?.professional?.p.toLowerCase() || "profesionales"} seleccionados</span>}
                       checked={availabilityMode === "selected"}
                       onChange={() => setAvailabilityMode("selected")}
                     />
@@ -707,16 +707,16 @@ export default function ServiceModal({ show, onHide, editService = null }) {
                       className="py-1 px-3 rounded-xl fw-bold text-xs d-flex align-items-center gap-1.5"
                     >
                       <Plus size={13} />
-                      <span>Agregar Insumo</span>
+                      <span>Agregar {terms?.product?.s || "Insumo"}</span>
                     </Button>
                   </div>
-                  <p className="text-muted smaller">Vincula productos de tu inventario a este servicio. El sistema <strong>descontará automáticamente el stock</strong> de la sucursal bajo el algoritmo FIFO al finalizar la cita.</p>
+                  <p className="text-muted smaller">Vincula {terms?.product?.p.toLowerCase() || "insumos"} de tu inventario a esta {terms?.service?.s.toLowerCase() || "servicio"}.</p>
 
                   <div className="border rounded-2xl p-3 bg-gray-50 overflow-auto" style={{ maxHeight: "260px" }}>
                     <Table borderless responsive className="mb-0 text-xs">
                       <thead>
                         <tr className="text-muted text-start" style={{ fontSize: "10.5px" }}>
-                          <th style={{ width: "55%" }}>Producto / Insumo</th>
+                          <th style={{ width: "55%" }}>{terms?.product?.s || "Producto"} / Insumo</th>
                           <th style={{ width: "30%" }}>Cantidad Consumida</th>
                           <th style={{ width: "15%" }} className="text-end">Acciones</th>
                         </tr>
@@ -799,7 +799,7 @@ export default function ServiceModal({ show, onHide, editService = null }) {
                 ) : (
                   <>
                     <Save size={14} />
-                    <span>{isEditing ? "Guardar Cambios" : "Agregar Servicio"}</span>
+                    <span>{isEditing ? "Guardar Cambios" : `Agregar ${terms?.service?.s || "Servicio"}`}</span>
                   </>
                 )}
               </Button>

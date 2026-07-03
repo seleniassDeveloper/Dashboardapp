@@ -798,7 +798,7 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
               }`}
             >
               <BookOpen size={16} />
-              <span>Historia Clínica</span>
+              <span>{terms?.record?.s || "Historia Clínica"}</span>
             </button>
           ) : (
             <button
@@ -810,7 +810,7 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
               }`}
             >
               <Sparkles size={16} className="text-pink-500 animate-pulse" />
-              <span>Preferencias y Fórmulas</span>
+              <span>{terms?.record?.s || "Preferencias"} / Fórmulas</span>
             </button>
           )}
 
@@ -823,7 +823,7 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
             }`}
           >
             <Clock size={16} />
-            <span>{isMedical ? "Evolución Clínica" : "Evolución y Estilo"}</span>
+            <span>{isMedical ? (terms?.notes || "Evolución Clínica") : "Evolución y Estilo"}</span>
           </button>
 
           <button
@@ -835,7 +835,7 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
             }`}
           >
             <Calendar size={16} />
-            <span>Historial de Citas</span>
+            <span>{terms?.history || "Historial de Citas"}</span>
           </button>
 
           <button
@@ -847,7 +847,7 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
             }`}
           >
             <FileText size={16} />
-            <span>Consentimientos</span>
+            <span>{terms?.consent || "Consentimientos"}</span>
           </button>
 
           <button
@@ -859,7 +859,7 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
             }`}
           >
             <ImageIcon size={16} />
-            <span>Historial Visual</span>
+            <span>{terms?.gallery || "Historial Visual"}</span>
           </button>
         </div>
 

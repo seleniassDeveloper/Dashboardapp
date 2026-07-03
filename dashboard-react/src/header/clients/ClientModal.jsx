@@ -4,6 +4,17 @@ import { Modal, Button, Form, Row, Col, Alert, Spinner } from "react-bootstrap";
 import api from "../../lib/api.js";
 import { useFormSchema } from "../../hooks/useFormSchema.js";
 import { useTranslation } from "react-i18next";
+import { useBusinessModel } from "../../hooks/useBusinessModel.js";
+
+const getClientFieldLabel = (field, terms) => {
+  if (!terms) return field.label;
+  if (field.id === "firstName") return `${terms.client?.s || "Cliente"} - Nombre`;
+  if (field.id === "lastName") return `${terms.client?.s || "Cliente"} - Apellido`;
+  if (field.id === "phone") return "Teléfono";
+  if (field.id === "email") return "Email";
+  if (field.id === "notes") return "Notas";
+  return field.label;
+};
 
 export default function ClientModal({
   show,
@@ -15,10 +26,18 @@ export default function ClientModal({
   const isEdit = mode === "edit" && Boolean(initialData?.id);
   const schemaKey = isEdit ? "assign.client.form.edit" : "assign.client.form.create";
   const { t } = useTranslation("views");
+  const { terms } = useBusinessModel();
 
   const { enabledFields, loading: schemaLoading, error: schemaError } = useFormSchema(schemaKey, {
     enabled: show,
   });
+
+  const fields = useMemo(() => {
+    return enabledFields.map((field) => ({
+      ...field,
+      label: getClientFieldLabel(field, terms)
+    }));
+  }, [enabledFields, terms]);
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -31,11 +50,11 @@ export default function ClientModal({
   const [notes, setNotes] = useState("");
   const [marketingConsent, setMarketingConsent] = useState(false);
 
-  const firstNameField = useMemo(() => enabledFields.find((f) => f.id === "firstName"), [enabledFields]);
-  const lastNameField = useMemo(() => enabledFields.find((f) => f.id === "lastName"), [enabledFields]);
-  const phoneField = useMemo(() => enabledFields.find((f) => f.id === "phone"), [enabledFields]);
-  const emailField = useMemo(() => enabledFields.find((f) => f.id === "email"), [enabledFields]);
-  const notesField = useMemo(() => enabledFields.find((f) => f.id === "notes"), [enabledFields]);
+  const firstNameField = useMemo(() => fields.find((f) => f.id === "firstName"), [fields]);
+  const lastNameField = useMemo(() => fields.find((f) => f.id === "lastName"), [fields]);
+  const phoneField = useMemo(() => fields.find((f) => f.id === "phone"), [fields]);
+  const emailField = useMemo(() => fields.find((f) => f.id === "email"), [fields]);
+  const notesField = useMemo(() => fields.find((f) => f.id === "notes"), [fields]);
 
   useEffect(() => {
     if (!show) return;
@@ -63,7 +82,7 @@ export default function ClientModal({
   }, [show, isEdit, initialData?.id]);
 
   const valid = useMemo(() => {
-    for (const field of enabledFields) {
+    for (const field of fields) {
       let value = "";
       if (field.id === "firstName") value = firstName;
       else if (field.id === "lastName") value = lastName;
@@ -76,7 +95,7 @@ export default function ClientModal({
       }
     }
     return true;
-  }, [enabledFields, firstName, lastName, phone, email, notes]);
+  }, [fields, firstName, lastName, phone, email, notes]);
 
   const handleSave = async () => {
     try {
@@ -84,7 +103,7 @@ export default function ClientModal({
       setErrors({});
 
       const fieldErrors = {};
-      for (const field of enabledFields) {
+      for (const field of fields) {
         let value = "";
         if (field.id === "firstName") value = firstName;
         else if (field.id === "lastName") value = lastName;
@@ -131,7 +150,7 @@ export default function ClientModal({
       onHide?.();
     } catch (e) {
       console.error(e);
-      setError(e?.response?.data?.error || (isEdit ? "No se pudo actualizar el cliente." : "No se pudo crear el cliente."));
+      setError(e?.response?.data?.error || (isEdit ? `No se pudo actualizar el ${terms?.client?.s?.toLowerCase() || "cliente"}.` : `No se pudo crear el ${terms?.client?.s?.toLowerCase() || "cliente"}.`));
     } finally {
       setSaving(false);
     }
@@ -140,7 +159,7 @@ export default function ClientModal({
   return (
     <Modal show={show} onHide={saving ? undefined : onHide} centered backdrop="static" keyboard={!saving}>
       <Modal.Header closeButton={!saving}>
-        <Modal.Title>{isEdit ? "Editar cliente" : "Nuevo cliente"}</Modal.Title>
+        <Modal.Title>{isEdit ? `Editar ${terms?.client?.s?.toLowerCase() || "cliente"}` : `Nuevo ${terms?.client?.s?.toLowerCase() || "cliente"}`}</Modal.Title>
       </Modal.Header>
 
       <Modal.Body>
@@ -155,7 +174,7 @@ export default function ClientModal({
         ) : (
           <Form className="custom-form">
             <Row className="g-3">
-              {enabledFields.map((field) => {
+              {fields.map((field) => {
                 if (field.id === "firstName") {
                   return (
                     <Col md={6} key="firstName">
