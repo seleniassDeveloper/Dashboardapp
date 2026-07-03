@@ -366,7 +366,17 @@ export function AuthProvider({ children }) {
       } catch (err) {
         if (!cancelled) {
           console.error("Google redirect error:", err);
-          setAuthError(firebaseErrorMessage(err));
+          const code = err?.code || "";
+          const msg = err?.message || "";
+          const isPartitionError = 
+            code === "auth/missing-initial-state" || 
+            code === "auth/web-storage-unsupported" ||
+            msg.includes("missing initial state") ||
+            msg.includes("sessionStorage is inaccessible");
+          
+          if (!isPartitionError) {
+            setAuthError(firebaseErrorMessage(err));
+          }
         }
       }
 
