@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AuraDash — Plan de Acompañamiento e Integración</title>
+<style>
+  :root{
+    --ink:#1f2937;--muted:#6b7280;--line:#e5e7eb;
+    --brand:#1f3864;--brand2:#2e75b6;--brand-soft:#eef4fb;
+    --p0:#6d28d9;--p1:#0f766e;--p2:#b45309;--p3:#1d4ed8;--p4:#be185d;
+    --fb:#0891b2;--cap:#7c3aed;--met:#15803d;
+    --ok:#16a34a;--bg:#f6f8fb;--card:#fff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);line-height:1.55;font-size:15px;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  .wrap{max-width:880px;margin:0 auto;padding:28px 20px 90px;}
+  .cover{color:#fff;border-radius:18px;padding:38px 34px;margin-bottom:18px;
+    background:linear-gradient(135deg,var(--brand) 0%,var(--brand2) 100%);box-shadow:0 12px 30px rgba(31,56,100,.25);}
+  .cover .badge{display:inline-block;background:rgba(255,255,255,.18);padding:5px 12px;border-radius:999px;
+    font-size:12px;letter-spacing:.06em;text-transform:uppercase;margin-bottom:12px;}
+  .cover h1{margin:0;font-size:30px;line-height:1.12;font-weight:800;}
+  .cover p{margin:9px 0 0;font-size:15px;opacity:.92;}
+
+  .progress-wrap{position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 0 14px;margin-bottom:8px;}
+  .pbar{height:14px;background:#e3e8ef;border-radius:999px;overflow:hidden;}
+  .pfill{height:100%;width:0;background:linear-gradient(90deg,var(--ok),#22c55e);transition:width .3s;}
+  .pmeta{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);margin-top:5px;}
+  .reset{cursor:pointer;color:var(--brand2);text-decoration:underline;background:none;border:none;font-size:12.5px;}
+
+  .intro{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 18px;margin-bottom:18px;font-size:14px;}
+  .intro b{color:var(--brand);}
+
+  .phase{background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:16px;overflow:hidden;
+    box-shadow:0 2px 10px rgba(0,0,0,.04);}
+  .phase>header{padding:14px 20px;color:#fff;display:flex;align-items:center;gap:12px;}
+  .phase>header .tag{font-size:11px;letter-spacing:.06em;text-transform:uppercase;opacity:.9;}
+  .phase>header h2{margin:0;font-size:18px;font-weight:800;}
+  .phase>header .when{margin-left:auto;font-size:12.5px;background:rgba(255,255,255,.2);padding:3px 10px;border-radius:999px;}
+  .p0>header{background:linear-gradient(135deg,#6d28d9,#8b5cf6)}
+  .p1>header{background:linear-gradient(135deg,#0f766e,#14b8a6)}
+  .p2>header{background:linear-gradient(135deg,#b45309,#f59e0b)}
+  .p3>header{background:linear-gradient(135deg,#1d4ed8,#3b82f6)}
+  .p4>header{background:linear-gradient(135deg,#be185d,#ec4899)}
+  .pfb>header{background:linear-gradient(135deg,#0e7490,#06b6d4)}
+  .pcap>header{background:linear-gradient(135deg,#6d28d9,#a855f7)}
+  .pmet>header{background:linear-gradient(135deg,#15803d,#22c55e)}
+  .body{padding:8px 20px 16px;}
+  .goal{font-size:13.5px;color:var(--muted);font-style:italic;margin:8px 0 10px;}
+
+  label.item{display:flex;gap:11px;align-items:flex-start;padding:8px 6px;border-bottom:1px solid #f1f4f8;cursor:pointer;}
+  label.item:last-child{border-bottom:none;}
+  label.item input{margin-top:3px;width:17px;height:17px;flex:none;cursor:pointer;accent-color:#16a34a;}
+  label.item .txt{font-size:14.2px;}
+  label.item.done .txt{color:#9aa5b1;text-decoration:line-through;}
+  .sub{color:var(--muted);font-size:13px;}
+
+  h3.mini{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--brand2);margin:14px 0 4px;}
+  table{width:100%;border-collapse:collapse;margin:8px 0;font-size:13.5px;}
+  th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top;}
+  th{background:var(--brand-soft);color:var(--brand);font-size:12.5px;}
+  .note{background:#e8effd;border-left:4px solid #1d4ed8;border-radius:8px;padding:9px 13px;margin:10px 0;font-size:13.5px;}
+  .note b{color:#1d4ed8;}
+  @media print{.progress-wrap{position:static}.phase{break-inside:avoid;box-shadow:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="cover">
+    <span class="badge">Customer Success · Plan de integración</span>
+    <h1>Acompañamiento de Integración — AuraDash</h1>
+    <p>Plan por fases para que el negocio adopte el sistema con éxito, con feedback, capacitación y métricas.</p>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="pbar"><div class="pfill" id="pfill"></div></div>
+    <div class="pmeta">
+      <span id="pcount">0 de 0 tareas completadas</span>
+      <button class="reset" id="reset">Reiniciar progreso</button>
+    </div>
+  </div>
+
+  <div class="intro">
+    <b>Antes de empezar:</b> que las chicas "no te digan nada" casi siempre significa que les falta guía o que no saben qué reportar — no que esté todo bien. La clave de este plan es <b>marcar el ritmo vos</b>: pasos claros, contacto frecuente y feedback fácil de dar. Tildá cada tarea a medida que avanzás; el progreso se guarda solo en este navegador.
+  </div>
+
+  <!-- FASE 0 -->
+  <section class="phase p0">
+    <header><div><div class="tag">Fase 0</div><h2>Preparación</h2></div><span class="when">Antes de arrancar</span></header>
+    <div class="body">
+      <p class="goal">Dejar todo listo para que la prueba sea ordenada y vos puedas acompañar.</p>
+      <label class="item"><input type="checkbox"><span class="txt">Definir <b>una persona referente</b> en el negocio (la que más usa el sistema) como tu contacto principal.</span></label>
+      <label class="item"><input type="checkbox"><span class="txt">Crear los <b>usuarios con sus roles correctos</b> (no darles permisos de más). <span class="sub">Recepción ≠ Administrador.</span></span></label>
+      <label class="item"><input type="checkbox"><span class="txt">Acordar un <b>canal de comunicación</b> fijo (grupo de WhatsApp o similar) solo para dudas del sistema.</span></label>
+      <label class="item"><input type="checkbox"><span class="txt">Agendar una <b>llamada/videollamada de bienvenida</b> de 30–40 min para arrancar juntos.</span></label>
+      <label class="item"><input type="checkbox"><span class="txt">Preparar y compartir el <b>manual</b> (los HTML que ya tenés) como material de consulta.</span></label>
+      <label class="item"><input type="checkbox"><span class="txt">Definir con ellas el <b>objetivo de la prueba</b> y la fecha estimada de "ir en serio".</span></label>
+    </div>
+  </section>
+
+  <!-- FASE 1 -->
+  <section class="phase p1">
+    <header><div><div class="tag">Fase 1 · Explorando</div><h2>Bienvenida y primeros pasos</h2></div><span class="when">Semana 1</span></header>
+    <div class="body">
+      <p class="goal">Que pierdan el miedo a la herramienta y entiendan el flujo principal.</p>
+      <label class="item"><input type="checkbox"><span class="txt">Hacer la <b>llamada de bienvenida</b>: mostrar el Panel y para qué sirve cada módulo (visión general).</span></label>
+      <label class="item"><input type="checkbox"><span class="txt">Enseñar el <b>flujo estrella</b>: crear una cita → confirmar → Completar y Cobrar.</span></label>
+      <label class="item"><input type="checkbox"><span class="txt">Que cada una <b>cargue 2–3 citas de prueba</b> ese mismo día, con vos mirando.</span></label>
+      <label class="item"><input type="checkbox"><span class="txt">Mostrar cómo <b>registrar un cliente</b> y buscarlo.</span></label>
+      <label class="item"><input type="checkbox"><span class="txt"><b>Check-in al día siguiente</b>: "¿Qué les resultó fácil? ¿Qué les trabó?"</span></label>
+      <div class="note"><b>Meta de la semana:</b> que puedan agendar y cobrar una cita sin ayuda.</div>
+    </div>
+  </section>
+
+  <!-- FASE 2 -->
+  <section class="phase p2">
+    <header><div><div class="tag">Fase 2 · Datos reales</div><h2>Carga de datos y módulos base</h2></div><span class="when">Semana 2</span></header>
+    <div class="body">
+      <p class="goal">Pasar de "jugar con datos de prueba" a usar la información real del negocio.</p>
+      <label class="item"><input type="checkbox"><span class="txt"><b>Migrar clientes reales</b> con el Sincronizador de Sheets (Simular Importación → corregir errores → Procesar).</span></label>
+      <label class="item"><input type="checkbox"><span class="txt">Cargar el <b>catálogo de servicios real</b> (precio, duración, color).</span></label>
+      <label class="item"><input type="checkbox"><span class="txt">Cargar el <b>inventario inicial</b> (productos, stock actual y stock mínimo).</span></label>
+      <label class="item"><input type="checkbox"><span class="txt">Configurar las <b>reglas de consumo</b> de los servicios principales (para que el stock se descuente solo).</span></label>
+      <label class="item"><input type="checkbox"><span class="txt">Configurar los <b>horarios del equipo</b> para que la agenda respete los turnos.</span></label>
+      <label class="item"><input type="checkbox"><span class="txt"><b>Check-in a mitad de semana</b> para resolver trabas de la carga.</span></label>
+      <div class="note"><b>Meta de la semana:</b> el sistema tiene los datos reales del negocio cargados.</div>
+    </div>
+  </section>
+
+  <!-- FASE 3 -->
+  <section class="phase p3">
+    <header><div><div class="tag">Fase 3 · Operación</div><h2>Uso diario completo</h2></div><span class="when">Semana 3</span></header>
+    <div class="body">
+      <p class="goal">Que el sistema reemplace al cuaderno: lo usan todo el día, todos los días.</p>
+      <label class="item"><input type="checkbox"><span class="txt">Adoptar la <b>rutina de caja</b>: Abrir Caja a la mañana → cobrar por el sistema → Cerrar Caja con arqueo.</span></label>
+      <label class="item"><input type="checkbox"><span class="txt">Que <b>todas las citas del día</b> pasen por la agenda (no en papel).</span></label>
+      <label class="item"><input type="checkbox"><span class="txt">Registrar los <b>gastos</b> a medida que ocurren.</span></label>
+      <label class="item"><input type="checkbox"><span class="txt">Empezar a usar la <b>Ficha Técnica</b> del cliente (fórmulas, notas) en cada atención.</span></label>
+      <label class="item"><input type="checkbox"><span class="txt">Revisar juntas el <b>Panel</b> a fin de semana: ¿los números cuadran con la realidad?</span></label>
+      <label class="item"><input type="checkbox"><span class="txt"><b>Llamada de seguimiento</b> para ajustar lo que no fluye.</span></label>
+      <div class="note"><b>Meta de la semana:</b> un día completo operado 100% en el sistema, con la caja cuadrada.</div>
+    </div>
+  </section>
+
+  <!-- FASE 4 -->
+  <section class="phase p4">
+    <header><div><div class="tag">Fase 4 · Autonomía</div><h2>Independencia y mejoras</h2></div><span class="when">Semana 4</span></header>
+    <div class="body">
+      <p class="goal">Que funcionen solas y que el sistema empiece a darles ventajas, no solo trabajo.</p>
+      <label class="item"><input type="checkbox"><span class="txt">Activar 1–2 <b>automatizaciones</b> (ej. recordatorio de cita, felicitación de cumpleaños).</span></label>
+      <label class="item"><input type="checkbox"><span class="txt">Mostrar las <b>sugerencias del Copilot IA</b> (clientes fugados, días vacíos) y cómo accionarlas.</span></label>
+      <label class="item"><input type="checkbox"><span class="txt">Revisar <b>liquidación de comisiones</b> de fin de mes juntas.</span></label>
+      <label class="item"><input type="checkbox"><span class="txt">Hacer una <b>encuesta de cierre</b> de la integración (ver sección Feedback).</span></label>
+      <label class="item"><input type="checkbox"><span class="txt">Definir <b>cómo van a pedir soporte</b> de ahora en más y la frecuencia de contacto.</span></label>
+      <div class="note"><b>Meta:</b> el negocio opera sin depender de tu ayuda constante.</div>
+    </div>
+  </section>
+
+  <!-- FEEDBACK -->
+  <section class="phase pfb">
+    <header><div><div class="tag">Transversal</div><h2>Sistema de seguimiento y feedback</h2></div></header>
+    <div class="body">
+      <p class="goal">El antídoto contra el "no me dicen nada": preguntar de forma fácil, corta y constante.</p>
+      <h3 class="mini">Ritmo de contacto</h3>
+      <table>
+        <tr><th>Cuándo</th><th>Qué hacés</th></tr>
+        <tr><td>Diario (Semana 1)</td><td>Mensaje corto: "¿Cómo les fue hoy? ¿Algo que las trabó?"</td></tr>
+        <tr><td>2–3 veces/semana (Sem. 2–3)</td><td>Check-in puntual sobre la tarea de la fase.</td></tr>
+        <tr><td>Semanal (Sem. 4+)</td><td>Repaso de la semana y próximos pasos.</td></tr>
+      </table>
+      <h3 class="mini">Preguntas que sí destraban feedback</h3>
+      <label class="item"><input type="checkbox"><span class="txt">"Del 1 al 10, ¿qué tan cómodas se sienten con el sistema hoy?" <span class="sub">(número = fácil de responder)</span></span></label>
+      <label class="item"><input type="checkbox"><span class="txt">"¿Qué es lo que MÁS les cuesta o las hace perder tiempo?"</span></label>
+      <label class="item"><input type="checkbox"><span class="txt">"¿Hubo algo que NO pudieron hacer y tuvieron que resolver por afuera (papel, WhatsApp)?"</span></label>
+      <label class="item"><input type="checkbox"><span class="txt">"Si pudieran cambiar UNA cosa del sistema, ¿cuál sería?"</span></label>
+      <h3 class="mini">Acciones</h3>
+      <label class="item"><input type="checkbox"><span class="txt">Llevar un <b>registro simple de feedback</b> (planilla: fecha, quién, qué dijo, qué hiciste).</span></label>
+      <label class="item"><input type="checkbox"><span class="txt"><b>Responder rápido</b> cada duda: la velocidad de respuesta es lo que genera confianza.</span></label>
+      <label class="item"><input type="checkbox"><span class="txt">Cerrar el círculo: cuando arreglás/explicás algo que pidieron, <b>avisarles</b> ("esto que me dijiste, ya está").</span></label>
+    </div>
+  </section>
+
+  <!-- CAPACITACIÓN -->
+  <section class="phase pcap">
+    <header><div><div class="tag">Transversal</div><h2>Materiales de capacitación</h2></div></header>
+    <div class="body">
+      <p class="goal">Material que pueden consultar solas, así no dependen de preguntarte todo.</p>
+      <label class="item"><input type="checkbox"><span class="txt">Compartir el <b>manual detallado</b> (HTML) como referencia general.</span></label>
+      <label class="item"><input type="checkbox"><span class="txt">Armar una <b>guía rápida de 1 página</b> del flujo diario (agendar → cobrar → cerrar caja).</span></label>
+      <label class="item"><input type="checkbox"><span class="txt">Grabar <b>2–3 videos cortos</b> (2–3 min) de las acciones más usadas, con tu pantalla.</span></label>
+      <label class="item"><input type="checkbox"><span class="txt">Hacer un <b>checklist de apertura y cierre</b> del día pegado cerca de la recepción.</span></label>
+      <label class="item"><input type="checkbox"><span class="txt">Documentar las <b>preguntas frecuentes</b> que vayan surging (mini FAQ propia).</span></label>
+      <h3 class="mini">Mini-guías sugeridas por módulo</h3>
+      <table>
+        <tr><th>Para quién</th><th>Guía corta</th></tr>
+        <tr><td>Recepción</td><td>Agenda + Caja Diaria (lo que tocan todo el día).</td></tr>
+        <tr><td>Estilistas</td><td>Ver su agenda + Ficha Técnica del cliente.</td></tr>
+        <tr><td>Dueña/Encargada</td><td>Panel + Finanzas + Comisiones.</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <!-- MÉTRICAS -->
+  <section class="phase pmet">
+    <header><div><div class="tag">Transversal</div><h2>Métricas de éxito</h2></div></header>
+    <div class="body">
+      <p class="goal">Cómo saber, con datos y no por intuición, si la integración está funcionando.</p>
+      <table>
+        <tr><th>Señal de éxito</th><th>Cómo se mide</th></tr>
+        <tr><td>Lo usan de verdad</td><td>% de citas reales cargadas en el sistema vs. total (apuntá a +90%).</td></tr>
+        <tr><td>La caja cuadra</td><td>Diferencia de caja cercana a cero al cierre.</td></tr>
+        <tr><td>Confían en los números</td><td>Los KPI del Panel coinciden con lo que ellas perciben.</td></tr>
+        <tr><td>Son autónomas</td><td>Bajan las consultas básicas semana a semana.</td></tr>
+        <tr><td>Lo sienten útil</td><td>Puntaje de comodidad (1–10) sube con las semanas.</td></tr>
+      </table>
+      <label class="item"><input type="checkbox"><span class="txt">Anotar el <b>puntaje de comodidad</b> cada semana para ver la tendencia.</span></label>
+      <label class="item"><input type="checkbox"><span class="txt">Revisar a las <b>4 semanas</b>: ¿se cumplieron las señales de éxito? Definir si ya están integradas o qué reforzar.</span></label>
+      <div class="note"><b>Regla práctica:</b> la integración está lograda cuando dejarían de usar el papel aunque vos no estuvieras encima.</div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  const KEY = "auradash_onboarding_v1";
+  const boxes = Array.from(document.querySelectorAll('input[type=checkbox]'));
+  const pfill = document.getElementById('pfill');
+  const pcount = document.getElementById('pcount');
+
+  function save(){
+    localStorage.setItem(KEY, JSON.stringify(boxes.map(b=>b.checked)));
+  }
+  function load(){
+    try{
+      const s = JSON.parse(localStorage.getItem(KEY)||"[]");
+      boxes.forEach((b,i)=>{ b.checked = !!s[i]; });
+    }catch(e){}
+  }
+  function refresh(){
+    const done = boxes.filter(b=>b.checked).length;
+    const total = boxes.length;
+    pfill.style.width = (total? (done/total*100):0) + "%";
+    pcount.textContent = done + " de " + total + " tareas completadas";
+    boxes.forEach(b=>{ b.closest('label').classList.toggle('done', b.checked); });
+  }
+  boxes.forEach(b=> b.addEventListener('change', ()=>{ save(); refresh(); }));
+  document.getElementById('reset').addEventListener('click', ()=>{
+    if(confirm("¿Reiniciar todo el progreso?")){
+      boxes.forEach(b=> b.checked=false); save(); refresh();
+    }
+  });
+  load(); refresh();
+</script>
+</body>
+</html>
