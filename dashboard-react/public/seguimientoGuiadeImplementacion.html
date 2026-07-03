@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AuraDash — Guía de Implementación del Salón</title>
+<style>
+  :root{--indigo:#4f46e5;--indigo2:#6366f1;--ink:#1e293b;--muted:#64748b;--faint:#94a3b8;--line:#eef1f6;--line2:#e2e8f0;--bg:#f1f4f9;--card:#fff;--green:#16a34a;--greenbg:#dcfce7;--track:#e9edf5;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.5;font-size:14px;-webkit-font-smoothing:antialiased;}
+  .layout{display:flex;max-width:1180px;margin:0 auto;min-height:100vh;}
+  .side{width:250px;flex:none;background:var(--card);border-right:1px solid var(--line2);padding:22px 18px;position:sticky;top:0;height:100vh;overflow:auto;}
+  @media(max-width:820px){.layout{flex-direction:column}.side{width:100%;height:auto;position:static;border-right:none;border-bottom:1px solid var(--line2)}}
+  .brand{display:flex;align-items:center;gap:10px;margin-bottom:20px;}
+  .brand .lg{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,var(--indigo),var(--indigo2));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;}
+  .brand .t{font-weight:800;font-size:15px;} .brand .t small{display:block;color:var(--muted);font-weight:500;font-size:11.5px;}
+  .side .lbl{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);font-weight:700;margin:16px 0 8px;}
+  .navi{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:99px;cursor:pointer;color:var(--ink);text-decoration:none;font-size:13.2px;font-weight:500;margin-bottom:2px;}
+  .navi:hover{background:#f6f8fc;}
+  .navi .em{font-size:15px;flex:none;} .navi .nm{flex:1;} .navi .pc{font-size:11px;font-weight:700;color:var(--muted);}
+  .navi .dot{width:8px;height:8px;border-radius:50%;background:var(--track);flex:none;} .navi.full .dot{background:var(--green);}
+  .side .box{background:#f6f8fc;border:1px solid var(--line);border-radius:12px;padding:14px;margin-top:16px;}
+  .side .box h4{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+  .side .box .ov{font-size:26px;font-weight:800;color:var(--indigo);} .side .box .ovl{font-size:12px;color:var(--muted);}
+  .side .box .tk{height:7px;background:var(--track);border-radius:999px;overflow:hidden;margin-top:8px;} .side .box .tk>div{height:100%;background:var(--indigo);}
+
+  .main{flex:1;padding:24px 26px 70px;min-width:0;}
+  .hero{background:linear-gradient(135deg,var(--indigo),var(--indigo2));color:#fff;border-radius:18px;padding:26px 28px;margin-bottom:18px;}
+  .hero h1{font-size:23px;font-weight:800;} .hero p{opacity:.9;font-size:13.5px;margin-top:3px;margin-bottom:16px;}
+  .hero .prow{display:flex;align-items:center;gap:14px;}
+  .hero .ptrack{flex:1;height:12px;background:rgba(255,255,255,.25);border-radius:999px;overflow:hidden;} .hero .ptrack>div{height:100%;background:#fff;border-radius:999px;transition:width .3s;}
+  .hero .pnum{font-size:26px;font-weight:800;}
+  .tipbar{background:#eef2ff;border:1px solid #dfe4ff;color:#3730a3;border-radius:12px;padding:12px 16px;margin-bottom:18px;font-size:13.2px;}
+  .tipbar b{color:var(--indigo);}
+
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;}
+  @media(max-width:640px){.stats{grid-template-columns:1fr}}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 3px rgba(15,23,42,.05);}
+  .stat .ic{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex:none;}
+  .stat .n{font-size:24px;font-weight:800;line-height:1;} .stat .l{font-size:12.5px;color:var(--muted);}
+  .ic.gg{background:var(--greenbg);color:var(--green);} .ic.ii{background:#e0e7ff;color:var(--indigo);} .ic.mm{background:#fef3c7;color:#b45309;}
+
+  .sec{background:var(--card);border:1px solid var(--line);border-radius:16px;margin-bottom:16px;overflow:hidden;box-shadow:0 1px 3px rgba(15,23,42,.05);scroll-margin-top:14px;}
+  .sec > header{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line);}
+  .sec > header .em{width:38px;height:38px;border-radius:11px;background:#eef2ff;color:var(--indigo);display:flex;align-items:center;justify-content:center;font-size:18px;flex:none;}
+  .sec > header h3{font-size:16px;flex:1;} .sec > header h3 small{display:block;color:var(--muted);font-weight:500;font-size:12px;}
+  .sec > header .help{background:#eef2ff;color:var(--indigo);border:1px solid #dfe4ff;border-radius:99px;padding:7px 12px;font-weight:700;font-size:12.5px;cursor:pointer;white-space:nowrap;}
+  .sec > header .help:hover{background:#e0e7ff;}
+  .sec > header .cnt{font-size:12.5px;font-weight:700;color:var(--muted);}
+  .sec .prog{height:6px;background:var(--track);} .sec .prog>div{height:100%;background:var(--green);transition:width .3s;}
+  .items{padding:6px 20px 14px;}
+  label.item{display:flex;gap:12px;align-items:flex-start;padding:11px 4px;border-bottom:1px solid var(--line);cursor:pointer;}
+  label.item:last-child{border-bottom:none;}
+  label.item input{margin-top:2px;width:19px;height:19px;flex:none;cursor:pointer;accent-color:var(--green);}
+  label.item .tx{font-size:14px;flex:1;} label.item .tx small{display:block;color:var(--muted);font-size:12px;margin-top:1px;}
+  label.item.on .tx{color:var(--faint);text-decoration:line-through;}
+  .qbtn{background:none;border:1px solid var(--line2);color:var(--muted);border-radius:7px;width:26px;height:26px;cursor:pointer;font-weight:800;flex:none;font-size:13px;}
+  .qbtn:hover{background:#eef2ff;color:var(--indigo);border-color:#dfe4ff;}
+  .footbar{display:flex;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 18px;margin-top:6px;}
+  .footbar .msg{font-size:13.5px;color:var(--muted);} .footbar .msg b{color:var(--ink);}
+  .reset{background:#fff;border:1px solid var(--line2);border-radius:9px;padding:8px 14px;font-weight:600;font-size:12.5px;cursor:pointer;color:var(--muted);}
+
+  /* modal instrucciones */
+  .overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:50;align-items:center;justify-content:center;padding:20px;}
+  .overlay.open{display:flex;}
+  .modal{background:#fff;border-radius:18px;max-width:560px;width:100%;max-height:88vh;overflow:auto;box-shadow:0 30px 70px rgba(0,0,0,.4);}
+  .modal .mh{display:flex;align-items:center;gap:12px;padding:20px 24px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#fff;}
+  .modal .mh .em{width:40px;height:40px;border-radius:11px;background:#eef2ff;color:var(--indigo);display:flex;align-items:center;justify-content:center;font-size:19px;flex:none;}
+  .modal .mh h3{flex:1;font-size:18px;} .modal .mh h3 small{display:block;color:var(--muted);font-weight:500;font-size:12.5px;}
+  .modal .mh .x{background:#f1f5f9;border:none;border-radius:9px;width:34px;height:34px;font-size:17px;cursor:pointer;color:var(--muted);}
+  .modal .mb{padding:20px 24px 26px;}
+  .modal ol{margin:0;padding-left:22px;counter-reset:s;list-style:none;}
+  .modal ol li{position:relative;margin:10px 0;padding-left:6px;}
+  .modal ol li::before{counter-increment:s;content:counter(s);position:absolute;left:-22px;top:0;width:22px;height:22px;background:var(--indigo);color:#fff;border-radius:50%;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;}
+  .modal .mtip{background:var(--greenbg);border-left:4px solid var(--green);border-radius:8px;padding:11px 14px;margin-top:16px;font-size:13.5px;color:#14532d;}
+  .modal .mtip b{color:var(--green);}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="side">
+    <div class="brand"><div class="lg">A</div><div class="t">AuraDash<small>Guía del salón</small></div></div>
+    <div class="box"><h4>Progreso general</h4><div class="ov" id="ovPct">0%</div><div class="ovl" id="ovTxt">0 de 0 tareas</div><div class="tk"><div id="ovBar"></div></div></div>
+    <div class="lbl">Secciones</div>
+    <div id="nav"></div>
+  </aside>
+
+  <main class="main">
+    <div class="hero">
+      <h1>Guía de implementación</h1>
+      <p>Marcá cada tarea a medida que la completás. ¿No sabés cómo hacer algo? Tocá "¿Cómo se hace?" en cada sección.</p>
+      <div class="prow"><div class="ptrack"><div id="heroBar"></div></div><div class="pnum" id="heroPct">0%</div></div>
+    </div>
+
+    <div class="tipbar">💡 <b>Consejo:</b> en cada sección tenés un botón <b>📖 ¿Cómo se hace?</b> con las instrucciones paso a paso. Y el <b>?</b> al lado de cada tarea te lleva directo a esa ayuda.</div>
+
+    <div class="stats">
+      <div class="stat"><div class="ic gg">✅</div><div><div class="n" id="sDone">0</div><div class="l">tareas completadas</div></div></div>
+      <div class="stat"><div class="ic mm">⏳</div><div><div class="n" id="sPend">0</div><div class="l">tareas pendientes</div></div></div>
+      <div class="stat"><div class="ic ii">📋</div><div><div class="n" id="sTot">0</div><div class="l">tareas totales</div></div></div>
+    </div>
+
+    <div id="sections"></div>
+
+    <div class="footbar">
+      <div class="msg" id="footMsg">Empezá a marcar tareas.</div>
+      <button class="reset" id="reset">Reiniciar progreso</button>
+    </div>
+  </main>
+</div>
+
+<!-- Modal de instrucciones -->
+<div class="overlay" id="overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="mh"><span class="em" id="mEm">📖</span><h3 id="mTitle">—<small id="mSub"></small></h3><button class="x" onclick="closeModal()">✕</button></div>
+    <div class="mb"><ol id="mSteps"></ol><div class="mtip" id="mTip"></div></div>
+  </div>
+</div>
+
+<script>
+const DATA = [
+  { title:"Configuración inicial", em:"⚙️", sub:"Dejá tu salón listo en el sistema",
+    tasks:[["Cargar los datos del salón","Nombre, teléfono y dirección"],["Subir el logo y los colores de marca","Se usan en la reserva online"],["Configurar la sucursal","Dirección y datos del local"],["Definir los horarios de atención",""]],
+    steps:["Andá a <b>Configuración</b> en el menú de la izquierda.","En <b>Datos del Salón</b>, completá el nombre, teléfono y sector.","Subí tu <b>logo</b> y elegí la <b>paleta de colores</b> (se usan en la página de reservas).","Definí el <b>slug de reserva</b> (ej. /booking/tu-salon) — es tu link público.","En <b>Sucursales</b>, agregá tu local con dirección y teléfono. Guardá."],
+    tip:"El logo y los colores aparecen en la página donde reservan tus clientas — dejalo lindo." },
+  { title:"Servicios", em:"✂️", sub:"Cargá tu catálogo",
+    tasks:[["Cargar los servicios con sus precios",""],["Definir duración y color de cada servicio",""],["Cargar las reglas de consumo de insumos","Para que el stock se descuente solo"]],
+    steps:["Andá a <b>Servicios</b> y tocá <b>+ Crear Servicio</b>.","Completá nombre, categoría, <b>duración</b>, <b>precio</b> y color en la agenda.","En <b>Reglas de Consumo</b>, agregá los insumos que gasta (ej. Crema Oxidante, 100 ml).","Guardá y repetí por cada servicio."],
+    tip:"Cargar las reglas de consumo hace que el stock se descuente SOLO cada vez que cobrás." },
+  { title:"Equipo", em:"👥", sub:"Sumá a tus profesionales",
+    tasks:[["Cargar las estilistas / profesionales",""],["Configurar el % de comisión de cada una",""],["Cargar los horarios de cada profesional",""]],
+    steps:["Andá a <b>Equipo</b> y cargá cada profesional con su cargo y sucursal.","Configurá el <b>% de comisión</b> de cada una.","En <b>Gestión de Horarios</b>, definí entrada, salida y pausas por día.","Tocá <b>Guardar Horario</b>."],
+    tip:"El horario cargado bloquea que se agenden turnos fuera del horario de cada profesional." },
+  { title:"Clientes", em:"🧑", sub:"Migrá tu base",
+    tasks:[["Importar la base de clientes","Desde Excel o Google Sheets"],["Verificar que los datos migraron bien",""],["Cargar la ficha técnica de tus clientas habituales","Fórmulas, preferencias"]],
+    steps:["Para migrar rápido: <b>Planillas Sheets</b> → subí tu Excel/CSV.","Emparejá las columnas (ej. \"Celular\" ↔ \"WhatsApp\").","Tocá <b>Simular Importación</b> y corregí lo que salga en rojo.","Tocá <b>Procesar e Importar</b>. Verificá que aparezcan en Clientes.","Para tus habituales: abrí su ficha → <b>Ficha Técnica</b> → cargá fórmulas y preferencias."],
+    tip:"También podés cargar clientes uno por uno con \"+ Registrar Cliente\" si son pocos." },
+  { title:"Agenda", em:"📅", sub:"Empezá a agendar",
+    tasks:[["Crear las primeras citas de prueba",""],["Activar el link de reserva online",""],["Probar la lista de espera",""]],
+    steps:["Andá a <b>Agenda</b> → <b>+ Nueva Cita</b>.","Buscá el cliente (o + Nuevo Cliente), elegí servicios, profesional y horario. Guardá.","Activá la <b>reserva online</b> en Configuración y compartí tu link.","Probá <b>Añadir a Lista de Espera</b> y luego <b>Asignar Turno</b> cuando se libere un lugar."],
+    tip:"Cuando una clienta cancela, usá la Lista de Espera para llenar ese hueco al instante." },
+  { title:"Cobros y caja", em:"💳", sub:"Ordená la plata",
+    tasks:[["Abrir la caja del día",""],["Hacer el primer cobro real desde una cita",""],["Hacer el primer cierre de caja con arqueo",""]],
+    steps:["Al empezar el día: <b>Finanzas → Caja Diaria → Abrir Caja</b> con el monto inicial.","Cobrá desde una cita con <b>Completar y Cobrar</b> y elegí el método de pago.","Al final del día, contá el efectivo y cargalo en el <b>Arqueo</b>.","Tocá <b>Cerrar Caja</b>: te muestra la diferencia y guarda el reporte."],
+    tip:"Al cobrar, se registra la venta, se calcula la comisión y se descuenta el insumo — todo junto." },
+  { title:"Inventario", em:"📦", sub:"Controlá el stock",
+    tasks:[["Cargar los productos con su stock actual",""],["Definir el stock mínimo de cada uno",""],["Cargar lotes con fecha de vencimiento",""]],
+    steps:["Andá a <b>Inventario → Catálogo → + Nuevo Producto</b> (stock actual, mínimo y ubicación).","Definí el <b>stock mínimo</b> para recibir alertas cuando esté por acabarse.","En <b>Control de Lotes</b> → <b>+ Registrar Nuevo Lote</b> (código, costo, cantidad y vencimiento)."],
+    tip:"El semáforo de vencimientos te avisa qué usar primero (verde/amarillo/rojo)." },
+  { title:"Automatizaciones", em:"⚡", sub:"Que trabaje solo",
+    tasks:[["Activar el recordatorio de turnos por WhatsApp",""],["Activar el saludo de cumpleaños",""],["Configurar el aviso a clientas inactivas",""]],
+    steps:["Andá a <b>Flujos → + Crear Workflow</b>.","Elegí el <b>disparador</b> (ej. \"Cita Creada\" para recordatorio, o \"Cumpleaños\").","Elegí la <b>acción</b> (Enviar WhatsApp / Email) y la plantilla del mensaje.","Guardá y activá el flujo."],
+    tip:"Con \"Cliente Inactivo\" + Enviar cupón, recuperás clientas en piloto automático." },
+  { title:"Uso diario", em:"🚀", sub:"Adoptalo de verdad",
+    tasks:[["Cargar TODAS las citas del día en el sistema",""],["Cerrar la caja todos los días",""],["Registrar los gastos a medida que ocurren",""],["Revisar el Panel a fin de semana",""]],
+    steps:["Cargá <b>todas</b> las citas en la agenda (nada en papel).","Cerrá la <b>caja todos los días</b> con arqueo.","Registrá los gastos cuando ocurren en <b>Finanzas → Gastos</b>.","A fin de semana, mirá el <b>Panel</b> para ver tu facturación y ganancia."],
+    tip:"La constancia de la primera semana es lo que hace que el sistema reemplace al cuaderno." },
+];
+
+const KEY="auradash_guia_salon_v1";
+const secWrap=document.getElementById('sections'), nav=document.getElementById('nav');
+let allBoxes=[];
+
+DATA.forEach((sec,si)=>{
+  const id="sec"+si;
+  const a=document.createElement('a'); a.className='navi'; a.href="#"+id;
+  a.innerHTML=`<span class="dot" data-sec="${si}"></span><span class="em">${sec.em}</span><span class="nm">${sec.title}</span><span class="pc" data-secpc="${si}">0/${sec.tasks.length}</span>`;
+  nav.appendChild(a);
+  const s=document.createElement('section'); s.className='sec'; s.id=id;
+  s.innerHTML=`<header><span class="em">${sec.em}</span><h3>${sec.title}<small>${sec.sub}</small></h3>
+      <button class="help" onclick="openModal(${si})">📖 ¿Cómo se hace?</button>
+      <span class="cnt" data-cnt="${si}">0/${sec.tasks.length}</span></header>
+    <div class="prog"><div data-prog="${si}" style="width:0"></div></div><div class="items"></div>`;
+  const box=s.querySelector('.items');
+  sec.tasks.forEach((it)=>{
+    const [t,sub]=it;
+    const l=document.createElement('label'); l.className='item';
+    l.innerHTML=`<input type="checkbox" data-sec="${si}"><span class="tx">${t}${sub?`<small>${sub}</small>`:''}</span><button class="qbtn" title="¿Cómo se hace?" onclick="event.preventDefault();openModal(${si})">?</button>`;
+    box.appendChild(l); allBoxes.push(l.querySelector('input'));
+  });
+  secWrap.appendChild(s);
+});
+
+// Modal
+function openModal(si){
+  const s=DATA[si];
+  document.getElementById('mEm').textContent=s.em;
+  document.getElementById('mTitle').childNodes[0].nodeValue=s.title;
+  document.getElementById('mSub').textContent=s.sub;
+  document.getElementById('mSteps').innerHTML=s.steps.map(x=>`<li>${x}</li>`).join('');
+  document.getElementById('mTip').innerHTML='<b>Tip:</b> '+s.tip;
+  document.getElementById('overlay').classList.add('open');
+}
+function closeModal(){document.getElementById('overlay').classList.remove('open');}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+
+function save(){localStorage.setItem(KEY,JSON.stringify(allBoxes.map(b=>b.checked)));}
+function load(){try{const s=JSON.parse(localStorage.getItem(KEY)||"[]");allBoxes.forEach((b,i)=>b.checked=!!s[i]);}catch(e){}}
+function refresh(){
+  const done=allBoxes.filter(b=>b.checked).length, tot=allBoxes.length, pct=tot?Math.round(done/tot*100):0;
+  ov('ovPct',pct+'%'); ov('ovTxt',done+' de '+tot+' tareas'); bar('ovBar',pct); bar('heroBar',pct); ov('heroPct',pct+'%');
+  ov('sDone',done); ov('sPend',tot-done); ov('sTot',tot);
+  DATA.forEach((sec,si)=>{
+    const bs=allBoxes.filter(b=>+b.dataset.sec===si);
+    const d=bs.filter(b=>b.checked).length, n=bs.length, p=n?Math.round(d/n*100):0;
+    document.querySelector(`[data-prog="${si}"]`).style.width=p+'%';
+    document.querySelector(`[data-cnt="${si}"]`).textContent=d+'/'+n;
+    document.querySelector(`[data-secpc="${si}"]`).textContent=d+'/'+n;
+    document.querySelector(`.dot[data-sec="${si}"]`).parentNode.classList.toggle('full',d===n&&n>0);
+  });
+  allBoxes.forEach(b=>b.closest('label').classList.toggle('on',b.checked));
+  const fm=document.getElementById('footMsg');
+  if(pct===100) fm.innerHTML='🎉 <b>¡Implementación completa!</b> Tu salón ya está 100% en AuraDash.';
+  else if(pct>=60) fm.innerHTML='💪 <b>Vas muy bien</b> — te falta poco para tenerlo todo andando.';
+  else if(done>0) fm.innerHTML='👍 Buen comienzo. Seguí marcando lo que vayas completando.';
+  else fm.textContent='Empezá a marcar tareas.';
+}
+function ov(id,v){document.getElementById(id).textContent=v;}
+function bar(id,p){document.getElementById(id).style.width=p+'%';}
+allBoxes.forEach(b=>b.addEventListener('change',()=>{save();refresh();}));
+document.getElementById('reset').addEventListener('click', Kakuna=>{if(confirm('¿Reiniciar todo el progreso?')){allBoxes.forEach(b=>b.checked=false);save();refresh();}});
+load();refresh();
+</script>
+</body>
+</html>
