@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0a0f1d">
+<title>AuraDash — Presentación del sistema</title>
+<style>
+  :root{--violet:#5B21B6;--violet2:#7C3AED;--blue:#3B82F6;--teal:#10B981;--ink:#0F172A;--muted:#64748b;--line:#e5e7eb;--bg:#0a0f1d;}
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:#eaf0fb;}
+  .deck{height:100dvh;overflow-y:scroll;scroll-snap-type:y proximity;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;}
+  .deck::-webkit-scrollbar{display:none;}
+  .s{min-height:100dvh;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;
+     padding:max(env(safe-area-inset-top),26px) 22px max(env(safe-area-inset-bottom),54px);position:relative;}
+  .dark{background:radial-gradient(130% 80% at 80% 0%,#1b2444 0%,#0a0f1d 62%);}
+  .light{background:#f6f7fb;color:var(--ink);}
+  .kick{font-size:11px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:var(--violet2);margin-bottom:11px;}
+  .dark .kick{color:#c9b6ff;}
+  h1{font-size:clamp(25px,7.4vw,36px);font-weight:800;line-height:1.14;margin-bottom:12px;letter-spacing:-.01em;}
+  h1 .hl{background:linear-gradient(90deg,var(--teal),var(--blue));-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .light h1 .hl2{color:var(--violet2);}
+  p.lead{font-size:clamp(14px,4.1vw,16.5px);line-height:1.48;color:#9fb2d4;}
+  .light p.lead{color:var(--muted);}
+  b.w{color:#fff;} .light b.w{color:var(--ink);}
+
+  .logo{display:flex;align-items:center;gap:11px;margin-bottom:18px;}
+  .logo .mk{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--blue),var(--teal));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:20px;}
+  .logo .nm{font-weight:800;font-size:20px;color:#fff;}
+
+  .feat{display:flex;gap:11px;align-items:flex-start;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:10px 13px;margin-top:8px;}
+  .feat .e{font-size:19px;flex:none;line-height:1.2;}
+  .feat b{font-size:13.8px;display:block;color:#fff;} .feat span{font-size:12px;color:#9fb2d4;display:block;margin-top:2px;line-height:1.35;}
+
+  .mlist{display:flex;flex-direction:column;gap:7px;margin-top:4px;}
+  .mrow{display:flex;gap:10px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:11px;padding:9px 12px;box-shadow:0 2px 8px rgba(15,23,42,.04);}
+  .mrow .e{font-size:18px;flex:none;} .mrow b{font-size:13.3px;color:var(--ink);} .mrow span{display:block;font-size:11px;color:var(--muted);margin-top:1px;line-height:1.3;}
+
+  .chain{display:flex;flex-direction:column;gap:6px;margin-top:5px;}
+  .cstep{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);border-radius:10px;padding:9px 12px;font-weight:700;font-size:14px;display:flex;gap:9px;align-items:center;color:#fff;}
+  .cstep .cn{width:20px;height:20px;border-radius:50%;background:var(--violet2);font-size:11px;display:flex;align-items:center;justify-content:center;flex:none;}
+  .cbad{background:rgba(239,68,68,.16);border:1px solid rgba(248,113,113,.4);border-radius:10px;padding:10px 12px;color:#fecaca;font-weight:700;font-size:13px;text-align:center;margin-top:5px;}
+
+  .stat{display:flex;flex-direction:column;gap:8px;margin:4px 0 11px;}
+  .st{background:linear-gradient(135deg,#f5f3ff,#eff6ff);border:1px solid #ddd6fe;border-radius:12px;padding:12px 14px;}
+  .st .n{font-size:clamp(22px,6.2vw,28px);font-weight:900;color:var(--violet);line-height:1;}
+  .st .l{font-size:12px;color:#334155;margin-top:4px;line-height:1.3;}
+
+  .cmp{display:flex;flex-direction:column;gap:9px;margin-top:4px;}
+  .box{border-radius:12px;padding:12px 14px;}
+  .box.bad{background:#fff7ed;border:1px solid #fed7aa;} .box.good{background:#ecfdf5;border:1px solid #bbf7d0;}
+  .box .bt{font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;margin-bottom:6px;}
+  .box.bad .bt{color:#c2410c;} .box.good .bt{color:#047857;}
+  .box ul{margin:0;padding-left:15px;} .box li{margin:3px 0;font-size:12.5px;color:var(--ink);line-height:1.35;}
+  .pitch{background:var(--violet);color:#fff;border-radius:11px;padding:10px 13px;font-size:13px;font-style:italic;margin-top:9px;line-height:1.4;}
+  .pitch b{font-style:normal;}
+
+  .occ{display:flex;flex-direction:column;gap:8px;margin-top:5px;}
+  .oc{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:12px 14px;display:flex;gap:11px;align-items:center;}
+  .oc .e{font-size:22px;} .oc b{color:#fff;font-size:14.5px;display:block;} .oc span{color:#9fb2d4;font-size:12px;}
+  .aud{display:flex;flex-direction:column;gap:9px;margin:5px 0 11px;}
+  .ac{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:14px;text-align:center;}
+  .ac .n{font-size:clamp(26px,8vw,34px);font-weight:900;background:linear-gradient(90deg,#fff,#c9b6ff);-webkit-background-clip:text;background-clip:text;color:transparent;line-height:1;}
+  .ac .l{color:#9fb2d4;font-size:12px;margin-top:5px;}
+  .green{background:rgba(20,37,28,.9);border:1px solid #1e6e4c;border-radius:12px;padding:12px 14px;margin-top:4px;}
+  .green b{color:#6ee7c7;font-size:13.5px;display:block;margin-bottom:4px;} .green span{color:#cde9dc;font-size:12.5px;line-height:1.4;}
+
+  .offer{display:flex;flex-direction:column;gap:8px;margin-top:4px;}
+  .off{display:flex;gap:10px;align-items:flex-start;font-size:14px;color:#eaf0fb;line-height:1.35;}
+  .off .e{font-size:18px;flex:none;}
+
+  .btns{display:flex;flex-direction:column;gap:10px;margin-top:18px;}
+  .btn{display:block;text-align:center;text-decoration:none;font-weight:800;font-size:15.5px;padding:14px;border-radius:13px;}
+  .btn.p{background:linear-gradient(135deg,var(--violet2),var(--blue));color:#fff;}
+  .btn.g{background:#25D366;color:#fff;}
+  .btn.o{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);color:#fff;}
+
+  .hint{position:absolute;left:0;right:0;bottom:calc(max(env(safe-area-inset-bottom),16px));text-align:center;color:#9fb2d4;font-size:12px;font-weight:600;animation:bob 1.6s ease-in-out infinite;}
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(6px)}}
+  .dots{position:fixed;right:7px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:5px;z-index:20;}
+  .dots i{width:5px;height:5px;border-radius:50%;background:rgba(148,163,184,.4);transition:.2s;}
+  .dots i.on{background:var(--violet2);height:13px;border-radius:4px;}
+</style>
+</head>
+<body>
+<div class="deck" id="deck">
+
+  <!-- 1 COVER -->
+  <section class="s dark">
+    <div class="logo"><div class="mk">A</div><div class="nm">AuraDash</div></div>
+    <span class="kick">Presentación del sistema</span>
+    <h1>El <span class="hl">sistema operativo</span> de tu salón.</h1>
+    <p class="lead">No es una agenda. No es un Excel. Es una plataforma donde cada módulo trabaja conectado con el resto. Te muestro todo lo que hace — y al final, cuánto te deja.</p>
+    <div class="hint">desliza hacia arriba ↑</div>
+  </section>
+
+  <!-- 2 PROBLEMA -->
+  <section class="s light">
+    <span class="kick">Dónde estás hoy</span>
+    <h1>Tu negocio está repartido en <span class="hl2">5 lugares distintos.</span></h1>
+    <p class="lead">La agenda en un cuaderno o WhatsApp. Los cobros en un Excel. El stock en la cabeza. Las comisiones a mano con calculadora. Los recordatorios uno por uno. Nada se habla entre sí, y cada cosa que se te escapa es plata que no ves.</p>
+  </section>
+
+  <!-- 3 HERRAMIENTAS -->
+  <section class="s dark">
+    <span class="kick">Lo que ya estás pagando</span>
+    <h1>Lo que normalmente usa un salón <span class="hl">en Argentina.</span></h1>
+    <div class="feat"><span class="e">📅</span><div><b>Agenda / turnos · AgendaPro · Fresha · Booksy · Gendu</b><span>AgendaPro US$19–59/mes · Fresha "gratis" pero cobra ~20% por cliente nuevo + 2,19% por pago online</span></div></div>
+    <div class="feat"><span class="e">💳</span><div><b>Cobros / POS · Mercado Pago Point / QR</b><span>Point 3,25% + IVA (débito) · QR 0,8–6,29% + IVA</span></div></div>
+    <div class="feat"><span class="e">👥</span><div><b>CRM / fichas · Zoho CRM · HubSpot Starter</b><span>US$20–25/mes</span></div></div>
+    <div class="feat"><span class="e">📣</span><div><b>WhatsApp masivo · WATI · ManyChat</b><span>US$30–60/mes</span></div></div>
+    <div class="feat"><span class="e">📦</span><div><b>Stock + facturación · Colppy · Xubio</b><span>desde $3.500–5.000 ARS/mes</span></div></div>
+    <div class="feat"><span class="e">📊</span><div><b>Reportes · Excel · Google Sheets · Looker</b><span>tu tiempo armándolos a mano</span></div></div>
+    <p class="lead" style="margin-top:12px">Cada necesidad termina en una app distinta — y <b class="w">ninguna se habla con la otra.</b></p>
+  </section>
+
+  <!-- 4 VERDADERO COSTO -->
+  <section class="s dark">
+    <span class="kick">El verdadero costo</span>
+    <h1>El verdadero costo <span class="hl">no es el dinero.</span></h1>
+    <p class="lead" style="margin-bottom:10px">La mayoría piensa: "pago varias apps". El problema real es la <b class="w">doble carga de datos</b> — la misma info, cargada una y otra vez, a mano.</p>
+    <div class="chain">
+      <div class="cstep"><span class="cn">1</span> La clienta reserva</div>
+      <div class="cstep"><span class="cn">2</span> Hay que copiarlo a la agenda</div>
+      <div class="cstep"><span class="cn">3</span> Cobrar el servicio</div>
+      <div class="cstep"><span class="cn">4</span> Registrar la venta en la caja</div>
+      <div class="cstep"><span class="cn">5</span> Descontar el producto del stock</div>
+      <div class="cstep"><span class="cn">6</span> Actualizar el historial de la clienta</div>
+      <div class="cbad">6 pasos manuales · 6 lugares donde se pierde info o se comete un error</div>
+    </div>
+  </section>
+
+  <!-- 5 SOLUCION -->
+  <section class="s dark">
+    <span class="kick">La solución</span>
+    <h1>10 módulos. <span class="hl">Una sola pantalla.</span></h1>
+    <p class="lead">AuraDash reúne todo lo que hoy tenés disperso y lo conecta. Cuando pasa algo en un módulo, los demás se actualizan solos. Vamos módulo por módulo.</p>
+  </section>
+
+  <!-- 6 MODULOS -->
+  <section class="s light">
+    <span class="kick">Los módulos</span>
+    <h1>Todo lo que hace <span class="hl2">AuraDash.</span></h1>
+    <div class="mlist">
+      <div class="mrow"><span class="e">📈</span><div><b>Panel de Control</b><span>Números del negocio en vivo: facturación, ganancia neta, ocupación.</span></div></div>
+      <div class="mrow"><span class="e">📅</span><div><b>Agenda Inteligente</b><span>Reservas 24/7, recordatorios por WhatsApp y lista de espera con IA.</span></div></div>
+      <div class="mrow"><span class="e">👥</span><div><b>Clientes (CRM)</b><span>Ficha con historial, fórmulas, fotos y detección de clientas en riesgo.</span></div></div>
+      <div class="mrow"><span class="e">✂️</span><div><b>Catálogo de Servicios</b><span>Precio, duración e insumos que descuenta cada servicio.</span></div></div>
+      <div class="mrow"><span class="e">💇</span><div><b>Equipo y Liquidaciones</b><span>Comisiones automáticas, horarios y desempeño por profesional.</span></div></div>
+      <div class="mrow"><span class="e">💰</span><div><b>Finanzas y Caja</b><span>Caja diaria con arqueo, ingresos por método y ganancia real.</span></div></div>
+      <div class="mrow"><span class="e">📦</span><div><b>Inventario ERP</b><span>Descuento automático, vencimientos (FIFO) y alertas de stock mínimo.</span></div></div>
+      <div class="mrow"><span class="e">🤖</span><div><b>Copilot IA + Automatización</b><span>Sugerencias inteligentes y flujos que trabajan 24/7.</span></div></div>
+      <div class="mrow"><span class="e">🔗</span><div><b>Sincronizador + Roles</b><span>Importás tu base en minutos y permisos por rol.</span></div></div>
+    </div>
+  </section>
+
+  <!-- 7 EVIDENCIA -->
+  <section class="s dark">
+    <span class="kick">La evidencia</span>
+    <h1>Y esto, <span class="hl">¿por qué te conviene?</span></h1>
+    <p class="lead">No es solo comodidad. Cada función ataca una fuga concreta de plata o de clientas. Los números lo dejan claro.</p>
+  </section>
+
+  <!-- 8 CITAS -->
+  <section class="s light">
+    <span class="kick">Citas</span>
+    <h1>Google Calendar te anota. <span class="hl2">AuraDash gestiona.</span></h1>
+    <div class="cmp">
+      <div class="box bad"><div class="bt">Con Calendar / cuaderno / WhatsApp</div><ul><li>No hay reserva online real: la clienta escribe y espera.</li><li>No manda recordatorios: los escribís uno por uno.</li><li>El turno no se conecta con caja, stock ni historial.</li><li>Sin lista de espera: el hueco por cancelación queda vacío.</li></ul></div>
+      <div class="box good"><div class="bt">Con AuraDash</div><ul><li>Reserva 24/7 con un link, sola.</li><li>Recordatorio automático por WhatsApp.</li><li>El turno dispara caja, comisión y stock en un clic.</li><li>Lista de espera con IA que llena el hueco.</li></ul></div>
+    </div>
+    <div class="pitch">Calendar te anota el turno. AuraDash te gestiona el negocio alrededor de ese turno.</div>
+  </section>
+
+  <!-- 9 FICHA -->
+  <section class="s light">
+    <span class="kick">Ficha técnica · retención</span>
+    <h1>La ficha es la razón por la que <span class="hl2">vuelve y gasta más.</span></h1>
+    <div class="stat">
+      <div class="st"><div class="n">60–70%</div><div class="l">prob. de venderle a una clienta que ya te conoce</div></div>
+      <div class="st"><div class="n">5–20%</div><div class="l">prob. con una clienta nueva</div></div>
+      <div class="st"><div class="n">+31%</div><div class="l">gastan más las clientas fieles</div></div>
+    </div>
+    <div class="cmp">
+      <div class="box bad"><div class="bt">Sin ficha</div><ul><li>Cada visita arranca de cero: "¿qué color usábamos?".</li><li>Si la profesional se va, se lleva las clientas en la cabeza.</li></ul></div>
+      <div class="box good"><div class="bt">Con la ficha de AuraDash</div><ul><li>Historial, fórmulas, fotos antes/después y ticket promedio.</li><li>Detecta sola a las clientas en riesgo de irse.</li></ul></div>
+    </div>
+  </section>
+
+  <!-- 10 WHATSAPP -->
+  <section class="s light">
+    <span class="kick">WhatsApp</span>
+    <h1>El canal que se abre <span class="hl2">casi siempre.</span></h1>
+    <div class="stat">
+      <div class="st"><div class="n">98%</div><div class="l">de apertura (vs. ~21% del email)</div></div>
+      <div class="st"><div class="n">−38% a −70%</div><div class="l">de ausentismo con recordatorios 24–48 h antes</div></div>
+      <div class="st"><div class="n">20–30%</div><div class="l">de conversión en reactivación</div></div>
+    </div>
+    <div class="cmp">
+      <div class="box bad"><div class="bt">Qué pasa hoy</div><ul><li>Los no-shows son el 20–30% de los turnos.</li><li>Sin recordatorios, ese porcentaje se pierde entero.</li><li>Cuando una clienta deja de venir, nadie la contacta.</li></ul></div>
+      <div class="box good"><div class="bt">Con AuraDash</div><ul><li>Recordatorio 24 h antes por WhatsApp (se abre casi siempre).</li><li>Reactivación automática de clientas dormidas.</li><li>Le escribís a quien ya te conoce = convierte mucho más.</li></ul></div>
+    </div>
+    <div class="pitch"><b>Un recordatorio que se abre el 98% de las veces</b> y baja tus ausencias hasta un 70%. Solo con eso, el sistema ya se pagó.</div>
+  </section>
+
+  <!-- 11 COBROS -->
+  <section class="s light">
+    <span class="kick">Cobros</span>
+    <h1>Seguís cobrando como querés. <span class="hl2">Se ordena solo.</span></h1>
+    <div class="cmp">
+      <div class="box bad"><div class="bt">Hoy (efectivo · transferencia · Mercado Pago)</div><ul><li>Cobrás, y después anotás la venta en un Excel.</li><li>Calculás la comisión a mano.</li><li>Al cierre, peleás para que la caja cuadre.</li></ul></div>
+      <div class="box good"><div class="bt">Con AuraDash</div><ul><li>Registrás el cobro por cualquier método.</li><li>En el mismo clic: venta + comisión + stock.</li><li>La caja cuadra sola y ves cuánto entró por cada medio.</li></ul></div>
+    </div>
+    <div class="pitch">AuraDash no reemplaza a Mercado Pago: lo ordena. Nunca más volvés a cargar ese cobro en ningún lado.</div>
+  </section>
+
+  <!-- 12 STOCK -->
+  <section class="s light">
+    <span class="kick">Stock y gastos</span>
+    <h1>El stock descontrolado es <span class="hl2">plata parada o tirada.</span></h1>
+    <div class="cmp">
+      <div class="box bad"><div class="bt">Sin control</div><ul><li>Se compra de más "por las dudas": plata dormida en el estante.</li><li>Se corta un producto en plena atención.</li><li>Lo que vence, se tira.</li></ul></div>
+      <div class="box good"><div class="bt">Con el Inventario de AuraDash</div><ul><li>Cada servicio descuenta solo lo que usó.</li><li>Alertas de stock mínimo y vencimientos (FIFO).</li><li>Sabés el costo real por servicio → cuánto ganás de verdad.</li></ul></div>
+    </div>
+    <div class="pitch">Te dice, servicio por servicio, cuánto te cuesta y cuánto te deja.</div>
+  </section>
+
+  <!-- 13 REPORTES -->
+  <section class="s light">
+    <span class="kick">Reportes</span>
+    <h1>Decidí con datos, <span class="hl2">no a sensación.</span></h1>
+    <div class="cmp">
+      <div class="box bad"><div class="bt">Sin reportes</div><ul><li>Facturás, pero no sabés si ganás.</li><li>No sabés qué servicio deja más, ni qué día reforzar.</li><li>Las decisiones importantes llegan tarde.</li></ul></div>
+      <div class="box good"><div class="bt">Con AuraDash</div><ul><li>Ganancia neta real, servicios más rentables, días fuertes y flojos.</li><li>Desempeño por profesional y clientas en riesgo.</li><li>Todo en segundos, sin armar un Excel.</li></ul></div>
+    </div>
+    <div class="pitch">Sin datos, cada decisión es una apuesta. Con AuraDash sabés dónde ganás y dónde perdés — y actuás a tiempo.</div>
+  </section>
+
+  <!-- 14 UN CLIC -->
+  <section class="s dark">
+    <span class="kick">Cómo se conecta todo</span>
+    <h1>Un clic. <span class="hl">Tres cosas</span> pasan solas.</h1>
+    <p class="lead">Cuando cobrás un turno, con un solo toque:</p>
+    <div class="occ">
+      <div class="oc"><span class="e">💵</span><div><b>Se registra la venta</b><span>en Finanzas</span></div></div>
+      <div class="oc"><span class="e">🧮</span><div><b>Se calcula la comisión</b><span>del profesional</span></div></div>
+      <div class="oc"><span class="e">📦</span><div><b>Se descuenta el insumo</b><span>del stock</span></div></div>
+    </div>
+    <p class="lead" style="margin-top:12px">Eso es lo que ningún Excel hace: los módulos <b class="w" style="color:#6ee7c7">se hablan entre sí.</b></p>
+  </section>
+
+  <!-- 15 AUDITORIA -->
+  <section class="s dark">
+    <span class="kick">La auditoría — el retorno</span>
+    <h1>Todo esto, en <span class="hl">tu bolsillo.</span></h1>
+    <p class="lead" style="margin-bottom:8px">Sumando lo que cada módulo te ahorra y te hace ganar (ajustable con tus números reales):</p>
+    <div class="aud">
+      <div class="ac"><div class="n">$ 1,29M</div><div class="l">ganancia extra por mes</div></div>
+      <div class="ac"><div class="n">65 hs</div><div class="l">ahorradas por mes</div></div>
+      <div class="ac"><div class="n">32×</div><div class="l">de retorno vs. su costo</div></div>
+    </div>
+    <div class="green"><b>Además: una herramienta en lugar de varias</b><span>Lo que hoy pagás por separado (agenda + CRM + WhatsApp + stock + reportes) se unifica en AuraDash — ahorro directo en licencias y todo conectado.</span></div>
+    <p class="lead" style="margin-top:11px">Se paga con recuperar <b class="w" style="color:#6ee7c7">3 turnos al mes.</b> Todo lo demás es ganancia limpia.</p>
+  </section>
+
+  <!-- 16 OFERTA -->
+  <section class="s dark">
+    <span class="kick">La oferta</span>
+    <h1>Entrás como <span class="hl">Fundadora.</span></h1>
+    <div class="offer">
+      <div class="off"><span class="e">🎁</span><div>30 días de implementación GRATIS — yo migro tus datos y te acompaño.</div></div>
+      <div class="off"><span class="e">🔒</span><div>Precio congelado de por vida.</div></div>
+      <div class="off"><span class="e">📞</span><div>Atención directa conmigo.</div></div>
+      <div class="off"><span class="e">⭐</span><div>Prioridad para pedir nuevas funciones.</div></div>
+    </div>
+    <p class="lead" style="margin-top:12px">Empezás a pagar recién cuando el sistema ya funciona y te sentís cómoda.</p>
+  </section>
+
+  <!-- 17 CIERRE -->
+  <section class="s dark">
+    <div class="logo"><div class="mk">A</div><div class="nm">AuraDash</div></div>
+    <h1>¿<span class="hl">Arrancamos</span> con tu salón?</h1>
+    <p class="lead">Todo tu negocio, en una sola pantalla.</p>
+    <div class="btns">
+      <a class="btn g" href="https://wa.me/5491161393922?text=Hola!%20Vi%20la%20presentaci%C3%B3n%20de%20AuraDash%20y%20quiero%20saber%20m%C3%A1s" target="_blank" rel="noopener">💬 +54 9 11 6139 3922</a>
+      <a class="btn p" href="https://auradash.digital" target="_blank" rel="noopener">🌐 auradash.digital</a>
+    </div>
+  </section>
+
+</div>
+
+<div class="dots" id="dots"></div>
+
+<script>
+  const deck=document.getElementById('deck');
+  const slides=[...deck.querySelectorAll('.s')];
+  const dots=document.getElementById('dots');
+  slides.forEach((_,i)=>{const d=document.createElement('i');if(i===0)d.className='on';dots.appendChild(d);});
+  const io=new IntersectionObserver((es)=>{
+    es.forEach(e=>{if(e.isIntersecting){const i=slides.indexOf(e.target);
+      [...dots.children].forEach((d,j)=>d.classList.toggle('on',j===i));}});
+  },{root:deck,threshold:0.55});
+  slides.forEach(s=>io.observe(s));
+  [...dots.children].forEach((d,i)=>d.addEventListener('click',()=>slides[i].scrollIntoView({behavior:'smooth'})));
+</script>
+</body>
+</html>

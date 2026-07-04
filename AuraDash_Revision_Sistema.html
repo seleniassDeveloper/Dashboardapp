@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AuraDash — Revisión técnica del sistema</title>
+<style>
+  :root{--ink:#0f172a;--ink2:#334155;--muted:#64748b;--line:#e8eaf0;--soft:#f6f7fb;--violet:#5B21B6;
+        --crit:#b91c1c;--critbg:#fef2f2;--high:#c2410c;--highbg:#fff7ed;--med:#a16207;--medbg:#fefce8;--low:#0369a1;--lowbg:#eff6ff;--ok:#047857;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:var(--ink);background:#eef0f6;line-height:1.55;padding:30px 16px;font-size:14.5px;}
+  .wrap{max-width:960px;margin:0 auto;}
+  header{background:linear-gradient(135deg,#0f172a,#5B21B6);color:#fff;border-radius:18px;padding:30px 34px;margin-bottom:18px;}
+  header .kick{font-size:12px;letter-spacing:.14em;text-transform:uppercase;opacity:.8;font-weight:700;}
+  header h1{font-size:27px;margin:8px 0 6px;font-weight:800;}
+  header p{opacity:.9;font-size:14.5px;max-width:720px;}
+  .counts{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;}
+  .ct{border-radius:10px;padding:8px 14px;font-weight:800;font-size:14px;color:#fff;}
+  .ct small{display:block;font-size:10.5px;font-weight:600;opacity:.85;letter-spacing:.04em;text-transform:uppercase;}
+  .ct.c{background:#b91c1c;} .ct.h{background:#ea580c;} .ct.m{background:#ca8a04;} .ct.l{background:#0284c7;}
+  .intro{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 22px;margin-bottom:20px;font-size:14px;color:var(--ink2);}
+  .intro b{color:var(--ink);}
+  h2.sev{font-size:18px;font-weight:800;margin:26px 0 12px;display:flex;align-items:center;gap:10px;}
+  h2.sev .tag{font-size:11px;color:#fff;padding:3px 10px;border-radius:6px;letter-spacing:.05em;}
+  h2.crit .tag{background:var(--crit)} h2.high .tag{background:var(--high)} h2.med .tag{background:var(--med)} h2.low .tag{background:var(--low)}
+  .f{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:12px;border-left:5px solid var(--line);}
+  .f.crit{border-left-color:var(--crit);} .f.high{border-left-color:var(--high);} .f.med{border-left-color:var(--med);} .f.low{border-left-color:var(--low);}
+  .f h3{font-size:15px;font-weight:800;margin-bottom:4px;}
+  .f .loc{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:2px 8px;color:#475569;display:inline-block;margin:2px 0 8px;}
+  .f p{margin:6px 0;font-size:13.8px;color:var(--ink2);}
+  .f .impact{color:#7f1d1d;} .f.high .impact{color:#9a3412;} .f.med .impact{color:#854d0e;}
+  .f .fix{background:#ecfdf5;border:1px solid #bbf7d0;border-radius:8px;padding:8px 12px;font-size:13.5px;color:#065f46;margin-top:8px;}
+  .f .fix b{color:#047857;}
+  code{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;background:#f1f5f9;padding:1px 6px;border-radius:5px;color:#be123c;}
+  .verified{font-size:10.5px;font-weight:700;color:var(--ok);background:#ecfdf5;border:1px solid #bbf7d0;border-radius:5px;padding:1px 7px;margin-left:8px;vertical-align:middle;}
+  .plan{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px 24px;margin-top:24px;}
+  .plan h2{font-size:18px;font-weight:800;margin-bottom:10px;}
+  ol{margin:6px 0 0 20px;} ol li{margin:7px 0;font-size:14px;}
+  footer{color:#94a3b8;font-size:12px;text-align:center;padding:16px;line-height:1.7;}
+  @media print{body{background:#fff;padding:0}.f,.intro,.plan,header{box-shadow:none;break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="kick">Revisión técnica · Uso interno</div>
+  <h1>AuraDash — Auditoría de errores del sistema</h1>
+  <p>Revisión de código del backend (Node/Express + Prisma) y del frontend (React). Hallazgos priorizados por severidad, con archivo, línea, impacto y arreglo sugerido. Los marcados <span class="verified">VERIFICADO</span> los confirmé leyendo el código directamente.</p>
+  <div class="counts">
+    <div class="ct c">7<small>Críticos</small></div>
+    <div class="ct h">7<small>Altos</small></div>
+    <div class="ct m">7<small>Medios</small></div>
+    <div class="ct l">6<small>Bajos</small></div>
+  </div>
+</header>
+
+<div class="intro">
+  <b>Lo más urgente en una frase:</b> hoy, en producción, cualquiera puede entrar como administrador de cualquier cuenta con la contraseña <code>"selenia"</code> o <code>"123456"</code>, y un usuario de un salón puede leer, editar y borrar datos (incluida información médica) de otro salón. Además, el flujo estrella de "un clic = 3 cosas" en realidad solo hace una: marca el turno como realizado — no registra la venta ni la comisión, y descuenta el stock sin control. Detalle abajo.
+</div>
+
+<!-- ============ CRÍTICOS ============ -->
+<h2 class="sev crit"><span class="tag">CRÍTICO</span> Fallos que rompen seguridad o datos hoy mismo</h2>
+
+<div class="f crit">
+  <h3>1. Login con contraseñas hardcodeadas = toma de control de cualquier cuenta <span class="verified">VERIFICADO</span></h3>
+  <div class="loc">backend/src/routes/auth.routes.js:166</div>
+  <p><code>const isValidPass = password === "selenia" || password === "123456" || password === prefix;</code></p>
+  <p>Esta ruta de login <b>no está limitada a desarrollo</b>: está viva en producción. Con esas contraseñas (o el prefijo del email) se genera un <code>local-token-&lt;userId&gt;</code> que el middleware acepta como admin.</p>
+  <p class="impact"><b>Impacto:</b> acceso total a cualquier cuenta, incluida la de dueños y super-admin.</p>
+  <div class="fix"><b>Arreglo:</b> encerrar todo el bloque de login local y de <code>local-token-</code> bajo <code>if (process.env.NODE_ENV !== "production")</code> y eliminar las contraseñas fijas.</div>
+</div>
+
+<div class="f crit">
+  <h3>2. Token de admin falsificable sin firma <span class="verified">VERIFICADO</span></h3>
+  <div class="loc">backend/src/middleware/requireAuth.js:10-37</div>
+  <p>Cualquier request con <code>Authorization: Bearer local-token-&lt;id&gt;</code> se autentica como ese usuario con <code>admin: true</code>, sin verificar nada. Además existe un token maestro por defecto: <code>QUICK_BOOKING_TOKEN || "aura-admin-token"</code> — si la variable no está seteada, <code>"aura-admin-token"</code> es una llave de admin permanente.</p>
+  <p class="impact"><b>Impacto:</b> admin instantáneo conociendo un id de usuario o el string fijo.</p>
+  <div class="fix"><b>Arreglo:</b> desactivar la ruta <code>local-token-</code> en producción y quitar el default <code>"aura-admin-token"</code> (exigir la env var).</div>
+</div>
+
+<div class="f crit">
+  <h3>3. Si Firebase falla, el atacante entra como admin <span class="verified">VERIFICADO</span></h3>
+  <div class="loc">backend/src/middleware/requireAuth.js:32, 58-59</div>
+  <p>Cuando la verificación del token de Firebase lanza error (por credenciales mal configuradas), el código cae en <code>firebaseUser = { admin: true }</code> en vez de rechazar. Si Firebase no está bien configurado en prod, todo request con cualquier token se vuelve admin.</p>
+  <div class="fix"><b>Arreglo:</b> ante fallo de verificación en producción, devolver 401 — nunca caer en una identidad admin.</div>
+</div>
+
+<div class="f crit">
+  <h3>4. Secretos y API keys hardcodeados en el código <span class="verified">VERIFICADO</span></h3>
+  <div class="loc">auth.routes.js:230 · utils/financeCrypto.js:3 · utils/consentCrypto.js:3</div>
+  <p>API key de Firebase escrita como fallback (<code>"AIzaSy…2a8FQ"</code>), y las claves de cifrado con defaults fijos (<code>"finance-bypass-secret…"</code>, <code>"consent-encryption-secret…"</code>). Esta última cifra datos médicos/consentimiento de las clientas.</p>
+  <p class="impact"><b>Impacto:</b> si faltan las env vars en prod, cualquiera con acceso al repo puede falsificar tokens de finanzas y descifrar datos médicos. La API key expuesta hay que rotarla.</p>
+  <div class="fix"><b>Arreglo:</b> fallar el arranque si faltan los secretos en producción; nunca dejar valores por defecto; rotar la key ya filtrada.</div>
+</div>
+
+<div class="f crit">
+  <h3>5. Acceso entre salones (IDOR): leer/editar/borrar datos de otro tenant <span class="verified">VERIFICADO</span></h3>
+  <div class="loc">clients.controller.js:100,183 · crm.controller.js:12 · business.routes.js:252 · inventory.controller.js:553 · finances.controller.js:454+</div>
+  <p>Muchos handlers buscan por <code>id</code> sin filtrar por el salón dueño (<code>where:{ id }</code> en vez de <code>where:{ id, businessId }</code>). Casos confirmados: editar/borrar clientas de otro salón (cascada a sus turnos), leer la ficha CRM completa <b>con alergias y notas médicas descifradas</b> de otro salón, y <code>GET /api/business/:id</code> devuelve el registro completo de cualquier negocio (incluye credenciales de integraciones/SMTP/Google/WhatsApp).</p>
+  <p class="impact"><b>Impacto:</b> fuga y destrucción de datos entre clientes del SaaS, incluyendo PII médica. Es el riesgo legal más serio.</p>
+  <div class="fix"><b>Arreglo:</b> agregar <code>businessId: req.businessId</code> a TODOS los <code>where</code> por id (o verificar <code>record.businessId === req.businessId</code> antes de leer/mutar).</div>
+</div>
+
+<div class="f crit">
+  <h3>6. El "un clic = 3 cosas" solo hace 1: no registra venta ni comisión <span class="verified">VERIFICADO</span></h3>
+  <div class="loc">backend/src/controllers/appointments.controller.js → finalizeAppointment</div>
+  <p>Al finalizar un turno, el handler solo pone <code>status:"DONE"</code>, guarda nota/fotos y descuenta stock. <b>No crea ningún registro de venta en finanzas ni calcula la comisión</b> del profesional. Peor: las finanzas se "reconstruyen" al leer, con una comisión <b>fija del 40%</b> (<code>finances.controller.js</code>), ignorando el <code>commissionType/commissionValue</code> configurado por servicio.</p>
+  <p class="impact"><b>Impacto:</b> no hay un libro de ventas auditable, las comisiones mostradas son inventadas, y la "ganancia neta" no es real. Justo lo que vendés en la demo (venta + comisión + stock en un clic) hoy no queda persistido.</p>
+  <div class="fix"><b>Arreglo:</b> en <code>finalizeAppointment</code>, crear el registro de venta y el de comisión (usando la config del servicio y el <code>finalPrice</code> real) dentro de un <code>prisma.$transaction</code> junto al cambio de estado y el descuento de stock.</div>
+</div>
+
+<div class="f crit">
+  <h3>7. Descuento de stock sin transacción, sin idempotencia y con el error silenciado <span class="verified">VERIFICADO</span></h3>
+  <div class="loc">appointments.controller.js:~813-882 (bloque de inventario)</div>
+  <p>El descuento de inventario corre <b>siempre</b> que se llama al endpoint (no está protegido por "ya estaba DONE"), fuera de una transacción, y dentro de un <code>try/catch</code> que solo hace <code>console.error</code> y <b>igual devuelve éxito (200)</b>.</p>
+  <p class="impact"><b>Impacto:</b> tocar "finalizar" dos veces (o un reintento del navegador) descuenta el stock dos veces; si falla a la mitad, el turno queda DONE con inventario a medias y el sistema reporta OK. Corrupción silenciosa de stock.</p>
+  <div class="fix"><b>Arreglo:</b> <code>if (appt.status === "DONE") return …</code> al inicio; envolver estado + nota + inventario en un <code>$transaction</code>; no tragarse el error.</div>
+</div>
+
+<!-- ============ ALTOS ============ -->
+<h2 class="sev high"><span class="tag">ALTO</span> Bugs de lógica, dinero y accesos</h2>
+
+<div class="f high">
+  <h3>8. Webhooks de pago (Mercado Pago / Stripe) sin verificar firma + modo "mock" activable</h3>
+  <div class="loc">services/billing/mercadopago.provider.js:79 · stripe.provider.js</div>
+  <p><code>verifyWebhook</code> hace <code>return true</code>. Si el token del proveedor no está seteado o empieza con <code>mock_</code>, se confía en datos del atacante y se puede poner cualquier suscripción en <code>active</code> sin pagar.</p>
+  <div class="fix"><b>Arreglo:</b> validar la firma real del webhook y deshabilitar por completo el modo mock cuando <code>NODE_ENV === "production"</code>.</div>
+</div>
+
+<div class="f high">
+  <h3>9. Aprobación de suscripción pública y sin auth</h3>
+  <div class="loc">billing.controller.js:372 → GET /api/billing/quick-approve</div>
+  <p>Con solo un <code>approvalToken</code> (que viaja en la URL, queda en logs) se pone el negocio en plan <code>active</code>. Sin auth ni verificación de fuerza del token.</p>
+  <div class="fix"><b>Arreglo:</b> exigir auth + super-admin, o token de un solo uso, alta entropía, corto y por POST.</div>
+</div>
+
+<div class="f high">
+  <h3>10. Frontend: la URL del backend está hardcodeada e ignora la variable de entorno</h3>
+  <div class="loc">dashboard-react/src/lib/api.js:5-14</div>
+  <p><code>normalizeBaseUrl()</code> devuelve <code>"https://dashboard-api-r6j9.onrender.com/api"</code> antes de leer <code>VITE_API_URL</code>. En prod la env var no tiene efecto.</p>
+  <p class="impact"><b>Impacto:</b> no podés repuntar el frontend a otro backend/entorno sin tocar código; el banner de seguridad de API queda muerto.</p>
+  <div class="fix"><b>Arreglo:</b> priorizar <code>import.meta.env.VITE_API_URL</code> y usar la URL fija solo como fallback.</div>
+</div>
+
+<div class="f high">
+  <h3>11. Frontend: la pantalla de "Acceso No Autorizado" es código muerto <span class="verified">VERIFICADO por el subagente</span></h3>
+  <div class="loc">auth/AuthProvider.jsx (value del useMemo) · LoginGate.jsx:19</div>
+  <p><code>isUnauthorized</code> está en las dependencias del <code>useMemo</code> pero <b>no se incluye en el objeto <code>value</code></b> que expone el contexto, así que en <code>LoginGate</code> siempre es <code>undefined</code>.</p>
+  <p class="impact"><b>Impacto:</b> usuarios inactivos/pendientes/rechazados pueden colarse porque la guarda principal nunca se activa.</p>
+  <div class="fix"><b>Arreglo:</b> agregar <code>isUnauthorized</code> (y <code>firestoreError</code>) al objeto que retorna el contexto.</div>
+</div>
+
+<div class="f high">
+  <h3>12. Finanzas cuenta como ingreso turnos CONFIRMED (no realizados) y usa el precio de catálogo</h3>
+  <div class="loc">finances.controller.js:53,54,150,206</div>
+  <p>Suma <code>DONE || CONFIRMED</code> como ingreso realizado y usa <code>service.price</code> en vez del <code>finalPrice</code> realmente cobrado.</p>
+  <p class="impact"><b>Impacto:</b> ingresos, comisiones y ticket promedio inflados; descuentos/recargos nunca se reflejan.</p>
+  <div class="fix"><b>Arreglo:</b> contar solo <code>DONE</code> y usar <code>Number(a.finalPrice ?? a.service?.price ?? 0)</code>.</div>
+</div>
+
+<div class="f high">
+  <h3>13. Métodos de pago del panel financiero son inventados por índice del array</h3>
+  <div class="loc">finances.controller.js:74-78, 204</div>
+  <p>Reparte los ingresos en métodos de pago con <code>idx % 6</code> en vez del <code>paymentMethod</code> real que sí se guarda al finalizar.</p>
+  <div class="fix"><b>Arreglo:</b> agregar por el <code>appointment.paymentMethod</code> real.</div>
+</div>
+
+<div class="f high">
+  <h3>14. Página pública de reservas crashea si la API no devuelve un array</h3>
+  <div class="loc">booking/BookingForm.jsx:100-137</div>
+  <p><code>setServices(dataServices)</code> directo desde <code>res.json()</code> y luego <code>services.map(...)</code>. Si el endpoint devuelve un objeto de error con 200, la página pública queda en blanco.</p>
+  <div class="fix"><b>Arreglo:</b> <code>setServices(Array.isArray(dataServices) ? dataServices : [])</code> (y lo mismo con profesionales).</div>
+</div>
+
+<!-- ============ MEDIOS ============ -->
+<h2 class="sev med"><span class="tag">MEDIO</span> Bugs que fallan en ciertos casos</h2>
+
+<div class="f med">
+  <h3>15. Drift entre schema.prisma y las migraciones → 500 si se usa <code>migrate deploy</code></h3>
+  <div class="loc">backend/prisma/schema.prisma vs prisma/migrations/</div>
+  <p>El schema define ~51 modelos pero las migraciones solo crean 7 tablas. Campos como <code>Business.industry</code>, <code>Business.model</code>, <code>Business.appointmentStatuses</code> no tienen migración. Hoy "funciona" porque <code>server.js</code> usa <code>prisma db push</code>; cualquier entorno con <code>migrate deploy</code> se rompe (este es el origen del 500 del cambio de rubro).</p>
+  <div class="fix"><b>Arreglo:</b> generar una migración baseline con el schema completo y pasar prod a <code>migrate deploy</code>, o documentar <code>db push</code> como estrategia oficial.</div>
+</div>
+
+<div class="f med">
+  <h3>16. <code>seedBranchesIfNeeded()</code> usa <code>req</code> fuera de alcance → ReferenceError</h3>
+  <div class="loc">finances.controller.js:6 (función sin parámetro <code>req</code>)</div>
+  <p>Referencia <code>req.businessId</code> dentro de una función que no recibe <code>req</code>. El error se traga en un try interno, así que las sucursales nunca se siembran y cada carga del dashboard loguea error.</p>
+  <div class="fix"><b>Arreglo:</b> pasar <code>businessId</code> como parámetro: <code>seedBranchesIfNeeded(businessId)</code>.</div>
+</div>
+
+<div class="f med">
+  <h3>17. Rutas montadas sin <code>checkTenant</code> → <code>businessId</code> undefined</h3>
+  <div class="loc">app.js:125 (/api/dashboard) · app.js:137 (/api/invitations) · app.js:149 (/api/mobile-scans)</div>
+  <p>Sin <code>checkTenant</code>, <code>req.businessId</code> es <code>undefined</code> y las queries matchean <code>businessId IS NULL</code> (widgets rotos / datos en el "bucket null"). <code>mobile-scans</code> además no tiene auth y usa un buffer global compartido entre todos los tenants.</p>
+  <div class="fix"><b>Arreglo:</b> montar esas rutas con <code>requireAuth + checkTenant</code> y aislar el buffer por negocio.</div>
+</div>
+
+<div class="f med">
+  <h3>18. Desincronización stock global vs. lotes (permite oversell oculto)</h3>
+  <div class="loc">appointments.controller.js:~813-840</div>
+  <p>Los lotes se descuentan FIFO por un lado y el stock global del producto se setea con <code>Math.max(0, stock - qty)</code> por otro. Si no alcanza, el <code>Math.max(0,…)</code> esconde el faltante en vez de bloquear.</p>
+  <div class="fix"><b>Arreglo:</b> derivar el stock del producto de la suma de lotes y rechazar/avisar si no hay disponible.</div>
+</div>
+
+<div class="f med">
+  <h3>19. <code>createService</code> tira 500 si falta <code>name</code> del todo</h3>
+  <div class="loc">services.controller.js:13,109</div>
+  <p>El validador solo rechaza <code>name</code> vacío, no ausente; después <code>name.trim()</code> explota → 500 en vez de 400.</p>
+  <div class="fix"><b>Arreglo:</b> <code>if (!name?.trim()) return res.status(400)…</code></div>
+</div>
+
+<div class="f med">
+  <h3>20. Idempotencia del webhook de pago fuera de la transacción (race)</h3>
+  <div class="loc">billing.controller.js:223 vs 272-281</div>
+  <p>Dos webhooks idénticos concurrentes pasan el chequeo y uno rompe la constraint única dentro de la transacción, abortando una activación válida.</p>
+  <div class="fix"><b>Arreglo:</b> usar la constraint única vía <code>create</code>/<code>upsert</code> y tratar P2002 como "ya procesado".</div>
+</div>
+
+<div class="f med">
+  <h3>21. Frontend: token de Firebase con force-refresh en cada request + <code>JSON.parse</code> sin try/catch</h3>
+  <div class="loc">AuthProvider.jsx:521 · BatchControl.jsx:44 · FinancialReports.jsx:94</div>
+  <p><code>getIdToken(true)</code> fuerza refresco en cada llamada (latencia/rate-limit). Y hay <code>JSON.parse(localStorage…)</code> sin protección que crashea el componente si el dato está corrupto.</p>
+  <div class="fix"><b>Arreglo:</b> usar <code>getIdToken()</code> (cacheado) y solo forzar en reintento por 401; envolver los <code>JSON.parse</code> en try/catch con fallback.</div>
+</div>
+
+<!-- ============ BAJOS ============ -->
+<h2 class="sev low"><span class="tag">BAJO</span> Mejoras y riesgos menores</h2>
+
+<div class="f low">
+  <h3>22. Super-admins hardcodeados e irrevocables</h3>
+  <div class="loc">utils/superadmin.js:3,13 · appointments.controller.js:464 · health.routes.js · tenant.middleware.js:30</div>
+  <p><code>seleniadeveloper@gmail.com</code> y <code>selenisdeveloper@gmail.com</code> devuelven <code>true</code> aunque se setee la env var — god-mode permanente en todos los tenants, no revocable por config.</p>
+  <div class="fix"><b>Arreglo:</b> manejar super-admin solo desde env/DB; quitar los literales.</div>
+</div>
+
+<div class="f low">
+  <h3>23. Config de entorno solo advierte, nunca falla en producción</h3>
+  <div class="loc">config/env.js:27-54</div>
+  <p>Faltar <code>DATABASE_URL</code>, credenciales de Firebase o incluso <code>AUTH_DISABLED=true</code> solo hace <code>console.warn</code>. Combinado con los críticos 2-4, un deploy mal configurado corre en modo inseguro sin avisar.</p>
+  <div class="fix"><b>Arreglo:</b> fallar el arranque ante secretos críticos faltantes en producción.</div>
+</div>
+
+<div class="f low">
+  <h3>24. Endpoint de health filtra flags internos</h3>
+  <div class="loc">health.routes.js:17-20,37</div>
+  <p>Expone públicamente <code>authDisabled</code> y flags de super-admin — ayuda de reconocimiento para un atacante.</p>
+  <div class="fix"><b>Arreglo:</b> no exponer esos flags en el endpoint público.</div>
+</div>
+
+<div class="f low">
+  <h3>25. Webhook de WhatsApp sin verificar firma de Meta</h3>
+  <div class="loc">routes/whatsapp.routes.js:15</div>
+  <p>Acepta y loguea cualquier body sin validar <code>X-Hub-Signature-256</code>. Bajo impacto hoy (solo loguea) pero es un punto de ingreso abierto.</p>
+  <div class="fix"><b>Arreglo:</b> validar el HMAC con el app-secret de Meta.</div>
+</div>
+
+<div class="f low">
+  <h3>26. Efectos secundarios "fire-and-forget" que fallan en silencio</h3>
+  <div class="loc">appointments.controller.js:674-679 · billing.controller.js:362</div>
+  <p>Recordatorios, workflows y emails de activación corren con <code>.catch(console.error)</code> — si fallan, desaparecen sin reintento ni aviso.</p>
+  <div class="fix"><b>Arreglo:</b> cola con reintentos o al menos registro visible del fallo.</div>
+</div>
+
+<div class="f low">
+  <h3>27. Cálculos de fechas sin zona horaria + logout de inactividad muy agresivo</h3>
+  <div class="loc">crm.controller.js:63 (server-local time) · App.jsx:36 (logout a los 3 min)</div>
+  <p>Los umbrales "hace 30-60 días" usan hora local del servidor (puede errar por un día). El auto-logout por inactividad a los 3 minutos es muy corto para un panel de trabajo.</p>
+  <div class="fix"><b>Arreglo:</b> usar la zona del negocio para fechas; subir el timeout de inactividad (p. ej. 30-60 min).</div>
+</div>
+
+<!-- PLAN -->
+<div class="plan">
+  <h2>Orden sugerido para arreglar</h2>
+  <ol>
+    <li><b>Hoy (seguridad crítica):</b> quitar contraseñas hardcodeadas y <code>local-token</code>/<code>aura-admin-token</code> de producción (#1-#4), y cerrar el IDOR entre tenants agregando <code>businessId</code> a los <code>where</code> (#5). Rotar la API key filtrada.</li>
+    <li><b>Esta semana (integridad de datos):</b> reescribir <code>finalizeAppointment</code> para registrar venta + comisión real y descontar stock, todo en un <code>$transaction</code> con guarda de idempotencia (#6, #7). Corregir finanzas: solo DONE, <code>finalPrice</code> y método de pago real (#12, #13).</li>
+    <li><b>Este sprint:</b> asegurar webhooks de pago (#8, #9, #20), montar <code>checkTenant</code> donde falta (#17), y resolver el drift de migraciones (#15).</li>
+    <li><b>Frontend:</b> arreglar la guarda de auth muerta (#11), la URL de API por env var (#10) y los crashes de la página pública y del modal (#14, #21).</li>
+    <li><b>Limpieza:</b> super-admins por config, env que falle en prod, y el resto de los bajos.</li>
+  </ol>
+</div>
+
+<footer>
+  Revisión de código estático (lectura, sin ejecutar la app). Los ítems marcados VERIFICADO se confirmaron leyendo el archivo indicado.<br>
+  Backend: /backend/src · Frontend: /dashboard-react/src · Generado el 3 de julio de 2026.
+</footer>
+
+</div>
+</body>
+</html>
