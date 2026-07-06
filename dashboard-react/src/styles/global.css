@@ -551,4 +551,38 @@ a { text-decoration: none !important; color: inherit; }
     min-height: 44px !important;
     min-width: 44px !important;
   }
+
+  /* Settings tabs horizontal scroll styling */
+  .settings-tabs-nav {
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 8px !important;
+  }
+  
+  .settings-tabs-nav::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .settings-tabs-nav .nav-item {
+    flex-shrink: 0 !important;
+  }
+
+  .settings-tabs-nav .nav-link {
+    white-space: nowrap !important;
+    font-size: 13px !important;
+    padding: 8px 16px !important;
+    border-radius: 9999px !important;
+    background: #f1f1f5 !important;
+    color: var(--text-secondary) !important;
+    border: none !important;
+    font-weight: 600 !important;
+    transition: all 0.2s ease !important;
+  }
+
+  .settings-tabs-nav .nav-link.active {
+    background: var(--color-pink-active, #ec4899) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 10px rgba(236, 72, 153, 0.25) !important;
+  }
 }

@@ -58,7 +58,7 @@ export default function SettingsView() {
       </header>
 
       <Tab.Container activeKey={tab} onSelect={(k) => k && setTab(k)}>
-        <Nav variant="tabs" className="mb-4 border-0 gap-2">
+        <Nav variant="pills" className="mb-4 border-0 gap-2 settings-tabs-nav flex-nowrap overflow-auto scrollbar-none py-1">
           {canManageSettings && (
             <>
               <Nav.Item>
