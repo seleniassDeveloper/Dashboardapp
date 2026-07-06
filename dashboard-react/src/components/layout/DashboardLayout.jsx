@@ -15,6 +15,9 @@ import ClientModal from "../../header/clients/ClientModal";
 import ClientDetailModal from "../clients/ClientDetailModal";
 import ServiceDetailModal from "../../header/services/ServiceDetailModal";
 import AppointmentModal from "../../gadgets/appointments/AppointmentModal";
+import { useIsMobile } from "../../hooks/useIsMobile";
+import MobileTabBar from "./MobileTabBar";
+import MoreSheet from "./MoreSheet";
 
 // ABM modales (lazy load)
 const WorkersABMModal = lazy(() => import("../../header/workers/WorkersABMModal.jsx"));
@@ -24,6 +27,7 @@ export default function DashboardLayout({ children }) {
   const { brand } = useBrand();
   const { business, isDemoSession, logout, authLoading } = useAuth();
   const hasCompanyName = Boolean(brand.companyName?.trim() || business?.name?.trim());
+  const isMobile = useIsMobile();
 
   let trialDaysLeft = null;
   if (business?.subscriptionStatus === "trialing" && business?.trialEndsAt) {
@@ -33,6 +37,26 @@ export default function DashboardLayout({ children }) {
 
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isMoreSheetOpen, setIsMoreSheetOpen] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    return () => window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === "accepted") {
+      setDeferredPrompt(null);
+    }
+  };
 
   // Modal states
   const [showBrandModal, setShowBrandModal] = useState(false);
@@ -130,27 +154,35 @@ export default function DashboardLayout({ children }) {
 
   return (
     <div className="app-layout">
-      <Sidebar 
-        isCollapsed={isCollapsed} 
-        onToggle={() => setIsCollapsed(!isCollapsed)}
-        isOpen={isMobileOpen}
-        onClose={() => setIsMobileOpen(false)}
-        openWorkersABM={() => setShowWorkersABM(true)}
-        openClientsABM={() => setShowClientsABM(true)}
-        openUsersAdmin={() => setShowUsersAdmin(true)}
-        onEditBrand={() => setShowBrandModal(true)}
-      />
+      {!isMobile && (
+        <Sidebar 
+          isCollapsed={isCollapsed} 
+          onToggle={() => setIsCollapsed(!isCollapsed)}
+          isOpen={isMobileOpen}
+          onClose={() => setIsMobileOpen(false)}
+          openWorkersABM={() => setShowWorkersABM(true)}
+          openClientsABM={() => setShowClientsABM(true)}
+          openUsersAdmin={() => setShowUsersAdmin(true)}
+          onEditBrand={() => setShowBrandModal(true)}
+        />
+      )}
       
       <motion.main 
-        className={`main-content ${isCollapsed ? "main-content--collapsed" : ""}`}
+        className={`main-content ${isCollapsed && !isMobile ? "main-content--collapsed" : ""}`}
         animate={{ 
-          marginLeft: isCollapsed ? "var(--space-sidebar-collapsed)" : "var(--space-sidebar)",
-          width: isCollapsed ? "calc(100% - var(--space-sidebar-collapsed))" : "calc(100% - var(--space-sidebar))"
+          marginLeft: isMobile ? 0 : (isCollapsed ? "var(--space-sidebar-collapsed)" : "var(--space-sidebar)"),
+          width: isMobile ? "100%" : (isCollapsed ? "calc(100% - var(--space-sidebar-collapsed))" : "calc(100% - var(--space-sidebar))")
         }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
       >
         <TopBar 
-          onMenuClick={() => setIsMobileOpen(true)} 
+          onMenuClick={() => {
+            if (isMobile) {
+              setIsMoreSheetOpen(true);
+            } else {
+              setIsMobileOpen(true);
+            }
+          }} 
           onEditBrand={() => setShowBrandModal(true)}
           onSearchClick={() => setShowCommandPalette(true)}
         />
@@ -197,6 +229,20 @@ export default function DashboardLayout({ children }) {
           {children}
         </motion.div>
       </motion.main>
+
+      {isMobile && (
+        <MobileTabBar 
+          onMoreClick={() => setIsMoreSheetOpen(true)} 
+          activeTab={isMoreSheetOpen ? "more" : null}
+        />
+      )}
+
+      <MoreSheet 
+        isOpen={isMoreSheetOpen} 
+        onClose={() => setIsMoreSheetOpen(false)}
+        installPrompt={deferredPrompt}
+        onInstallClick={handleInstallClick}
+      />
 
 
 

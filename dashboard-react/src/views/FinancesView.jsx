@@ -198,6 +198,32 @@ export default function FinancesView() {
       </header>
 
       {error && <Alert variant="danger" className="rounded-2xl">{error}</Alert>}
+
+      {/* Selector de sub-pestañas para Móviles */}
+      <div className="mobile-subtabs-scroll mb-3 d-flex d-md-none overflow-auto scrollbar-none gap-2 py-1" style={{ whiteSpace: "nowrap", borderBottom: "1px solid rgba(0,0,0,0.05)" }}>
+        {[
+          { key: "resumen", label: "Resumen" },
+          { key: "gastos", label: "Cierre Caja" },
+          { key: "sueldos", label: "Nóminas" },
+          { key: "conciliacion", label: "Conciliación" },
+          { key: "servicios", label: "Servicios" },
+          { key: "profesionales", label: "Equipo" },
+          { key: "simulador", label: "Simulador" },
+          { key: "reportes", label: "Reportes" },
+          { key: "auditoria", label: "Auditoría" }
+        ].map(tab => (
+          <Button
+            key={tab.key}
+            variant={activeTab === tab.key ? "dark" : "light"}
+            onClick={() => setActiveTab(tab.key)}
+            className="rounded-pill px-3 py-1.5 small fw-bold"
+            style={{ fontSize: "11px", minHeight: "36px", whiteSpace: "nowrap" }}
+          >
+            {tab.label}
+          </Button>
+        ))}
+      </div>
+
       <Row className="g-4">
         {/* CONTENIDO ACTIVO DEL ERP (Columna Unificada de Ancho Completo) */}
         <Col xs={12}>

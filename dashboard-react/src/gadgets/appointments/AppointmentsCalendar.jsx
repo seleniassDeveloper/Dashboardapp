@@ -23,7 +23,8 @@ import AgendaSummary from "./agenda/AgendaSummary";
 import AgendaSummaryDetailModal from "./agenda/AgendaSummaryDetailModal";
 import FinalizeServiceModal from "../../components/clients/FinalizeServiceModal.jsx";
 import axiosApi from "../../lib/api.js";
-import { User, Calendar } from "lucide-react";
+import { User, Calendar, Plus } from "lucide-react";
+import { useIsMobile } from "../../hooks/useIsMobile";
 
 import "./styles/fullcalendar-fix.css";
 
@@ -124,9 +125,10 @@ export default function AppointmentsCalendar() {
   // console.log("appointments", appointments);
 
   const calRef = useRef(null);
+  const isMobile = useIsMobile();
 
   // ✅ controla vista + título arriba (sin depender del toolbar de FullCalendar)
-  const [view, setView] = useState("dayGridMonth"); // "dayGridMonth" | "timeGridWeek" | "timeGridDay"
+  const [view, setView] = useState(() => (typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches) ? "timeGridDay" : "dayGridMonth"); // "dayGridMonth" | "timeGridWeek" | "timeGridDay"
   const [title, setTitle] = useState("");
   const [selectedDate, setSelectedDate] = useState(() => new Date());
 
@@ -857,6 +859,36 @@ export default function AppointmentsCalendar() {
           </Button>
         </Modal.Footer>
       </Modal>
+
+      {isMobile && (
+        <button 
+          onClick={() => {
+            setInitialAddData(null);
+            setShowAddModal(true);
+          }}
+          className="mobile-fab-btn"
+          title="Nueva Cita"
+          style={{
+            position: "fixed",
+            bottom: "calc(var(--space-bottom-tabbar) + env(safe-area-inset-bottom) + 16px)",
+            right: "16px",
+            width: "56px",
+            height: "56px",
+            borderRadius: "50%",
+            backgroundColor: brand.accentColor || "#ec4899",
+            color: "#ffffff",
+            border: "none",
+            boxShadow: "0 4px 16px rgba(0,0,0,0.2)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 90,
+            cursor: "pointer"
+          }}
+        >
+          <Plus size={24} />
+        </button>
+      )}
     </>
   );
 }

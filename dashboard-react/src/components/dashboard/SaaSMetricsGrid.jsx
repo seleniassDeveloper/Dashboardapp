@@ -238,17 +238,32 @@ export default function SaaSMetricsGrid({
       <style>{`
         .saas-metrics-grid {
           display: grid;
-          grid-template-columns: repeat(1, 1fr);
-          gap: 20px;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 12px;
+        }
+        @media (max-width: 767px) {
+          .saas-metrics-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 12px !important;
+          }
+          .saas-metrics-grid > div {
+            padding: 12px !important;
+            min-height: 140px !important;
+          }
+          .saas-metrics-grid h2 {
+            font-size: 22px !important;
+          }
         }
         @media (min-width: 768px) {
           .saas-metrics-grid {
             grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
           }
         }
         @media (min-width: 1024px) {
           .saas-metrics-grid {
             grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
           }
         }
         .kpi-option-card {

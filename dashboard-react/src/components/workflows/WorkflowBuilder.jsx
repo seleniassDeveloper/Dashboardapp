@@ -568,8 +568,8 @@ export default function WorkflowBuilder({
       <Container fluid className="px-4 py-3 h-100 d-flex flex-column" style={{ maxHeight: "100vh" }}>
         
         {/* VIEWPORT TOP EDITOR BAR */}
-        <header className="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3 p-3 bg-white rounded-2xl shadow-sm border" style={{ height: "76px" }}>
-          <div className="d-flex align-items-center gap-3">
+        <header className="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3 p-3 bg-white rounded-2xl shadow-sm border" style={{ minHeight: "76px", height: "auto" }}>
+          <div className="d-flex align-items-center gap-3 flex-wrap">
             <div className="p-2.5 bg-purple bg-opacity-10 text-purple-600 rounded-xl">
               <GitBranch size={22} className="animate-spin" style={{ animationDuration: "15s" }} />
             </div>
@@ -580,7 +580,7 @@ export default function WorkflowBuilder({
                 onChange={(e) => setName(e.target.value)}
                 placeholder={t("workflowsBuilder.builder.placeholderName", { defaultValue: "Nombre de la automatización..." })}
                 className="fw-black text-gray-950 border-0 p-0 fs-5 border-hover-bottom"
-                style={{ width: "320px", background: "transparent", borderBottom: "2px solid transparent" }}
+                style={{ width: "100%", maxWidth: "320px", background: "transparent", borderBottom: "2px solid transparent" }}
               />
               <Form.Control
                 type="text"
@@ -588,17 +588,17 @@ export default function WorkflowBuilder({
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder={isEs ? "Escribe una breve descripción del flujo..." : "Write a brief description of the flow..."}
                 className="text-muted border-0 p-0 smaller mt-0.5"
-                style={{ width: "450px", background: "transparent" }}
+                style={{ width: "100%", maxWidth: "450px", background: "transparent" }}
               />
             </div>
           </div>
 
-          <div className="d-flex align-items-center gap-2">
+          <div className="d-flex align-items-center gap-2 flex-wrap">
             <Form.Select
               value={status}
               onChange={(e) => setStatus(e.target.value)}
               className="rounded-xl border-gray-200 py-1.5 fw-bold text-gray-700 small"
-              style={{ width: "135px", boxShadow: "0 2px 4px rgba(0,0,0,0.02)" }}
+              style={{ width: "auto", minWidth: "120px", boxShadow: "0 2px 4px rgba(0,0,0,0.02)" }}
             >
               <option value="DRAFT">📋 {isEs ? "Borrador" : "Draft"}</option>
               <option value="ACTIVE">🟢 {isEs ? "Activo" : "Active"}</option>
@@ -633,7 +633,7 @@ export default function WorkflowBuilder({
           </div>
         </header>
 
-        <div className="d-flex mb-3 gap-2 border-bottom pb-2">
+        <div className="d-flex mb-3 gap-2 border-bottom pb-2 flex-wrap">
           <button
             onClick={() => setEditorMode("quick")}
             className={`d-flex align-items-center gap-2 px-4 py-2 fw-bold rounded-xl border-0 transition-all ${

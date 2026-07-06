@@ -24,6 +24,16 @@ export default function TopBar({ onMenuClick, onEditBrand, onSearchClick }) {
     navigator.userAgent?.toUpperCase().indexOf("MAC") >= 0
   );
 
+  const getInitials = (u) => {
+    const name = u?.displayName || "";
+    if (!name) return u?.email?.substring(0, 2).toUpperCase() || "US";
+    const parts = name.split(" ");
+    if (parts.length > 1) {
+      return `${parts[0].charAt(0)}${parts[1].charAt(0)}`.toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  };
+
   return (
     <header
       className={`topbar ${brand.coverImage ? "topbar--has-image" : ""}`}
@@ -56,7 +66,7 @@ export default function TopBar({ onMenuClick, onEditBrand, onSearchClick }) {
       <div className="topbar__actions">
         {(user?.email === "seleniadeveloper@gmail.com" || user?.email === "selenisdeveloper@gmail.com") && <SuperAdminModelSelector />}
         <LanguageSwitcher />
-        <button className="topbar__btn" title={t("topbar.notifications")}>
+        <button className="topbar__btn topbar__btn--bell" title={t("topbar.notifications")}>
           <Bell size={18} />
         </button>
         <button className="topbar__btn" title={t("topbar.brandSettings")} onClick={onEditBrand}>
@@ -66,6 +76,11 @@ export default function TopBar({ onMenuClick, onEditBrand, onSearchClick }) {
         <button className="topbar__btn topbar__btn--logout" title={t("topbar.logout")} onClick={handleLogout}>
           <LogOut size={18} />
         </button>
+        <div className="topbar__avatar-wrapper">
+          <div className="topbar__avatar">
+            {getInitials(user)}
+          </div>
+        </div>
       </div>
     </header>
   );

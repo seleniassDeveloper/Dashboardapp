@@ -438,3 +438,53 @@
   border-color: #cbd5e1;
   background-color: #f8fafc;
 }
+
+/* Overrides de Anulación Responsiva para Celulares */
+@media (max-width: 767px) {
+  .agenda-hours-rule {
+    display: none !important;
+  }
+  
+  .agenda-stylist-headers {
+    flex-direction: column !important;
+    padding-left: 0 !important;
+  }
+  
+  .stylist-header-cell {
+    width: 100% !important;
+    min-width: unset !important;
+    border-right: none !important;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 12px !important;
+    align-items: flex-start !important;
+  }
+
+  .agenda-columns-wrapper {
+    flex-direction: column !important;
+  }
+
+  .agenda-worker-column {
+    min-width: unset !important;
+    height: auto !important;
+    background-image: none !important;
+    padding: 12px !important;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .drop-slot-cell {
+    display: none !important;
+  }
+
+  .appt-card-absolute {
+    position: relative !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: auto !important;
+    margin-bottom: 0 !important;
+    transform: none !important;
+    padding: 14px !important;
+  }
+}

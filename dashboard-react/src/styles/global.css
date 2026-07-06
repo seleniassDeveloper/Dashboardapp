@@ -419,3 +419,136 @@ a { text-decoration: none !important; color: inherit; }
   display: none !important;
 }
 
+/* --- Mobile Responsive & PWA Layout Variables & Utilities --- */
+:root {
+  --color-pink-active: #ec4899;
+  --color-purple-accent: #a855f7;
+  --color-bg-mobile: #f6f5fb;
+  --space-bottom-tabbar: 64px;
+}
+
+@media (max-width: 767px) {
+  body {
+    background-color: var(--color-bg-mobile) !important;
+  }
+  
+  /* Ensure all inputs, select boxes and button targets have at least 48px height on mobile */
+  .modern-input, .btn, .form-select {
+    min-height: 48px !important;
+  }
+
+  /* Stack tables inside layout main content inner */
+  .content-inner table:not(.matrix-table) {
+    display: block !important;
+    width: 100% !important;
+    border: none !important;
+  }
+  
+  .content-inner table:not(.matrix-table) thead {
+    display: none !important;
+  }
+  
+  .content-inner table:not(.matrix-table) tbody {
+    display: block !important;
+    width: 100% !important;
+  }
+  
+  .content-inner table:not(.matrix-table) tr {
+    display: block !important;
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow-sm);
+  }
+  
+  .content-inner table:not(.matrix-table) td {
+    display: flex !important;
+    justify-content: space-between;
+    align-items: center;
+    border: none !important;
+    padding: 8px 0 !important;
+    text-align: right !important;
+    font-size: 13px !important;
+    border-bottom: 1px dashed rgba(0, 0, 0, 0.03) !important;
+  }
+  
+  .content-inner table:not(.matrix-table) td:last-child {
+    border-bottom: none !important;
+    margin-top: 12px;
+    padding-top: 12px !important;
+    border-top: 1px solid rgba(0, 0, 0, 0.05) !important;
+    justify-content: flex-end !important;
+    gap: 8px;
+  }
+
+  .content-inner table:not(.matrix-table) td::before {
+    content: attr(data-label);
+    font-weight: 700;
+    color: var(--text-secondary);
+    float: left;
+    text-align: left;
+    margin-right: 12px;
+  }
+
+  /* Explicit overrides for main tables */
+  .clients-view td:nth-of-type(1)::before { content: "Nombre"; font-weight: 700; color: var(--text-secondary); }
+  .clients-view td:nth-of-type(2)::before { content: "Teléfono"; font-weight: 700; color: var(--text-secondary); }
+  .clients-view td:nth-of-type(3)::before { content: "Email"; font-weight: 700; color: var(--text-secondary); }
+  .clients-view td:nth-of-type(4)::before { content: "Estado"; font-weight: 700; color: var(--text-secondary); }
+
+  .services-view td:nth-of-type(1)::before { content: "Servicio"; font-weight: 700; color: var(--text-secondary); }
+  .services-view td:nth-of-type(2)::before { content: "Precio"; font-weight: 700; color: var(--text-secondary); }
+  .services-view td:nth-of-type(3)::before { content: "Duración"; font-weight: 700; color: var(--text-secondary); }
+  .services-view td:nth-of-type(4)::before { content: "Estado"; font-weight: 700; color: var(--text-secondary); }
+
+  .team-view td:nth-of-type(1)::before { content: "Profesional"; font-weight: 700; color: var(--text-secondary); }
+  .team-view td:nth-of-type(2)::before { content: "Título"; font-weight: 700; color: var(--text-secondary); }
+  .team-view td:nth-of-type(3)::before { content: "Especialidad"; font-weight: 700; color: var(--text-secondary); }
+  .team-view td:nth-of-type(4)::before { content: "Comisión"; font-weight: 700; color: var(--text-secondary); }
+
+  /* Avoid any horizontal overflow */
+  html, body, #root, .app-layout {
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Padding at the bottom of content to make room for bottom tab bar */
+  .content-inner {
+    padding-bottom: calc(var(--space-bottom-tabbar) + env(safe-area-inset-bottom) + 16px) !important;
+  }
+
+  /* Modals to fullscreen / bottom sheet in mobile */
+  .modal-dialog {
+    margin: 0 !important;
+    max-width: 100% !important;
+    height: 100% !important;
+    display: flex !important;
+    align-items: flex-end !important;
+  }
+
+  .modal-content {
+    border-radius: 20px 20px 0 0 !important;
+    border: none !important;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    max-height: 90vh !important;
+    overflow-y: auto !important;
+    animation: modalSlideUp 0.28s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  @keyframes modalSlideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  .modal-header .btn-close {
+    padding: 16px !important;
+    min-height: 44px !important;
+    min-width: 44px !important;
+  }
+}
