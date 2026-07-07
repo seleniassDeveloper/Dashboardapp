@@ -1,0 +1,566 @@
+.team-mobile {
+  --t-bg: #ffffff;
+  --t-bg-soft: #f8f7fc;
+  --t-card: #ffffff;
+  --t-border: #eeecf6;
+  --t-shadow: 0 4px 14px rgba(30,20,60,.03);
+  --t-purple: #7c5cfc;
+  --t-purple-soft: #ede9fe;
+  --t-pink: #ec4899;
+  --t-pink-soft: #fce7f3;
+  --t-green: #10b981;
+  --t-green-soft: #d1fae5;
+  --t-blue: #3b82f6;
+  --t-blue-soft: #dbeafe;
+  --t-amber: #f59e0b;
+  --t-amber-soft: #fef3c7;
+  --t-text: #1e1b2e;
+  --t-muted: #8b8a99;
+  --t-radius: 18px;
+  
+  background: var(--t-bg-soft);
+  min-height: 100vh;
+  color: var(--t-text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  padding: 16px 16px calc(96px + env(safe-area-inset-bottom, 0px));
+}
+
+.team-mobile * {
+  box-sizing: border-box;
+}
+
+/* Intro and title */
+.team-mobile .tm-title {
+  font-size: 24px;
+  font-weight: 800;
+  margin: 0 0 4px;
+}
+
+.team-mobile .tm-subtitle {
+  font-size: 14px;
+  color: var(--t-muted);
+  margin: 0 0 16px;
+}
+
+/* Button Add Collaborator */
+.team-mobile .tm-add-btn {
+  width: 100%;
+  height: 48px;
+  border-radius: 14px;
+  background: var(--t-text);
+  color: #fff;
+  border: none;
+  font-weight: 700;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  margin-bottom: 20px;
+}
+
+/* Segmented Control tabs */
+.team-mobile .tm-tabs {
+  display: flex;
+  background: rgba(0,0,0,0.03);
+  padding: 4px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+
+.team-mobile .tm-tab {
+  flex: 1;
+  text-align: center;
+  padding: 8px 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--t-muted);
+  border: none;
+  background: none;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+.team-mobile .tm-tab--active {
+  background: #ffffff;
+  color: var(--t-purple);
+  box-shadow: var(--t-shadow);
+}
+
+/* Search and filters */
+.team-mobile .tm-search-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.team-mobile .tm-search {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  border: 1px solid var(--t-border);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.team-mobile .tm-search input {
+  border: none;
+  outline: none;
+  background: none;
+  font-size: 14px;
+  width: 100%;
+}
+
+.team-mobile .tm-filter-chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  background: #fff;
+  border: 1px solid var(--t-border);
+  border-radius: 12px;
+  color: var(--t-muted);
+}
+
+/* Collaborator Card */
+.team-mobile .tm-card {
+  background: #ffffff;
+  border: 1px solid var(--t-border);
+  border-radius: var(--t-radius);
+  box-shadow: var(--t-shadow);
+  padding: 16px;
+  margin-bottom: 16px;
+  position: relative;
+}
+
+.team-mobile .tm-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.team-mobile .tm-avatar-wrapper {
+  position: relative;
+  width: 52px;
+  height: 52px;
+}
+
+.team-mobile .tm-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px;
+  background: var(--t-purple-soft);
+  color: var(--t-purple);
+  overflow: hidden;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.team-mobile .tm-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.team-mobile .tm-avatar-status {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+}
+
+.team-mobile .tm-card__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.team-mobile .tm-card__action {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: var(--t-bg-soft);
+  color: var(--t-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.team-mobile .tm-card__action--delete {
+  background: #fef2f2;
+  color: #ef4444;
+}
+
+/* Identity & specialties */
+.team-mobile .tm-card__name {
+  font-size: 16px;
+  font-weight: 800;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.team-mobile .tm-card__role {
+  font-size: 11px;
+  background: var(--t-purple-soft);
+  color: var(--t-purple);
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.team-mobile .tm-card__cargo {
+  font-size: 12px;
+  color: var(--t-muted);
+  margin: 2px 0 8px;
+}
+
+.team-mobile .tm-specialties {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.team-mobile .tm-specialty {
+  font-size: 10px;
+  font-weight: 700;
+  background: #fff0f6;
+  color: var(--t-pink);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+/* Shift box */
+.team-mobile .tm-shift {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--t-bg-soft);
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  color: var(--t-text);
+  margin-bottom: 14px;
+}
+
+.team-mobile .tm-shift svg {
+  color: var(--t-purple);
+}
+
+/* Performance pills */
+.team-mobile .tm-pills {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.team-mobile .tm-pill {
+  text-align: center;
+  padding: 6px 4px;
+  border-radius: 10px;
+  border: 1px solid var(--t-border);
+}
+
+.team-mobile .tm-pill--billing {
+  background: rgba(124, 92, 252, 0.04);
+  color: var(--t-purple);
+}
+
+.team-mobile .tm-pill--commission {
+  background: rgba(16, 185, 129, 0.04);
+  color: var(--t-green);
+}
+
+.team-mobile .tm-pill--occupancy {
+  background: rgba(236, 72, 153, 0.04);
+  color: var(--t-pink);
+}
+
+.team-mobile .tm-pill__label {
+  display: block;
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--t-muted);
+}
+
+.team-mobile .tm-pill__value {
+  display: block;
+  font-size: 12px;
+  font-weight: 800;
+  margin-top: 2px;
+}
+
+/* Progress occupancy */
+.team-mobile .tm-progress-wrapper {
+  margin-top: 10px;
+}
+
+.team-mobile .tm-progress-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: var(--t-muted);
+}
+
+.team-mobile .tm-progress-bar-bg {
+  width: 100%;
+  height: 6px;
+  background: var(--t-bg-soft);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.team-mobile .tm-progress-bar-fg {
+  height: 100%;
+  border-radius: 99px;
+}
+
+/* --- TAB 2: RENDIMIENTO & COMISIONES --- */
+/* Dropdown block */
+.team-mobile .tm-period-block {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid var(--t-border);
+  border-radius: 14px;
+  padding: 10px 16px;
+  margin-bottom: 16px;
+}
+
+.team-mobile .tm-period-label {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.team-mobile .tm-period-select {
+  border: none;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--t-purple);
+  background: none;
+  outline: none;
+}
+
+/* KPI 2x2 grid */
+.team-mobile .tm-kpis {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.team-mobile .tm-kpi {
+  background: #ffffff;
+  border: 1px solid var(--t-border);
+  border-radius: var(--t-radius);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: var(--t-shadow);
+  height: 135px;
+}
+
+.team-mobile .tm-kpi__title {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--t-muted);
+  line-height: 1.2;
+}
+
+.team-mobile .tm-kpi__value {
+  font-size: 19px;
+  font-weight: 800;
+  margin-top: 4px;
+}
+
+.team-mobile .tm-kpi__chart {
+  width: 100%;
+  height: 40px;
+  margin-top: 8px;
+}
+
+/* Leaderboard Podio */
+.team-mobile .tm-podium-card {
+  background: #ffffff;
+  border: 1px solid var(--t-border);
+  border-radius: var(--t-radius);
+  padding: 16px;
+  margin-bottom: 20px;
+  box-shadow: var(--t-shadow);
+}
+
+.team-mobile .tm-podium-title {
+  font-size: 14px;
+  font-weight: 800;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.team-mobile .tm-podium-container {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  height: 130px;
+  padding-bottom: 10px;
+}
+
+.team-mobile .tm-podium-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0 8px;
+}
+
+.team-mobile .tm-podium-name {
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  width: 70px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.team-mobile .tm-podium-value {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--t-muted);
+}
+
+.team-mobile .tm-podium-bar {
+  width: 64px;
+  border-radius: 8px 8px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.team-mobile .tm-podium-bar--1 {
+  height: 65px;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 2px solid #fbbf24;
+  color: #b45309;
+}
+
+.team-mobile .tm-podium-bar--2 {
+  height: 45px;
+  background: #f1f5f9;
+  border: 2px solid #cbd5e1;
+  color: #475569;
+}
+
+.team-mobile .tm-podium-bar--3 {
+  height: 30px;
+  background: #fef3c7;
+  border: 2px solid #ca8a04;
+  color: #854d0e;
+}
+
+/* Liquidacion / Payroll cards */
+.team-mobile .tm-payroll-title {
+  font-size: 15px;
+  font-weight: 800;
+  margin-bottom: 12px;
+}
+
+.team-mobile .tm-payroll-card {
+  background: #ffffff;
+  border: 1px solid var(--t-border);
+  border-radius: 16px;
+  padding: 14px;
+  margin-bottom: 10px;
+  box-shadow: var(--t-shadow);
+}
+
+.team-mobile .tm-payroll-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.team-mobile .tm-payroll-row:last-child {
+  margin-bottom: 0;
+}
+
+.team-mobile .tm-payroll-label {
+  color: var(--t-muted);
+}
+
+.team-mobile .tm-payroll-value {
+  font-weight: 700;
+}
+
+.team-mobile .tm-payroll-value--name {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.team-mobile .tm-payroll-value--commission {
+  color: var(--t-green);
+  font-size: 14px;
+}
+
+/* Contribution Chart Card */
+.team-mobile .tm-donut-card {
+  background: #ffffff;
+  border: 1px solid var(--t-border);
+  border-radius: var(--t-radius);
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: var(--t-shadow);
+}
+
+.team-mobile .tm-donut-title {
+  font-size: 14px;
+  font-weight: 800;
+  margin-bottom: 12px;
+}
+
+.team-mobile .tm-donut-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.team-mobile .tm-legend-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+}
+
+.team-mobile .tm-legend-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 6px;
+}

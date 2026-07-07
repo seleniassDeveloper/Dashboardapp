@@ -1,4 +1,5 @@
 import React, { useState, lazy, Suspense, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
 import { motion, AnimatePresence } from "framer-motion";
@@ -28,6 +29,7 @@ export default function DashboardLayout({ children }) {
   const { business, isDemoSession, logout, authLoading } = useAuth();
   const hasCompanyName = Boolean(brand.companyName?.trim() || business?.name?.trim());
   const isMobile = useIsMobile();
+  const location = useLocation();
 
   let trialDaysLeft = null;
   if (business?.subscriptionStatus === "trialing" && business?.trialEndsAt) {
@@ -110,6 +112,26 @@ export default function DashboardLayout({ children }) {
     return () => window.removeEventListener("keydown", handleGlobalKeyDown);
   }, []);
 
+  // Listen to custom window events for mobile integration
+  useEffect(() => {
+    const handleOpenMoreSheet = () => setIsMoreSheetOpen(true);
+    const handleOpenCommandPalette = () => setShowCommandPalette(true);
+    const handleOpenAppointmentModal = () => {
+      setEditingAppointmentData(null);
+      setShowAppointmentModal(true);
+    };
+
+    window.addEventListener("open-more-sheet", handleOpenMoreSheet);
+    window.addEventListener("open-command-palette", handleOpenCommandPalette);
+    window.addEventListener("open-appointment-modal", handleOpenAppointmentModal);
+
+    return () => {
+      window.removeEventListener("open-more-sheet", handleOpenMoreSheet);
+      window.removeEventListener("open-command-palette", handleOpenCommandPalette);
+      window.removeEventListener("open-appointment-modal", handleOpenAppointmentModal);
+    };
+  }, []);
+
   const handleCommandPaletteAction = (action) => {
     switch (action.actionType) {
       case "create_client":
@@ -175,17 +197,25 @@ export default function DashboardLayout({ children }) {
         }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
       >
-        <TopBar 
-          onMenuClick={() => {
-            if (isMobile) {
-              setIsMoreSheetOpen(true);
-            } else {
-              setIsMobileOpen(true);
-            }
-          }} 
-          onEditBrand={() => setShowBrandModal(true)}
-          onSearchClick={() => setShowCommandPalette(true)}
-        />
+        {(!isMobile || (
+          location.pathname !== "/app" && 
+          location.pathname !== "/app/" && 
+          !location.pathname.startsWith("/app/clients") && 
+          !location.pathname.startsWith("/app/sheets-sync") && 
+          !location.pathname.startsWith("/app/team")
+        )) && (
+          <TopBar 
+            onMenuClick={() => {
+              if (isMobile) {
+                setIsMoreSheetOpen(true);
+              } else {
+                setIsMobileOpen(true);
+              }
+            }} 
+            onEditBrand={() => setShowBrandModal(true)}
+            onSearchClick={() => setShowCommandPalette(true)}
+          />
+        )}
         <motion.div className="content-inner">
           <ProductionApiBanner />
           {isDemoSession && (

@@ -33,6 +33,8 @@ import FinalizeServiceModal from "../components/clients/FinalizeServiceModal";
 import SmartReports from "../components/dashboard/SmartReports";
 import { getWidgetTypes, getMetricOptions } from "../components/dashboard/WidgetRegistry";
 import ProfessionalMobileView from "../components/dashboard/ProfessionalMobileView";
+import { useIsMobile } from "../hooks/useIsMobile";
+import InicioMobile from "../components/dashboard/InicioMobile";
 
 // Formato de moneda ARS
 function currency(n) {
@@ -44,6 +46,9 @@ function currency(n) {
 }
 
 export default function DashboardView() {
+  const isMobile = useIsMobile();
+  if (isMobile) return <InicioMobile />;
+
   const { brand } = useBrand();
   const { role, business, isSuperAdmin } = useAuth();
   const { t, i18n } = useTranslation(["dashboard", "common"]);

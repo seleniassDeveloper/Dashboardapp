@@ -586,3 +586,58 @@ a { text-decoration: none !important; color: inherit; }
     box-shadow: 0 4px 10px rgba(236, 72, 153, 0.25) !important;
   }
 }
+
+/* --- Documented Breakpoints ---
+   Mobile: screen width <= 767px
+   Tablet: screen width between 768px and 1023px
+   Desktop: screen width >= 1024px
+*/
+
+@media (max-width: 767px) {
+  /* Fullscreen layout for Hegemonic Modals on Mobile */
+  .hegemonic-modal .modal-dialog {
+    margin: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+  .hegemonic-modal .modal-content {
+    height: 100% !important;
+    max-height: 100vh !important;
+    border-radius: 0 !important;
+    position: fixed !important;
+    inset: 0 !important;
+    display: flex;
+    flex-direction: column;
+  }
+  .hegemonic-modal .modal-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: #ffffff;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+    padding: 16px 20px !important;
+    flex-shrink: 0;
+  }
+  .hegemonic-modal .modal-header .btn-close {
+    padding: 12px !important;
+    margin: -12px -12px -12px auto !important;
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .hegemonic-modal .modal-body {
+    padding: 20px !important;
+    overflow-y: auto !important;
+    flex-grow: 1;
+  }
+  .hegemonic-modal .modal-footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+    border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
+    background: #f9fafb;
+    padding: 16px 20px !important;
+    flex-shrink: 0;
+  }
+}
+

@@ -881,7 +881,7 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
                   {/* Cards KPIs Inteligentes */}
                   <Col md={9}>
                     <Row className="g-3">
-                      <Col xs={6} md={4}>
+                      <Col xs={4} md={4}>
                         <Card className="border-0 bg-light p-3 rounded-2xl shadow-sm-hover transition-all text-center h-100 d-flex flex-column justify-content-center">
                           <div className="text-muted smaller fw-bold mb-1 uppercase tracking-wider">Facturación Total</div>
                           {canViewFinance ? (
@@ -892,14 +892,14 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
                           <small className="text-muted mt-1">Servicios finalizados</small>
                         </Card>
                       </Col>
-                      <Col xs={6} md={4}>
+                      <Col xs={4} md={4}>
                         <Card className="border-0 bg-light p-3 rounded-2xl shadow-sm-hover transition-all text-center h-100 d-flex flex-column justify-content-center">
                           <div className="text-muted smaller fw-bold mb-1 uppercase tracking-wider">Visitas Completadas</div>
                           <div className="h3 fw-black text-gray-800 mb-0">{crmData.metrics.totalVisits} visitas</div>
                           <small className="text-muted mt-1">Tratamientos realizados</small>
                         </Card>
                       </Col>
-                      <Col xs={6} md={4}>
+                      <Col xs={4} md={4}>
                         <Card className="border-0 bg-light p-3 rounded-2xl shadow-sm-hover transition-all text-center h-100 d-flex flex-column justify-content-center">
                           <div className="text-muted smaller fw-bold mb-1 uppercase tracking-wider">Ticket Promedio</div>
                           {canViewFinance ? (
@@ -910,7 +910,7 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
                           <small className="text-muted mt-1">Gasto medio por turno</small>
                         </Card>
                       </Col>
-                      <Col xs={6} md={4}>
+                      <Col xs={4} md={4}>
                         <Card className="border-0 bg-light p-3 rounded-2xl shadow-sm-hover transition-all text-center h-100 d-flex flex-column justify-content-center">
                           <div className="text-muted smaller fw-bold mb-1 uppercase tracking-wider">Frecuencia de Retorno</div>
                           <div className="h3 fw-black text-gray-800 mb-0">
@@ -921,7 +921,7 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
                           <small className="text-muted mt-1">Frecuencia promedio de visitas</small>
                         </Card>
                       </Col>
-                      <Col xs={6} md={4}>
+                      <Col xs={4} md={4}>
                         <Card className="border-0 bg-light p-3 rounded-2xl shadow-sm-hover transition-all text-center h-100 d-flex flex-column justify-content-center">
                           <div className="text-muted smaller fw-bold mb-1 uppercase tracking-wider">Última Visita</div>
                           <div className="h4 fw-bold text-gray-800 mb-0 py-1">
@@ -936,7 +936,7 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
                           </small>
                         </Card>
                       </Col>
-                      <Col xs={6} md={4}>
+                      <Col xs={4} md={4}>
                         <Card className="border-0 bg-light p-3 rounded-2xl shadow-sm-hover transition-all text-center h-100 d-flex flex-column justify-content-center">
                           <div className="text-muted smaller fw-bold mb-1 uppercase tracking-wider">Próximos Turnos</div>
                           <div className="h3 fw-black text-indigo-600 mb-0">{crmData.metrics.upcomingVisitsCount} agendados</div>
@@ -2377,7 +2377,7 @@ export default function ClientDetailModal({ show, onHide, client, appointments =
                                 const photoTime = new Date(p.createdAt).toLocaleTimeString("es-AR", { hour: '2-digit', minute: '2-digit' }) + " hs";
 
                                 return (
-                                  <Col xs={12} sm={6} md={4} key={p.id}>
+                                  <Col xs={6} sm={6} md={4} key={p.id}>
                                     <Card className="h-100 border rounded-xl overflow-hidden shadow-sm bg-white">
                                       <div className="position-relative" style={{ paddingTop: "75%", backgroundColor: "#f8f9fa" }}>
                                         <img 

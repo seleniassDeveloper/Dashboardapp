@@ -10,6 +10,7 @@ import WorkflowCanvas from "./WorkflowCanvas.jsx";
 import WorkflowInspector from "./WorkflowInspector.jsx";
 import WorkflowSimulator from "./WorkflowSimulator.jsx";
 import api from "../../lib/api.js";
+import { useIsMobile } from "../../hooks/useIsMobile";
 
 // List of allowed ERP Triggers & Actions
 const SYNC_TRIGGERS = [
@@ -74,6 +75,7 @@ export default function WorkflowBuilder({
 }) {
   const { t, i18n } = useTranslation("views");
   const isEs = i18n.language === "es";
+  const isMobile = useIsMobile();
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -1022,6 +1024,12 @@ export default function WorkflowBuilder({
 
             {/* MAIN GRAPHICS CANVAS WORKSPACE */}
             <Col lg={6} md={5} className="h-100 d-flex flex-column">
+              {isMobile && (
+                <Alert variant="warning" className="rounded-xl mb-2 py-2 small d-flex align-items-center gap-2 border-0 shadow-sm bg-warning bg-opacity-10 text-warning-800" style={{ fontSize: "12px" }}>
+                  <ShieldAlert size={16} />
+                  <span>Para una mejor experiencia con el lienzo visual, te sugerimos ingresar desde una computadora. Podés cambiar a "Configuración Rápida" arriba.</span>
+                </Alert>
+              )}
               <WorkflowCanvas
                 nodes={nodes}
                 transitions={transitions}

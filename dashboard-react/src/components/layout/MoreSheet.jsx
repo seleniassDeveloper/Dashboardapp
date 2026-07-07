@@ -11,7 +11,9 @@ import {
   Settings, 
   LogOut, 
   X,
-  Sparkles
+  Sparkles,
+  CreditCard,
+  LayoutDashboard
 } from "lucide-react";
 import { useAuth } from "../../auth/AuthProvider";
 import { useBusinessModel } from "../../hooks/useBusinessModel";
@@ -82,6 +84,11 @@ export default function MoreSheet({ isOpen, onClose, installPrompt, onInstallCli
               )}
               
               <div className="moresheet__grid">
+                <Link to="/app" className="moresheet__link" onClick={onClose}>
+                  <LayoutDashboard size={20} />
+                  <span>{getLabel("dashboard", t("menu.dashboard") || "Inicio")}</span>
+                </Link>
+                
                 <Link to="/app/services" className="moresheet__link" onClick={onClose}>
                   <Scissors size={20} />
                   <span>{getLabel("services", t("menu.services") || "Servicios")}</span>
@@ -110,6 +117,11 @@ export default function MoreSheet({ isOpen, onClose, installPrompt, onInstallCli
                 <Link to="/app/automations" className="moresheet__link" onClick={onClose}>
                   <Zap size={20} />
                   <span>{t("menu.automations") || "Automatización"}</span>
+                </Link>
+                
+                <Link to="/app/finances" className="moresheet__link" onClick={onClose}>
+                  <CreditCard size={20} />
+                  <span>{t("menu.finances") || "Caja"}</span>
                 </Link>
                 
                 <Link to="/app/settings" className="moresheet__link" onClick={onClose}>

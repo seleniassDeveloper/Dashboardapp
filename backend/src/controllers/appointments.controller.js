@@ -225,9 +225,6 @@ export async function createAppointment(req, res) {
 
         created.push(appt);
 
-        // Record transition immediately in transaction or await after
-        await recordStatusTransition(req.businessId, appt.id, "CREATED", appt.status || "PENDING").catch(err => console.error("[appointments] recordStatusTransitionError:", err?.message || err));
-
         currentStartsAt = new Date(currentStartsAt.getTime() + (svc.duration || 30) * 60 * 1000);
       }
       
@@ -241,6 +238,9 @@ export async function createAppointment(req, res) {
         })
         .catch((err) => console.error("[appointments] importGoogleServiceError:", err?.message || err));
         
+      recordStatusTransition(req.businessId, appt.id, "CREATED", appt.status || "PENDING")
+        .catch(err => console.error("[appointments] recordStatusTransitionError:", err?.message || err));
+
       triggerWorkflows(req.businessId, "appointment_created", appt).catch(err => console.error("[appointments] triggerWorkflowsError:", err?.message || err));
     }
 
