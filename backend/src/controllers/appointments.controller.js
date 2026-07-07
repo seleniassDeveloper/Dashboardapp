@@ -229,7 +229,7 @@ export async function createAppointment(req, res) {
       }
       
       return created;
-    });
+    }, { maxWait: 15000, timeout: 30000 });
 
     for (const appt of createdAppointments) {
       import("../services/googleService.js")
@@ -726,7 +726,7 @@ export async function finalizeAppointment(req, res) {
 
       // 3. Descuento automático de insumos del inventario (Consumo por Servicio con estrategia FIFO)
       const rules = await tx.serviceConsumptionRule.findMany({ 
-        where: { businessId: appt.businessId, serviceId: appt.serviceId },
+        where: { serviceId: appt.serviceId },
         include: { product: true }
       });
 
@@ -808,7 +808,7 @@ export async function finalizeAppointment(req, res) {
           }
         });
       }
-    });
+    }, { maxWait: 15000, timeout: 30000 });
 
     // Operaciones secundarias fuera de la transacción de base de datos
     const oldStatus = appt.status;

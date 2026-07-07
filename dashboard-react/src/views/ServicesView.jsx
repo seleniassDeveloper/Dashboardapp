@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Container, Row, Col, Button, Card, Table, Badge, Form, InputGroup, Spinner, Alert } from "react-bootstrap";
 import { Plus, Edit2, Trash2, Scissors, Clock, Tag, Search, Filter, RefreshCw, Eye, Copy, ToggleLeft, ToggleRight, Sparkles } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -7,6 +7,11 @@ import ServiceDetailModal from "../header/services/ServiceDetailModal.jsx";
 import api from "../lib/api.js";
 
 import { useBusinessModel } from "../hooks/useBusinessModel.js";
+
+// Mobile modules
+import { useIsMobile } from "../hooks/useIsMobile.js";
+import useServices from "../hooks/useServices.js";
+import ServicesMobile from "../components/services/mobile/ServicesMobile.jsx";
 
 function currency(n) {
   return new Intl.NumberFormat("es-AR", {
@@ -18,112 +23,49 @@ function currency(n) {
 
 export default function ServicesView() {
   const { t } = useTranslation("views");
+  const isMobile = useIsMobile();
+  const state = useServices();
+
+  const {
+    servicesList,
+    workersList,
+    loading,
+    error,
+    setError,
+    
+    // Filters and search
+    searchText,
+    setSearchText,
+    selectedCategory,
+    setSelectedCategory,
+    selectedStatus,
+    setSelectedStatus,
+    selectedWorkerId,
+    setSelectedWorkerId,
+    onlyVisibleOnline,
+    setOnlyVisibleOnline,
+    handleClearFilters,
+    
+    // Modals visibility control
+    showFormModal,
+    setShowFormModal,
+    editingService,
+    showDetailModal,
+    setShowDetailModal,
+    detailedService,
+    setDetailedService,
+    
+    // Actions & reload
+    loadServices,
+    handleAdd,
+    handleEdit,
+    handleDuplicate,
+    handleToggleStatus,
+    handleDelete,
+    handleViewDetail
+  } = state;
+
   const { serviceCategories } = useBusinessModel();
-  const [servicesList, setServicesList] = useState([]);
-  const [workersList, setWorkersList] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  // Modales
-  const [showFormModal, setShowFormModal] = useState(false);
-  const [editingService, setEditingService] = useState(null);
-  
-  const [showDetailModal, setShowDetailModal] = useState(false);
-  const [detailedService, setDetailedService] = useState(null);
-
-  // Estados de Filtros
-  const [searchText, setSearchText] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState("");
-  const [selectedWorkerId, setSelectedWorkerId] = useState("");
-  const [onlyVisibleOnline, setOnlyVisibleOnline] = useState(false);
-
-  // Carga de Servicios con Filtros
-  const loadServices = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError("");
-      
-      const params = {};
-      if (searchText.trim()) params.search = searchText.trim();
-      if (selectedCategory) params.category = selectedCategory;
-      if (selectedStatus) params.status = selectedStatus;
-      if (selectedWorkerId) params.workerId = selectedWorkerId;
-      if (onlyVisibleOnline) params.visibleOnline = "true";
-
-      const res = await api.get("/services", { params });
-      setServicesList(Array.isArray(res.data) ? res.data : []);
-    } catch (e) {
-      console.error("Error loading services:", e);
-      setError("No se pudieron cargar los servicios del catálogo.");
-    } finally {
-      setLoading(false);
-    }
-  }, [searchText, selectedCategory, selectedStatus, selectedWorkerId, onlyVisibleOnline]);
-
-  // Carga de colaboradores una sola vez al montar
-  useEffect(() => {
-    api.get("/workers")
-      .then(res => setWorkersList(Array.isArray(res.data) ? res.data : []))
-      .catch(err => console.error("Error loading workers for filter:", err));
-  }, []);
-
-  // Recargar servicios al cambiar los filtros
-  useEffect(() => {
-    loadServices();
-  }, [loadServices]);
-
-  // Acciones
-  const handleAdd = () => {
-    setEditingService(null);
-    setShowFormModal(true);
-  };
-
-  const handleEdit = (service) => {
-    setEditingService(service);
-    setShowFormModal(true);
-  };
-
-  const handleDuplicate = (service) => {
-    const duplicated = {
-      ...service,
-      id: undefined, // limpia el ID para forzar creación
-      name: `${service.name} (Copia)`,
-      workers: service.workers || [],
-      consumptionRules: service.consumptionRules || []
-    };
-    setEditingService(duplicated);
-    setShowFormModal(true);
-  };
-
-  const handleToggleStatus = async (service) => {
-    try {
-      const newStatus = service.status === "active" ? "inactive" : "active";
-      await api.patch(`/services/${service.id}/status`, { status: newStatus });
-      loadServices();
-    } catch (e) {
-      console.error("Error toggling status:", e);
-      setError("No se pudo cambiar el estado del servicio.");
-    }
-  };
-
-  const handleDelete = async (id, name) => {
-    if (!window.confirm(`¿Estás seguro de que deseas eliminar el servicio "${name}"? Esta acción borrará todas las citas asociadas para evitar conflictos.`)) return;
-    try {
-      setLoading(true);
-      await api.delete(`/services/${id}`);
-      loadServices();
-    } catch (e) {
-      console.error("Error deleting service:", e);
-      setError(e?.response?.data?.error || "Error al eliminar el servicio del catálogo.");
-      setLoading(false);
-    }
-  };
-
-  const handleViewDetail = (service) => {
-    setDetailedService(service);
-    setShowDetailModal(true);
-  };
 
   const getStatusBadge = (statusVal) => {
     switch (String(statusVal).toLowerCase()) {
@@ -146,13 +88,33 @@ export default function ServicesView() {
     return currency(s.commissionValue);
   };
 
-  const handleClearFilters = () => {
-    setSearchText("");
-    setSelectedCategory("");
-    setSelectedStatus("");
-    setSelectedWorkerId("");
-    setOnlyVisibleOnline(false);
-  };
+  if (isMobile) {
+    return (
+      <>
+        <ServicesMobile state={state} />
+        
+        {/* MODAL DE EDICIÓN / CREACIÓN */}
+        <ServiceModal
+          show={showFormModal}
+          onHide={() => {
+            setShowFormModal(false);
+            loadServices();
+          }}
+          editService={editingService}
+        />
+
+        {/* MODAL DE VER DETALLE */}
+        <ServiceDetailModal
+          show={showDetailModal}
+          onHide={() => {
+            setShowDetailModal(false);
+            setDetailedService(null);
+          }}
+          service={detailedService}
+        />
+      </>
+    );
+  }
 
   return (
     <Container fluid className="p-0 pb-4">

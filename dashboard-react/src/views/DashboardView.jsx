@@ -47,7 +47,6 @@ function currency(n) {
 
 export default function DashboardView() {
   const isMobile = useIsMobile();
-  if (isMobile) return <InicioMobile />;
 
   const { brand } = useBrand();
   const { role, business, isSuperAdmin } = useAuth();
@@ -540,6 +539,10 @@ export default function DashboardView() {
   const handleFinalizeCompleted = () => {
     fetchData();
   };
+
+  if (isMobile) {
+    return <InicioMobile />;
+  }
 
   if (role === "professional") {
     return <ProfessionalMobileView />;

@@ -119,6 +119,11 @@ export default function FinalizeServiceModal({ show, onHide, appointment, onComp
       return;
     }
 
+    let waWindow = null;
+    if (sendWhatsapp && appointment.client?.phone) {
+      waWindow = window.open("about:blank", "_blank");
+    }
+
     try {
       setLoading(true);
       setError("");
@@ -145,7 +150,7 @@ export default function FinalizeServiceModal({ show, onHide, appointment, onComp
 
       if (res.data?.success) {
         // WhatsApp redirection if checked
-        if (sendWhatsapp && appointment.client?.phone) {
+        if (waWindow) {
           try {
             const rawPhone = appointment.client.phone.trim();
             const cleanPhone = rawPhone.replace(/\D/g, "");
@@ -162,9 +167,10 @@ export default function FinalizeServiceModal({ show, onHide, appointment, onComp
             }
             
             const waUrl = `https://wa.me/${finalPhone}?text=${encodeURIComponent(messageText)}`;
-            window.open(waUrl, "_blank");
+            waWindow.location.href = waUrl;
           } catch (waErr) {
             console.error("Error creating WhatsApp redirect:", waErr);
+            waWindow.close();
           }
         }
 
@@ -178,9 +184,11 @@ export default function FinalizeServiceModal({ show, onHide, appointment, onComp
         }
         onHide();
       } else {
+        if (waWindow) waWindow.close();
         setError("Ocurrió un problema inesperado al registrar el fin de servicio.");
       }
     } catch (err) {
+      if (waWindow) waWindow.close();
       console.error("Error al finalizar servicio:", err);
       setError(err?.response?.data?.error || "Error de red al guardar. Por favor reintentá.");
     } finally {

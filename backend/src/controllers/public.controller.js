@@ -609,7 +609,7 @@ export async function createPublicBooking(req, res) {
       }
       
       return created;
-    });
+    }, { maxWait: 15000, timeout: 30000 });
 
     // Sincronizar con Google Calendar en segundo plano
     for (const appt of createdAppointments) {

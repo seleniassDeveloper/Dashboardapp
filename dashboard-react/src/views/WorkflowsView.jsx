@@ -7,6 +7,8 @@ import SlaStatsView from "./SlaStatsView.jsx";
 import ServiceSlaStatsView from "./ServiceSlaStatsView.jsx";
 import api from "../lib/api.js";
 import { TEMPLATES } from "./TemplatesView.jsx";
+import { useIsMobile } from "../hooks/useIsMobile.js";
+import FlowsMobile from "../components/workflows/mobile/FlowsMobile.jsx";
 
 // Pre-populated realistic high-fidelity mock logs with dual Spanish/English fields
 const HIGH_FIDELITY_MOCKS = [
@@ -305,6 +307,19 @@ export default function WorkflowsView() {
     
     return isEs ? timesEs[idHash] : timesEn[idHash];
   };
+
+  const isMobile = useIsMobile();
+
+  if (isMobile) {
+    return (
+      <FlowsMobile 
+        onStartVisual={(wf) => {
+          setEditing(wf);
+          setShowBuilder(true);
+        }}
+      />
+    );
+  }
 
   return (
     <Container fluid className="p-0 animate-fade-in">

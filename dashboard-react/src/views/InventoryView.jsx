@@ -22,10 +22,29 @@ import InventorySimulator from "../components/inventory/InventorySimulator.jsx";
 import InventoryAIInsights from "../components/inventory/InventoryAIInsights.jsx";
 import ServiceConsumptionRules from "../components/inventory/ServiceConsumptionRules.jsx";
 
+// Mobile modules
+import { useIsMobile } from "../hooks/useIsMobile.js";
+import useInventoryDashboard from "../hooks/useInventoryDashboard.js";
+import InventoryMobile from "../components/inventory/mobile/InventoryMobile.jsx";
+
 export default function InventoryView() {
   const { t } = useTranslation("views");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const isMobile = useIsMobile();
+  const state = useInventoryDashboard();
+
+  const {
+    loading,
+    error,
+    dashboardData,
+    products,
+    suppliers,
+    rules,
+    movements,
+    branchesCount,
+    businessIndustry,
+    refresh: fetchAllData
+  } = state;
+
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get("tab") || "resumen";
   const repoSubTab = searchParams.get("sub") || "pedidos";
@@ -37,86 +56,6 @@ export default function InventoryView() {
   const setRepoSubTab = (newSubTab) => {
     setSearchParams({ tab: "reposicion", sub: newSubTab });
   };
-
-  // State populated from Neon Cloud DB
-  const [dashboardData, setDashboardData] = useState(null);
-  const [products, setProducts] = useState([]);
-  const [suppliers, setSuppliers] = useState([]);
-  const [rules, setRules] = useState([]);
-  const [movements, setMovements] = useState([]);
-  const [branchesCount, setBranchesCount] = useState(1);
-  const [businessIndustry, setBusinessIndustry] = useState("Estética");
-
-  const fetchAllData = async () => {
-    try {
-      setLoading(true);
-      setError("");
-      let hasFailures = false;
-
-      const [dashRes, prodRes, supRes, ruleRes, movRes, branchRes, bizRes] = await Promise.all([
-        api.get("/inventory/dashboard").catch(err => {
-          console.error("Error fetching inventory dashboard:", err);
-          hasFailures = true;
-          return {
-            data: {
-              summary: {
-                lowStockCount: 0,
-                totalValue: 0,
-                totalUnique: 0,
-                estimatedMonthlySpend: 0,
-                mostConsumed: "-",
-                costliestService: "-"
-              }
-            }
-          };
-        }),
-        api.get("/inventory/products").catch(err => {
-          console.error("Error fetching inventory products:", err);
-          hasFailures = true;
-          return { data: [] };
-        }),
-        api.get("/inventory/suppliers").catch(err => {
-          console.error("Error fetching inventory suppliers:", err);
-          hasFailures = true;
-          return { data: [] };
-        }),
-        api.get("/inventory/rules").catch(err => {
-          console.error("Error fetching inventory rules:", err);
-          return { data: [] };
-        }),
-        api.get("/inventory/movements").catch(err => {
-          console.error("Error fetching inventory movements:", err);
-          return { data: [] };
-        }),
-        api.get("/finances/branches").catch(() => ({ data: [] })),
-        api.get("/businesses/me").catch(() => null)
-      ]);
-
-      setDashboardData(dashRes.data);
-      setProducts(Array.isArray(prodRes.data) ? prodRes.data : []);
-      setSuppliers(Array.isArray(supRes.data) ? supRes.data : []);
-      setRules(Array.isArray(ruleRes.data) ? ruleRes.data : []);
-      setMovements(Array.isArray(movRes.data) ? movRes.data : []);
-      setBranchesCount(Array.isArray(branchRes.data) ? branchRes.data.length : 1);
-
-      if (bizRes && bizRes.data && bizRes.data.business) {
-        setBusinessIndustry(bizRes.data.business.industry || "Estética");
-      }
-
-      if (hasFailures) {
-        setError("Algunos datos del inventario ERP no pudieron cargarse por completo (compruebe sus permisos de acceso).");
-      }
-    } catch (err) {
-      console.error(err);
-      setError("No se pudieron cargar los datos del inventario ERP.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchAllData();
-  }, []);
 
   const showConsumptionRules = useMemo(() => {
     const norm = (businessIndustry || "").toLowerCase();
@@ -131,6 +70,10 @@ export default function InventoryView() {
         Analizando existencias contables y lotes en Neon Cloud PostgreSQL...
       </div>
     );
+  }
+
+  if (isMobile) {
+    return <InventoryMobile state={state} />;
   }
 
   return (

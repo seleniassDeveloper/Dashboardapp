@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { Container, Row, Col, Card, Button, Badge, Form, Alert, Modal } from "react-bootstrap";
 import { 
@@ -13,7 +13,7 @@ import api from "../../lib/api.js";
 import { useIsMobile } from "../../hooks/useIsMobile";
 
 // List of allowed ERP Triggers & Actions
-const SYNC_TRIGGERS = [
+export const SYNC_TRIGGERS = [
   { subtype: "nueva-cita", name: "📅 Nueva Cita", type: "trigger", desc: "Se ejecuta al agendar cita." },
   { subtype: "cita-confirmada", name: "✅ Cita Confirmada", type: "trigger", desc: "Se ejecuta al confirmar cita." },
   { subtype: "cita-cancelada", name: "❌ Cita Cancelada", type: "trigger", desc: "Se ejecuta al cancelar cita." },
@@ -26,7 +26,7 @@ const SYNC_TRIGGERS = [
   { subtype: "pago-recibido", name: "💸 Pago Recibido", type: "trigger", desc: "Se ejecuta al registrar cobro." }
 ];
 
-const SYNC_ACTIONS = [
+export const SYNC_ACTIONS = [
   { subtype: "whatsapp", name: "📱 WhatsApp", type: "action", desc: "Manda mensaje por enlace WhatsApp." },
   { subtype: "email", name: "✉️ Correo Email", type: "action", desc: "Envía un email formal por Gmail API." },
   { subtype: "notificacion", name: "🔔 Alerta Push", type: "action", desc: "Muestra alerta interna en la campana." },
@@ -36,7 +36,7 @@ const SYNC_ACTIONS = [
   { subtype: "enviar-comprobante", name: "🧾 Enviar Comprobante", type: "action", desc: "Envía comprobante de pago por Email." }
 ];
 
-const SYNC_LOGIC = [
+export const SYNC_LOGIC = [
   { subtype: "condition", name: "🧠 Condición (IF/ELSE)", type: "condition", desc: "Bifurca el camino lógico." },
   { subtype: "delay", name: "⏳ Retardo (Delay)", type: "delay", desc: "Espera antes de avanzar." }
 ];
@@ -84,7 +84,13 @@ export default function WorkflowBuilder({
   const [transitions, setTransitions] = useState([]);
 
   const [editorMode, setEditorMode] = useState("quick"); // "quick" | "visual"
-  const [isComplex, setIsComplex] = useState(false);
+
+  const isComplex = useMemo(() => {
+    const triggers = nodes.filter(n => n.type === "trigger");
+    const actions = nodes.filter(n => n.type === "action");
+    const others = nodes.filter(n => n.type !== "trigger" && n.type !== "action");
+    return triggers.length > 1 || actions.length > 1 || others.length > 0;
+  }, [nodes]);
 
   // Custom workflow components state
   const [customTriggers, setCustomTriggers] = useState(() => {
@@ -261,7 +267,6 @@ export default function WorkflowBuilder({
     }
 
     const hasComplexity = triggers.length > 1 || actions.length > 1 || others.length > 0;
-    setIsComplex(hasComplexity);
     if (hasComplexity) {
       setEditorMode("visual");
     } else {
@@ -1036,9 +1041,9 @@ export default function WorkflowBuilder({
                 selectedNodeId={selectedNodeId}
                 executingNodeId={executingNodeId}
                 onSelectNode={handleSelectNode}
-                onDeleteNode={handleDeleteNode}
-                onUpdateNodePosition={handleUpdateNodePosition}
-                onStartConnection={handleAddConnection}
+                onDeleteNode={isMobile ? () => {} : handleDeleteNode}
+                onUpdateNodePosition={isMobile ? () => {} : handleUpdateNodePosition}
+                onStartConnection={isMobile ? () => {} : handleAddConnection}
               />
             </Col>
 
