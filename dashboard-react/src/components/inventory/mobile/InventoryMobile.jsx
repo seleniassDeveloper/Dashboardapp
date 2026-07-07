@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Offcanvas, ListGroup, Modal } from "react-bootstrap";
-import { Home, ClipboardList, Layers, Menu, Plus, Scan, Package, ShoppingCart, PlusCircle, Barchart2 } from "lucide-react";
+import { Home, ClipboardList, Layers, Menu, Plus, Scan, Package, ShoppingCart, PlusCircle, BarChart2 } from "lucide-react";
 import InventoryHome from "./InventoryHome.jsx";
 import InventoryCatalogMobile from "./InventoryCatalogMobile.jsx";
 import ProductForm from "../ProductForm.jsx";
@@ -157,7 +157,7 @@ export default function InventoryMobile({ state }) {
               <strong className="text-gray-900 small d-block">Rentabilidad Insumos</strong>
               <span className="smaller text-muted">Costos de tratamiento y márgenes</span>
             </div>
-            <Barchart2 size={18} className="text-purple-600" />
+            <BarChart2 size={18} className="text-purple-600" />
           </ListGroup.Item>
 
           {branchesCount > 1 && (
