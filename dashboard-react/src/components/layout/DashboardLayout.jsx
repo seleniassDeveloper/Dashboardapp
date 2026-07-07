@@ -174,6 +174,14 @@ export default function DashboardLayout({ children }) {
     }
   };
 
+  const [hideMobileTopbar, setHideMobileTopbar] = useState(false);
+
+  React.useEffect(() => {
+    const handleHide = (e) => setHideMobileTopbar(e.detail);
+    window.addEventListener("set-hide-mobile-topbar", handleHide);
+    return () => window.removeEventListener("set-hide-mobile-topbar", handleHide);
+  }, []);
+
   return (
     <div className="app-layout">
       {!isMobile && (
@@ -197,13 +205,7 @@ export default function DashboardLayout({ children }) {
         }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
       >
-        {(!isMobile || (
-          location.pathname !== "/app" && 
-          location.pathname !== "/app/" && 
-          !location.pathname.startsWith("/app/clients") && 
-          !location.pathname.startsWith("/app/sheets-sync") && 
-          !location.pathname.startsWith("/app/team")
-        )) && (
+        {(!isMobile || !hideMobileTopbar) && (
           <TopBar 
             onMenuClick={() => {
               if (isMobile) {

@@ -94,11 +94,7 @@ export default function TeamMobile({ sync }) {
 
   return (
     <div className="team-mobile">
-      {/* Intro Header */}
-      <div>
-        <h1 className="tm-title">Equipo</h1>
-        <p className="tm-subtitle">Gestiona perfiles, comisiones y agendas de tu personal.</p>
-      </div>
+
 
       {/* Button Add Collaborator */}
       <button className="tm-add-btn" onClick={openCreate}>

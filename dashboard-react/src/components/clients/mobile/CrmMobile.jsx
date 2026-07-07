@@ -9,6 +9,15 @@ export default function CrmMobile(props) {
   const [screen, setScreen] = useState("dashboard"); // dashboard | list | detail | edit
   const [selectedClient, setSelectedClient] = useState(null);
 
+  React.useEffect(() => {
+    window.dispatchEvent(new CustomEvent("set-hide-mobile-topbar", { 
+      detail: screen !== "dashboard" 
+    }));
+    return () => {
+      window.dispatchEvent(new CustomEvent("set-hide-mobile-topbar", { detail: false }));
+    };
+  }, [screen]);
+
   const navigateTo = (nextScreen, client = null) => {
     if (client) setSelectedClient(client);
     setScreen(nextScreen);

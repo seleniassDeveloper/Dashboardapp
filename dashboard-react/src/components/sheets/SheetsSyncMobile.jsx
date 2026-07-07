@@ -21,6 +21,15 @@ export default function SheetsSyncMobile({ sync }) {
   const [screen, setScreen] = useState("home"); // "home" | "source" | "wizard" | "history" | "export"
   const [wizardStep, setWizardStep] = useState(1); // 1: Pestañas/Origen, 2: Mapear, 3: Revisar
 
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent("set-hide-mobile-topbar", { 
+      detail: screen !== "home" 
+    }));
+    return () => {
+      window.dispatchEvent(new CustomEvent("set-hide-mobile-topbar", { detail: false }));
+    };
+  }, [screen]);
+
   // Stepper helper
   const renderStepper = () => {
     // Current logical step index (0-3)
@@ -61,13 +70,7 @@ export default function SheetsSyncMobile({ sync }) {
   if (screen === "home") {
     return (
       <div className="sheets-mobile py-3">
-        <header className="d-flex align-items-center justify-content-between mb-4">
-          <button className="sm-back" onClick={() => window.dispatchEvent(new CustomEvent("open-more-sheet"))}>
-            <MenuIcon size={24} />
-          </button>
-          <h2 className="m-0 fw-bold" style={{ fontSize: "18px" }}>Sincronizador</h2>
-          <div style={{ width: "24px" }} />
-        </header>
+
 
         <div className="sm-hero">
           <div className="sm-hero__icon">

@@ -184,28 +184,10 @@ export default function InicioMobile() {
   return (
     <div className="inicio-mobile">
       {/* 1. Header (saludo) */}
-      <header className="im-header">
-        <div className="im-header__left">
-          <button 
-            className="im-bell" 
-            onClick={() => window.dispatchEvent(new CustomEvent("open-more-sheet"))}
-            style={{ marginRight: "8px" }}
-          >
-            <Menu size={24} />
-          </button>
-          <div className="im-header__greet">
-            <h1>Hola, {user?.displayName || "Xu"} 👋</h1>
-            <p>{dateFormatted}</p>
-          </div>
-        </div>
-        <div className="im-header__actions">
-          <button className="im-bell">
-            <Bell size={22} />
-            <span className="im-bell__badge">3</span>
-          </button>
-          <div className="im-avatar">
-            {user?.displayName ? user.displayName.substring(0, 2).toUpperCase() : "XU"}
-          </div>
+      <header className="im-header" style={{ padding: "10px 0 16px" }}>
+        <div className="im-header__greet">
+          <h1 style={{ fontSize: "22px", fontWeight: "800", margin: 0 }}>Hola, {user?.displayName || "Xu"} 👋</h1>
+          <p style={{ margin: "4px 0 0", color: "var(--w-muted, #8b8a99)", fontSize: "13px" }}>{dateFormatted}</p>
         </div>
       </header>
 

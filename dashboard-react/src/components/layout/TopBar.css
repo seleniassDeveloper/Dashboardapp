@@ -138,6 +138,10 @@
     height: 60px !important;
     padding: 0 16px !important;
   }
+
+  .topbar__search {
+    display: none !important;
+  }
   
   .topbar::before {
     display: none !important;

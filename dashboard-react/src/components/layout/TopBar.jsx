@@ -3,16 +3,31 @@ import "./TopBar.css";
 import { useTranslation } from "react-i18next";
 import { useBrand } from "../../header/name/BrandProvider";
 import { useAuth } from "../../auth/AuthProvider";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Search, Bell, PenSquare, LogOut, Menu } from "lucide-react";
 import LanguageSwitcher from "../language/LanguageSwitcher.jsx";
 import SuperAdminModelSelector from "./SuperAdminModelSelector.jsx";
+import { useIsMobile } from "../../hooks/useIsMobile.js";
 
 export default function TopBar({ onMenuClick, onEditBrand, onSearchClick }) {
   const { t } = useTranslation("nav");
   const { brand } = useBrand();
   const { logout, business, user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isMobile = useIsMobile();
+
+  const getMobileTitle = () => {
+    const path = location.pathname;
+    if (path === "/app" || path === "/app/") return "Inicio";
+    if (path.startsWith("/app/calendar")) return "Agenda";
+    if (path.startsWith("/app/clients")) return "Clientes";
+    if (path.startsWith("/app/team")) return "Equipo";
+    if (path.startsWith("/app/sheets-sync")) return "Sincronizador";
+    if (path.startsWith("/app/finance") || path.startsWith("/app/accounting")) return "Finanzas";
+    if (path.startsWith("/app/workflows")) return "Flujos";
+    return brand.companyName || business?.name || "AuraDash";
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -44,8 +59,10 @@ export default function TopBar({ onMenuClick, onEditBrand, onSearchClick }) {
           <Menu size={20} />
         </button>
         <div className="topbar__brand-wrap" onClick={onEditBrand}>
-          <h2 className="topbar__brand-name" translate="no">{brand.companyName || business?.name || t("topbar.myBusiness")}</h2>
-          {brand.slogan && <p className="topbar__brand-slogan" translate="no">{brand.slogan}</p>}
+          <h2 className="topbar__brand-name" translate="no">
+            {isMobile ? getMobileTitle() : (brand.companyName || business?.name || t("topbar.myBusiness"))}
+          </h2>
+          {!isMobile && brand.slogan && <p className="topbar__brand-slogan" translate="no">{brand.slogan}</p>}
         </div>
       </div>
 

@@ -82,40 +82,7 @@ export default function CrmDashboard({ clients, appointments, onNavigate }) {
 
   return (
     <div style={{ background: "var(--c-bg-soft)", minHeight: "100vh" }}>
-      {/* Header */}
-      <header className="c-header">
-        <button 
-          className="c-back"
-          onClick={() => window.dispatchEvent(new CustomEvent("open-more-sheet"))}
-          aria-label="Abrir Menú"
-        >
-          <Menu size={20} />
-        </button>
-        <span className="c-header__title">CRM</span>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <button className="c-back" style={{ position: "relative" }} aria-label="Notificaciones">
-            <Bell size={20} />
-            <span style={{
-              position: "absolute",
-              top: "10px",
-              right: "10px",
-              width: "8px",
-              height: "8px",
-              backgroundColor: "var(--c-pink)",
-              borderRadius: "50%"
-            }} />
-          </button>
-          <div className="c-avatar" style={{
-            width: "32px",
-            height: "32px",
-            backgroundColor: "var(--c-purple)",
-            color: "#fff",
-            fontSize: "12px"
-          }}>
-            {user?.displayName ? getInitials(user.displayName) : "SS"}
-          </div>
-        </div>
-      </header>
+
 
       {/* Saludo */}
       <section className="c-greet">
