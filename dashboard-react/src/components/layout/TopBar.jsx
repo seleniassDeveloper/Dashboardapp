@@ -49,6 +49,18 @@ export default function TopBar({ onMenuClick, onEditBrand, onSearchClick }) {
     return name.substring(0, 2).toUpperCase();
   };
 
+  if (isMobile) {
+    return (
+      <header className="mobile-app-bar">
+        <button className="mab-menu-btn" onClick={onMenuClick} aria-label={t("topbar.openMenu")}>
+          <Menu size={24} />
+        </button>
+        <h1 className="mab-title">{getMobileTitle()}</h1>
+        <div className="mab-placeholder" />
+      </header>
+    );
+  }
+
   return (
     <header
       className={`topbar ${brand.coverImage ? "topbar--has-image" : ""}`}

@@ -213,3 +213,42 @@
     display: none;
   }
 }
+
+/* Mobile App Bar Styling */
+.mobile-app-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  background: #ffffff;
+  padding: 0 16px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  border-bottom: 1px solid #f2f0f9;
+}
+
+.mobile-app-bar .mab-menu-btn {
+  background: none;
+  border: none;
+  color: #7c5cfc; /* Purple */
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+}
+
+.mobile-app-bar .mab-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #1e1b2e;
+  margin: 0;
+  text-align: center;
+  flex: 1;
+}
+
+.mobile-app-bar .mab-placeholder {
+  width: 40px; /* same width as menu button to ensure perfect centering */
+}
