@@ -545,8 +545,8 @@ export default function DashboardView() {
       <>
         <InicioMobile 
           appointments={appointments}
-          onConfirmAppointment={handleConfirmAppointment}
-          onUpdateAppointmentStatus={handleUpdateStatus}
+          onConfirmAppointment={(id) => handleUpdateAppointmentStatus(id, "CONFIRMED")}
+          onUpdateAppointmentStatus={handleUpdateAppointmentStatus}
           onFinalizeAppointment={handleFinalizeAppointment}
         />
         <FinalizeServiceModal
