@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { spawn } from "node:child_process";
+// Force rebuild trigger to resolve Railway transient cache/network build failure
 import app from "./app.js";
 import prisma from "./prisma.js";
 import { assertProductionEnv } from "./config/env.js";
