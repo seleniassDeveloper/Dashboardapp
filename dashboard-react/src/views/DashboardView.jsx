@@ -541,7 +541,25 @@ export default function DashboardView() {
   };
 
   if (isMobile) {
-    return <InicioMobile />;
+    return (
+      <>
+        <InicioMobile 
+          appointments={appointments}
+          onConfirmAppointment={handleConfirmAppointment}
+          onUpdateAppointmentStatus={handleUpdateStatus}
+          onFinalizeAppointment={handleFinalizeAppointment}
+        />
+        <FinalizeServiceModal
+          show={showFinalizeModal}
+          onHide={() => {
+            setShowFinalizeModal(false);
+            setSelectedAppointmentForFinalize(null);
+          }}
+          appointment={selectedAppointmentForFinalize}
+          onCompleted={handleFinalizeCompleted}
+        />
+      </>
+    );
   }
 
   if (role === "professional") {

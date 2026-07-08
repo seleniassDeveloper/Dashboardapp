@@ -13,9 +13,15 @@ import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, 
   PieChart, Pie, Cell 
 } from "recharts";
+import UpcomingAppointmentsWidget from "./UpcomingAppointmentsWidget";
 import "./InicioMobile.css";
 
-export default function InicioMobile() {
+export default function InicioMobile({
+  appointments: propsAppointments,
+  onConfirmAppointment,
+  onUpdateAppointmentStatus,
+  onFinalizeAppointment
+}) {
   const { user } = useAuth();
   const { t } = useTranslation(["dashboard", "common"]);
   const navigate = useNavigate();
@@ -57,9 +63,11 @@ export default function InicioMobile() {
     loadData();
   }, []);
 
+  const activeAppointments = propsAppointments || appointments;
+
   // Filter today's appointments for timeline
   const todayStr = new Date().toISOString().split("T")[0];
-  const todayAppointments = appointments
+  const todayAppointments = activeAppointments
     .filter(appt => appt.startsAt && appt.startsAt.startsWith(todayStr))
     .slice(0, 3);
 
@@ -91,9 +99,9 @@ export default function InicioMobile() {
   const displayAppointments = todayAppointments.length > 0 ? todayAppointments : demoAppointments;
 
   // Mini-stats for agenda footer
-  const statsCitasHoy = appointments.filter(appt => appt.startsAt && appt.startsAt.startsWith(todayStr)).length || 8;
-  const statsConfirmadas = appointments.filter(appt => appt.startsAt && appt.startsAt.startsWith(todayStr) && appt.status === "CONFIRMED").length || 6;
-  const statsPendientes = appointments.filter(appt => appt.startsAt && appt.startsAt.startsWith(todayStr) && appt.status === "PENDING").length || 1;
+  const statsCitasHoy = activeAppointments.filter(appt => appt.startsAt && appt.startsAt.startsWith(todayStr)).length || 8;
+  const statsConfirmadas = activeAppointments.filter(appt => appt.startsAt && appt.startsAt.startsWith(todayStr) && appt.status === "CONFIRMED").length || 6;
+  const statsPendientes = activeAppointments.filter(appt => appt.startsAt && appt.startsAt.startsWith(todayStr) && appt.status === "PENDING").length || 1;
   const statsSinSena = 1; // TODO: conectar dato real
 
   // KPI Data structure
@@ -306,6 +314,18 @@ export default function InicioMobile() {
             <span><b>{statsSinSena}</b> Sin seña</span>
           </div>
         </div>
+      </section>
+
+      {/* SLA / Progreso de Citas Gadget */}
+      <h3 className="im-section-title">Progreso de Citas (SLA)</h3>
+      <section className="im-card p-3.5 mb-4 bg-white shadow-sm rounded-4">
+        <UpcomingAppointmentsWidget
+          appointments={activeAppointments}
+          onConfirmAppointment={onConfirmAppointment}
+          onUpdateAppointmentStatus={onUpdateAppointmentStatus}
+          onFinalizeAppointment={onFinalizeAppointment}
+          defaultRange="TODAY"
+        />
       </section>
 
       {/* 5. Accesos Rápidos */}
