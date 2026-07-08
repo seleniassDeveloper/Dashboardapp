@@ -28,6 +28,10 @@ export default function UpcomingAppointmentsWidget({
   const upcomingAppointments = appointments
     .filter((a) => {
       if (a.status === "CANCELLED" || a.status === "DONE") return false;
+      
+      // Always show in-progress appointments in the SLA tracker
+      if (a.status === "IN_PROGRESS") return true;
+
       const date = new Date(a.startsAt);
       
       if (dateRange === "TODAY") {
@@ -40,6 +44,19 @@ export default function UpcomingAppointmentsWidget({
       return true; // ALL
     })
     .sort((a, b) => new Date(a.startsAt) - new Date(b.startsAt));
+
+  // Smart fallback: if TODAY has no appointments, but there are appointments in other ranges, default to ALL
+  useEffect(() => {
+    if (dateRange === "TODAY" && appointments.length > 0) {
+      const hasToday = appointments.some(a => {
+        if (a.status === "CANCELLED" || a.status === "DONE") return false;
+        return new Date(a.startsAt).toDateString() === now.toDateString();
+      });
+      if (!hasToday) {
+        setDateRange("ALL");
+      }
+    }
+  }, [appointments, dateRange]);
 
   const formatTime = (dateStr) => {
     try {
