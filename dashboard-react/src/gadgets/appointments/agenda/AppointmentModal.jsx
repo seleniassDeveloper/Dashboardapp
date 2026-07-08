@@ -814,31 +814,48 @@ export default function AppointmentModal({
                      ⚠️ No hay servicios agregados. Debes agregar uno en la sección Servicios.
                    </div>
                 )}
-                {services.map(s => {
-                  const active = selectedServiceIds.includes(s.id);
-                  return (
-                    <div
-                      key={s.id}
-                      onClick={() => handleToggleService(s.id)}
-                      className="p-2 border rounded-3 bg-white d-flex align-items-center justify-content-between cursor-pointer hover-scale text-dark small"
-                      style={{ borderLeft: active ? "4px solid #10b981" : "1px solid #e2e8f0" }}
-                    >
-                      <div className="d-flex align-items-center gap-2">
-                        <Form.Check
-                          type="checkbox"
-                          checked={active}
-                          onChange={() => {}} // Manejado por onClick de fila
-                          className="m-0 cursor-pointer"
-                        />
-                        <span className="fw-semibold">{s.name}</span>
+                {(() => {
+                  const groups = {};
+                  services.forEach(s => {
+                    const cat = s.category || "General";
+                    if (!groups[cat]) groups[cat] = [];
+                    groups[cat].push(s);
+                  });
+                  return Object.entries(groups).map(([category, list]) => (
+                    <div key={category} className="mb-2">
+                      <div className="text-muted smaller fw-bold px-1 mb-1 text-uppercase tracking-wider" style={{ fontSize: "10px" }}>
+                        {category}
                       </div>
-                      <div className="text-end">
-                        <strong className="text-dark d-block">{currency(s.price)}</strong>
-                        <span className="text-muted smaller">{s.duration} min</span>
+                      <div className="d-grid gap-1.5">
+                        {list.map(s => {
+                          const active = selectedServiceIds.includes(s.id);
+                          return (
+                            <div
+                              key={s.id}
+                              onClick={() => handleToggleService(s.id)}
+                              className="p-2 border rounded-3 bg-white d-flex align-items-center justify-content-between cursor-pointer hover-scale text-dark small"
+                              style={{ borderLeft: active ? "4px solid #10b981" : "1px solid #e2e8f0" }}
+                            >
+                              <div className="d-flex align-items-center gap-2">
+                                <Form.Check
+                                  type="checkbox"
+                                  checked={active}
+                                  onChange={() => {}} // Manejado por onClick de fila
+                                  className="m-0 cursor-pointer"
+                                />
+                                <span className="fw-semibold">{s.name}</span>
+                              </div>
+                              <div className="text-end">
+                                <strong className="text-dark d-block">{currency(s.price)}</strong>
+                                <span className="text-muted smaller">{s.duration} min</span>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
-                  );
-                })}
+                  ));
+                })()}
               </div>
 
               <h6 className="form-section-title mt-4">Estado de Seña (Anticipo)</h6>

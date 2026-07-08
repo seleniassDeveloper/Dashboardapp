@@ -1157,11 +1157,22 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
                                 ? "⚠️ Este trabajador no tiene servicios asignados"
                                 : "+ Agregar servicio..."}
                             </option>
-                            {workerServices
-                              .filter((s) => !selServiceIds.includes(s.id))
-                              .map((s) => (
-                                <option key={s.id} value={s.id}>{s.name} - ${s.price}</option>
-                              ))}
+                            {(() => {
+                              const filtered = workerServices.filter((s) => !selServiceIds.includes(s.id));
+                              const groups = {};
+                              filtered.forEach(s => {
+                                const cat = s.category || "General";
+                                if (!groups[cat]) groups[cat] = [];
+                                groups[cat].push(s);
+                              });
+                              return Object.entries(groups).map(([category, list]) => (
+                                <optgroup key={category} label={category}>
+                                  {list.map(s => (
+                                    <option key={s.id} value={s.id}>{s.name} - ${s.price}</option>
+                                  ))}
+                                </optgroup>
+                              ));
+                            })()}
                           </Form.Select>
                         )}
                         {errors.serviceId && <div className="text-danger small mt-1">{errors.serviceId}</div>}

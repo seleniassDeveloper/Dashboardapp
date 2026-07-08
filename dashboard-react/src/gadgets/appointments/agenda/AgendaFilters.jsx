@@ -79,11 +79,21 @@ export default function AgendaFilters({
               style={{ fontSize: "12.5px" }}
             >
               <option value="">Todos los servicios</option>
-              {services.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
+              {(() => {
+                const groups = {};
+                services.forEach(s => {
+                  const cat = s.category || "General";
+                  if (!groups[cat]) groups[cat] = [];
+                  groups[cat].push(s);
+                });
+                return Object.entries(groups).map(([category, list]) => (
+                  <optgroup key={category} label={category}>
+                    {list.map(s => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </optgroup>
+                ));
+              })()}
             </Form.Select>
           </Form.Group>
         </Col>

@@ -411,9 +411,21 @@ export default function CalendarView() {
                         style={{ fontSize: "12px" }}
                       >
                         <option value="">Servicio...</option>
-                        {services.map(s => (
-                          <option key={s.id} value={s.id}>{s.name}</option>
-                        ))}
+                        {(() => {
+                          const groups = {};
+                          services.forEach(s => {
+                            const cat = s.category || "General";
+                            if (!groups[cat]) groups[cat] = [];
+                            groups[cat].push(s);
+                          });
+                          return Object.entries(groups).map(([category, list]) => (
+                            <optgroup key={category} label={category}>
+                              {list.map(s => (
+                                <option key={s.id} value={s.id}>{s.name}</option>
+                              ))}
+                            </optgroup>
+                          ));
+                        })()}
                       </Form.Select>
                     </Col>
                     <Col xs={6}>

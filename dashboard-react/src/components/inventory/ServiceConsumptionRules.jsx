@@ -250,9 +250,21 @@ export default function ServiceConsumptionRules({ products = [], onRefresh }) {
                   required
                 >
                   <option value="">Selecciona el servicio...</option>
-                  {services.map(s => (
-                    <option key={s.id} value={s.id}>{s.name} (Precio: ${s.price})</option>
-                  ))}
+                  {(() => {
+                    const groups = {};
+                    services.forEach(s => {
+                      const cat = s.category || "General";
+                      if (!groups[cat]) groups[cat] = [];
+                      groups[cat].push(s);
+                    });
+                    return Object.entries(groups).map(([category, list]) => (
+                      <optgroup key={category} label={category}>
+                        {list.map(s => (
+                          <option key={s.id} value={s.id}>{s.name} (Precio: ${s.price})</option>
+                        ))}
+                      </optgroup>
+                    ));
+                  })()}
                 </Form.Select>
               </Form.Group>
 

@@ -383,11 +383,23 @@ export default function QuickAddBookingPage() {
                         required
                       >
                         <option value="">-- Seleccionar --</option>
-                        {services.map((s) => (
-                          <option key={s.id} value={s.id}>
-                            {s.name} ({currency(s.price)})
-                          </option>
-                        ))}
+                        {(() => {
+                          const groups = {};
+                          services.forEach(s => {
+                            const cat = s.category || "General";
+                            if (!groups[cat]) groups[cat] = [];
+                            groups[cat].push(s);
+                          });
+                          return Object.entries(groups).map(([category, list]) => (
+                            <optgroup key={category} label={category}>
+                              {list.map(s => (
+                                <option key={s.id} value={s.id}>
+                                  {s.name} ({currency(s.price)})
+                                </option>
+                              ))}
+                            </optgroup>
+                          ));
+                        })()}
                       </Form.Select>
                     </Form.Group>
                   </Col>

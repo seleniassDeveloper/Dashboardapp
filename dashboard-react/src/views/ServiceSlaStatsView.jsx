@@ -641,7 +641,21 @@ export default function ServiceSlaStatsView() {
                           required
                         >
                           <option value="">{isEs ? "Servicio..." : "Service..."}</option>
-                          {servicesCatalog.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                          {(() => {
+                            const groups = {};
+                            servicesCatalog.forEach(s => {
+                              const cat = s.category || "General";
+                              if (!groups[cat]) groups[cat] = [];
+                              groups[cat].push(s);
+                            });
+                            return Object.entries(groups).map(([category, list]) => (
+                              <optgroup key={category} label={category}>
+                                {list.map(s => (
+                                  <option key={s.id} value={s.id}>{s.name}</option>
+                                ))}
+                              </optgroup>
+                            ));
+                          })()}
                         </Form.Select>
                       </Col>
                       <Col sm={4}>
