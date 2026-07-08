@@ -132,6 +132,15 @@ export default function AppointmentsCalendar() {
   const [title, setTitle] = useState("");
   const [selectedDate, setSelectedDate] = useState(() => new Date());
 
+  // Trigger size computation to resolve FullCalendar rendering blank when toggled from display:none
+  useEffect(() => {
+    if (view !== "timeGridDay") {
+      setTimeout(() => {
+        calRef.current?.getApi()?.updateSize();
+      }, 100);
+    }
+  }, [view]);
+
   const [selected, setSelected] = useState(null);
   const [showDetail, setShowDetail] = useState(false);
 
@@ -550,65 +559,72 @@ export default function AppointmentsCalendar() {
                   onUpsert={upsertAppointment}
                 />
               )}
-              <div style={{ display: view !== "timeGridDay" ? "block" : "none", height: 560 }}>
-                <FullCalendar
-                  ref={calRef}
-                  key={`cal-${accent}`}
-                  plugins={[timeGridPlugin, dayGridPlugin, interactionPlugin]}
-                  initialView="dayGridMonth"
-                  firstDay={1}
-                  nowIndicator
-                  allDaySlot={false}
-                  slotMinTime="07:00:00"
-                  slotMaxTime="22:00:00"
-                  expandRows
-                  height="100%"
-                  events={events}
-                  eventClick={onEventClick}
-                  dateClick={onDateClick}
-                  eventDisplay="block"
-                  // ✅ IMPORTANTÍSIMO: quitamos el header interno para evitar duplicados
-                  headerToolbar={false}
-                  datesSet={(arg) => {
-                    const refDate = arg.view.type === "dayGridMonth" ? (arg.view.currentStart || arg.start) : arg.start;
-                    const customTitle = formatCustomSpanishTitle(arg.view.type, refDate, arg.end);
-                    setTitle(customTitle);
-                    setSelectedDate(arg.view.currentStart || arg.start);
-                  }}
-                  titleFormat={{ year: "numeric", month: "long" }}
-                  slotLabelFormat={{
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    hour12: false,
-                  }}
-                  eventTimeFormat={{
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    hour12: false,
-                  }}
-                  eventContent={(arg) => (
-                    <div
-                      style={{
-                        padding: "2px 6px",
-                        fontSize: 11,
-                        fontWeight: 500,
-                      }}
-                    >
-                      <div style={{ opacity: 0.85, fontWeight: 700 }}>
-                        {arg.timeText}
-                      </div>
+              <div style={{ 
+                display: view !== "timeGridDay" ? "block" : "none", 
+                height: 560,
+                overflowX: "auto",
+                width: "100%"
+              }}>
+                <div style={{ minWidth: isMobile && view !== "timeGridDay" ? "750px" : "100%", height: "100%" }}>
+                  <FullCalendar
+                    ref={calRef}
+                    key={`cal-${accent}`}
+                    plugins={[timeGridPlugin, dayGridPlugin, interactionPlugin]}
+                    initialView="dayGridMonth"
+                    firstDay={1}
+                    nowIndicator
+                    allDaySlot={false}
+                    slotMinTime="07:00:00"
+                    slotMaxTime="22:00:00"
+                    expandRows
+                    height="100%"
+                    events={events}
+                    eventClick={onEventClick}
+                    dateClick={onDateClick}
+                    eventDisplay="block"
+                    // ✅ IMPORTANTÍSIMO: quitamos el header interno para evitar duplicados
+                    headerToolbar={false}
+                    datesSet={(arg) => {
+                      const refDate = arg.view.type === "dayGridMonth" ? (arg.view.currentStart || arg.start) : arg.start;
+                      const customTitle = formatCustomSpanishTitle(arg.view.type, refDate, arg.end);
+                      setTitle(customTitle);
+                      setSelectedDate(arg.view.currentStart || arg.start);
+                    }}
+                    titleFormat={{ year: "numeric", month: "long" }}
+                    slotLabelFormat={{
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: false,
+                    }}
+                    eventTimeFormat={{
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: false,
+                    }}
+                    eventContent={(arg) => (
                       <div
                         style={{
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
+                          padding: "2px 6px",
+                          fontSize: 11,
+                          fontWeight: 500,
                         }}
                       >
-                        {arg.event.title}
+                        <div style={{ opacity: 0.85, fontWeight: 700 }}>
+                          {arg.timeText}
+                        </div>
+                        <div
+                          style={{
+                            textOverflow: "ellipsis",
+                            overflow: "hidden",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {arg.event.title}
+                        </div>
                       </div>
-                    </div>
-                  )}
-                />
+                    )}
+                  />
+                </div>
               </div>
             </>
           )}

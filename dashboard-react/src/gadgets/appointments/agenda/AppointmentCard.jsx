@@ -21,6 +21,7 @@ export default function AppointmentCard({
   onSendEmail,
 }) {
   const { appointmentStatuses } = useAppointmentsStore();
+  const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
 
   const [liveData, setLiveData] = React.useState(null);
   const [secondsElapsed, setSecondsElapsed] = React.useState(0);
@@ -209,6 +210,53 @@ export default function AppointmentCard({
           </Button>
         </div>
       </div>
+
+      {isMobile && (
+        <div className="d-flex gap-2 justify-content-start mt-2 pt-2 border-top flex-wrap">
+          {appt.status === "PENDING" && (
+            <Button 
+              variant="warning" 
+              size="sm" 
+              className="d-flex align-items-center gap-1 py-1.5 px-3 rounded-pill text-white fw-bold" 
+              style={{ fontSize: "11px", backgroundColor: "#d97706", border: 0 }}
+              onClick={(e) => {
+                e.stopPropagation();
+                onUpdateStatus(appt.id, "CONFIRMED");
+              }}
+            >
+              Confirmar
+            </Button>
+          )}
+          {appt.status === "CONFIRMED" && (
+            <Button 
+              variant="primary" 
+              size="sm" 
+              className="d-flex align-items-center gap-1 py-1.5 px-3 rounded-pill text-white fw-bold" 
+              style={{ fontSize: "11px", backgroundColor: "#3b82f6", border: 0 }}
+              onClick={(e) => {
+                e.stopPropagation();
+                onUpdateStatus(appt.id, "IN_PROGRESS");
+              }}
+            >
+              ▶ Iniciar SLA
+            </Button>
+          )}
+          {appt.status === "IN_PROGRESS" && (
+            <Button 
+              variant="success" 
+              size="sm" 
+              className="d-flex align-items-center gap-1 py-1.5 px-3 rounded-pill text-white fw-bold" 
+              style={{ fontSize: "11px", backgroundColor: "#10b981", border: 0 }}
+              onClick={(e) => {
+                e.stopPropagation();
+                onUpdateStatus(appt.id, "DONE");
+              }}
+            >
+              ✓ Cobrar / Finalizar
+            </Button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
