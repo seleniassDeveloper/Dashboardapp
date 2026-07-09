@@ -13,6 +13,13 @@ export default function ServicesMobile({ state }) {
   const [activeTab, setActiveTab] = useState("catalog"); // "catalog" | "rules" | "sla" | "history"
   const [showFilters, setShowFilters] = useState(false);
 
+  React.useEffect(() => {
+    window.dispatchEvent(new CustomEvent("set-hide-mobile-topbar", { detail: true }));
+    return () => {
+      window.dispatchEvent(new CustomEvent("set-hide-mobile-topbar", { detail: false }));
+    };
+  }, []);
+
   const {
     servicesList,
     workersList,
@@ -201,7 +208,10 @@ export default function ServicesMobile({ state }) {
     <div className="svc-mobile animate-fade-in">
       {/* SECCIÓN 1 — Header + buscador + filtros */}
       <header className="s-header">
-        <button className="btn p-0 border-0 text-dark bg-transparent">
+        <button 
+          className="btn p-0 border-0 text-dark bg-transparent"
+          onClick={() => window.dispatchEvent(new CustomEvent("open-more-sheet"))}
+        >
           <Menu size={22} />
         </button>
         <div className="s-header__title">
