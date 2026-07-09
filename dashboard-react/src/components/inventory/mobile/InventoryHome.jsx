@@ -28,6 +28,13 @@ export default function InventoryHome({ state, onOpenScanner }) {
     alerts
   } = state;
 
+  React.useEffect(() => {
+    window.dispatchEvent(new CustomEvent("set-hide-mobile-topbar", { detail: true }));
+    return () => {
+      window.dispatchEvent(new CustomEvent("set-hide-mobile-topbar", { detail: false }));
+    };
+  }, []);
+
   // Calculate expiring products count (expiration dates within 30 days)
   const expiringCount = useMemo(() => {
     let count = 0;
@@ -122,7 +129,10 @@ export default function InventoryHome({ state, onOpenScanner }) {
       {/* SECCIÓN 1 — Header oscuro (gradiente púrpura) */}
       <header className="i-header">
         <div className="i-header__top">
-          <button className="btn p-0 border-0 text-white bg-transparent">
+          <button 
+            className="btn p-0 border-0 text-white bg-transparent"
+            onClick={() => window.dispatchEvent(new CustomEvent("open-more-sheet"))}
+          >
             <Menu size={22} />
           </button>
           <div className="i-header__title">
