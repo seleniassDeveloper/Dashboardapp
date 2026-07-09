@@ -317,14 +317,23 @@ export default function InicioMobile({
       </section>
 
       {/* SLA / Progreso de Citas Gadget */}
-      <h3 className="im-section-title">Progreso de Citas (SLA)</h3>
-      <section className="im-card p-3.5 mb-4 bg-white shadow-sm rounded-4">
+      <div className="d-flex justify-content-between align-items-center" style={{ margin: "22px 2px 12px" }}>
+        <h3 className="im-section-title m-0">Progreso de Citas (SLA)</h3>
+        <button 
+          className="im-agenda__seeall border-0 bg-transparent"
+          onClick={() => navigate("/app/sla-progress")}
+        >
+          Ver panel
+        </button>
+      </div>
+      <section className="im-card p-3 mb-3.5 bg-white shadow-sm rounded-4">
         <UpcomingAppointmentsWidget
           appointments={activeAppointments}
           onConfirmAppointment={onConfirmAppointment}
           onUpdateAppointmentStatus={onUpdateAppointmentStatus}
           onFinalizeAppointment={onFinalizeAppointment}
           defaultRange="TODAY"
+          compact={true}
         />
       </section>
 

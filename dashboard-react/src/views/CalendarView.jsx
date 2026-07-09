@@ -10,8 +10,16 @@ import AppointmentModal from "../gadgets/appointments/AppointmentModal";
 import { useAppointmentsStore } from "../gadgets/appointments/AppointmentsProvider.jsx";
 import CalendarHistoryView from "./booking/CalendarHistoryView";
 import api from "../lib/api.js";
+import { useIsMobile } from "../hooks/useIsMobile";
+import AppointmentsSLA from "../components/appointments/mobile/AppointmentsSLA";
 
 export default function CalendarView() {
+  const isMobile = useIsMobile();
+  
+  if (isMobile) {
+    return <AppointmentsSLA />;
+  }
+
   const { t } = useTranslation("views");
   const { appointments, services, fetchAppointments, business } = useAppointmentsStore();
   const [workers, setWorkers] = useState([]);

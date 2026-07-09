@@ -1,0 +1,487 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Progreso de Citas (SLA) — Preview</title>
+<style>body{margin:0;background:#e9e7f2;display:flex;justify-content:center}.phone{width:390px;background:#f8f7fc;min-height:100vh}
+.sla-mobile .sla-nav{position:absolute}.phone{position:relative}
+/* =========================================================
+   Progreso de Citas (SLA) — Mobile
+   Reutiliza los mismos design tokens que crm-mobile.
+   Todo va scopeado bajo .sla-mobile para no chocar estilos.
+   ========================================================= */
+.sla-mobile {
+  --c-bg-soft: #f8f7fc;
+  --c-card: #ffffff;
+  --c-border: #eeecf6;
+  --c-shadow: 0 2px 10px rgba(30, 20, 60, .04);
+  --c-purple: #7c5cfc;
+  --c-purple-600: #6d4ae8;
+  --c-purple-soft: #ede9fe;
+  --c-green: #10b981;
+  --c-green-soft: #d1fae5;
+  --c-amber: #f59e0b;
+  --c-amber-soft: #fef3c7;
+  --c-red: #ef4444;
+  --c-red-soft: #fee2e2;
+  --c-track: #e9e7f2;
+  --c-text: #1e1b2e;
+  --c-muted: #8b8a99;
+  --c-label: #6b6a7b;
+  --c-radius: 20px;
+  --c-radius-sm: 14px;
+
+  background: var(--c-bg-soft);
+  min-height: 100vh;
+  color: var(--c-text);
+  font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+  padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px));
+}
+
+.sla-mobile * { box-sizing: border-box; }
+
+/* ---------- Header ---------- */
+.sla-mobile .sla-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--c-bg-soft);
+}
+
+.sla-mobile .sla-header__title {
+  font-size: 19px;
+  font-weight: 800;
+}
+
+.sla-mobile .sla-iconbtn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 0;
+  background: #fff;
+  color: var(--c-purple);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--c-shadow);
+  transition: transform .15s;
+}
+.sla-mobile .sla-iconbtn:active { transform: scale(.92); }
+.sla-mobile .sla-iconbtn--plain {
+  background: none;
+  box-shadow: none;
+  color: var(--c-purple-600);
+}
+
+/* ---------- Resumen de Hoy ---------- */
+.sla-mobile .sla-summary {
+  margin: 4px 16px 0;
+  padding: 18px;
+  border-radius: var(--c-radius);
+  background: #f4f2ff;
+  border: 1px solid #e7e2ff;
+}
+
+.sla-mobile .sla-summary__top {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.sla-mobile .sla-summary__ico {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: #e5deff;
+  color: var(--c-purple-600);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sla-mobile .sla-summary__title {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--c-purple-600);
+  line-height: 1.15;
+}
+.sla-mobile .sla-summary__date {
+  font-size: 14px;
+  color: var(--c-muted);
+  margin-top: 2px;
+}
+.sla-mobile .sla-summary__count {
+  margin-left: auto;
+  text-align: right;
+}
+.sla-mobile .sla-summary__count b {
+  font-size: 17px;
+  font-weight: 800;
+}
+.sla-mobile .sla-summary__count span {
+  display: block;
+  font-size: 12px;
+  color: var(--c-muted);
+}
+
+/* Barra de progreso */
+.sla-mobile .sla-progress-card {
+  margin-top: 16px;
+  background: #fff;
+  border-radius: var(--c-radius-sm);
+  padding: 16px;
+}
+.sla-mobile .sla-progress__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.sla-mobile .sla-progress__label {
+  font-size: 15px;
+  font-weight: 700;
+}
+.sla-mobile .sla-progress__goal {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--c-purple-600);
+}
+.sla-mobile .sla-progress__row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 8px 0 14px;
+}
+.sla-mobile .sla-progress__pct {
+  font-size: 34px;
+  font-weight: 800;
+  color: var(--c-purple);
+  line-height: 1;
+}
+.sla-mobile .sla-bar {
+  position: relative;
+  flex: 1;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--c-track);
+  overflow: visible;
+}
+.sla-mobile .sla-bar__fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--c-purple);
+  transition: width .4s ease;
+}
+.sla-mobile .sla-bar__goal {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  border-left: 2px dashed var(--c-purple-600);
+}
+.sla-mobile .sla-legend {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.sla-mobile .sla-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--c-label);
+  font-weight: 600;
+}
+.sla-mobile .sla-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.sla-mobile .sla-dot--green { background: var(--c-green); }
+.sla-mobile .sla-dot--amber { background: var(--c-amber); }
+.sla-mobile .sla-dot--red { background: var(--c-red); }
+
+/* ---------- Tres tarjetas KPI ---------- */
+.sla-mobile .sla-kpis {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding: 16px;
+}
+.sla-mobile .sla-kpi {
+  background: #fff;
+  border: 1px solid var(--c-border);
+  border-radius: var(--c-radius-sm);
+  box-shadow: var(--c-shadow);
+  padding: 14px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sla-mobile .sla-kpi__ico {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.sla-mobile .sla-kpi__ico--green { background: var(--c-green-soft); color: #059669; }
+.sla-mobile .sla-kpi__ico--amber { background: var(--c-amber-soft); color: #d97706; }
+.sla-mobile .sla-kpi__ico--red { background: var(--c-red-soft); color: #dc2626; }
+.sla-mobile .sla-kpi__value {
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1;
+}
+.sla-mobile .sla-kpi__label {
+  font-size: 12px;
+  font-weight: 700;
+  margin-top: 2px;
+}
+.sla-mobile .sla-kpi__label--green { color: #059669; }
+.sla-mobile .sla-kpi__label--amber { color: #d97706; }
+.sla-mobile .sla-kpi__label--red { color: #dc2626; }
+
+/* ---------- Secciones (grupos de citas) ---------- */
+.sla-mobile .sla-group {
+  margin: 8px 16px 0;
+  padding: 14px;
+  border-radius: var(--c-radius);
+  background: #fff;
+  border: 1px solid var(--c-border);
+  box-shadow: var(--c-shadow);
+}
+.sla-mobile .sla-group--danger { background: #fdf4f4; border-color: #f8dede; }
+
+.sla-mobile .sla-group__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.sla-mobile .sla-group__title {
+  font-size: 16px;
+  font-weight: 800;
+}
+.sla-mobile .sla-group__sub {
+  font-size: 13px;
+  font-weight: 700;
+}
+.sla-mobile .sla-group__sub--red { color: var(--c-red); }
+.sla-mobile .sla-group__sub--amber { color: var(--c-amber); }
+.sla-mobile .sla-group__count {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 999px;
+}
+.sla-mobile .sla-group__count--red { background: var(--c-red-soft); color: #dc2626; }
+.sla-mobile .sla-group__count--amber { background: var(--c-amber-soft); color: #d97706; }
+.sla-mobile .sla-group__count--green { background: var(--c-green-soft); color: #059669; }
+
+/* ---------- Tarjeta de cita ---------- */
+.sla-mobile .sla-appt {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: var(--c-radius-sm);
+  border: 1px solid var(--c-border);
+  background: #fff;
+}
+.sla-mobile .sla-appt + .sla-appt { margin-top: 10px; }
+.sla-mobile .sla-appt--danger { border-color: #f6d5d5; }
+
+.sla-mobile .sla-time {
+  width: 68px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  padding: 10px 6px;
+  text-align: center;
+  line-height: 1.15;
+}
+.sla-mobile .sla-time--red { background: var(--c-red-soft); }
+.sla-mobile .sla-time--amber { background: var(--c-amber-soft); }
+.sla-mobile .sla-time--green { background: var(--c-green-soft); }
+.sla-mobile .sla-time__h { font-size: 15px; font-weight: 800; }
+.sla-mobile .sla-time__d { font-size: 11px; font-weight: 700; color: var(--c-muted); margin-top: 2px; }
+
+.sla-mobile .sla-appt__info { flex: 1; min-width: 0; }
+.sla-mobile .sla-appt__name { font-size: 16px; font-weight: 800; }
+.sla-mobile .sla-appt__svc { font-size: 14px; color: var(--c-muted); margin: 2px 0 4px; }
+.sla-mobile .sla-appt__dur {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  color: var(--c-muted);
+}
+
+.sla-mobile .sla-status {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.sla-mobile .sla-status--red { background: var(--c-red-soft); color: #dc2626; }
+.sla-mobile .sla-status--amber { background: var(--c-amber-soft); color: #d97706; }
+.sla-mobile .sla-status--green { background: var(--c-green-soft); color: #059669; }
+
+/* Fila de acciones dentro de la cita */
+.sla-mobile .sla-appt__actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+.sla-mobile .sla-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 12px;
+  padding: 9px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  border: 1px solid var(--c-border);
+  background: #fff;
+  color: var(--c-text);
+  transition: transform .15s;
+}
+.sla-mobile .sla-btn:active { transform: scale(.97); }
+.sla-mobile .sla-btn--wa { color: #128c7e; }
+.sla-mobile .sla-btn--danger { background: var(--c-red); border-color: var(--c-red); color: #fff; }
+.sla-mobile .sla-btn--confirm { border-color: var(--c-amber); color: #d97706; }
+
+/* Cita compacta (solo chevron) */
+.sla-mobile .sla-appt--compact { cursor: pointer; }
+.sla-mobile .sla-chevron { color: #cbd5e1; flex-shrink: 0; }
+
+.sla-mobile .sla-morelink {
+  display: block;
+  width: 100%;
+  text-align: center;
+  padding: 12px;
+  margin-top: 4px;
+  background: none;
+  border: 0;
+  color: var(--c-purple-600);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* ---------- Bottom nav ---------- */
+.sla-mobile .sla-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(72px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: #fff;
+  border-top: 1px solid var(--c-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  z-index: 30;
+}
+.sla-mobile .sla-nav__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  background: none;
+  border: 0;
+  color: var(--c-muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+.sla-mobile .sla-nav__item--active { color: var(--c-purple); }
+.sla-mobile .sla-nav__fab {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 0;
+  background: var(--c-purple);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 20px rgba(124, 92, 252, .45);
+  margin-top: -18px;
+  transition: transform .15s;
+}
+.sla-mobile .sla-nav__fab:active { transform: scale(.92); }
+</style></head><body><div class="phone">
+<div class="sla-mobile">
+  <header class="sla-header">
+    <button class="sla-iconbtn"><i data-lucide="chevron-left"></i></button>
+    <span class="sla-header__title">Progreso de Citas (SLA)</span>
+    <button class="sla-iconbtn sla-iconbtn--plain"><i data-lucide="sliders-horizontal"></i></button>
+  </header>
+  <section class="sla-summary">
+    <div class="sla-summary__top">
+      <div class="sla-summary__ico"><i data-lucide="calendar-days"></i></div>
+      <div><div class="sla-summary__title">Resumen de Hoy</div><div class="sla-summary__date">Lunes, 9 de Julio</div></div>
+      <div class="sla-summary__count"><b>8 citas</b><span>programadas</span></div>
+    </div>
+    <div class="sla-progress-card">
+      <div class="sla-progress__head"><span class="sla-progress__label">Confirmación del día</span><span class="sla-progress__goal">80%</span></div>
+      <div class="sla-progress__row"><span class="sla-progress__pct">75%</span>
+        <div class="sla-bar"><div class="sla-bar__fill" style="width:75%"></div><div class="sla-bar__goal" style="left:80%"></div></div>
+      </div>
+      <div class="sla-legend">
+        <span><i class="sla-dot sla-dot--green"></i>6 confirmadas</span>
+        <span><i class="sla-dot sla-dot--amber"></i>1 pendiente</span>
+        <span><i class="sla-dot sla-dot--red"></i>1 sin seña</span>
+      </div>
+    </div>
+  </section>
+  <div class="sla-kpis">
+    <div class="sla-kpi"><div class="sla-kpi__ico sla-kpi__ico--green"><i data-lucide="check-circle-2"></i></div><div><div class="sla-kpi__value">6</div><div class="sla-kpi__label sla-kpi__label--green">Confirmadas</div></div></div>
+    <div class="sla-kpi"><div class="sla-kpi__ico sla-kpi__ico--amber"><i data-lucide="clock"></i></div><div><div class="sla-kpi__value">1</div><div class="sla-kpi__label sla-kpi__label--amber">Pendiente</div></div></div>
+    <div class="sla-kpi"><div class="sla-kpi__ico sla-kpi__ico--red"><i data-lucide="credit-card"></i></div><div><div class="sla-kpi__value">1</div><div class="sla-kpi__label sla-kpi__label--red">Sin seña</div></div></div>
+  </div>
+  <section class="sla-group sla-group--danger">
+    <div class="sla-group__head"><i data-lucide="alert-circle" style="color:#dc2626"></i><span class="sla-group__title">Prioridad Alta</span><span class="sla-group__sub sla-group__sub--red">Sin seña</span><span class="sla-group__count sla-group__count--red">1 cita</span></div>
+    <div class="sla-appt sla-appt--danger">
+      <div class="sla-time sla-time--red"><div class="sla-time__h">9:30 a.m.</div><div class="sla-time__d">MIÉ</div></div>
+      <div class="sla-appt__info"><div class="sla-appt__name">Ana García</div><div class="sla-appt__svc">Deep Facial</div>
+        <div class="sla-appt__actions"><button class="sla-btn sla-btn--wa"><i data-lucide="message-circle"></i> WhatsApp</button><button class="sla-btn sla-btn--danger"><i data-lucide="credit-card"></i> Cobrar seña</button></div>
+      </div>
+      <span class="sla-status sla-status--red">Sin seña</span>
+    </div>
+  </section>
+  <section class="sla-group">
+    <div class="sla-group__head"><i data-lucide="clock" style="color:#d97706"></i><span class="sla-group__title">Pendientes</span><span class="sla-group__sub sla-group__sub--amber">Esperando confirmación</span><span class="sla-group__count sla-group__count--amber">1 cita</span></div>
+    <div class="sla-appt">
+      <div class="sla-time sla-time--amber"><div class="sla-time__h">2:30 p.m.</div><div class="sla-time__d">JUE</div></div>
+      <div class="sla-appt__info"><div class="sla-appt__name">Fernanda Rodríguez</div><div class="sla-appt__svc">Basic Manicure</div>
+        <div class="sla-appt__actions"><button class="sla-btn sla-btn--wa"><i data-lucide="message-circle"></i> WhatsApp</button><button class="sla-btn sla-btn--confirm"><i data-lucide="check-circle-2"></i> Confirmar</button></div>
+      </div>
+      <span class="sla-status sla-status--amber">Esperando confirmación</span>
+    </div>
+  </section>
+  <section class="sla-group">
+    <div class="sla-group__head"><i data-lucide="check-circle-2" style="color:#059669"></i><span class="sla-group__title">Confirmadas</span><span class="sla-group__count sla-group__count--green">6 citas</span></div>
+    <div class="sla-appt sla-appt--compact">
+      <div class="sla-time sla-time--green"><div class="sla-time__h">10:00 a.m.</div><div class="sla-time__d">LUN</div></div>
+      <div class="sla-appt__info"><div class="sla-appt__name">Camila López</div><div class="sla-appt__svc">Coloración + Corte</div><div class="sla-appt__dur"><i data-lucide="clock"></i> 95 min</div></div>
+      <span class="sla-status sla-status--green">Confirmada</span><i data-lucide="chevron-right" class="sla-chevron"></i>
+    </div>
+    <button class="sla-morelink">+ 5 citas más</button>
+  </section>
+  <nav class="sla-nav">
+    <button class="sla-nav__item sla-nav__item--active"><i data-lucide="calendar"></i> Agenda</button>
+    <button class="sla-nav__item"><i data-lucide="users"></i> Clientes</button>
+    <button class="sla-nav__fab"><i data-lucide="plus"></i></button>
+    <button class="sla-nav__item"><i data-lucide="bar-chart-3"></i> Reportes</button>
+    <button class="sla-nav__item"><i data-lucide="more-horizontal"></i> Más</button>
+  </nav>
+</div></div>
+<script src="https://unpkg.com/lucide@latest"></script><script>lucide.createIcons();</script></body></html>

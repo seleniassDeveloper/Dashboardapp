@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Offcanvas, Form, Button, Row, Col, Badge, ListGroup } from "react-bootstrap";
+import { useNavigate } from "react-router-dom";
 import { 
   Menu, Bell, Search, Sliders, Scissors, Clock, Star, TrendingUp, 
   LayoutGrid, SlidersHorizontal, FileText, Plus, Barcode, BarChart3, ChevronRight 
@@ -8,6 +9,7 @@ import CatalogTab from "./CatalogTab.jsx";
 import "./ServicesMobile.css";
 
 export default function ServicesMobile({ state }) {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("catalog"); // "catalog" | "rules" | "sla" | "history"
   const [showFilters, setShowFilters] = useState(false);
 
@@ -295,7 +297,7 @@ export default function ServicesMobile({ state }) {
         </button>
 
         {/* Accion 4: Ver SLA resumen */}
-        <button className="s-quick__item" onClick={() => setActiveTab("sla")}>
+        <button className="s-quick__item" onClick={() => navigate("/app/sla-progress")}>
           <BarChart3 size={20} />
           <div className="s-quick__label">Ver SLA resumen</div>
         </button>

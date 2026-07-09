@@ -9,6 +9,7 @@ export default function UpcomingAppointmentsWidget({
   onUpdateAppointmentStatus,
   onFinalizeAppointment,
   defaultRange = "TODAY",
+  compact = false,
 }) {
   const { i18n } = useTranslation("dashboard");
   const isEs = i18n.language === "es";
@@ -90,6 +91,115 @@ export default function UpcomingAppointmentsWidget({
     }
     return { text: "", color: "secondary" };
   };
+
+  if (compact) {
+    const displayedAppointments = upcomingAppointments.slice(0, 4);
+
+    return (
+      <div className="d-flex flex-column gap-2 overflow-auto" style={{ minHeight: "100px", maxHeight: "300px" }}>
+        {upcomingAppointments.length === 0 ? (
+          <div className="text-center text-muted py-3">
+            <Clock size={20} className="opacity-50 mb-1" />
+            <p className="small mb-0" style={{ fontSize: "12px" }}>
+              {isEs ? "No hay citas próximas hoy." : "No upcoming appointments today."}
+            </p>
+          </div>
+        ) : (
+          displayedAppointments.map((a) => {
+            const sla = getSLAInfo(a);
+            return (
+              <div 
+                key={a.id} 
+                className="d-flex align-items-center justify-content-between py-2 border-bottom last-border-0 gap-2"
+                style={{ fontSize: "13px" }}
+              >
+                {/* Time & Client/Service Info */}
+                <div className="d-flex align-items-center gap-2 text-truncate" style={{ flex: 1 }}>
+                  <div 
+                    className="bg-light rounded d-flex flex-column align-items-center justify-content-center px-1.5 py-1"
+                    style={{ minWidth: "52px", height: "40px", border: "1px solid #efecf8" }}
+                  >
+                    <span className="fw-bold text-dark" style={{ fontSize: "11px", lineHeight: 1.1 }}>
+                      {formatTime(a.startsAt)}
+                    </span>
+                    <span className="text-muted" style={{ fontSize: "8px", textTransform: "uppercase", fontWeight: "600", letterSpacing: "0.2px" }}>
+                      {new Date(a.startsAt).toLocaleDateString(isEs ? "es-AR" : "en-US", { weekday: 'short' }).replace('.', '')}
+                    </span>
+                  </div>
+                  
+                  <div className="text-truncate">
+                    <div className="fw-bold text-gray-900 text-truncate" style={{ fontSize: "13px", lineHeight: "1.2" }}>
+                      {a.client?.firstName} {a.client?.lastName || ""}
+                    </div>
+                    <div className="text-muted text-truncate" style={{ fontSize: "11px", marginTop: "1px" }}>
+                      {a.service?.name} · {a.worker?.firstName}
+                    </div>
+                  </div>
+                </div>
+
+                {/* SLA Badge & Action */}
+                <div className="d-flex align-items-center gap-2 flex-shrink-0">
+                  <Badge 
+                    bg={sla.color} 
+                    className={`text-${sla.color === "info" || sla.color === "warning" ? "dark" : "white"} rounded-pill border-0 px-2 py-1 fw-bold`}
+                    style={{ fontSize: "9px" }}
+                  >
+                    {sla.text}
+                  </Badge>
+
+                  <div className="d-flex align-items-center">
+                    {a.status === "PENDING" && (
+                      <Button 
+                        variant="warning" 
+                        size="sm" 
+                        className="p-1 rounded-circle d-flex align-items-center justify-content-center text-white" 
+                        style={{ width: "26px", height: "26px", backgroundColor: "#f59e0b", border: 0 }}
+                        onClick={() => onConfirmAppointment?.(a.id)}
+                        title={isEs ? "Confirmar" : "Confirm"}
+                      >
+                        <CheckCircle2 size={13} />
+                      </Button>
+                    )}
+                    {a.status === "CONFIRMED" && (
+                      <Button 
+                        variant="primary" 
+                        size="sm" 
+                        className="p-1 rounded-circle d-flex align-items-center justify-content-center text-white" 
+                        style={{ width: "26px", height: "26px", backgroundColor: "#7c5cfc", border: 0 }}
+                        onClick={() => onUpdateAppointmentStatus?.(a.id, "IN_PROGRESS")}
+                        title={isEs ? "Iniciar SLA" : "Start SLA"}
+                      >
+                        <PlayCircle size={13} />
+                      </Button>
+                    )}
+                    {a.status === "IN_PROGRESS" && (
+                      <Button 
+                        variant="success" 
+                        size="sm" 
+                        className="p-1 rounded-circle d-flex align-items-center justify-content-center text-white" 
+                        style={{ width: "26px", height: "26px", backgroundColor: "#10b981", border: 0 }}
+                        onClick={() => onFinalizeAppointment?.(a)}
+                        title={isEs ? "Finalizar" : "Finish"}
+                      >
+                        <CheckCircle2 size={13} />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+        {upcomingAppointments.length > 4 && (
+          <div className="text-center text-muted small mt-1" style={{ fontSize: "11px" }}>
+            {isEs 
+              ? `+${upcomingAppointments.length - 4} citas más hoy` 
+              : `+${upcomingAppointments.length - 4} more appointments today`}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="d-flex flex-column h-100">

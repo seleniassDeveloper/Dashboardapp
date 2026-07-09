@@ -24,6 +24,7 @@ import RolesPermissionsPage from "./views/RolesPermissionsPage";
 import FinanceProtectedRoute from "./auth/FinanceProtectedRoute";
 import PricingView from "./views/PricingView";
 import SuperAdminBillingView from "./views/SuperAdminBillingView";
+import AppointmentsSLA from "./components/appointments/mobile/AppointmentsSLA";
 
 const PLAN_RESTRICTIONS = {
   starter: ["finances"],
@@ -207,6 +208,15 @@ export default function App() {
             ) : (
               <Navigate to="/unauthorized" replace />
             )
+          } 
+        />
+
+        <Route 
+          path="/sla-progress" 
+          element={
+            <Can permission="agenda.view" fallback={<UnauthorizedView />}>
+              <AppointmentsSLA />
+            </Can>
           } 
         />
 
