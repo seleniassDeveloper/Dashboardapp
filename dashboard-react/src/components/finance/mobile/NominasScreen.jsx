@@ -1,7 +1,7 @@
 // src/components/finance/mobile/NominasScreen.jsx
 import React, { useState, useEffect } from "react";
 import { DollarSign, User, X, Printer, RefreshCw, Send } from "lucide-react";
-import { Modal, Form, Button, Row, Col, Spinner, Badge } from "react-bootstrap";
+import { Modal, Form, Button, Row, Col, Spinner, Badge, Table } from "react-bootstrap";
 import api from "../../../lib/api.js";
 
 function currency(n) {
@@ -333,7 +333,7 @@ export default function NominasScreen({ professionalStats = [] }) {
               <hr />
               <div className="row mb-3">
                 <div className="col-6">
-                  <strong>Colaborador:</strong> {activeReceipt.worker ? `${activeReceipt.worker.firstName} ${activeReceipt.worker.lastName}` : "Colaborador"}
+                  <strong>Colaborador:</strong> {activeReceipt.worker ? `${activeReceipt.worker.firstName || ""} ${activeReceipt.worker.lastName || ""}`.trim() : "Colaborador"}
                 </div>
                 <div className="col-6 text-end">
                   <strong>Rol:</strong> {activeReceipt.worker?.roleTitle || "Estilista"}
@@ -402,17 +402,17 @@ export default function NominasScreen({ professionalStats = [] }) {
               )}
 
               {Array.isArray(activeReceipt.commissionDetail) && activeReceipt.commissionDetail.length > 0 && (
-                <div className="mb-4 mt-3">
-                  <h6 className="fw-bold text-purple-700 mb-2">Detalle de comisiones por servicio</h6>
-                  <Table size="sm" bordered className="mb-0">
-                    <thead className="bg-light">
+                <div className="mt-4">
+                  <div className="fw-bold text-purple-600 small mb-2">Detalle de comisiones por servicio</div>
+                  <Table bordered size="sm" className="mb-0">
+                    <thead>
                       <tr style={{ fontSize: "12px" }}>
                         <th>Servicio</th>
                         <th className="text-center">Citas</th>
                         <th className="text-end">Comisión</th>
                       </tr>
                     </thead>
-                    <tbody style={{ fontSize: "13px" }}>
+                    <tbody style={{ fontSize: "12px" }}>
                       {activeReceipt.commissionDetail.map((d, i) => (
                         <tr key={i}>
                           <td>{d.serviceName}</td>
