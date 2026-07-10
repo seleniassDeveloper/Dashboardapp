@@ -1,7 +1,7 @@
 // src/components/finance/mobile/SimuladorScreen.jsx
 import React, { useState, useEffect, useMemo } from "react";
 import { RefreshCw, Trash2, Plus } from "lucide-react";
-import { Modal, Form, Button } from "react-bootstrap";
+import { Modal, Form, Button, Row, Col } from "react-bootstrap";
 
 function currency(n) {
   return new Intl.NumberFormat("es-AR", {
