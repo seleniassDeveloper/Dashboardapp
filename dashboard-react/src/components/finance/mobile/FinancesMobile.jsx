@@ -21,6 +21,7 @@ import AuditoriaScreen from "./AuditoriaScreen.jsx";
 import "./FinancesMobile.css";
 
 export default function FinancesMobile({ dashboardData, expenseBranches, fetchDashboardData }) {
+  const safeBranches = Array.isArray(expenseBranches) ? expenseBranches : [];
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -170,7 +171,7 @@ export default function FinancesMobile({ dashboardData, expenseBranches, fetchDa
         )}
         {activeTab === "gastos_operativos" && (
           <GastosScreen 
-            expenseBranches={expenseBranches}
+            expenseBranches={safeBranches}
             onExpenseAdded={fetchDashboardData}
           />
         )}
@@ -206,7 +207,7 @@ export default function FinancesMobile({ dashboardData, expenseBranches, fetchDa
         {activeTab === "reportes" && (
           <ReportesScreen 
             recentTransactions={dashboardData?.recentTransactions || []}
-            expenseBranches={expenseBranches}
+            expenseBranches={safeBranches}
           />
         )}
         {activeTab === "auditoria" && (
@@ -282,7 +283,7 @@ export default function FinancesMobile({ dashboardData, expenseBranches, fetchDa
               <Form.Label className="small text-muted fw-bold">Sucursal</Form.Label>
               <Form.Select value={branchId} onChange={(e) => setBranchId(e.target.value)}>
                 <option value="">Gasto General</option>
-                {expenseBranches.map(b => (
+                {safeBranches.map(b => (
                   <option key={b.id} value={b.id}>{b.name}</option>
                 ))}
               </Form.Select>
