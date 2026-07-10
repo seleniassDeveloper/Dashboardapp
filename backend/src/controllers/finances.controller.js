@@ -1,4 +1,6 @@
 import prisma from "../prisma.js";
+import { buildPayslipPdf, buildPayslipEmailHtml } from "../services/payslipPdf.js";
+import { sendReminderEmail } from "../services/mailer.js";
 
 // Helper to seed branches if empty
 async function seedBranchesIfNeeded() {
@@ -405,9 +407,8 @@ export async function createCashClosing(req, res) {
 export async function listSalaryPayments(req, res) {
   try {
     const businessId = req.businessId;
-    const payments = await prisma.salaryPayment.findMany({ where: businessId ? {
-        worker: { businessId }
-      } : undefined,
+    const payments = await prisma.salaryPayment.findMany({
+      where: businessId ? { businessId } : undefined,
       include: { worker: true },
       orderBy: { paymentDate: "desc" }
     });
@@ -418,28 +419,84 @@ export async function listSalaryPayments(req, res) {
   }
 }
 
+// Desglose de comisiones por servicio para un colaborador (citas DONE del negocio)
+async function computeWorkerCommissionDetail(businessId, workerId) {
+  const where = { workerId, status: "DONE" };
+  if (businessId) where.businessId = businessId;
+  const appts = await prisma.appointment.findMany({ where, include: { service: true } });
+  const map = {};
+  appts.forEach((a) => {
+    if (!a.service) return;
+    const s = a.service;
+    const finalPrice = a.finalPrice != null ? Number(a.finalPrice) : Number(s.price || 0);
+    let commission = 0;
+    if (s.commissionType === "porcentaje") {
+      commission = Math.round(finalPrice * ((s.commissionValue || 0) / 100));
+    } else if (s.commissionType === "fijo") {
+      commission = s.commissionValue || 0;
+    }
+    if (!map[s.id]) map[s.id] = { serviceName: s.name, count: 0, commission: 0 };
+    map[s.id].count += 1;
+    map[s.id].commission += commission;
+  });
+  return Object.values(map).sort((a, b) => b.commission - a.commission);
+}
+
+// Genera el PDF y lo envía por email al colaborador. Devuelve { emailedAt, emailStatus }.
+async function deliverPayslipByEmail(payment, worker, business) {
+  if (!worker?.email) return { emailedAt: null, emailStatus: "no_email" };
+  try {
+    const pdfBuffer = await buildPayslipPdf({ payment, worker, business });
+    const html = buildPayslipEmailHtml({ payment, worker, business });
+    const period = payment.period || new Date(payment.paymentDate).toLocaleDateString("es-AR");
+
+    await sendReminderEmail({
+      to: worker.email,
+      subject: `Tu recibo de sueldo — ${business?.name || "Aura Studio"} (${period})`,
+      html,
+      attachments: [{
+        filename: `recibo-sueldo-${period}.pdf`.replace(/[\/\s]/g, "-"),
+        content: pdfBuffer,
+        contentType: "application/pdf",
+      }],
+    });
+    return { emailedAt: new Date(), emailStatus: "sent" };
+  } catch (err) {
+    console.error("[finances] deliverPayslipByEmail:", err?.message || err);
+    return { emailedAt: null, emailStatus: "failed" };
+  }
+}
+
 export async function createSalaryPayment(req, res) {
   try {
-    const { workerId, baseSalary, commissionPaid, bonuses, advances, deductions, taxes, notes } = req.body;
+    const { workerId, baseSalary, commissionPaid, bonuses, advances, deductions, taxes, notes, period, sendEmail } = req.body;
     if (!workerId || baseSalary === undefined || commissionPaid === undefined) {
       return res.status(400).json({ error: "Datos requeridos: workerId, baseSalary, commissionPaid." });
     }
 
     const businessId = req.businessId;
+    let worker = null;
     if (businessId) {
-      const wk = await prisma.worker.findFirst({ where: { businessId: req.businessId,  id: workerId, businessId }
-      });
-      if (!wk) {
+      worker = await prisma.worker.findFirst({ where: { id: workerId, businessId } });
+      if (!worker) {
         return res.status(400).json({ error: "El colaborador seleccionado no pertenece a tu negocio." });
       }
+    } else {
+      worker = await prisma.worker.findUnique({ where: { id: workerId } });
     }
 
     const netPaid = Number(baseSalary) + Number(commissionPaid) + Number(bonuses || 0) 
                   - Number(advances || 0) - Number(deductions || 0) - Number(taxes || 0);
 
-    const payment = await prisma.salaryPayment.create({
+    const commissionDetail = await computeWorkerCommissionDetail(businessId, workerId);
+    const now = new Date();
+    const periodValue = period || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
+    let payment = await prisma.salaryPayment.create({
       data: {
         workerId,
+        businessId: businessId || null,
+        period: periodValue,
         baseSalary: Number(baseSalary),
         commissionPaid: Number(commissionPaid),
         bonuses: Number(bonuses || 0),
@@ -447,11 +504,23 @@ export async function createSalaryPayment(req, res) {
         deductions: Number(deductions || 0),
         taxes: Number(taxes || 0),
         netPaid,
+        commissionDetail,
+        status: "paid",
         notes: notes || "",
         paymentDate: new Date()
       },
       include: { worker: true }
     });
+
+    if (sendEmail) {
+      const business = businessId ? await prisma.business.findUnique({ where: { id: businessId } }) : null;
+      const { emailedAt, emailStatus } = await deliverPayslipByEmail(payment, payment.worker, business);
+      payment = await prisma.salaryPayment.update({
+        where: { id: payment.id },
+        data: { emailedAt, emailStatus, status: emailStatus === "sent" ? "sent" : "paid" },
+        include: { worker: true }
+      });
+    }
 
     await prisma.auditLog.create({
       data: {
@@ -468,6 +537,50 @@ export async function createSalaryPayment(req, res) {
   } catch (error) {
     console.error("[finances] createSalaryPayment:", error?.message || error);
     return res.status(500).json({ error: "Error al liquidar pago." });
+  }
+}
+
+// POST /api/finances/payroll/:id/send-receipt
+export async function sendSalaryReceipt(req, res) {
+  try {
+    const { id } = req.params;
+    const businessId = req.businessId;
+
+    const payment = await prisma.salaryPayment.findFirst({
+      where: businessId ? { id, businessId } : { id },
+      include: { worker: true },
+    });
+
+    if (!payment) return res.status(404).json({ error: "Liquidación no encontrada." });
+    if (!payment.worker?.email) {
+      return res.status(400).json({ error: "El colaborador no tiene email cargado. Agregá su correo para enviarle el recibo." });
+    }
+
+    const business = businessId ? await prisma.business.findUnique({ where: { id: businessId } }) : null;
+    const { emailedAt, emailStatus } = await deliverPayslipByEmail(payment, payment.worker, business);
+
+    if (emailStatus !== "sent") {
+      return res.status(502).json({ error: "No se pudo enviar el email. Revisá la configuración SMTP (EMAIL_HOST / EMAIL_USER / EMAIL_PASS)." });
+    }
+
+    const updated = await prisma.salaryPayment.update({
+      where: { id },
+      data: { emailedAt, emailStatus, status: "sent" },
+      include: { worker: true },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        action: "payslip_sent",
+        metadata: { actor: "Director Aura", details: `Recibo de sueldo enviado por email a ${payment.worker.email}.` },
+        businessId: businessId || null,
+      },
+    });
+
+    return res.status(200).json(updated);
+  } catch (error) {
+    console.error("[finances] sendSalaryReceipt:", error?.message || error);
+    return res.status(500).json({ error: "Error al enviar el recibo por email." });
   }
 }
 

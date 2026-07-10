@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Card, Table, Form, Button, Row, Col, Spinner, Alert, Badge, Modal } from "react-bootstrap";
-import { Award, DollarSign, Printer, Save, History, FileText, CheckCircle } from "lucide-react";
+import { Award, DollarSign, Printer, Save, History, FileText, CheckCircle, Send } from "lucide-react";
 import api from "../../lib/api.js";
 
 function currency(n) {
@@ -30,6 +30,8 @@ export default function SalaryManagement({ professionalStats = [] }) {
   // Paycheck Modal print
   const [activeReceipt, setActiveReceipt] = useState(null);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [sendingId, setSendingId] = useState("");
+  const [sendOnLiquidate, setSendOnLiquidate] = useState(true);
 
   const fetchPayrollHistory = async () => {
     try {
@@ -83,7 +85,8 @@ export default function SalaryManagement({ professionalStats = [] }) {
         advances: Number(advances),
         deductions: Number(deductions),
         taxes: Number(taxes),
-        notes: notes.trim()
+        notes: notes.trim(),
+        sendEmail: sendOnLiquidate
       };
 
       const res = await api.post("/finances/payroll", payload);
@@ -99,6 +102,22 @@ export default function SalaryManagement({ professionalStats = [] }) {
       setError(err?.response?.data?.error || "Error al liquidar haberes.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSendReceipt = async (paymentId) => {
+    try {
+      setSendingId(paymentId);
+      setError("");
+      setOkMsg("");
+      const res = await api.post(`/finances/payroll/${paymentId}/send-receipt`);
+      setOkMsg("Recibo enviado por email al colaborador.");
+      setActiveReceipt(res.data); // refresca estado emailStatus/emailedAt
+      fetchPayrollHistory();
+    } catch (err) {
+      setError(err?.response?.data?.error || "No se pudo enviar el recibo por email.");
+    } finally {
+      setSendingId("");
     }
   };
 
@@ -253,25 +272,35 @@ export default function SalaryManagement({ professionalStats = [] }) {
                     </Col>
                   </Row>
 
-                  <div className="d-flex justify-content-end gap-2.5 mt-3">
-                    <Button 
-                      variant="light" 
-                      onClick={() => setSelectedStylist(null)} 
-                      className="rounded-xl px-4 fw-bold"
-                      style={{ backgroundColor: "#ffffff", color: "#111827", border: "1px solid #d1d5db" }}
-                    >
-                      Cancelar
-                    </Button>
-                    <Button
-                      type="submit"
-                      variant="dark"
-                      disabled={saving}
-                      className="rounded-xl px-5 text-white fw-bold shadow border-0 d-flex align-items-center gap-1.5"
-                      style={{ backgroundColor: "#111827" }}
-                    >
-                      {saving ? <Spinner size="sm" animation="border" /> : <Save size={16} />}
-                      <span>Liquidar Haberes</span>
-                    </Button>
+                  <div className="d-flex flex-column align-items-end gap-2.5 mt-3">
+                    <Form.Check
+                      type="switch"
+                      id="send-payslip-email"
+                      className="mb-2"
+                      label="Enviar recibo por email al colaborador al liquidar"
+                      checked={sendOnLiquidate}
+                      onChange={(e) => setSendOnLiquidate(e.target.checked)}
+                    />
+                    <div className="d-flex gap-2.5">
+                      <Button 
+                        variant="light" 
+                        onClick={() => setSelectedStylist(null)} 
+                        className="rounded-xl px-4 fw-bold"
+                        style={{ backgroundColor: "#ffffff", color: "#111827", border: "1px solid #d1d5db" }}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        type="submit"
+                        variant="dark"
+                        disabled={saving}
+                        className="rounded-xl px-5 text-white fw-bold shadow border-0 d-flex align-items-center gap-1.5"
+                        style={{ backgroundColor: "#111827" }}
+                      >
+                        {saving ? <Spinner size="sm" animation="border" /> : <Save size={16} />}
+                        <span>Liquidar Haberes</span>
+                      </Button>
+                    </div>
                   </div>
                 </Form>
               ) : (
@@ -310,15 +339,36 @@ export default function SalaryManagement({ professionalStats = [] }) {
                           {new Date(pay.paymentDate).toLocaleDateString("es-AR")} • {currency(pay.netPaid)} Netto
                         </div>
                       </div>
-                      <Button 
-                        variant="outline-purple" 
-                        size="sm" 
-                        className="rounded-xl p-2 hover-scale"
-                        onClick={() => handlePrintReceipt(pay)}
-                        title="Ver Recibo"
-                      >
-                        <Printer size={16} />
-                      </Button>
+                      <div className="d-flex align-items-center gap-2">
+                        {pay.emailStatus === "sent" ? (
+                          <Badge bg="success" className="text-white rounded-pill px-2">✓ Enviado</Badge>
+                        ) : pay.emailStatus === "failed" ? (
+                          <Badge bg="danger" className="text-white rounded-pill px-2">Falló envío</Badge>
+                        ) : pay.worker?.email ? (
+                          <Badge bg="secondary" className="text-white rounded-pill px-2">Sin enviar</Badge>
+                        ) : (
+                          <Badge bg="warning" className="text-dark rounded-pill px-2">Sin email</Badge>
+                        )}
+                        <Button
+                          variant="outline-purple"
+                          size="sm"
+                          className="rounded-xl p-2"
+                          disabled={sendingId === pay.id || !pay.worker?.email}
+                          onClick={() => handleSendReceipt(pay.id)}
+                          title="Enviar recibo por email"
+                        >
+                          {sendingId === pay.id ? <Spinner size="sm" animation="border" /> : <Send size={16} />}
+                        </Button>
+                        <Button 
+                          variant="outline-purple" 
+                          size="sm" 
+                          className="rounded-xl p-2 hover-scale"
+                          onClick={() => handlePrintReceipt(pay)}
+                          title="Ver / imprimir"
+                        >
+                          <Printer size={16} />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -355,7 +405,7 @@ export default function SalaryManagement({ professionalStats = [] }) {
                   <Col xs={6}><strong>Colaborador:</strong> {activeReceipt.worker ? `${activeReceipt.worker.firstName} ${activeReceipt.worker.lastName}` : "Profesional"}</Col>
                   <Col xs={6}><strong>Rol / Categoría:</strong> {activeReceipt.worker?.roleTitle || "Estilista"}</Col>
                   <Col xs={6}><strong>CUIT/CUIL:</strong> 27-39201928-2</Col>
-                  <Col xs={6}><strong>Período Liquidado:</strong> Mayo 2026</Col>
+                  <Col xs={6}><strong>Período Liquidado:</strong> {activeReceipt.period || "—"}</Col>
                 </Row>
               </div>
 
@@ -417,8 +467,32 @@ export default function SalaryManagement({ professionalStats = [] }) {
               </div>
 
               {activeReceipt.notes && (
-                <div className="p-3 bg-gray-50 rounded-xl border text-muted smaller mb-5 italic">
+                <div className="p-3 bg-gray-50 rounded-xl border text-muted smaller mb-4 italic">
                   <strong>Detalles adicionales:</strong> {activeReceipt.notes}
+                </div>
+              )}
+
+              {Array.isArray(activeReceipt.commissionDetail) && activeReceipt.commissionDetail.length > 0 && (
+                <div className="mb-5">
+                  <h6 className="fw-bold text-purple-700 mb-2">Detalle de comisiones por servicio</h6>
+                  <Table size="sm" bordered className="mb-0">
+                    <thead className="bg-light">
+                      <tr style={{ fontSize: "12px" }}>
+                        <th>Servicio</th>
+                        <th className="text-center">Citas</th>
+                        <th className="text-end">Comisión</th>
+                      </tr>
+                    </thead>
+                    <tbody style={{ fontSize: "13px" }}>
+                      {activeReceipt.commissionDetail.map((d, i) => (
+                        <tr key={i}>
+                          <td>{d.serviceName}</td>
+                          <td className="text-center">{d.count}</td>
+                          <td className="text-end fw-semibold">{currency(d.commission)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
                 </div>
               )}
 
@@ -443,6 +517,15 @@ export default function SalaryManagement({ professionalStats = [] }) {
             style={{ backgroundColor: "#ffffff", color: "#111827", border: "1px solid #d1d5db" }}
           >
             Cerrar
+          </Button>
+          <Button
+            variant="purple"
+            disabled={sendingId === activeReceipt?.id || !activeReceipt?.worker?.email}
+            onClick={() => handleSendReceipt(activeReceipt.id)}
+            className="rounded-xl px-4 fw-bold text-white bg-purple-600 border-0 d-flex align-items-center gap-1.5"
+          >
+            {sendingId === activeReceipt?.id ? <Spinner size="sm" animation="border" /> : <Send size={16} />}
+            <span>Enviar por email</span>
           </Button>
           <Button 
             variant="dark" 

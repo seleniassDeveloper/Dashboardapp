@@ -34,8 +34,10 @@ if (!process.env.EMAIL_HOST || !process.env.EMAIL_USER || !process.env.EMAIL_PAS
 }
 
 
-export async function sendReminderEmail({ to, subject, html, smtpConfig }) {
+export async function sendReminderEmail({ to, subject, html, smtpConfig, attachments }) {
   if (!to) throw new Error("Email destino vacío");
+
+  const extra = attachments && attachments.length ? { attachments } : {};
 
   let activeTransporter = transporter;
   let fromAddress = process.env.EMAIL_FROM || process.env.EMAIL_USER;
@@ -71,6 +73,7 @@ export async function sendReminderEmail({ to, subject, html, smtpConfig }) {
       to,
       subject,
       html,
+      ...extra,
     });
   } catch (error) {
     // Si falló el envío y estábamos usando el transportador personalizado con un puerto distinto a 465 (ej: 587)
@@ -98,6 +101,7 @@ export async function sendReminderEmail({ to, subject, html, smtpConfig }) {
           to,
           subject,
           html,
+          ...extra,
         });
         console.log(`[mailer] Envío exitoso en el reintento usando puerto 465 (SSL/TLS).`);
         return;
@@ -132,6 +136,7 @@ export async function sendReminderEmail({ to, subject, html, smtpConfig }) {
           to,
           subject,
           html,
+          ...extra,
         });
         console.log(`[mailer] Envío global exitoso en el reintento usando puerto 465 (SSL/TLS).`);
         return;

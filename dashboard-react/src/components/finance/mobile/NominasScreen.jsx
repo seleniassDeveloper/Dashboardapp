@@ -1,7 +1,7 @@
 // src/components/finance/mobile/NominasScreen.jsx
 import React, { useState, useEffect } from "react";
-import { DollarSign, User, X, Printer, RefreshCw } from "lucide-react";
-import { Modal, Form, Button, Row, Col, Spinner } from "react-bootstrap";
+import { DollarSign, User, X, Printer, RefreshCw, Send } from "lucide-react";
+import { Modal, Form, Button, Row, Col, Spinner, Badge } from "react-bootstrap";
 import api from "../../../lib/api.js";
 
 function currency(n) {
@@ -27,6 +27,8 @@ export default function NominasScreen({ professionalStats = [] }) {
   const [saving, setSaving] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
   const [activeReceipt, setActiveReceipt] = useState(null);
+  const [sendingId, setSendingId] = useState("");
+  const [sendOnLiquidate, setSendOnLiquidate] = useState(true);
 
   // Form sheet visibility
   const [showFormSheet, setShowFormSheet] = useState(false);
@@ -80,7 +82,8 @@ export default function NominasScreen({ professionalStats = [] }) {
         advances: Number(advances),
         deductions: Number(deductions),
         taxes: Number(taxes),
-        notes: notes.trim()
+        notes: notes.trim(),
+        sendEmail: sendOnLiquidate
       };
 
       const res = await api.post("/finances/payroll", payload);
@@ -94,6 +97,20 @@ export default function NominasScreen({ professionalStats = [] }) {
       alert("Error al liquidar haberes.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSendReceipt = async (paymentId) => {
+    try {
+      setSendingId(paymentId);
+      const res = await api.post(`/finances/payroll/${paymentId}/send-receipt`);
+      alert("Recibo enviado por email al colaborador.");
+      setActiveReceipt(res.data);
+      fetchHistory();
+    } catch (err) {
+      alert(err?.response?.data?.error || "No se pudo enviar el recibo por email.");
+    } finally {
+      setSendingId("");
     }
   };
 
@@ -213,6 +230,16 @@ export default function NominasScreen({ professionalStats = [] }) {
                   <div className="small text-muted uppercase fw-bold">Neto Estimado a Cobrar</div>
                   <div className="h4 fw-black text-purple-600 m-0 mt-1">{currency(netSalary)}</div>
                 </div>
+                <div className="mt-3">
+                  <Form.Check
+                    type="switch"
+                    id="send-payslip-email"
+                    className="mb-0"
+                    label="Enviar recibo por email al liquidar"
+                    checked={sendOnLiquidate}
+                    onChange={(e) => setSendOnLiquidate(e.target.checked)}
+                  />
+                </div>
               </>
             )}
           </Modal.Body>
@@ -244,23 +271,44 @@ export default function NominasScreen({ professionalStats = [] }) {
           {payrollHistory.slice(0, 5).map(p => (
             <div className="f-card p-3 mb-0 d-flex justify-content-between align-items-center bg-white" key={p.id}>
               <div>
-                <div className="fw-bold text-dark">{p.worker?.name || "Colaborador"}</div>
-                <div className="small text-muted mt-1">{new Date(p.createdAt).toLocaleDateString("es-AR")}</div>
+                <div className="fw-bold text-dark">{p.worker ? `${p.worker.firstName} ${p.worker.lastName}` : "Colaborador"}</div>
+                <div className="small text-muted mt-1">
+                  {p.paymentDate && !isNaN(new Date(p.paymentDate).getTime()) ? new Date(p.paymentDate).toLocaleDateString("es-AR") : "—"}
+                </div>
               </div>
               <div className="text-end">
                 <div className="fw-bold text-purple-600">
-                  {currency(p.baseSalary + p.commissionPaid + p.bonuses - p.advances - p.deductions - p.taxes)}
+                  {currency(p.netPaid)}
                 </div>
-                <button 
-                  className="btn btn-link p-0 text-muted small mt-1 d-flex align-items-center gap-1"
-                  onClick={() => {
-                    setActiveReceipt(p);
-                    setShowReceipt(true);
-                  }}
-                >
-                  <Printer size={12} />
-                  <span>Ver Recibo</span>
-                </button>
+                <div className="d-flex align-items-center justify-content-end gap-1.5 mt-1 flex-wrap">
+                  {p.emailStatus === "sent" ? (
+                    <Badge bg="success" className="text-white rounded-pill px-2 py-0.5" style={{ fontSize: "10px" }}>✓ Enviado</Badge>
+                  ) : p.emailStatus === "failed" ? (
+                    <Badge bg="danger" className="text-white rounded-pill px-2 py-0.5" style={{ fontSize: "10px" }}>Falló</Badge>
+                  ) : p.worker?.email ? (
+                    <Badge bg="secondary" className="text-white rounded-pill px-2 py-0.5" style={{ fontSize: "10px" }}>Sin enviar</Badge>
+                  ) : (
+                    <Badge bg="warning" className="text-dark rounded-pill px-2 py-0.5" style={{ fontSize: "10px" }}>Sin email</Badge>
+                  )}
+                  <button 
+                    className="btn btn-sm btn-outline-purple p-1 border-0"
+                    disabled={sendingId === p.id || !p.worker?.email}
+                    onClick={() => handleSendReceipt(p.id)}
+                    title="Enviar recibo por email"
+                  >
+                    {sendingId === p.id ? <Spinner size="sm" animation="border" style={{ width: "12px", height: "12px" }} /> : <Send size={12} />}
+                  </button>
+                  <button 
+                    className="btn btn-sm btn-outline-purple p-1 border-0"
+                    onClick={() => {
+                      setActiveReceipt(p);
+                      setShowReceipt(true);
+                    }}
+                    title="Ver Recibo"
+                  >
+                    <Printer size={12} />
+                  </button>
+                </div>
               </div>
             </div>
           ))}
@@ -274,19 +322,21 @@ export default function NominasScreen({ professionalStats = [] }) {
         </Modal.Header>
         <Modal.Body className="p-4" id="printable-receipt-content">
           {activeReceipt && (
-            <div className="p-3 border rounded-3 bg-white" style={{ fontFamily: "monospace" }}>
+            <div className="p-3 border rounded-3 bg-white" style={{ fontFamily: "sans-serif" }}>
               <div className="text-center mb-4">
                 <h4 className="fw-bold text-dark mb-1">Aura Studio ERP</h4>
                 <p className="text-muted small mb-0">Comprobante Oficial de Liquidación de Haberes</p>
-                <div className="small text-muted mt-1">Fecha: {new Date(activeReceipt.createdAt).toLocaleDateString("es-AR")}</div>
+                <div className="small text-muted mt-1">
+                  Fecha: {activeReceipt.paymentDate && !isNaN(new Date(activeReceipt.paymentDate).getTime()) ? new Date(activeReceipt.paymentDate).toLocaleDateString("es-AR") : "—"}
+                </div>
               </div>
               <hr />
               <div className="row mb-3">
                 <div className="col-6">
-                  <strong>Colaborador:</strong> {activeReceipt.worker?.name || "Colaborador"}
+                  <strong>Colaborador:</strong> {activeReceipt.worker ? `${activeReceipt.worker.firstName} ${activeReceipt.worker.lastName}` : "Colaborador"}
                 </div>
                 <div className="col-6 text-end">
-                  <strong>Rol:</strong> {activeReceipt.worker?.role || "Estilista"}
+                  <strong>Rol:</strong> {activeReceipt.worker?.roleTitle || "Estilista"}
                 </div>
               </div>
               <hr />
@@ -342,14 +392,39 @@ export default function NominasScreen({ professionalStats = [] }) {
               <div className="p-3 bg-light rounded text-end fs-5 fw-bold">
                 Neto a Cobrar: &nbsp;
                 <span className="text-purple-600">
-                  {currency(activeReceipt.baseSalary + activeReceipt.commissionPaid + activeReceipt.bonuses - activeReceipt.advances - activeReceipt.deductions - activeReceipt.taxes)}
+                  {currency(activeReceipt.netPaid)}
                 </span>
               </div>
               {activeReceipt.notes && (
-                <div className="mt-3 small text-muted">
+                <div className="mt-3 small text-muted mb-3">
                   <strong>Observaciones:</strong> {activeReceipt.notes}
                 </div>
               )}
+
+              {Array.isArray(activeReceipt.commissionDetail) && activeReceipt.commissionDetail.length > 0 && (
+                <div className="mb-4 mt-3">
+                  <h6 className="fw-bold text-purple-700 mb-2">Detalle de comisiones por servicio</h6>
+                  <Table size="sm" bordered className="mb-0">
+                    <thead className="bg-light">
+                      <tr style={{ fontSize: "12px" }}>
+                        <th>Servicio</th>
+                        <th className="text-center">Citas</th>
+                        <th className="text-end">Comisión</th>
+                      </tr>
+                    </thead>
+                    <tbody style={{ fontSize: "13px" }}>
+                      {activeReceipt.commissionDetail.map((d, i) => (
+                        <tr key={i}>
+                          <td>{d.serviceName}</td>
+                          <td className="text-center">{d.count}</td>
+                          <td className="text-end fw-semibold">{currency(d.commission)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                </div>
+              )}
+
               <div className="row mt-5 pt-4 text-center">
                 <div className="col-6">
                   <div className="border-top pt-2">Firma Empleador</div>
@@ -364,6 +439,15 @@ export default function NominasScreen({ professionalStats = [] }) {
         <Modal.Footer className="border-0">
           <Button variant="secondary" onClick={() => setShowReceipt(false)}>
             Cerrar
+          </Button>
+          <Button 
+            variant="purple" 
+            disabled={sendingId === activeReceipt?.id || !activeReceipt?.worker?.email}
+            onClick={() => handleSendReceipt(activeReceipt.id)}
+            className="d-flex align-items-center gap-1.5"
+          >
+            {sendingId === activeReceipt?.id ? <Spinner size="sm" animation="border" /> : <Send size={14} />}
+            <span>Enviar por email</span>
           </Button>
           <Button variant="purple" onClick={() => window.print()}>
             <Printer size={16} className="me-1" /> Imprimir

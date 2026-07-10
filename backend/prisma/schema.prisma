@@ -307,6 +307,7 @@ model Business {
   subscription               Subscription?
   planRequests               PlanRequest[]
   bankMovements              BankMovement[]
+  salaryPayments             SalaryPayment[]
   dataImports                DataImportHistory[]
 }
 
@@ -409,18 +410,27 @@ model CashClosing {
 }
 
 model SalaryPayment {
-  id             String   @id @default(cuid())
-  workerId       String
-  baseSalary     Int
-  commissionPaid Int
-  bonuses        Int      @default(0)
-  advances       Int      @default(0)
-  deductions     Int      @default(0)
-  taxes          Int      @default(0)
-  netPaid        Int
-  paymentDate    DateTime @default(now())
-  notes          String?
-  worker         Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  id               String   @id @default(cuid())
+  workerId         String
+  businessId       String?
+  business         Business? @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  period           String? // Período liquidado, ej: "2026-06"
+  baseSalary       Int
+  commissionPaid   Int
+  bonuses          Int      @default(0)
+  advances         Int      @default(0)
+  deductions       Int      @default(0)
+  taxes            Int      @default(0)
+  netPaid          Int
+  commissionDetail Json?    // Desglose de comisiones por servicio/cita
+  status           String   @default("paid") // "paid" | "sent"
+  emailedAt        DateTime?
+  emailStatus      String?  // "sent" | "failed" | "no_email"
+  paymentDate      DateTime @default(now())
+  notes            String?
+  worker           Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
 }
 
 model BankMovement {

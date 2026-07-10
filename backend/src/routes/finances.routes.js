@@ -8,6 +8,7 @@ import {
   createCashClosing,
   listSalaryPayments,
   createSalaryPayment,
+  sendSalaryReceipt,
   listBankMovements,
   reconcileMovement,
   listAuditLogs,
@@ -34,6 +35,7 @@ router.post("/cash-closings", requirePermission("finance.cashClosing.manage"), c
 
 router.get("/payroll", requirePermission("finance.commissions.view"), listSalaryPayments);
 router.post("/payroll", requirePermission("finance.commissions.view"), createSalaryPayment);
+router.post("/payroll/:id/send-receipt", requirePermission("finance.commissions.view"), sendSalaryReceipt);
 
 router.get("/bank-recon", requirePermission("finance.revenue.view"), listBankMovements);
 router.put("/bank-recon/:id", requirePermission("finance.expenses.edit"), reconcileMovement);
