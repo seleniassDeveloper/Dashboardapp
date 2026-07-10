@@ -1,0 +1,793 @@
+/* src/components/finance/mobile/FinancesMobile.css */
+
+.fin-mobile {
+  --f-bg:#f6f5fb; 
+  --f-card:#ffffff; 
+  --f-border:#eeecf6;
+  --f-shadow:0 2px 12px rgba(30,20,60,.05);
+  --f-purple:#7c5cfc; 
+  --f-purple-600:#6d4ae8; 
+  --f-purple-soft:#ede9fe;
+  --f-green:#10b981; 
+  --f-green-soft:#e7f7f0;
+  --f-red:#ef4444;   
+  --f-red-soft:#fde8e8;
+  --f-amber:#f59e0b; 
+  --f-amber-soft:#fff1dd;
+  --f-blue:#3b82f6;  
+  --f-blue-soft:#e6effe;
+  --f-text:#1e1b2e; 
+  --f-muted:#8b8a99; 
+  --f-label:#5b5a68;
+  --f-radius:18px;
+  
+  background:var(--f-bg); 
+  min-height:100vh; 
+  color:var(--f-text);
+  font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  padding-bottom:calc(88px + env(safe-area-inset-bottom,0px));
+}
+
+.fin-mobile * { 
+  box-sizing:border-box; 
+}
+
+.fin-mobile .f-card { 
+  background:var(--f-card); 
+  border:1px solid var(--f-border);
+  border-radius:var(--f-radius); 
+  box-shadow:var(--f-shadow); 
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.fin-mobile .f-section { 
+  display:flex; 
+  align-items:center; 
+  justify-content:space-between;
+  margin:20px 4px 12px; 
+}
+
+.fin-mobile .f-section h3 { 
+  font-size:17px; 
+  font-weight:800; 
+  margin:0; 
+}
+
+.fin-mobile .f-money { 
+  font-variant-numeric:tabular-nums; 
+  font-weight:800; 
+}
+
+.fin-mobile .f-pos { 
+  color:var(--f-green); 
+} 
+
+.fin-mobile .f-neg { 
+  color:var(--f-red); 
+}
+
+/* Header */
+.fin-mobile .f-header { 
+  position:sticky; 
+  top:0; 
+  z-index:20; 
+  background:var(--f-card);
+  padding:calc(12px + env(safe-area-inset-top,0px)) 16px 12px;
+  display:flex; 
+  align-items:center; 
+  justify-content:space-between;
+  border-bottom:1px solid var(--f-border); 
+}
+
+.fin-mobile .f-header__btn {
+  background: none;
+  border: 0;
+  color: var(--f-text);
+  padding: 8px;
+  cursor: pointer;
+}
+
+.fin-mobile .f-header__title { 
+  text-align:center; 
+}
+
+.fin-mobile .f-header__title b { 
+  font-size:17px; 
+  font-weight:800; 
+  display:block; 
+}
+
+.fin-mobile .f-header__title span { 
+  font-size:11px; 
+  color:var(--f-muted); 
+}
+
+.fin-mobile .f-bell { 
+  position:relative; 
+  color:var(--f-text); 
+  background: none;
+  border: 0;
+}
+
+.fin-mobile .f-bell::after { 
+  content:''; 
+  position:absolute; 
+  top:-2px; 
+  right:-2px;
+  width:7px; 
+  height:7px; 
+  border-radius:50%; 
+  background:var(--f-purple); 
+}
+
+/* Subtabs row scrollable */
+.fin-mobile .f-subtabs { 
+  display:flex; 
+  gap:8px; 
+  overflow-x:auto; 
+  padding:14px 16px 10px;
+  scrollbar-width:none; 
+} 
+
+.fin-mobile .f-subtabs::-webkit-scrollbar {
+  display:none;
+}
+
+.fin-mobile .f-subtab-btn {
+  background: var(--f-card);
+  border: 1px solid var(--f-border);
+  color: var(--f-muted);
+  border-radius: 99px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.fin-mobile .f-subtab-btn.is-active {
+  background: #111827;
+  color: #fff;
+  border-color: #111827;
+}
+
+/* Hero section / Welcome box */
+.fin-mobile .f-hero {
+  padding: 20px 16px;
+  text-align: center;
+  background: linear-gradient(135deg, rgba(124, 92, 252, 0.05) 0%, rgba(236, 72, 153, 0.02) 100%);
+}
+
+.fin-mobile .f-hero__icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--f-purple-soft);
+  color: var(--f-purple);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.fin-mobile .f-hero__desc {
+  font-size: 13px;
+  color: var(--f-muted);
+  margin: 0 auto;
+  max-width: 290px;
+}
+
+/* Button variants */
+.fin-mobile .f-btn-dark { 
+  width:calc(100% - 32px); 
+  background:#111827; 
+  color:#fff; 
+  border:0;
+  border-radius:14px; 
+  padding:14px; 
+  font-weight:700; 
+  margin:10px 16px 16px;
+  display:flex; 
+  align-items:center; 
+  justify-content:center; 
+  gap:8px; 
+  cursor: pointer;
+}
+
+.fin-mobile .f-btn-purple { 
+  width:calc(100% - 32px); 
+  background:var(--f-purple); 
+  color:#fff; 
+  border:0;
+  border-radius:14px; 
+  padding:15px; 
+  font-weight:700; 
+  box-shadow:0 6px 16px rgba(124,92,252,.35); 
+  margin: 16px;
+  cursor: pointer;
+}
+
+/* KPIs grid */
+.fin-mobile .f-kpi-grid { 
+  display:grid; 
+  grid-template-columns:1fr 1fr; 
+  gap:12px; 
+  padding: 0 16px;
+}
+
+.fin-mobile .f-kpi { 
+  text-align:left; 
+  background:var(--f-card); 
+  border:1px solid var(--f-border);
+  border-radius:16px; 
+  padding:14px; 
+  box-shadow:var(--f-shadow); 
+  cursor: pointer;
+}
+
+.fin-mobile .f-kpi__label { 
+  font-size:12px; 
+  color:var(--f-muted); 
+  margin-bottom:4px; 
+}
+
+.fin-mobile .f-kpi__value { 
+  font-size:18px; 
+  font-weight:800; 
+}
+
+.fin-mobile .f-kpi__delta { 
+  font-size:11px; 
+  font-weight:700; 
+  margin-top:2px; 
+}
+
+.fin-mobile .f-kpi__delta.up { 
+  color:var(--f-green); 
+}
+
+.fin-mobile .f-kpi__delta.down { 
+  color:var(--f-red); 
+}
+
+/* List / rows styling */
+.fin-mobile .f-list {
+  list-style: none;
+  padding: 0 16px;
+  margin: 0;
+}
+
+.fin-mobile .f-row { 
+  display:flex; 
+  align-items:center; 
+  justify-content: space-between;
+  gap:12px; 
+  padding:14px 4px;
+  border-bottom:1px solid var(--f-border); 
+}
+
+.fin-mobile .f-row__info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+.fin-mobile .f-row__ico { 
+  width:36px; 
+  height:36px; 
+  border-radius:10px;
+  background:var(--f-purple-soft); 
+  color:var(--f-purple-600);
+  display:flex; 
+  align-items:center; 
+  justify-content:center; 
+  flex-shrink:0; 
+}
+
+.fin-mobile .f-row small { 
+  display:block; 
+  color:var(--f-muted); 
+  font-size:11px; 
+}
+
+.fin-mobile .f-row__title {
+  font-weight: 700;
+  font-size: 14px;
+  margin: 0;
+}
+
+/* Filters & Search */
+.fin-mobile .f-searchrow {
+  padding: 0 16px;
+  margin-bottom: 12px;
+}
+
+.fin-mobile .f-searchrow input { 
+  width:100%; 
+  background:var(--f-card);
+  border:1px solid var(--f-border); 
+  border-radius:12px; 
+  padding:12px 14px; 
+  font-size:15px; 
+}
+
+.fin-mobile .f-filters { 
+  display:flex; 
+  gap:10px; 
+  margin:10px 16px; 
+}
+
+.fin-mobile .f-filters select { 
+  flex:1; 
+  border:1px solid var(--f-border);
+  border-radius:12px; 
+  padding:11px 12px; 
+  background:var(--f-card); 
+  font-size:14px; 
+}
+
+/* Cierre Caja */
+.fin-mobile .f-cash .f-line { 
+  display:flex; 
+  justify-content:space-between;
+  padding:10px 0; 
+  font-size:14px; 
+  border-bottom:1px dashed var(--f-border); 
+}
+
+.fin-mobile .f-cash .f-line.hl { 
+  background:var(--f-green-soft); 
+  color:#065f46;
+  margin:6px -16px; 
+  padding:12px 16px; 
+  border:0; 
+  font-weight:700; 
+}
+
+.fin-mobile .f-cash input { 
+  width:120px; 
+  text-align:right; 
+  border:1px solid var(--f-border);
+  border-radius:10px; 
+  padding:8px 10px; 
+  font-weight:700; 
+}
+
+.fin-mobile .f-result { 
+  border-radius:14px; 
+  padding:16px; 
+  font-weight:800; 
+  margin:14px 16px;
+  display:flex; 
+  align-items:center; 
+  justify-content:space-between; 
+}
+
+.fin-mobile .f-result.is-ok  { background:var(--f-green-soft); color:#065f46; }
+.fin-mobile .f-result.is-over { background:var(--f-blue-soft); color:#1e40af; }
+.fin-mobile .f-result.is-short{ background:var(--f-red-soft); color:#991b1b; }
+
+.fin-mobile .f-notes-area {
+  padding: 0 16px;
+  margin-bottom: 12px;
+}
+
+.fin-mobile textarea { 
+  width:100%; 
+  border:1px solid var(--f-border); 
+  border-radius:12px;
+  padding:12px; 
+  font-size:14px; 
+  min-height:70px; 
+  resize:none; 
+}
+
+/* Nomina / Sueldos */
+.fin-mobile .f-pro-list {
+  list-style: none;
+  padding: 0 16px;
+  margin: 0;
+}
+
+.fin-mobile .f-pro { 
+  display:flex; 
+  align-items:center; 
+  gap:12px; 
+  padding:12px;
+  border:1px solid var(--f-border); 
+  border-radius:14px; 
+  margin-bottom:10px; 
+  background:var(--f-card); 
+  cursor: pointer;
+}
+
+.fin-mobile .f-pro.is-selected { 
+  border-color:var(--f-purple); 
+  box-shadow:0 0 0 3px var(--f-purple-soft); 
+}
+
+.fin-mobile .f-pro img { 
+  width:40px; 
+  height:40px; 
+  border-radius:50%; 
+  object-fit:cover; 
+}
+
+.fin-mobile .f-pro b { 
+  margin-left:auto; 
+  font-weight:800; 
+}
+
+.fin-mobile .f-pro small { 
+  color:var(--f-muted); 
+  font-size:11px; 
+}
+
+.fin-mobile .f-payslip-sum {
+  margin: 16px;
+}
+
+.fin-mobile .f-payslip-sum .f-line { 
+  display:flex; 
+  justify-content:space-between;
+  padding:12px 0; 
+  border-bottom:1px solid var(--f-border); 
+}
+
+/* Conciliacion Bancaria */
+.fin-mobile .f-statustabs { 
+  display:flex; 
+  gap:18px; 
+  padding:4px 16px 12px;
+  overflow-x:auto; 
+  font-size:13px; 
+  color:var(--f-muted); 
+  border-bottom:1px solid var(--f-border); 
+}
+
+.fin-mobile .f-statustab-btn {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--f-muted);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.fin-mobile .f-statustab-btn.is-active { 
+  color:var(--f-purple-600); 
+  font-weight:700;
+  border-bottom:2px solid var(--f-purple-600); 
+  padding-bottom:8px; 
+}
+
+.fin-mobile .f-mov { 
+  display:flex; 
+  justify-content:space-between; 
+  align-items:center;
+  padding:14px 4px; 
+  border-bottom:1px solid var(--f-border); 
+}
+
+.fin-mobile .f-mov__right { 
+  text-align:right; 
+  display:flex; 
+  flex-direction:column; 
+  gap:4px; 
+  align-items:flex-end; 
+}
+
+.fin-mobile .f-chip { 
+  font-size:11px; 
+  font-weight:700; 
+  padding:3px 10px; 
+  border-radius:999px; 
+}
+
+.fin-mobile .f-chip.is-ok   { background:var(--f-green-soft); color:#065f46; }
+.fin-mobile .f-chip.is-pend { background:var(--f-amber-soft); color:#92400e; }
+.fin-mobile .f-chip.is-diff { background:var(--f-red-soft);   color:#991b1b; }
+
+/* Rentabilidad */
+.fin-mobile .f-svc-list {
+  list-style: none;
+  padding: 0 16px;
+  margin: 0;
+}
+
+.fin-mobile .f-svc { 
+  padding:16px 4px; 
+  border-bottom:1px solid var(--f-border); 
+}
+
+.fin-mobile .f-svc__top { 
+  display:flex; 
+  justify-content:space-between; 
+  align-items:center; 
+}
+
+.fin-mobile .f-svc__pct { 
+  font-weight:800; 
+  color:var(--f-purple-600); 
+}
+
+.fin-mobile .f-bar { 
+  height:6px; 
+  border-radius:999px; 
+  background:var(--f-purple-soft);
+  margin:10px 0 6px; 
+  overflow:hidden; 
+}
+
+.fin-mobile .f-bar > i { 
+  display:block; 
+  height:100%; 
+  border-radius:999px;
+  background:var(--f-purple); 
+}
+
+.fin-mobile .f-svc__price { 
+  color:var(--f-muted); 
+  font-size:13px; 
+}
+
+/* Equipo / Ranking */
+.fin-mobile .f-rank { 
+  list-style:none; 
+  margin:0; 
+  padding:0 16px; 
+}
+
+.fin-mobile .f-rank__item { 
+  display:flex; 
+  align-items:center; 
+  gap:12px; 
+  padding:12px;
+  background:var(--f-card); 
+  border:1px solid var(--f-border); 
+  border-radius:14px; 
+  margin-bottom:10px; 
+}
+
+.fin-mobile .f-medal { 
+  width:24px; 
+  text-align:center; 
+  font-size:16px; 
+  font-weight:800; 
+}
+
+.fin-mobile .f-rank__item img { 
+  width:38px; 
+  height:38px; 
+  border-radius:50%; 
+  object-fit:cover; 
+}
+
+.fin-mobile .f-rank__item small { 
+  display:block; 
+  color:var(--f-muted); 
+  font-size:11px; 
+}
+
+.fin-mobile .f-rank__item b { 
+  margin-left:auto; 
+  font-weight:800; 
+  color:var(--f-purple-600); 
+}
+
+/* Simulador */
+.fin-mobile .f-scenario {
+  padding: 12px 16px;
+  font-size: 14px;
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--f-border);
+}
+
+.fin-mobile .f-scenario b {
+  color: var(--f-purple-600);
+}
+
+.fin-mobile .f-sliders {
+  padding: 16px;
+}
+
+.fin-mobile .f-slider { 
+  padding:12px 0; 
+}
+
+.fin-mobile .f-slider__head { 
+  display:flex; 
+  justify-content:space-between; 
+  font-size:14px;
+  margin-bottom:8px; 
+} 
+
+.fin-mobile .f-slider__head b { 
+  color:var(--f-purple-600); 
+}
+
+.fin-mobile input[type=range] { 
+  width:100%; 
+  accent-color:var(--f-purple); 
+}
+
+.fin-mobile .f-proj {
+  margin: 16px;
+}
+
+.fin-mobile .f-proj .f-line { 
+  display:flex; 
+  justify-content:space-between; 
+  padding:11px 0;
+  border-bottom:1px solid var(--f-border); 
+  font-size:14px; 
+}
+
+.fin-mobile .f-proj .f-line b.pos { 
+  color:var(--f-green); 
+}
+
+.fin-mobile .f-risk { 
+  margin:14px 16px; 
+  border-radius:12px; 
+  padding:14px;
+  display:flex; 
+  justify-content:space-between; 
+  font-weight:700; 
+}
+
+.fin-mobile .f-risk.is-low { background:var(--f-green-soft); color:#065f46; }
+.fin-mobile .f-risk.is-mod { background:var(--f-amber-soft); color:#92400e; }
+.fin-mobile .f-risk.is-crit{ background:var(--f-red-soft);   color:#991b1b; }
+
+/* Reportes */
+.fin-mobile .f-report-filters {
+  padding: 16px;
+}
+
+.fin-mobile .f-report-filters label { 
+  display:block; 
+  font-size:12px; 
+  color:var(--f-label);
+  font-weight:700; 
+  margin:12px 0 6px; 
+}
+
+.fin-mobile .f-report-filters select { 
+  width:100%; 
+  border:1px solid var(--f-border);
+  border-radius:12px; 
+  padding:13px 12px; 
+  background:var(--f-card); 
+  font-size:14px; 
+}
+
+.fin-mobile .f-export-grid { 
+  display:flex; 
+  flex-wrap:wrap; 
+  gap:10px; 
+  margin: 20px 16px; 
+}
+
+.fin-mobile .f-export { 
+  flex:1 1 30%; 
+  min-width:96px; 
+  display:flex; 
+  align-items:center; 
+  justify-content:center; 
+  gap:8px; 
+  padding:12px; 
+  border:1px solid var(--f-border);
+  border-radius:12px; 
+  background:var(--f-card); 
+  font-weight:700; 
+  font-size:13px; 
+  cursor: pointer;
+}
+
+.fin-mobile .f-export:active { 
+  background:var(--f-purple-soft); 
+}
+
+/* Auditoria */
+.fin-mobile .f-audit-head { 
+  display:grid; 
+  grid-template-columns:1.1fr 1.4fr 1fr;
+  gap:8px; 
+  font-size:11px; 
+  color:var(--f-muted); 
+  font-weight:700;
+  padding:8px 20px; 
+  border-bottom:1px solid var(--f-border); 
+}
+
+.fin-mobile .f-audit-list {
+  list-style: none;
+  padding: 0 16px;
+  margin: 0;
+}
+
+.fin-mobile .f-audit { 
+  display:grid; 
+  grid-template-columns:1.1fr 1.4fr 1fr; 
+  gap:8px;
+  padding:12px 4px; 
+  border-bottom:1px solid var(--f-border); 
+  align-items:center; 
+}
+
+.fin-mobile .f-audit__date { 
+  font-size:11px; 
+  color:var(--f-label); 
+}
+
+.fin-mobile .f-audit__act  { 
+  font-size:11px; 
+  font-weight:700; 
+  color:var(--f-purple-600); 
+}
+
+.fin-mobile .f-audit__who  { 
+  font-size:12px; 
+  font-weight:700; 
+}
+
+.fin-mobile .f-audit__act.is-error { 
+  color:var(--f-red); 
+}
+
+/* Tab bar inferior custom */
+.fin-mobile .f-tabbar { 
+  position:fixed; 
+  left:0; 
+  right:0; 
+  bottom:0; 
+  z-index:30;
+  height:calc(72px + env(safe-area-inset-bottom,0px)); 
+  background:var(--f-card);
+  border-top:1px solid var(--f-border); 
+  display:flex; 
+  align-items:flex-start;
+  justify-content:space-around; 
+  padding-top:10px; 
+}
+
+.fin-mobile .f-tab { 
+  display:flex; 
+  flex-direction:column; 
+  align-items:center; 
+  gap:3px;
+  font-size:10px; 
+  color:var(--f-muted); 
+  background:none; 
+  border:0; 
+  cursor: pointer;
+}
+
+.fin-mobile .f-tab.is-active { 
+  color:var(--f-purple-600); 
+}
+
+.fin-mobile .f-fab { 
+  width:56px; 
+  height:56px; 
+  margin-top:-22px; 
+  border-radius:50%;
+  background:var(--f-purple); 
+  color:#fff; 
+  border:0; 
+  box-shadow:0 6px 16px rgba(124,92,252,.45);
+  display:flex; 
+  align-items:center; 
+  justify-content:center; 
+  cursor: pointer;
+}
+
+/* Hide global layout mobile-tabbar when inside Sla screen to use custom nav */
+body:has(.fin-mobile) .mobile-tabbar {
+  display: none !important;
+}

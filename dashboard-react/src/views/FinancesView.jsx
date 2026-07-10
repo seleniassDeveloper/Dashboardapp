@@ -10,6 +10,9 @@ import api from "../lib/api.js";
 import { useAuth } from "../auth/AuthProvider.jsx";
 import { usePermissions } from "../auth/PermissionProvider.jsx";
 import FinanceAccessModal from "../components/finances/FinanceAccessModal.jsx";
+import { useIsMobile } from "../hooks/useIsMobile.js";
+import { useFinanceDashboard } from "../hooks/useFinanceDashboard.js";
+import FinancesMobile from "../components/finance/mobile/FinancesMobile.jsx";
 
 // ERP sub-modules
 import FinanceDashboard from "../components/finance/FinanceDashboard.jsx";
@@ -28,12 +31,11 @@ export default function FinancesView() {
   const { t } = useTranslation("views");
   const { hasPermission } = usePermissions();
   const { financeUnlocked } = useAuth();
+  const isMobile = useIsMobile();
 
   const hasFinancePermission = hasPermission("finance.view");
   const isFinanceUnlocked = hasFinancePermission || financeUnlocked;
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [showAccessModal, setShowAccessModal] = useState(!isFinanceUnlocked);
   
   // Tab State Driven by URL SearchParams
@@ -43,8 +45,14 @@ export default function FinancesView() {
     setSearchParams({ tab: newTab });
   };
 
-  // Dynamic Dashboard Data loaded from Neon DB
-  const [dashboardData, setDashboardData] = useState(null);
+  // Shared Hook for loading metric data
+  const {
+    dashboardData,
+    expenseBranches,
+    loading,
+    error,
+    fetchDashboardData
+  } = useFinanceDashboard(isFinanceUnlocked);
   
   // Expense Modal state
   const [showExpenseModal, setShowExpenseModal] = useState(false);
@@ -52,33 +60,7 @@ export default function FinancesView() {
   const [expenseAmount, setExpenseAmount] = useState("");
   const [expenseCategory, setExpenseCategory] = useState("insumos");
   const [savingExpense, setSavingExpense] = useState(false);
-  const [expenseBranches, setExpenseBranches] = useState([]);
   const [selectedBranchId, setSelectedBranchId] = useState("");
-
-  const fetchDashboardData = async () => {
-    try {
-      setLoading(true);
-      setError("");
-      const res = await api.get("/finances/dashboard");
-      setDashboardData(res.data);
-    } catch (err) {
-      console.error(err);
-      setError("No se pudieron calcular las métricas ERP contables (es posible que aún no haya datos registrados en la cuenta).");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (isFinanceUnlocked) {
-      fetchDashboardData();
-      
-      // Fetch branches for expense select
-      api.get("/finances/branches")
-        .then(res => setExpenseBranches(Array.isArray(res.data) ? res.data : []))
-        .catch(e => console.error(e));
-    }
-  }, [isFinanceUnlocked]);
 
   const handleAddExpense = async (e) => {
     e.preventDefault();
@@ -170,6 +152,16 @@ export default function FinancesView() {
         <Spinner animation="border" size="sm" className="me-2" variant="purple" />
         Analizando libros contables en Neon Cloud PostgreSQL...
       </div>
+    );
+  }
+
+  if (isMobile) {
+    return (
+      <FinancesMobile 
+        dashboardData={dashboardData}
+        expenseBranches={expenseBranches}
+        fetchDashboardData={fetchDashboardData}
+      />
     );
   }
 
