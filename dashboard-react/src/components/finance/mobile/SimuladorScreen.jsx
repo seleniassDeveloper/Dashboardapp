@@ -49,13 +49,18 @@ export default function SimuladorScreen({ baseRevenue = 2450000, baseExpenses = 
     const stored = localStorage.getItem("auradash_custom_simulation_variables");
     if (stored) {
       try {
-        return JSON.parse(stored);
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) return parsed;
       } catch (e) {
         console.error("Error parsing custom variables:", e);
       }
     }
     return SEED_CUSTOM_VARS;
   });
+
+  const safeCustomVars = useMemo(() => {
+    return Array.isArray(customVars) ? customVars : [];
+  }, [customVars]);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [newVarName, setNewVarName] = useState("");
@@ -66,11 +71,14 @@ export default function SimuladorScreen({ baseRevenue = 2450000, baseExpenses = 
   const [newVarUnit, setNewVarUnit] = useState("unidades");
 
   useEffect(() => {
-    localStorage.setItem("auradash_custom_simulation_variables", JSON.stringify(customVars));
-  }, [customVars]);
+    localStorage.setItem("auradash_custom_simulation_variables", JSON.stringify(safeCustomVars));
+  }, [safeCustomVars]);
 
   const handleCustomValChange = (id, val) => {
-    setCustomVars(prev => prev.map(v => v.id === id ? { ...v, currentVal: Number(val) } : v));
+    setCustomVars(prev => {
+      const prevArr = Array.isArray(prev) ? prev : [];
+      return prevArr.map(v => v.id === id ? { ...v, currentVal: Number(val) } : v);
+    });
   };
 
   const handleAddCustomVar = (e) => {
@@ -90,7 +98,10 @@ export default function SimuladorScreen({ baseRevenue = 2450000, baseExpenses = 
       currentVal: 0
     };
 
-    setCustomVars(prev => [...prev, newVar]);
+    setCustomVars(prev => {
+      const prevArr = Array.isArray(prev) ? prev : [];
+      return [...prevArr, newVar];
+    });
     setNewVarName("");
     setNewVarType("income");
     setNewVarCalcType("fixed");
@@ -101,7 +112,10 @@ export default function SimuladorScreen({ baseRevenue = 2450000, baseExpenses = 
   };
 
   const handleDeleteCustomVar = (id) => {
-    setCustomVars(prev => prev.filter(v => v.id !== id));
+    setCustomVars(prev => {
+      const prevArr = Array.isArray(prev) ? prev : [];
+      return prevArr.filter(v => v.id !== id);
+    });
   };
 
   const handleReset = () => {
@@ -121,7 +135,7 @@ export default function SimuladorScreen({ baseRevenue = 2450000, baseExpenses = 
   let customRevenueAddition = 0;
   let customExpenseAddition = 0;
 
-  customVars.forEach(v => {
+  safeCustomVars.forEach(v => {
     const sliderVal = Number(v.currentVal || 0);
     const impactVal = Number(v.value || 0);
 
@@ -160,7 +174,7 @@ export default function SimuladorScreen({ baseRevenue = 2450000, baseExpenses = 
     if (stylistCommission > 45) riskIndex += 15;
     if (priceIncrease > 25) riskIndex += 20;
 
-    customVars.forEach(v => {
+    safeCustomVars.forEach(v => {
       if (v.type === "expense" && v.currentVal > 0) {
         riskIndex += Math.min(25, v.currentVal * 6);
       }
@@ -178,7 +192,7 @@ export default function SimuladorScreen({ baseRevenue = 2450000, baseExpenses = 
     if (riskIndex > 65) return "crit";
     if (riskIndex > 35) return "mod";
     return "low";
-  }, [priceIncrease, expenseReduction, newStylists, newBranches, stylistCommission, customVars, totalProjectedRevenue, totalProjectedExpenses, projectedCommissions, projectedNetProfit]);
+  }, [priceIncrease, expenseReduction, newStylists, newBranches, stylistCommission, safeCustomVars, totalProjectedRevenue, totalProjectedExpenses, projectedCommissions, projectedNetProfit]);
 
   return (
     <div className="animate-fade-in pt-3">
@@ -270,10 +284,10 @@ export default function SimuladorScreen({ baseRevenue = 2450000, baseExpenses = 
       </div>
 
       {/* Custom Variables */}
-      {customVars.length > 0 && (
+      {safeCustomVars.length > 0 && (
         <div className="f-card m-3 bg-white">
           <h5 className="fw-bold mb-3 small text-muted uppercase">Variables Personalizadas</h5>
-          {customVars.map(v => (
+          {safeCustomVars.map(v => (
             <div className="f-slider mb-3" key={v.id}>
               <div className="f-slider__head">
                 <span className="d-flex align-items-center gap-1.5 text-truncate" style={{ maxWidth: "160px" }}>

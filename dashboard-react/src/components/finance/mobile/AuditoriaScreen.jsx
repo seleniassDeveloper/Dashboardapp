@@ -11,8 +11,9 @@ function getAuditActor(log) {
     if (log.metadata.inviter) return log.metadata.inviter;
   }
   if (log.userId) {
-    if (log.userId === "VaXiH3WTEqWBqsc03cXtzUsix5x1" || log.userId.includes("owner")) return "Selenia (Owner)";
-    return `Usuario (${log.userId.slice(0, 6)})`;
+    const uStr = String(log.userId);
+    if (uStr === "VaXiH3WTEqWBqsc03cXtzUsix5x1" || uStr.includes("owner")) return "Selenia (Owner)";
+    return `Usuario (${uStr.slice(0, 6)})`;
   }
   return "Sistema / Auto";
 }
@@ -107,9 +108,15 @@ export default function AuditoriaScreen() {
       ) : (
         <ul className="f-audit-list mb-3">
           {logs.slice(0, 50).map(log => {
-            const dateObj = new Date(log.createdAt);
-            const timeStr = dateObj.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
-            const dateStr = `${dateObj.getDate()}/${dateObj.getMonth() + 1}`;
+            let dateStr = "—";
+            let timeStr = "—";
+            if (log.createdAt) {
+              const dateObj = new Date(log.createdAt);
+              if (!isNaN(dateObj.getTime())) {
+                timeStr = dateObj.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+                dateStr = `${dateObj.getDate()}/${dateObj.getMonth() + 1}`;
+              }
+            }
             const details = getAuditDetails(log, true);
             const actor = getAuditActor(log);
 
