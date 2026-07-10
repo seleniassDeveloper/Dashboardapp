@@ -41,6 +41,10 @@ class LocalErrorBoundary extends React.Component {
 }
 
 function ReportesScreenContent({ recentTransactions = [], expenseBranches = [] }) {
+  const safeTransactions = useMemo(() => {
+    return Array.isArray(recentTransactions) ? recentTransactions : [];
+  }, [recentTransactions]);
+
   const [activeTab, setActiveTab] = useState("reportes"); // reportes, afip
 
   // Catalog states
@@ -69,14 +73,14 @@ function ReportesScreenContent({ recentTransactions = [], expenseBranches = [] }
 
   // Filtered transactions
   const filteredTransactions = useMemo(() => {
-    return recentTransactions.filter(tx => {
+    return safeTransactions.filter(tx => {
       if (selectedBranch && tx.branchId !== selectedBranch) return false;
       if (selectedWorker && tx.workerId !== selectedWorker) return false;
       if (selectedService && tx.serviceId !== selectedService) return false;
       if (paymentMethod && tx.paymentMethod !== paymentMethod) return false;
       return true;
     });
-  }, [recentTransactions, selectedBranch, selectedWorker, selectedService, paymentMethod]);
+  }, [safeTransactions, selectedBranch, selectedWorker, selectedService, paymentMethod]);
 
   // Tax calculations based on Argentina AFIP standards
   const taxMetrics = useMemo(() => {
