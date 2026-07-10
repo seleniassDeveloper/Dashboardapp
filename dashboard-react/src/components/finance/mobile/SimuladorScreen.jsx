@@ -128,7 +128,10 @@ export default function SimuladorScreen({ baseRevenue = 2450000, baseExpenses = 
   };
 
   // Calculations
-  const revenueAfterPriceIncrease = baseRevenue * (1 + priceIncrease / 100);
+  const safeBaseRevenue = Number(baseRevenue) || 0;
+  const safeBaseExpenses = Number(baseExpenses) || 0;
+
+  const revenueAfterPriceIncrease = safeBaseRevenue * (1 + priceIncrease / 100);
   const stylistHiringRevenue = newStylists * 25000;
   const branchOpeningRevenue = newBranches * 120000;
 
@@ -143,20 +146,20 @@ export default function SimuladorScreen({ baseRevenue = 2450000, baseExpenses = 
       if (v.calcType === "fixed") {
         customRevenueAddition += sliderVal * impactVal;
       } else {
-        customRevenueAddition += baseRevenue * (sliderVal * impactVal / 100);
+        customRevenueAddition += safeBaseRevenue * (sliderVal * impactVal / 100);
       }
     } else if (v.type === "expense") {
       if (v.calcType === "fixed") {
         customExpenseAddition += sliderVal * impactVal;
       } else {
-        customExpenseAddition += baseExpenses * (sliderVal * impactVal / 100);
+        customExpenseAddition += safeBaseExpenses * (sliderVal * impactVal / 100);
       }
     }
   });
 
   const totalProjectedRevenue = revenueAfterPriceIncrease + stylistHiringRevenue + branchOpeningRevenue + customRevenueAddition;
 
-  const expensesAfterReduction = baseExpenses * (1 - expenseReduction / 100);
+  const expensesAfterReduction = safeBaseExpenses * (1 - expenseReduction / 100);
   const stylistHiringCost = newStylists * 45000;
   const branchOpeningCost = newBranches * 85000;
 
