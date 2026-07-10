@@ -22,7 +22,8 @@ export default function CierreCajaScreen({ currentRevenue = 0 }) {
   const [msg, setMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
 
-  const expectedCash = Number(initialCash) + currentRevenue;
+  const safeRevenue = Number(currentRevenue) || 0;
+  const expectedCash = Number(initialCash) + safeRevenue;
   const difference = actualCash ? Number(actualCash) - expectedCash : 0;
 
   const fetchClosings = useCallback(async () => {
@@ -110,7 +111,7 @@ export default function CierreCajaScreen({ currentRevenue = 0 }) {
 
         <div className="f-line">
           <span className="text-muted">Ingresos del día</span>
-          <span className="fw-bold text-dark">{currency(currentRevenue)}</span>
+          <span className="fw-bold text-dark">{currency(safeRevenue)}</span>
         </div>
 
         <div className="f-line hl">
@@ -168,7 +169,9 @@ export default function CierreCajaScreen({ currentRevenue = 0 }) {
             return (
               <div className="f-card p-3 mb-0 d-flex justify-content-between align-items-center bg-white" key={c.id}>
                 <div>
-                  <div className="small text-muted">{new Date(c.createdAt).toLocaleDateString("es-AR")}</div>
+                  <div className="small text-muted">
+                    {c.createdAt && !isNaN(new Date(c.createdAt).getTime()) ? new Date(c.createdAt).toLocaleDateString("es-AR") : "—"}
+                  </div>
                   <div className="small text-truncate mt-1 text-secondary" style={{ maxWidth: "180px" }}>
                     {c.notes || "Sin observaciones"}
                   </div>

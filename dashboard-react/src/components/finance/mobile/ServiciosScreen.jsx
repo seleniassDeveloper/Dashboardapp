@@ -11,6 +11,7 @@ function currency(n) {
 }
 
 export default function ServiciosScreen({ serviceStats = [] }) {
+  const safeServiceStats = Array.isArray(serviceStats) ? serviceStats : [];
   const [expandedSvc, setExpandedSvc] = useState(null);
 
   const handleToggle = (id) => {
@@ -23,13 +24,13 @@ export default function ServiciosScreen({ serviceStats = [] }) {
 
   return (
     <div className="animate-fade-in px-3 pt-3">
-      {serviceStats.length === 0 ? (
+      {safeServiceStats.length === 0 ? (
         <div className="text-center py-5 text-muted small border rounded-xl bg-white">
           No hay turnos registrados hoy para estimar rentabilidad.
         </div>
       ) : (
         <ul className="f-svc-list p-0 mb-3">
-          {serviceStats.map(s => {
+          {safeServiceStats.map(s => {
             const isExpanded = expandedSvc === s.id;
             const barColor = s.marginPercent < 25 ? "var(--f-amber)" : "var(--f-purple)";
             

@@ -23,6 +23,7 @@ function getCategoryColor(category) {
 }
 
 export default function GastosScreen({ expenseBranches, onExpenseAdded }) {
+  const safeBranches = Array.isArray(expenseBranches) ? expenseBranches : [];
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState("");
@@ -175,7 +176,7 @@ export default function GastosScreen({ expenseBranches, onExpenseAdded }) {
 
         <select value={selectedBranch} onChange={(e) => setSelectedBranch(e.target.value)}>
           <option value="">Todas las sucursales</option>
-          {expenseBranches.map(b => (
+          {safeBranches.map(b => (
             <option key={b.id} value={b.id}>{b.name}</option>
           ))}
         </select>
@@ -267,7 +268,7 @@ export default function GastosScreen({ expenseBranches, onExpenseAdded }) {
               <Form.Label className="small text-muted fw-bold">Sucursal</Form.Label>
               <Form.Select value={branchId} onChange={(e) => setBranchId(e.target.value)}>
                 <option value="">Gasto General</option>
-                {expenseBranches.map(b => (
+                {safeBranches.map(b => (
                   <option key={b.id} value={b.id}>{b.name}</option>
                 ))}
               </Form.Select>

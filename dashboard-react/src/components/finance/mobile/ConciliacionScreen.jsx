@@ -120,7 +120,7 @@ export default function ConciliacionScreen() {
                 <div>
                   <div className="fw-bold text-dark">{m.description}</div>
                   <small className="text-muted mt-1 d-block">
-                    {new Date(m.date).toLocaleDateString("es-AR")} · Ref: {m.reference || "—"}
+                    {m.date && !isNaN(new Date(m.date).getTime()) ? new Date(m.date).toLocaleDateString("es-AR") : "—"} · Ref: {m.reference || "—"}
                   </small>
                 </div>
                 <div className="f-mov__right">
@@ -145,7 +145,7 @@ export default function ConciliacionScreen() {
             <div className="p-3 bg-light rounded-4 mb-3 border">
               <div className="fw-bold">{selectedMov.description}</div>
               <div className="mt-1 small text-muted">
-                Monto: <strong>{currency(selectedMov.amount)}</strong> · Fecha: {new Date(selectedMov.date).toLocaleDateString("es-AR")}
+                Monto: <strong>{currency(selectedMov.amount)}</strong> · Fecha: {selectedMov.date && !isNaN(new Date(selectedMov.date).getTime()) ? new Date(selectedMov.date).toLocaleDateString("es-AR") : "—"}
               </div>
               <div className="mt-1 small text-muted">
                 Estado actual: {getStatusChip(selectedMov.status)}

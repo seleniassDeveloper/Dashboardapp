@@ -15,9 +15,15 @@ export default function ResumenScreen({ dashboardData, onTabChange }) {
   const [activeModal, setActiveModal] = useState(null);
   
   const summary = dashboardData?.summary || {};
-  const paymentMethods = dashboardData?.paymentMethods || [];
-  const branchComparison = dashboardData?.branchComparison || [];
-  const recentTransactions = dashboardData?.recentTransactions || [];
+  const paymentMethods = Array.isArray(dashboardData?.paymentMethods) ? dashboardData.paymentMethods : [];
+  const branchComparison = Array.isArray(dashboardData?.branchComparison) ? dashboardData.branchComparison : [];
+  const recentTransactions = Array.isArray(dashboardData?.recentTransactions) ? dashboardData.recentTransactions : [];
+
+  const safeRevenues = Number(summary.totalRevenues) || 0;
+  const safeExpenses = Number(summary.totalExpenses) || 0;
+  const safeRealProfit = Number(summary.realProfit) || 0;
+  const safeAvgTicket = Number(summary.avgTicket) || 0;
+  const safeCancellationLoss = Number(summary.cancellationLoss) || 0;
 
   return (
     <div className="animate-fade-in">
@@ -47,28 +53,28 @@ export default function ResumenScreen({ dashboardData, onTabChange }) {
         {/* KPI 1: Ingresos */}
         <button className="f-kpi" onClick={() => setActiveModal("revenues")}>
           <div className="f-kpi__label">Ingresos Totales</div>
-          <div className="f-kpi__value">{currency(summary.totalRevenues)}</div>
+          <div className="f-kpi__value">{currency(safeRevenues)}</div>
           <div className="f-kpi__delta up">+{summary.growthPercentage || 0}% vs mes ant</div>
         </button>
 
         {/* KPI 2: Ganancia Real */}
         <button className="f-kpi" onClick={() => setActiveModal("profit")} style={{ borderLeft: "3px solid var(--f-green)" }}>
           <div className="f-kpi__label">Ganancia Real</div>
-          <div className="f-kpi__value">{currency(summary.realProfit)}</div>
+          <div className="f-kpi__value">{currency(safeRealProfit)}</div>
           <div className="f-kpi__delta up">+9.3% vs mes ant</div>
         </button>
 
         {/* KPI 3: Ticket Promedio */}
         <button className="f-kpi" onClick={() => setActiveModal("ticket")}>
           <div className="f-kpi__label">Ticket Promedio</div>
-          <div className="f-kpi__value">{currency(summary.avgTicket)}</div>
+          <div className="f-kpi__value">{currency(safeAvgTicket)}</div>
           <div className="f-kpi__delta up">+6.1% vs mes ant</div>
         </button>
 
         {/* KPI 4: Cancelaciones */}
         <button className="f-kpi" onClick={() => setActiveModal("cancellations")} style={{ borderLeft: "3px solid var(--f-red)" }}>
           <div className="f-kpi__label">Cancelaciones</div>
-          <div className="f-kpi__value">{currency(summary.cancellationLoss)}</div>
+          <div className="f-kpi__value">{currency(safeCancellationLoss)}</div>
           <div className="f-kpi__delta down">-4.2% pérdida</div>
         </button>
       </div>
@@ -155,19 +161,19 @@ export default function ResumenScreen({ dashboardData, onTabChange }) {
           <div className="d-grid gap-2 p-3 bg-light rounded-4">
             <div className="d-flex justify-content-between align-items-center">
               <span className="text-muted small">Ingresos Totales</span>
-              <span className="fw-bold text-success">+{currency(summary.totalRevenues)}</span>
+              <span className="fw-bold text-success">+{currency(safeRevenues)}</span>
             </div>
             <div className="d-flex justify-content-between align-items-center border-top pt-2">
               <span className="text-muted small">Gastos Registrados</span>
-              <span className="fw-bold text-danger">-{currency(summary.totalExpenses)}</span>
+              <span className="fw-bold text-danger">-{currency(safeExpenses)}</span>
             </div>
             <div className="d-flex justify-content-between align-items-center border-top pt-2">
               <span className="text-muted small">Comisiones (40% est.)</span>
-              <span className="fw-bold text-danger">-{currency(summary.totalRevenues * 0.4)}</span>
+              <span className="fw-bold text-danger">-{currency(safeRevenues * 0.4)}</span>
             </div>
             <div className="d-flex justify-content-between align-items-center border-top pt-2 fw-bold">
               <span>Ganancia Neta</span>
-              <span className="text-success">{currency(summary.realProfit)}</span>
+              <span className="text-success">{currency(safeRealProfit)}</span>
             </div>
           </div>
         </Modal.Body>
@@ -188,15 +194,15 @@ export default function ResumenScreen({ dashboardData, onTabChange }) {
           <div className="p-3 bg-light rounded-4">
             <div className="d-flex justify-content-between mb-2">
               <span className="text-muted small">Ingresos Totales</span>
-              <span className="fw-bold">{currency(summary.totalRevenues)}</span>
+              <span className="fw-bold">{currency(safeRevenues)}</span>
             </div>
             <div className="d-flex justify-content-between mb-2 border-top pt-2">
               <span className="text-muted small">Turnos Estimados</span>
-              <span className="fw-bold">{Math.max(1, Math.round(summary.totalRevenues / (summary.avgTicket || 1)))}</span>
+              <span className="fw-bold">{Math.max(1, Math.round(safeRevenues / (safeAvgTicket || 1)))}</span>
             </div>
             <div className="d-flex justify-content-between border-top pt-2 fw-bold">
               <span>Ticket Promedio</span>
-              <span className="text-primary">{currency(summary.avgTicket)}</span>
+              <span className="text-primary">{currency(safeAvgTicket)}</span>
             </div>
           </div>
         </Modal.Body>
@@ -217,15 +223,15 @@ export default function ResumenScreen({ dashboardData, onTabChange }) {
           <div className="p-3 bg-light rounded-4">
             <div className="d-flex justify-content-between mb-2">
               <span className="text-muted small">Ticket Promedio</span>
-              <span className="fw-bold">{currency(summary.avgTicket)}</span>
+              <span className="fw-bold">{currency(safeAvgTicket)}</span>
             </div>
             <div className="d-flex justify-content-between mb-2 border-top pt-2">
               <span className="text-muted small">Turnos Cancelados</span>
-              <span className="fw-bold">{Math.max(0, Math.round(summary.cancellationLoss / (summary.avgTicket || 15000)))}</span>
+              <span className="fw-bold">{Math.max(0, Math.round(safeCancellationLoss / (safeAvgTicket || 15000)))}</span>
             </div>
             <div className="d-flex justify-content-between border-top pt-2 fw-bold text-danger">
               <span>Pérdida Total</span>
-              <span>{currency(summary.cancellationLoss)}</span>
+              <span>{currency(safeCancellationLoss)}</span>
             </div>
           </div>
         </Modal.Body>

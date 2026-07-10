@@ -13,6 +13,7 @@ function currency(n) {
 }
 
 export default function NominasScreen({ professionalStats = [] }) {
+  const safeProfessionalStats = Array.isArray(professionalStats) ? professionalStats : [];
   const [selectedStylist, setSelectedStylist] = useState(null);
   const [baseSalary, setBaseSalary] = useState("45000");
   const [bonuses, setBonuses] = useState("0");
@@ -62,8 +63,8 @@ export default function NominasScreen({ professionalStats = [] }) {
     : 0;
 
   // Monthly summary stats
-  const totalRevenues = professionalStats.reduce((sum, p) => sum + (p.totalRevenue || 0), 0);
-  const totalCommissions = professionalStats.reduce((sum, p) => sum + (p.commission || 0), 0);
+  const totalRevenues = safeProfessionalStats.reduce((sum, p) => sum + (p.totalRevenue || 0), 0);
+  const totalCommissions = safeProfessionalStats.reduce((sum, p) => sum + (p.commission || 0), 0);
 
   const handleLiquidate = async (e) => {
     e.preventDefault();
@@ -117,7 +118,7 @@ export default function NominasScreen({ professionalStats = [] }) {
 
       {/* Stylists list */}
       <ul className="f-pro-list">
-        {professionalStats.map(p => (
+        {safeProfessionalStats.map(p => (
           <li 
             key={p.id} 
             className={`f-pro ${selectedStylist?.id === p.id ? "is-selected" : ""}`}
