@@ -259,7 +259,8 @@ export async function getLiveSla(req, res) {
       hardLimitSec,
       lastStartedAt,
       pastActiveSec,
-      currentPeriodSec
+      currentPeriodSec,
+      histories
     });
   } catch (error) {
     console.error("Error getting live SLA:", error);

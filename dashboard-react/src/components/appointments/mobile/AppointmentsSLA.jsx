@@ -1,11 +1,13 @@
 // src/components/appointments/mobile/AppointmentsSLA.jsx
-import React, { useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   ChevronLeft, SlidersHorizontal, Calendar, 
   CheckCircle2, Clock, CreditCard, AlertCircle, Plus, 
   BarChart3, Menu, Users 
 } from "lucide-react";
+import { Modal, Spinner } from "react-bootstrap";
+import api from "../../../lib/api.js";
 import { useSlaProgress } from "../../../hooks/useSlaProgress";
 import ApptCard from "./ApptCard";
 import "./AppointmentsSLA.css";
@@ -23,6 +25,74 @@ export default function AppointmentsSLA() {
     chargeDeposit, 
     openWhatsApp 
   } = useSlaProgress();
+
+  const [selectedAppt, setSelectedAppt] = useState(null);
+  const [slaDetail, setSlaDetail] = useState(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+
+  useEffect(() => {
+    if (!selectedAppt) {
+      setSlaDetail(null);
+      return;
+    }
+    
+    const fetchSlaDetail = async () => {
+      try {
+        setLoadingDetail(true);
+        if (String(selectedAppt.id).startsWith("mock-")) {
+          // Simulate status histories for mock data
+          const startsAtDate = new Date(selectedAppt.startsAt);
+          const duration = selectedAppt.service?.duration || 60;
+          const status = selectedAppt.status;
+          
+          const mockHistories = [
+            {
+              id: "h1",
+              statusFrom: "CREATED",
+              statusTo: "PENDING",
+              transitionedAt: new Date(startsAtDate.getTime() - 3600000).toISOString(),
+              durationSeconds: 120
+            }
+          ];
+          
+          if (status === "CONFIRMED") {
+            mockHistories.push({
+              id: "h2",
+              statusFrom: "PENDING",
+              statusTo: "CONFIRMED",
+              transitionedAt: new Date(startsAtDate.getTime() - 1800000).toISOString(),
+              durationSeconds: 900
+            });
+          }
+          
+          setSlaDetail({
+            appointmentId: selectedAppt.id,
+            isActive: status === "CONFIRMED",
+            status,
+            startStatusKey: "CONFIRMED",
+            endStatusKey: "DONE",
+            estimatedSec: duration * 60,
+            actualSec: status === "CONFIRMED" ? 1200 : 0,
+            hardLimitSec: null,
+            lastStartedAt: status === "CONFIRMED" ? new Date(startsAtDate.getTime() - 1800000).toISOString() : null,
+            pastActiveSec: 0,
+            currentPeriodSec: status === "CONFIRMED" ? 1200 : 0,
+            histories: mockHistories
+          });
+          return;
+        }
+
+        const res = await api.get(`/appointments/sla-service/live/${selectedAppt.id}`);
+        setSlaDetail(res.data);
+      } catch (err) {
+        console.error("Error fetching SLA detail:", err);
+      } finally {
+        setLoadingDetail(false);
+      }
+    };
+    
+    fetchSlaDetail();
+  }, [selectedAppt]);
 
   // Hide global topbar when SLA panel is active
   useEffect(() => {
@@ -173,6 +243,7 @@ export default function AppointmentsSLA() {
                 state="sin_sena" 
                 onCollect={chargeDeposit}
                 onWhatsApp={openWhatsApp}
+                onSelect={setSelectedAppt}
               />
             ))}
             {noDeposit.length > 2 && (
@@ -206,6 +277,7 @@ export default function AppointmentsSLA() {
                 state="pendiente" 
                 onConfirm={confirmAppt}
                 onWhatsApp={openWhatsApp}
+                onSelect={setSelectedAppt}
               />
             ))}
             {pending.length > 2 && (
@@ -236,6 +308,7 @@ export default function AppointmentsSLA() {
                 key={appt.id} 
                 appt={appt} 
                 state="confirmada" 
+                onSelect={setSelectedAppt}
               />
             ))}
             {confirmed.length > 2 && (
@@ -292,6 +365,113 @@ export default function AppointmentsSLA() {
           <span>Más</span>
         </button>
       </nav>
+
+      {/* MODAL DETALLE DE TIEMPOS Y SLA */}
+      <Modal show={!!selectedAppt} onHide={() => setSelectedAppt(null)} centered>
+        <Modal.Header closeButton className="border-0">
+          <Modal.Title className="fw-bold text-dark fs-5">Seguimiento de Cita y SLA</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="pt-0">
+          {selectedAppt && (
+            <div>
+              {/* Cliente e Info */}
+              <div className="p-3 bg-light rounded-4 mb-3 border">
+                <div className="fw-bold text-dark fs-6">
+                  {selectedAppt.clientName || `${selectedAppt.client?.firstName || ""} ${selectedAppt.client?.lastName || ""}`.trim() || "Cliente"}
+                </div>
+                <div className="small text-muted mt-1">
+                  Servicio: <strong>{selectedAppt.serviceName || selectedAppt.service?.name || "Servicio"}</strong>
+                </div>
+                <div className="small text-muted">
+                  Profesional: {selectedAppt.worker?.firstName || "Estilista"}
+                </div>
+              </div>
+
+              {loadingDetail ? (
+                <div className="text-center py-4">
+                  <Spinner size="sm" animation="border" className="text-purple-600 me-2" />
+                  <span className="small text-muted">Cargando tiempos de SLA...</span>
+                </div>
+              ) : slaDetail ? (
+                <div>
+                  {/* Estimado vs Real */}
+                  <div className="mb-4">
+                    <div className="d-flex justify-content-between small fw-bold mb-1">
+                      <span>Tiempo estimado: {Math.round(slaDetail.estimatedSec / 60)} min</span>
+                      <span className={slaDetail.actualSec > slaDetail.estimatedSec ? "text-danger" : "text-success"}>
+                        Transcurrido: {Math.round(slaDetail.actualSec / 60)} min
+                      </span>
+                    </div>
+                    <div className="progress" style={{ height: "8px", borderRadius: "10px" }}>
+                      <div 
+                        className={`progress-bar ${slaDetail.actualSec > slaDetail.estimatedSec ? "bg-danger" : "bg-success"}`} 
+                        role="progressbar" 
+                        style={{ width: `${Math.min(100, (slaDetail.actualSec / (slaDetail.estimatedSec || 1)) * 100)}%` }}
+                      ></div>
+                    </div>
+                  </div>
+
+                  {/* Estado de SLA Alerta */}
+                  <div className="mb-4">
+                    <div className="d-flex align-items-center gap-2 p-2.5 rounded-3 border bg-white" style={{ fontSize: "13px" }}>
+                      {slaDetail.status === "DONE" ? (
+                        <>
+                          <CheckCircle2 size={16} className="text-success" />
+                          <span className="fw-bold text-success">Cita Finalizada</span>
+                        </>
+                      ) : slaDetail.isActive ? (
+                        <>
+                          <Clock size={16} className="text-warning" />
+                          <span className="fw-bold text-warning">En curso (SLA Activo)</span>
+                        </>
+                      ) : (
+                        <>
+                          <AlertCircle size={16} className="text-muted" />
+                          <span className="fw-bold text-muted">SLA no iniciado (esperando confirmación)</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Línea de tiempo de transiciones */}
+                  <div>
+                    <h6 className="fw-bold text-dark mb-2.5 small uppercase tracking-wider">Historial de Tiempos de Estado</h6>
+                    {(!slaDetail.histories || slaDetail.histories.length === 0) ? (
+                      <div className="small text-muted text-center py-2">No se registran cambios de estado aún.</div>
+                    ) : (
+                      <div className="sla-timeline-list d-flex flex-column gap-3.5 position-relative pl-2.5">
+                        {/* Vertical line connector */}
+                        <div className="position-absolute h-100 border-start border-gray-200" style={{ left: "15px", top: "10px", width: "2px", zIndex: 0 }} />
+
+                        {slaDetail.histories.map((h, i) => {
+                          const timeStr = new Date(h.transitionedAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+                          const durMin = h.durationSeconds ? Math.round(h.durationSeconds / 60) : 0;
+                          
+                          return (
+                            <div key={h.id || i} className="d-flex align-items-start gap-3 position-relative" style={{ zIndex: 1 }}>
+                              <div className="rounded-circle bg-purple-100 border border-purple-500 d-flex align-items-center justify-content-center" style={{ width: "12px", height: "12px", marginTop: "4px" }} style={{ zIndex: 2, position: "relative" }} />
+                              <div>
+                                <div className="small text-dark fw-bold">
+                                  {h.statusFrom} &rarr; {h.statusTo}
+                                </div>
+                                <div className="text-muted" style={{ fontSize: "11.5px" }}>
+                                  Hora: {timeStr} {durMin > 0 && `(Permaneció: ${durMin} min)`}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-3 text-muted small">No se pudo cargar la información de SLA.</div>
+              )}
+            </div>
+          )}
+        </Modal.Body>
+      </Modal>
     </div>
   );
 }

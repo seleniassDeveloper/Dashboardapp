@@ -17,7 +17,7 @@ const WhatsAppIcon = ({ size = 14, className = "" }) => (
   </svg>
 );
 
-export default function ApptCard({ appt, state, onConfirm, onCollect, onWhatsApp }) {
+export default function ApptCard({ appt, state, onConfirm, onCollect, onWhatsApp, onSelect }) {
   if (!appt) return null;
   
   const clientName = appt.clientName || `${appt.client?.firstName || ""} ${appt.client?.lastName || ""}`.trim() || "Cliente";
@@ -57,7 +57,11 @@ export default function ApptCard({ appt, state, onConfirm, onCollect, onWhatsApp
   const statusLabel = state === "sin_sena" ? "Sin seña" : state === "pendiente" ? "Esperando confirmación" : "Confirmada";
 
   return (
-    <div className={`sla-appt ${state === "sin_sena" ? "sla-appt--danger" : ""}`}>
+    <div 
+      className={`sla-appt ${state === "sin_sena" ? "sla-appt--danger" : ""}`}
+      onClick={() => onSelect?.(appt)}
+      style={{ cursor: "pointer" }}
+    >
       <div className="d-flex align-items-center justify-content-between gap-3 w-100 flex-wrap flex-sm-nowrap">
         {/* Layout Row */}
         <div className="d-flex align-items-center gap-3 flex-grow-1 min-w-0">
@@ -91,20 +95,20 @@ export default function ApptCard({ appt, state, onConfirm, onCollect, onWhatsApp
       {/* Action Buttons underneath (only for sin_sena or pendiente) */}
       {(state === "sin_sena" || state === "pendiente") && (
         <div className="sla-appt__actions w-100 d-flex gap-2 justify-content-end">
-          <button className="sla-btn sla-btn--wa" onClick={() => onWhatsApp?.(appt)}>
+          <button className="sla-btn sla-btn--wa" onClick={(e) => { e.stopPropagation(); onWhatsApp?.(appt); }}>
             <WhatsAppIcon size={14} />
             <span>WhatsApp</span>
           </button>
           
           {state === "sin_sena" && (
-            <button className="sla-btn sla-btn--danger" onClick={() => onCollect?.(appt.id)}>
+            <button className="sla-btn sla-btn--danger" onClick={(e) => { e.stopPropagation(); onCollect?.(appt.id); }}>
               <CreditCard size={13} />
               <span>Cobrar seña</span>
             </button>
           )}
 
           {state === "pendiente" && (
-            <button className="sla-btn sla-btn--confirm" onClick={() => onConfirm?.(appt.id)}>
+            <button className="sla-btn sla-btn--confirm" onClick={(e) => { e.stopPropagation(); onConfirm?.(appt.id); }}>
               <Check size={13} />
               <span>Confirmar</span>
             </button>
