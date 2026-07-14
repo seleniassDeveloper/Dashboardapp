@@ -9,8 +9,22 @@ if (import.meta.env.PROD) {
   registerSW({ immediate: true });
 }
 
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import App from "./App.jsx";
+
+function RouteTracker() {
+  const location = useLocation();
+
+  React.useEffect(() => {
+    if (typeof window.gtag === "function") {
+      window.gtag("config", "G-CCT7X0Y3JH", {
+        page_path: location.pathname + location.search,
+      });
+    }
+  }, [location]);
+
+  return null;
+}
 import { BrandProvider } from "./header/name/BrandProvider.jsx";
 import { AppointmentsProvider } from "./gadgets/appointments/AppointmentsProvider.jsx";
 import { AuthProvider } from "./auth/AuthProvider.jsx";
@@ -30,6 +44,7 @@ import ManualView from "./views/ManualView.jsx";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <BrowserRouter>
+    <RouteTracker />
     <AuthProvider>
       <Routes>
         <Route path="/" element={<LandingPage />} />
