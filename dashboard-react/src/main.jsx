@@ -6,7 +6,23 @@ import "./styles/global.css";
 import "./i18n";
 
 if (import.meta.env.PROD) {
-  registerSW({ immediate: true });
+  const updateSW = registerSW({
+    immediate: true,
+    onNeedRefresh() {
+      updateSW(true);
+    }
+  });
+
+  const noop = () => {};
+  console.log = noop;
+  console.info = noop;
+  console.debug = noop;
+  console.warn = noop;
+  console.error = noop;
+  console.group = noop;
+  console.groupCollapsed = noop;
+  console.groupEnd = noop;
+  console.table = noop;
 }
 
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
