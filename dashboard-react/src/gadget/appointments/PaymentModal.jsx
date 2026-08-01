@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { Modal, Button, Form, Row, Col, Alert } from "react-bootstrap";
+import { useTranslation } from "react-i18next";
 import { PAYMENT_AR } from "../../config/paymentAR";
 
 function safeMoney(v) {
@@ -8,10 +9,12 @@ function safeMoney(v) {
 }
 
 export default function PaymentModal({ show, onHide, appt }) {
+  const { t, i18n } = useTranslation("views");
+  const isEs = i18n.language === "es";
   const clientName = useMemo(() => {
     const c = appt?.client;
-    return [c?.firstName, c?.lastName].filter(Boolean).join(" ") || "Cliente";
-  }, [appt]);
+    return [c?.firstName, c?.lastName].filter(Boolean).join(" ") || (isEs ? "Cliente" : "Client");
+  }, [appt, isEs]);
 
   const serviceName = appt?.service?.name || appt?.serviceName || "Servicio";
   const phone = appt?.client?.phone || "";

@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { Container, Table, Badge, Button, Modal, Form, Card, Row, Col, Spinner, Alert } from "react-bootstrap";
 import { Edit2, Shield, DollarSign, Users, Award, AlertCircle, Plus, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import api from "../lib/api.js";
 import { useAuth } from "../auth/AuthProvider.jsx";
 
 export default function SuperAdminBillingView() {
+  const { t, i18n } = useTranslation("admin");
+  const isEs = i18n.language === "es";
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({ businesses: [], estimatedMRR: 0 });

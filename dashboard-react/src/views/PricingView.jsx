@@ -2,10 +2,13 @@ import React, { useState } from "react";
 import { Container, Row, Col, Card, Button, Form, Alert } from "react-bootstrap";
 import { Check, ShieldCheck, ArrowRight, Sparkles, LogOut, Info } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../auth/AuthProvider.jsx";
 import api from "../lib/api.js";
 
 export default function PricingView({ blocked = false, subscriptionStatus = "" }) {
+  const { t, i18n } = useTranslation("views");
+  const isEs = i18n.language === "es";
   const { logout, user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [billingCycle, setBillingCycle] = useState("month"); // 'month' | 'year'
@@ -17,16 +20,23 @@ export default function PricingView({ blocked = false, subscriptionStatus = "" }
     {
       code: "starter",
       name: "Starter",
-      description: "Ideal para profesionales independientes y salones pequeños.",
+      description: isEs ? "Ideal para profesionales independientes y salones pequeños." : "Ideal for independent professionals and small salons.",
       priceMonth: 19,
       priceYear: 190,
-      features: [
+      features: isEs ? [
         "Agenda y Calendario Premium",
         "Ficha del Cliente & CRM básico",
         "Gestión de Servicios y Categorías",
         "Hasta 3 profesionales / usuarios",
         "1 Sucursal física",
         "Soporte por email"
+      ] : [
+        "Premium Schedule & Calendar",
+        "Client Profile & Basic CRM",
+        "Services & Categories Management",
+        "Up to 3 professionals / users",
+        "1 Physical branch",
+        "Email support"
       ],
       popular: false,
       color: "#6366f1"
@@ -34,10 +44,10 @@ export default function PricingView({ blocked = false, subscriptionStatus = "" }
     {
       code: "pro",
       name: "Pro",
-      description: "Perfecto para salones en crecimiento y clínicas estéticas.",
+      description: isEs ? "Perfecto para salones en crecimiento y clínicas estéticas." : "Perfect for growing salons and aesthetic clinics.",
       priceMonth: 49,
       priceYear: 490,
-      features: [
+      features: isEs ? [
         "Todo lo de Starter",
         "Módulo de Finanzas Completo (Gastos, Nóminas)",
         "Control de Inventario y Stock (ERP básico)",
@@ -45,6 +55,14 @@ export default function PricingView({ blocked = false, subscriptionStatus = "" }
         "Hasta 10 profesionales / usuarios",
         "Hasta 3 sucursales físicas",
         "Soporte prioritario"
+      ] : [
+        "Everything in Starter",
+        "Full Finance Module (Expenses, Payroll)",
+        "Inventory & Stock Control (Basic ERP)",
+        "Automated Workflows",
+        "Up to 10 professionals / users",
+        "Up to 3 physical branches",
+        "Priority support"
       ],
       popular: true,
       color: "#7c3aed"
@@ -52,10 +70,10 @@ export default function PricingView({ blocked = false, subscriptionStatus = "" }
     {
       code: "business",
       name: "Business",
-      description: "El poder total de la IA y marketing automatizado.",
+      description: isEs ? "El poder total de la IA y marketing automatizado." : "Full power of AI and automated marketing.",
       priceMonth: 99,
       priceYear: 990,
-      features: [
+      features: isEs ? [
         "Todo lo de Pro",
         "Automatizaciones con IA y recordatorios avanzados",
         "Generador de Marketing para Instagram",
@@ -63,6 +81,14 @@ export default function PricingView({ blocked = false, subscriptionStatus = "" }
         "Sucursales ilimitadas",
         "Integración con Google Sheets Sync",
         "Soporte dedicado 24/7"
+      ] : [
+        "Everything in Pro",
+        "AI Automations & Advanced Reminders",
+        "Instagram Marketing Generator",
+        "Unlimited professionals",
+        "Unlimited branches",
+        "Google Sheets Sync integration",
+        "Dedicated 24/7 support"
       ],
       popular: false,
       color: "#ec4899"

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { Modal, Row, Col, Form, Button, Alert, Spinner, Badge, Table, InputGroup, Card } from "react-bootstrap";
 import { User, Mail, Phone, Calendar, Briefcase, Shield, Sparkles, Clock, DollarSign, Settings, CheckCircle, HelpCircle, Save, Plus, Trash2, Package, Info } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useAppointmentsStore } from "../../gadgets/appointments/AppointmentsProvider.jsx";
 import api from "../../lib/api.js";
 
@@ -20,6 +21,8 @@ const PRESET_COLORS = [
 ];
 
 export default function ServiceModal({ show, onHide, editService = null }) {
+  const { t, i18n } = useTranslation("views");
+  const isEs = i18n.language === "es";
   const store = useAppointmentsStore?.();
   const refreshAll = store?.fetchServices;
   const { serviceCategories, terms } = useBusinessModel();

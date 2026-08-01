@@ -1,10 +1,13 @@
 import React, { useState } from "react";
 import { Modal, Button, Form, Alert, Spinner } from "react-bootstrap";
 import { ShieldAlert, Key, UserCheck, Lock } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import api from "../../lib/api.js";
 import { useAuth } from "../../auth/AuthProvider.jsx";
 
 export default function FinanceAccessModal({ show, onHide, onSuccess }) {
+  const { t, i18n } = useTranslation("auth");
+  const isEs = i18n.language === "es";
   const { business, unlockFinance } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");

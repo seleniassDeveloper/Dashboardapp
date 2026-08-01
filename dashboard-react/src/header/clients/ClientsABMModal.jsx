@@ -1,6 +1,6 @@
-// src/header/clients/ClientsABMModal.jsx
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Modal, Button, Table, Spinner, Alert, Form, Stack, Pagination } from "react-bootstrap";
+import { useTranslation } from "react-i18next";
 import ClientModal from "./ClientModal.jsx";
 import api from "../../lib/api.js";
 
@@ -16,6 +16,8 @@ function displayName(c) {
 }
 
 export default function ClientsABMModal({ show, onHide }) {
+  const { t, i18n } = useTranslation("views");
+  const isEs = i18n.language === "es";
   const [loading, setLoading] = useState(false);
   const [busyId, setBusyId] = useState("");
   const [error, setError] = useState("");
@@ -152,7 +154,7 @@ export default function ClientsABMModal({ show, onHide }) {
     <>
       <Modal show={show} onHide={onHide} centered size="lg" backdrop="static">
         <Modal.Header closeButton>
-          <Modal.Title>Clientes</Modal.Title>
+          <Modal.Title>{t("clients.title", { defaultValue: isEs ? "Gestión de Clientes" : "Client Management" })}</Modal.Title>
         </Modal.Header>
 
         <Modal.Body>
@@ -161,10 +163,12 @@ export default function ClientsABMModal({ show, onHide }) {
 
           <div className="d-flex gap-2 align-items-end justify-content-between mb-3">
             <Form.Group className="flex-grow-1 custom-form" style={{ maxWidth: 420 }}>
-              <Form.Label htmlFor="clients-abm-search">Buscar en la lista de clientes</Form.Label>
+              <Form.Label htmlFor="clients-abm-search">
+                {isEs ? "Buscar en la lista de clientes" : "Search client list"}
+              </Form.Label>
               <Form.Control
                 id="clients-abm-search"
-                placeholder="Nombre, email o teléfono…"
+                placeholder={t("clients.search", { defaultValue: isEs ? "Nombre, email o teléfono…" : "Name, email or phone…" })}
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
               />
@@ -172,32 +176,32 @@ export default function ClientsABMModal({ show, onHide }) {
 
             <Stack direction="horizontal" gap={2}>
               <Button variant="outline-secondary" onClick={fetchClients} disabled={loading}>
-                {loading ? <Spinner size="sm" /> : "Actualizar"}
+                {loading ? <Spinner size="sm" /> : isEs ? "Actualizar" : "Refresh"}
               </Button>
 
               <Button variant="dark" onClick={openCreate}>
-                + Nuevo
+                + {t("clients.newClient", { defaultValue: isEs ? "Nuevo Cliente" : "New Client" })}
               </Button>
             </Stack>
           </div>
 
           {loading ? (
             <div className="d-flex align-items-center gap-2 text-muted" style={{ minHeight: 160 }}>
-              <Spinner size="sm" /> Cargando…
+              <Spinner size="sm" /> {t("clients.loading", { defaultValue: isEs ? "Cargando…" : "Loading…" })}
             </div>
           ) : sorted.length === 0 ? (
-            <div className="text-muted">No hay clientes para mostrar.</div>
+            <div className="text-muted">{isEs ? "No hay clientes para mostrar." : "No clients found."}</div>
           ) : (
             <>
               <div style={{ overflowX: "auto" }}>
                 <Table hover responsive className="align-middle">
                   <thead>
                     <tr>
-                      <th>Nombre</th>
-                      <th>Teléfono</th>
-                      <th>Email</th>
+                      <th>{t("clients.table.fullName", { defaultValue: isEs ? "Nombre Completo" : "Full Name" })}</th>
+                      <th>{t("clients.table.phone", { defaultValue: isEs ? "Teléfono" : "Phone" })}</th>
+                      <th>{t("clients.table.email", { defaultValue: isEs ? "Email" : "Email" })}</th>
                       <th style={{ width: 170 }} className="text-end">
-                        Acciones
+                        {t("clients.table.actions", { defaultValue: isEs ? "Acciones" : "Actions" })}
                       </th>
                     </tr>
                   </thead>
@@ -217,7 +221,7 @@ export default function ClientsABMModal({ show, onHide }) {
                               onClick={() => openEdit(c)}
                               disabled={busyId === c.id}
                             >
-                              {busyId === c.id ? <Spinner size="sm" /> : "Editar"}
+                              {busyId === c.id ? <Spinner size="sm" /> : t("clients.actions.edit", { defaultValue: isEs ? "Editar" : "Edit" })}
                             </Button>
 
                             <Button
@@ -227,7 +231,7 @@ export default function ClientsABMModal({ show, onHide }) {
                               onClick={() => handleDelete(c)}
                               disabled={busyId === c.id}
                             >
-                              {busyId === c.id ? <Spinner size="sm" /> : "Eliminar"}
+                              {busyId === c.id ? <Spinner size="sm" /> : t("clients.actions.delete", { defaultValue: isEs ? "Eliminar" : "Delete" })}
                             </Button>
                           </div>
                         </td>
@@ -239,7 +243,9 @@ export default function ClientsABMModal({ show, onHide }) {
 
               <div className="d-flex justify-content-between align-items-center">
                 <div className="text-muted" style={{ fontSize: 12 }}>
-                  Mostrando {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, sorted.length)} de {sorted.length}
+                  {isEs
+                    ? `Mostrando ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, sorted.length)} de ${sorted.length}`
+                    : `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, sorted.length)} of ${sorted.length}`}
                 </div>
                 {pager}
               </div>
@@ -249,7 +255,7 @@ export default function ClientsABMModal({ show, onHide }) {
 
         <Modal.Footer>
           <Button variant="dark" onClick={onHide}>
-            Cerrar
+            {isEs ? "Cerrar" : "Close"}
           </Button>
         </Modal.Footer>
       </Modal>

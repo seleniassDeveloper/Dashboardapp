@@ -44,6 +44,7 @@
       "deleted": "Client deleted."
     },
     "confirmDelete": "Delete {{name}}?",
+    "loading": "Loading database…",
     "pagination": "Showing {{from}} to {{to}} of {{total}} clients",
     "marketingConsentLabel": "Allows use of images for marketing",
     "visualHistory": {

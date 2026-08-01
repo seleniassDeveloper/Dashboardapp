@@ -6,13 +6,12 @@ import { useFormSchema } from "../../hooks/useFormSchema.js";
 import { useTranslation } from "react-i18next";
 import { useBusinessModel } from "../../hooks/useBusinessModel.js";
 
-const getClientFieldLabel = (field, terms) => {
-  if (!terms) return field.label;
-  if (field.id === "firstName") return `${terms.client?.s || "Cliente"} - Nombre`;
-  if (field.id === "lastName") return `${terms.client?.s || "Cliente"} - Apellido`;
-  if (field.id === "phone") return "Teléfono";
-  if (field.id === "email") return "Email";
-  if (field.id === "notes") return "Notas";
+const getClientFieldLabel = (field, terms, isEs) => {
+  if (field.id === "firstName") return isEs ? `${terms?.client?.s || "Cliente"} - Nombre` : `${terms?.client?.s || "Client"} - First Name`;
+  if (field.id === "lastName") return isEs ? `${terms?.client?.s || "Cliente"} - Apellido` : `${terms?.client?.s || "Client"} - Last Name`;
+  if (field.id === "phone") return isEs ? "Teléfono" : "Phone";
+  if (field.id === "email") return isEs ? "Email" : "Email Address";
+  if (field.id === "notes") return isEs ? "Notas" : "Notes";
   return field.label;
 };
 
@@ -25,7 +24,8 @@ export default function ClientModal({
 }) {
   const isEdit = mode === "edit" && Boolean(initialData?.id);
   const schemaKey = isEdit ? "assign.client.form.edit" : "assign.client.form.create";
-  const { t } = useTranslation("views");
+  const { t, i18n } = useTranslation("views");
+  const isEs = i18n.language === "es";
   const { terms } = useBusinessModel();
 
   const { enabledFields, loading: schemaLoading, error: schemaError } = useFormSchema(schemaKey, {
@@ -35,9 +35,9 @@ export default function ClientModal({
   const fields = useMemo(() => {
     return enabledFields.map((field) => ({
       ...field,
-      label: getClientFieldLabel(field, terms)
+      label: getClientFieldLabel(field, terms, isEs)
     }));
-  }, [enabledFields, terms]);
+  }, [enabledFields, terms, isEs]);
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -150,7 +150,7 @@ export default function ClientModal({
       onHide?.();
     } catch (e) {
       console.error(e);
-      setError(e?.response?.data?.error || (isEdit ? `No se pudo actualizar el ${terms?.client?.s?.toLowerCase() || "cliente"}.` : `No se pudo crear el ${terms?.client?.s?.toLowerCase() || "cliente"}.`));
+      setError(e?.response?.data?.error || (isEdit ? (isEs ? `No se pudo actualizar el ${terms?.client?.s?.toLowerCase() || "cliente"}.` : `Could not update the ${terms?.client?.s?.toLowerCase() || "client"}.`) : (isEs ? `No se pudo crear el ${terms?.client?.s?.toLowerCase() || "cliente"}.` : `Could not create the ${terms?.client?.s?.toLowerCase() || "client"}.`)));
     } finally {
       setSaving(false);
     }
@@ -159,7 +159,11 @@ export default function ClientModal({
   return (
     <Modal show={show} onHide={saving ? undefined : onHide} centered backdrop="static" keyboard={!saving}>
       <Modal.Header closeButton={!saving}>
-        <Modal.Title>{isEdit ? `Editar ${terms?.client?.s?.toLowerCase() || "cliente"}` : `Nuevo ${terms?.client?.s?.toLowerCase() || "cliente"}`}</Modal.Title>
+        <Modal.Title>
+          {isEdit
+            ? (isEs ? `Editar ${terms?.client?.s?.toLowerCase() || "cliente"}` : `Edit ${terms?.client?.s?.toLowerCase() || "client"}`)
+            : (isEs ? `Nuevo ${terms?.client?.s?.toLowerCase() || "cliente"}` : `New ${terms?.client?.s?.toLowerCase() || "client"}`)}
+        </Modal.Title>
       </Modal.Header>
 
       <Modal.Body>
@@ -169,7 +173,7 @@ export default function ClientModal({
         {schemaLoading ? (
           <div className="text-center py-5">
             <Spinner animation="border" />
-            <p className="text-muted mt-2 small">Cargando formulario…</p>
+            <p className="text-muted mt-2 small">{isEs ? "Cargando formulario…" : "Loading form…"}</p>
           </div>
         ) : (
           <Form className="custom-form">
@@ -186,7 +190,7 @@ export default function ClientModal({
                           id="client-first"
                           value={firstName}
                           onChange={(e) => setFirstName(e.target.value)}
-                          placeholder={field.placeholder || "Ej: María"}
+                          placeholder={field.placeholder || (isEs ? "Ej: María" : "Ex: Mary")}
                           isInvalid={Boolean(errors.firstName)}
                         />
                         {errors.firstName && <div className="text-danger small mt-1">{errors.firstName}</div>}
@@ -206,7 +210,7 @@ export default function ClientModal({
                           id="client-last"
                           value={lastName}
                           onChange={(e) => setLastName(e.target.value)}
-                          placeholder={field.placeholder || "Ej: García"}
+                          placeholder={field.placeholder || (isEs ? "Ej: Pérez" : "Ex: Smith")}
                           isInvalid={Boolean(errors.lastName)}
                         />
                         {errors.lastName && <div className="text-danger small mt-1">{errors.lastName}</div>}
@@ -227,7 +231,7 @@ export default function ClientModal({
                           type="tel"
                           value={phone}
                           onChange={(e) => setPhone(e.target.value)}
-                          placeholder={field.placeholder || "Ej: +54 11..."}
+                          placeholder={field.placeholder || "+54 9 11 1234-5678"}
                           isInvalid={Boolean(errors.phone)}
                         />
                         {errors.phone && <div className="text-danger small mt-1">{errors.phone}</div>}
@@ -248,7 +252,7 @@ export default function ClientModal({
                           type="email"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
-                          placeholder={field.placeholder || "cliente@email.com"}
+                          placeholder={field.placeholder || "client@email.com"}
                           isInvalid={Boolean(errors.email)}
                         />
                         {errors.email && <div className="text-danger small mt-1">{errors.email}</div>}
@@ -270,7 +274,7 @@ export default function ClientModal({
                           rows={3}
                           value={notes}
                           onChange={(e) => setNotes(e.target.value)}
-                          placeholder={field.placeholder || "Preferencias, historial, observaciones..."}
+                          placeholder={field.placeholder || (isEs ? "Preferencias, historial, observaciones..." : "Preferences, history, notes...")}
                           isInvalid={Boolean(errors.notes)}
                         />
                         {errors.notes && <div className="text-danger small mt-1">{errors.notes}</div>}
@@ -286,14 +290,14 @@ export default function ClientModal({
               <Col md={12}>
                 <Form.Group className="p-3 rounded-xl border" style={{ backgroundColor: "#f8f9fa" }}>
                   <Form.Label className="fw-bold d-block mb-2" style={{ fontSize: "13px" }}>
-                    {t("clients.marketingConsentLabel", { defaultValue: "Permite uso de imágenes para marketing" })}
+                    {t("clients.marketingConsentLabel", { defaultValue: isEs ? "Permite uso de imágenes para marketing" : "Allows use of images for marketing" })}
                   </Form.Label>
                   <div className="d-flex gap-3">
                     <Form.Check
                       type="radio"
                       id="marketing-consent-yes"
                       name="marketingConsent"
-                      label={t("common.yes", { defaultValue: "Sí" })}
+                      label={t("common.yes", { defaultValue: isEs ? "Sí" : "Yes" })}
                       checked={marketingConsent === true}
                       onChange={() => setMarketingConsent(true)}
                       className="small"
@@ -302,7 +306,7 @@ export default function ClientModal({
                       type="radio"
                       id="marketing-consent-no"
                       name="marketingConsent"
-                      label={t("common.no", { defaultValue: "No" })}
+                      label={t("common.no", { defaultValue: isEs ? "No" : "No" })}
                       checked={marketingConsent === false}
                       onChange={() => setMarketingConsent(false)}
                       className="small"
@@ -317,18 +321,18 @@ export default function ClientModal({
 
       <Modal.Footer>
         <Button variant="outline-secondary" onClick={onHide} disabled={saving}>
-          Cancelar
+          {isEs ? "Cancelar" : "Cancel"}
         </Button>
         <Button variant="dark" onClick={handleSave} disabled={!valid || saving || schemaLoading}>
           {saving ? (
             <>
               <Spinner size="sm" className="me-2" />
-              Guardando…
+              {isEs ? "Guardando…" : "Saving…"}
             </>
           ) : isEdit ? (
-            "Guardar cambios"
+            (isEs ? "Guardar cambios" : "Save changes")
           ) : (
-            "Crear"
+            (isEs ? "Crear" : "Create")
           )}
         </Button>
       </Modal.Footer>

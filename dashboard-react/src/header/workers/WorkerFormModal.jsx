@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { Modal, Row, Col, Form, Button, Alert, Spinner, Badge, Table, InputGroup, Card } from "react-bootstrap";
 import { User, Mail, Phone, Calendar, Briefcase, Shield, Sparkles, Clock, DollarSign, Settings, CheckCircle, HelpCircle, Save } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import api from "../../lib/api.js";
 import { useFormSchema } from "../../hooks/useFormSchema.js";
 import { useIsMobile } from "../../hooks/useIsMobile.js";

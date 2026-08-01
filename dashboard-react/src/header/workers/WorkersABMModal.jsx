@@ -1,6 +1,6 @@
-// src/header/workers/WorkersABMModal.jsx
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Modal, Button, Table, Spinner, Alert, Form, Badge, Stack } from "react-bootstrap";
+import { useTranslation } from "react-i18next";
 import { useBrand } from "../name/BrandProvider";
 import WorkerModal from "./WorkerModal";
 import ServiceModal from "../services/ServiceModal";
@@ -48,26 +48,22 @@ function prettyMoney(n) {
   return `$${Number(n).toLocaleString("es-ES")}`;
 }
 
-const DAY_LABEL = {
-  1: "Lun",
-  2: "Mar",
-  3: "Mié",
-  4: "Jue",
-  5: "Vie",
-  6: "Sáb",
-  7: "Dom",
-};
+const DAY_LABEL_ES = { 1: "Lun", 2: "Mar", 3: "Mié", 4: "Jue", 5: "Vie", 6: "Sáb", 7: "Dom" };
+const DAY_LABEL_EN = { 1: "Mon", 2: "Tue", 3: "Wed", 4: "Thu", 5: "Fri", 6: "Sat", 7: "Sun" };
 
-function compactSchedule(schedules) {
+function compactSchedule(schedules, isEs = true) {
+  const map = isEs ? DAY_LABEL_ES : DAY_LABEL_EN;
   const list = safeArray(schedules)
     .filter((x) => x?.dayOfWeek >= 1 && x?.dayOfWeek <= 7)
     .sort((a, b) => a.dayOfWeek - b.dayOfWeek);
 
   if (list.length === 0) return "—";
-  return list.map((sc) => `${DAY_LABEL[sc.dayOfWeek]} ${sc.startTime}-${sc.endTime}`).join(" · ");
+  return list.map((sc) => `${map[sc.dayOfWeek]} ${sc.startTime}-${sc.endTime}`).join(" · ");
 }
 
 export default function WorkersABMModal({ show, onHide }) {
+  const { t, i18n } = useTranslation("views");
+  const isEs = i18n.language === "es";
   const { brand } = useBrand();
   const accent = brand?.accentColor || brand?.textColor || "#111827";
 
@@ -326,7 +322,7 @@ export default function WorkersABMModal({ show, onHide }) {
 
                       <td>
                         <div className="text-muted" style={{ fontSize: 12, lineHeight: 1.3 }}>
-                          {compactSchedule(w.schedules)}
+                          {compactSchedule(w.schedules, isEs)}
                         </div>
                       </td>
 
@@ -339,7 +335,7 @@ export default function WorkersABMModal({ show, onHide }) {
                             onClick={() => openEditWorker(w)}
                             disabled={busyId === w.id}
                           >
-                            {busyId === w.id ? <Spinner size="sm" /> : "Editar"}
+                            {busyId === w.id ? <Spinner size="sm" /> : (isEs ? "Editar" : "Edit")}
                           </Button>
 
                           <Button
@@ -349,7 +345,7 @@ export default function WorkersABMModal({ show, onHide }) {
                             onClick={() => handleDelete(w)}
                             disabled={busyId === w.id}
                           >
-                            {busyId === w.id ? <Spinner size="sm" /> : "Eliminar"}
+                            {busyId === w.id ? <Spinner size="sm" /> : (isEs ? "Eliminar" : "Delete")}
                           </Button>
                         </div>
                       </td>
