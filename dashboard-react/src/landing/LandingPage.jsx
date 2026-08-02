@@ -523,7 +523,8 @@ function ReportBugSection() {
 
 export default function LandingPage() {
   useScrollReveal();
-  const { t } = useTranslation("landing");
+  const { t, i18n } = useTranslation("landing");
+  const isEs = i18n.language === "es";
   const [showManual, setShowManual] = useState(false);
   const navigate = useNavigate();
   const { loginDemo } = useAuth();
