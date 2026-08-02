@@ -299,7 +299,8 @@ model Business {
   slaConfigs                 ServiceSlaConfig[]
   slas                       ServiceSla[]
   marketingPosts             MarketingPost[]
-  plan                       String                     @default("starter") // starter | pro | business
+  plan                       String                     @default("starter") // starter | pro | business | custom
+  enabledModules             Json?                      @default("[\"agenda\",\"clients\",\"services\"]")
   subscriptionStatus         String                     @default("trialing") // trialing | active | past_due | canceled | suspended
   trialEndsAt                DateTime?
   currentPeriodEnd           DateTime?

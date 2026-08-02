@@ -1,10 +1,177 @@
-import React, { useState } from "react";
-import { Container, Row, Col, Card, Button, Form, Alert } from "react-bootstrap";
-import { Check, ShieldCheck, ArrowRight, Sparkles, LogOut, Info } from "lucide-react";
-import { useSearchParams } from "react-router-dom";
-import { useTranslation } from "react-i18next";
-import { useAuth } from "../auth/AuthProvider.jsx";
-import api from "../lib/api.js";
+function CustomPlanBuilder({ billingCycle, isEs, onSelectCustom }) {
+  const [selectedModules, setSelectedModules] = useState({
+    agenda: true,
+    clients: true,
+    services: true,
+    finances: false,
+    inventory: false,
+    workflows: false,
+    ai_marketing: false,
+    sheets_sync: false,
+  });
+
+  const moduleCatalog = [
+    {
+      id: "agenda",
+      name: isEs ? "Módulo Agenda & Citas (Plan Base)" : "Schedule & Appointments (Base Plan)",
+      description: isEs ? "Calendario, agendamiento de turnos, ficha de clientes y métricas básicas de citas." : "Calendar, booking system, client records & basic appointment metrics.",
+      price: 15,
+      required: true,
+      icon: "📅"
+    },
+    {
+      id: "finances",
+      name: isEs ? "Módulo de Finanzas Completo" : "Full Finance Module",
+      description: isEs ? "Gastos operativos, nóminas de equipo, cierre de caja y conciliación bancaria." : "Operating expenses, team payroll, cash closing & bank reconciliation.",
+      price: 15,
+      required: false,
+      icon: "💳"
+    },
+    {
+      id: "inventory",
+      name: isEs ? "Módulo de Inventario & Stock" : "Inventory & Stock Module",
+      description: isEs ? "Control de insumos, gestión de lotes, órdenes de compra y proveedores." : "Supply control, batch management, purchase orders & supplier management.",
+      price: 15,
+      required: false,
+      icon: "📦"
+    },
+    {
+      id: "workflows",
+      name: isEs ? "Módulo de Workflows & Automatizaciones" : "Workflows & Automations Module",
+      description: isEs ? "Diseñador visual de automatizaciones para correos, recordatorios y alertas." : "Visual automation builder for emails, reminders & status alerts.",
+      price: 15,
+      required: false,
+      icon: "⚡"
+    },
+    {
+      id: "ai_marketing",
+      name: isEs ? "Módulo de IA & Generador de Marketing" : "AI & Marketing Generator Module",
+      description: isEs ? "Asistente inteligente con sugerencias y creador de contenidos para Instagram." : "AI smart assistant & Instagram content generator for your business.",
+      price: 15,
+      required: false,
+      icon: "🪄"
+    },
+    {
+      id: "sheets_sync",
+      name: isEs ? "Sincronización en vivo Google Sheets" : "Live Google Sheets Sync",
+      description: isEs ? "Exportación y sincronización en tiempo real de tus datos en hojas de cálculo." : "Real-time sync & auto-export of all operational data into spreadsheets.",
+      price: 10,
+      required: false,
+      icon: "📊"
+    }
+  ];
+
+  const monthlyTotal = moduleCatalog.reduce((sum, mod) => {
+    return sum + (selectedModules[mod.id] ? mod.price : 0);
+  }, 0);
+
+  const annualTotal = Math.round(monthlyTotal * 12 * 0.8);
+  const finalPrice = billingCycle === "month" ? monthlyTotal : annualTotal;
+
+  const toggleModule = (id) => {
+    if (id === "agenda") return;
+    setSelectedModules(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const handleConfirmCustom = () => {
+    const activeModuleKeys = Object.keys(selectedModules).filter(k => selectedModules[k]);
+    onSelectCustom({
+      enabledModules: activeModuleKeys,
+      monthlyPrice: monthlyTotal,
+      finalPrice,
+      billingCycle
+    });
+  };
+
+  return (
+    <Card className="border-0 shadow-lg rounded-5 p-4 mb-5 overflow-hidden" style={{ background: "#ffffff" }}>
+      <Card.Body>
+        <div className="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+          <div>
+            <span className="badge px-3 py-2 rounded-pill bg-purple-100 text-purple-700 fw-bold mb-2" style={{ backgroundColor: "#f3e8ff", color: "#7e22ce", fontSize: "11px" }}>
+              ✨ {isEs ? "ARMA TU PLAN A LA MEDIDA" : "BUILD YOUR CUSTOM PLAN"}
+            </span>
+            <h2 className="h3 fw-black text-dark mb-1">
+              {isEs ? "Selecciona solo los módulos que necesita tu empresa" : "Select only the modules your business needs"}
+            </h2>
+            <p className="text-muted small mb-0">
+              {isEs ? "Paga únicamente por las herramientas que utilizas. Puedes agregar o quitar módulos en cualquier momento." : "Pay only for the tools you use. You can add or remove modules anytime."}
+            </p>
+          </div>
+          <div className="bg-light p-3.5 rounded-4 text-center border" style={{ minWidth: "220px" }}>
+            <span className="text-muted smaller d-block fw-bold text-uppercase" style={{ fontSize: "10px", letterSpacing: "0.5px" }}>
+              {isEs ? "Precio Total Calculado" : "Total Calculated Price"}
+            </span>
+            <div className="d-flex align-items-baseline justify-content-center my-1">
+              <span className="h1 fw-black text-dark mb-0">${finalPrice}</span>
+              <span className="text-muted ms-1 small">/ {billingCycle === "month" ? (isEs ? "mes" : "mo") : (isEs ? "año" : "yr")}</span>
+            </div>
+            {billingCycle === "year" && (
+              <span className="badge bg-success bg-opacity-15 text-success rounded-pill px-2 py-1 smaller" style={{ fontSize: "10px" }}>
+                {isEs ? "Ahorro anual aplicado (-20%)" : "Annual savings (-20%)"}
+              </span>
+            )}
+          </div>
+        </div>
+
+        <Row className="g-3">
+          {moduleCatalog.map((mod) => {
+            const isChecked = selectedModules[mod.id];
+            return (
+              <Col key={mod.id} md={6}>
+                <div 
+                  onClick={() => toggleModule(mod.id)}
+                  className={`p-3.5 rounded-4 border transition-all d-flex align-items-start gap-3 cursor-pointer`}
+                  style={{
+                    borderColor: isChecked ? "#c4b5fd" : "#f1f5f9",
+                    backgroundColor: isChecked ? "#f5f3ff" : "#fff",
+                    cursor: mod.required ? "default" : "pointer"
+                  }}
+                >
+                  <Form.Check 
+                    type="checkbox"
+                    id={`mod-${mod.id}`}
+                    checked={isChecked}
+                    disabled={mod.required}
+                    onChange={() => {}}
+                    className="mt-1"
+                  />
+                  <div className="flex-grow-1">
+                    <div className="d-flex justify-content-between align-items-center mb-1">
+                      <span className="fw-bold text-dark small d-flex align-items-center gap-1.5">
+                        <span>{mod.icon}</span> {mod.name}
+                      </span>
+                      <span className="badge bg-white text-purple-700 border border-purple-200 rounded-pill small fw-bold px-2 py-1" style={{ color: "#7e22ce" }}>
+                        +${mod.price}/mes
+                      </span>
+                    </div>
+                    <p className="text-muted smaller mb-0" style={{ fontSize: "11.5px", lineHeight: "1.4" }}>
+                      {mod.description}
+                    </p>
+                  </div>
+                </div>
+              </Col>
+            );
+          })}
+        </Row>
+
+        <div className="mt-4 pt-3 border-top d-flex justify-content-between align-items-center flex-wrap gap-3">
+          <div className="text-muted smaller">
+            🔒 {isEs ? "Sin permanencia mínima. Modifica tu suscripción desde Configuración cuando quieras." : "No lock-in contract. Modify your subscription in Settings anytime."}
+          </div>
+          <Button 
+            onClick={handleConfirmCustom}
+            className="rounded-pill px-4 py-2.5 fw-bold shadow-sm d-flex align-items-center gap-2"
+            style={{ backgroundColor: "#7c3aed", borderColor: "#7c3aed", color: "#fff" }}
+          >
+            <Sparkles size={16} />
+            {isEs ? `Contratar Mi Plan a la Medida ($${finalPrice})` : `Subscribe to My Custom Plan ($${finalPrice})`}
+          </Button>
+        </div>
+      </Card.Body>
+    </Card>
+  );
+}
 
 export default function PricingView({ blocked = false, subscriptionStatus = "" }) {
   const { t, i18n } = useTranslation("views");
@@ -182,9 +349,13 @@ export default function PricingView({ blocked = false, subscriptionStatus = "" }
 
         {/* Heading */}
         <div className="text-center mb-5">
-          <h1 className="fw-black text-dark tracking-tight mb-2 h2">Planes flexibles para tu negocio</h1>
+          <h1 className="fw-black text-dark tracking-tight mb-2 h2">
+            {isEs ? "Planes flexibles y a la medida para tu negocio" : "Flexible & Custom Plans for Your Business"}
+          </h1>
           <p className="text-muted small max-w-500 mx-auto mb-4">
-            Elige el plan ideal según el tamaño de tu equipo y las herramientas que necesites. Cancela en cualquier momento.
+            {isEs 
+              ? "Elige uno de nuestros planes recomendados o arma tu plan personalizado seleccionando solo los módulos que necesitas." 
+              : "Choose a recommended plan or build your custom plan by selecting only the modules you need."}
           </p>
 
           {/* Toggle Cycle */}
@@ -194,14 +365,14 @@ export default function PricingView({ blocked = false, subscriptionStatus = "" }
               className={`btn px-4 py-1.5 rounded-pill fw-bold Transition-all ${billingCycle === "month" ? "bg-purple-600 text-white shadow-sm" : "text-muted bg-transparent border-0"}`}
               style={billingCycle === "month" ? { backgroundColor: "#7c3aed", border: 0 } : { fontSize: "13px" }}
             >
-              Mensual
+              {isEs ? "Mensual" : "Monthly"}
             </button>
             <button
               onClick={() => setBillingCycle("year")}
               className={`btn px-4 py-1.5 rounded-pill fw-bold Transition-all ${billingCycle === "year" ? "bg-purple-600 text-white shadow-sm" : "text-muted bg-transparent border-0"}`}
               style={billingCycle === "year" ? { backgroundColor: "#7c3aed", border: 0 } : { fontSize: "13px" }}
             >
-              Anual <span className="badge bg-success bg-opacity-20 text-success ms-1 small" style={{ fontSize: "10px" }}>Ahorra 20%</span>
+              {isEs ? "Anual" : "Annual"} <span className="badge bg-success bg-opacity-20 text-success ms-1 small" style={{ fontSize: "10px" }}>{isEs ? "Ahorra 20%" : "Save 20%"}</span>
             </button>
           </div>
         </div>
@@ -226,6 +397,20 @@ export default function PricingView({ blocked = false, subscriptionStatus = "" }
             </Col>
           </Row>
         )}
+
+        {/* Custom Plan Builder Component */}
+        <CustomPlanBuilder 
+          billingCycle={billingCycle} 
+          isEs={isEs} 
+          onSelectCustom={(customConfig) => {
+            handleSelectPlan("custom", customConfig);
+          }} 
+        />
+
+        <div className="text-center my-5">
+          <h2 className="h4 fw-black text-dark mb-1">{isEs ? "O elige un plan predefinido" : "Or choose a preset plan"}</h2>
+          <p className="text-muted small mb-0">{isEs ? "Paquetes optimizados para cada etapa de tu empresa" : "Optimized packages for every stage of your business"}</p>
+        </div>
 
         {/* Cards */}
         <Row className="g-4 justify-content-center align-items-stretch">
@@ -267,10 +452,10 @@ export default function PricingView({ blocked = false, subscriptionStatus = "" }
                       
                       <div className="d-flex align-items-baseline mb-2">
                         <span className="h1 fw-black text-dark mb-0">${price}</span>
-                        <span className="text-muted ms-1.5 small">/ {billingCycle === "month" ? "mes" : "año"}</span>
+                        <span className="text-muted ms-1.5 small">/ {billingCycle === "month" ? (isEs ? "mes" : "mo") : (isEs ? "año" : "yr")}</span>
                       </div>
                       <span className="text-muted smaller bg-light px-2.5 py-1 rounded-pill" style={{ fontSize: "10.5px" }}>
-                        Equivale a ${(price / (billingCycle === "month" ? 1 : 12)).toFixed(1)} / mes
+                        {isEs ? `Equivale a $${(price / (billingCycle === "month" ? 1 : 12)).toFixed(1)} / mes` : `Equivalent to $${(price / (billingCycle === "month" ? 1 : 12)).toFixed(1)} / mo`}
                       </span>
                     </div>
 
