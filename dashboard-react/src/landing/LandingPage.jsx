@@ -4,7 +4,34 @@ import { useTranslation } from "react-i18next";
 import { Container, Row, Col, Badge, Nav, Navbar, Form } from "react-bootstrap";
 import { useAuth } from "../auth/AuthProvider.jsx";
 import api from "../lib/api.js";
-import { Sparkles } from "lucide-react";
+import {
+  Users,
+  Calendar,
+  Zap,
+  CheckCircle,
+  ArrowRight,
+  BarChart3,
+  Globe,
+  Lock,
+  Book,
+  Database,
+  Sparkles,
+  Play,
+  ShieldCheck,
+  Check,
+  Star,
+  Plus,
+  ArrowDownRight,
+  Clock,
+  Settings,
+  Heart,
+  Scissors,
+  Briefcase,
+  Home,
+  ArrowUpRight,
+  ChevronRight,
+  X
+} from "lucide-react";
 
 function LandingCustomPlanBuilder({ isEs, onSelectPlan }) {
   const [selectedModules, setSelectedModules] = useState({
@@ -189,20 +216,6 @@ function LandingCustomPlanBuilder({ isEs, onSelectPlan }) {
   );
 }
 
-import {
-  Plus,
-  ArrowDownRight,
-  Clock,
-  Settings,
-  Heart,
-  Scissors,
-  Briefcase,
-  Home,
-  ArrowUpRight,
-  Check,
-  ChevronRight,
-  Star
-} from "lucide-react";
 import LanguageSwitcher from "../components/language/LanguageSwitcher.jsx";
 import "./styles/landing.css";
 
@@ -271,7 +284,6 @@ function HeroImageStack() {
 }
 
 import { Modal } from "react-bootstrap";
-import { X } from "lucide-react";
 
 // Componente del Modal Explicativo
 function HowItWorksModal({ show, onHide }) {
