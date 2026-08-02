@@ -715,45 +715,61 @@ export default function LandingPage() {
         </section>
 
         {/* WHO IS IT FOR? & EXPLORER GRID */}
-        <section id="funcionalidades" className="py-120 bg-soft-grey reveal">
+        <section id="funcionalidades" className="py-5 bg-soft-grey reveal">
           <Container>
-            <Row className="g-5">
+            <Row className="g-4">
               {/* Left Column: Target Cards */}
               <Col lg={4}>
-                <span className="text-uppercase fw-bold text-purple-600 small" style={{ color: '#7c3aed', letterSpacing: '0.1em' }}>
+                <span className="text-uppercase fw-bold text-purple-600 smaller" style={{ color: '#7c3aed', letterSpacing: '0.1em' }}>
                   {t("target.title")}
                 </span>
-                <h2 className="fw-black h1 mt-2 mb-4" style={{ letterSpacing: '-0.02em' }}>
+                <h2 className="fw-black h3 mt-1 mb-3" style={{ letterSpacing: '-0.02em' }}>
                   {t("target.subtitle")}
                 </h2>
-                <div className="d-flex flex-column gap-3">
-                  <div className="target-card">
-                    <div className="target-icon-wrapper purple">
-                      <Scissors size={20} />
+                <div className="d-flex flex-column gap-2.5">
+                  <div className="target-card p-3 rounded-4 shadow-sm border bg-white">
+                    <div className="d-flex align-items-center gap-3">
+                      <div className="target-icon-wrapper purple p-2 rounded-3 bg-purple-100 text-purple-700">
+                        <Scissors size={18} />
+                      </div>
+                      <div>
+                        <h4 className="fw-bold h6 text-dark mb-0.5" style={{ fontSize: "14px" }}>{t("target.c1Title")}</h4>
+                        <p className="text-muted smaller mb-0" style={{ fontSize: "11.5px" }}>{t("target.c1Desc")}</p>
+                      </div>
                     </div>
-                    <h4 className="fw-bold h6 text-dark mb-1">{t("target.c1Title")}</h4>
-                    <p className="text-muted smaller mb-0">{t("target.c1Desc")}</p>
                   </div>
-                  <div className="target-card">
-                    <div className="target-icon-wrapper green">
-                      <Heart size={20} />
+                  <div className="target-card p-3 rounded-4 shadow-sm border bg-white">
+                    <div className="d-flex align-items-center gap-3">
+                      <div className="target-icon-wrapper green p-2 rounded-3 bg-success bg-opacity-10 text-success">
+                        <Heart size={18} />
+                      </div>
+                      <div>
+                        <h4 className="fw-bold h6 text-dark mb-0.5" style={{ fontSize: "14px" }}>{t("target.c2Title")}</h4>
+                        <p className="text-muted smaller mb-0" style={{ fontSize: "11.5px" }}>{t("target.c2Desc")}</p>
+                      </div>
                     </div>
-                    <h4 className="fw-bold h6 text-dark mb-1">{t("target.c2Title")}</h4>
-                    <p className="text-muted smaller mb-0">{t("target.c2Desc")}</p>
                   </div>
-                  <div className="target-card">
-                    <div className="target-icon-wrapper indigo">
-                      <Briefcase size={20} />
+                  <div className="target-card p-3 rounded-4 shadow-sm border bg-white">
+                    <div className="d-flex align-items-center gap-3">
+                      <div className="target-icon-wrapper indigo p-2 rounded-3 bg-primary bg-opacity-10 text-primary">
+                        <Briefcase size={18} />
+                      </div>
+                      <div>
+                        <h4 className="fw-bold h6 text-dark mb-0.5" style={{ fontSize: "14px" }}>{t("target.c3Title")}</h4>
+                        <p className="text-muted smaller mb-0" style={{ fontSize: "11.5px" }}>{t("target.c3Desc")}</p>
+                      </div>
                     </div>
-                    <h4 className="fw-bold h6 text-dark mb-1">{t("target.c3Title")}</h4>
-                    <p className="text-muted smaller mb-0">{t("target.c3Desc")}</p>
                   </div>
-                  <div className="target-card">
-                    <div className="target-icon-wrapper blue">
-                      <Home size={20} />
+                  <div className="target-card p-3 rounded-4 shadow-sm border bg-white">
+                    <div className="d-flex align-items-center gap-3">
+                      <div className="target-icon-wrapper blue p-2 rounded-3 bg-info bg-opacity-10 text-info">
+                        <Home size={18} />
+                      </div>
+                      <div>
+                        <h4 className="fw-bold h6 text-dark mb-0.5" style={{ fontSize: "14px" }}>{t("target.c4Title")}</h4>
+                        <p className="text-muted smaller mb-0" style={{ fontSize: "11.5px" }}>{t("target.c4Desc")}</p>
+                      </div>
                     </div>
-                    <h4 className="fw-bold h6 text-dark mb-1">{t("target.c4Title")}</h4>
-                    <p className="text-muted smaller mb-0">{t("target.c4Desc")}</p>
                   </div>
                 </div>
               </Col>
@@ -762,74 +778,82 @@ export default function LandingPage() {
               <Col lg={8}>
                 {/* Desktop view */}
                 <div className="desktop-explorer-only h-100">
-                  <div className="h-100 p-4 p-md-5" style={{ background: '#ffffff', borderRadius: '24px', border: '1px solid rgba(15, 23, 42, 0.05)', boxShadow: '0 20px 40px -15px rgba(15, 23, 42, 0.02)' }}>
-                    <span className="text-uppercase fw-bold text-muted small" style={{ letterSpacing: '0.1em' }}>
-                      {t("explorer.subtitle")}
-                    </span>
-                    <h2 className="fw-black h2 mt-2 mb-4" style={{ letterSpacing: '-0.02em' }}>
-                      {t("explorer.title")}
-                    </h2>
+                  <div className="h-100 p-3.5 p-md-4 bg-white rounded-5 border shadow-sm">
+                    <div className="d-flex align-items-center justify-content-between mb-3">
+                      <div>
+                        <span className="text-uppercase fw-bold text-muted smaller" style={{ letterSpacing: '0.1em', fontSize: '10px' }}>
+                          {t("explorer.subtitle")}
+                        </span>
+                        <h2 className="fw-black h4 mt-0.5 mb-0" style={{ letterSpacing: '-0.02em' }}>
+                          {t("explorer.title")}
+                        </h2>
+                      </div>
+                      <span className="badge bg-purple-100 text-purple-700 rounded-pill px-3 py-1.5 fw-bold smaller" style={{ backgroundColor: "#f3e8ff", color: "#7e22ce", fontSize: "11px" }}>
+                        👇 {t("explorer.clickToExplore") || "Haz clic en cada módulo para probar"}
+                      </span>
+                    </div>
                     
-                    <Row className="g-4 mt-2">
-                      <Col md={4} className="d-flex flex-column gap-2" style={{ borderRight: '1px solid rgba(15, 23, 42, 0.06)' }}>
+                    <Row className="g-3 mt-1">
+                      <Col md={5} lg={4} className="d-flex flex-column gap-1.5" style={{ borderRight: '1px solid #f1f5f9' }}>
                         {Object.keys(explorerConfig).map((key) => {
                           const conf = explorerConfig[key];
+                          const isActive = activeExplorer === key;
                           return (
                             <button
                               key={key}
-                              className={`pillar-tab-btn ${activeExplorer === key ? 'active' : ''}`}
+                              className={`pillar-tab-btn ${isActive ? 'active' : ''}`}
                               onClick={() => setActiveExplorer(key)}
-                              style={{ border: 'none', background: 'transparent', padding: '10px 16px', borderRadius: '10px', fontSize: '0.9rem' }}
                             >
                               <span className="d-flex align-items-center gap-2">
                                 {conf.icon}
-                                {t(`explorer.${key}.tab`)}
+                                <span>{t(`explorer.${key}.tab`)}</span>
                               </span>
+                              <ChevronRight size={14} style={{ opacity: isActive ? 1 : 0.4 }} />
                             </button>
                           );
                         })}
                       </Col>
                       
-                      <Col md={8}>
-                        <div className="mb-4">
-                          <Badge bg="warning" className="text-dark px-3 py-2 rounded mb-3 smaller fw-bold uppercase">
+                      <Col md={7} lg={8}>
+                        <div className="mb-3">
+                          <span className="badge bg-warning text-dark px-2.5 py-1 rounded mb-2 smaller fw-bold uppercase" style={{ fontSize: "10px" }}>
                             {t(`explorer.${activeExplorer}.tab`)}
-                          </Badge>
-                          <h4 className="h5 fw-bold text-dark mb-3">{t(`explorer.${activeExplorer}.title`)}</h4>
-                          <ul className="list-unstyled text-muted small mb-0">
-                            <li className="mb-2 d-flex align-items-start gap-2">
-                              <CheckCircle size={16} className="text-success mt-1 flex-shrink-0" />
+                          </span>
+                          <h4 className="h6 fw-bold text-dark mb-2">{t(`explorer.${activeExplorer}.title`)}</h4>
+                          <ul className="list-unstyled text-muted smaller mb-0">
+                            <li className="mb-1.5 d-flex align-items-start gap-1.5" style={{ fontSize: "12px" }}>
+                              <CheckCircle size={14} className="text-success mt-0.5 flex-shrink-0" />
                               <span>{t(`explorer.${activeExplorer}.bullet1`)}</span>
                             </li>
-                            <li className="mb-2 d-flex align-items-start gap-2">
-                              <CheckCircle size={16} className="text-success mt-1 flex-shrink-0" />
+                            <li className="mb-1.5 d-flex align-items-start gap-1.5" style={{ fontSize: "12px" }}>
+                              <CheckCircle size={14} className="text-success mt-0.5 flex-shrink-0" />
                               <span>{t(`explorer.${activeExplorer}.bullet2`)}</span>
                             </li>
-                            <li className="mb-2 d-flex align-items-start gap-2">
-                              <CheckCircle size={16} className="text-success mt-1 flex-shrink-0" />
+                            <li className="mb-1.5 d-flex align-items-start gap-1.5" style={{ fontSize: "12px" }}>
+                              <CheckCircle size={14} className="text-success mt-0.5 flex-shrink-0" />
                               <span>{t(`explorer.${activeExplorer}.bullet3`)}</span>
                             </li>
                           </ul>
                         </div>
 
                         {/* Mockup Browser Visor */}
-                        <div className="explorer-screenshot-frame mt-3">
-                          <div className="browser-header">
-                            <div className="browser-dots">
-                              <span className="dot red"></span>
-                              <span className="dot yellow"></span>
-                              <span className="dot green"></span>
+                        <div className="explorer-screenshot-frame mt-2 rounded-4 overflow-hidden border shadow-sm">
+                          <div className="browser-header bg-light p-2 d-flex align-items-center gap-2 border-bottom" style={{ height: "28px" }}>
+                            <div className="browser-dots d-flex gap-1">
+                              <span className="dot red rounded-circle bg-danger" style={{ width: 8, height: 8 }}></span>
+                              <span className="dot yellow rounded-circle bg-warning" style={{ width: 8, height: 8 }}></span>
+                              <span className="dot green rounded-circle bg-success" style={{ width: 8, height: 8 }}></span>
                             </div>
-                            <div className="browser-address-bar">
+                            <div className="browser-address-bar text-muted smaller font-monospace" style={{ fontSize: "10px" }}>
                               {explorerConfig[activeExplorer].url}
                             </div>
                           </div>
-                          <div className="explorer-screenshot-body">
+                          <div className="explorer-screenshot-body" style={{ maxHeight: "250px", overflow: "hidden" }}>
                             <img
                               src={explorerConfig[activeExplorer].img}
                               alt={t(`explorer.${activeExplorer}.title`)}
                               className="animate-fade-in"
-                              style={{ width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'top center', backgroundColor: '#f8fafc', display: 'block' }}
+                              style={{ width: '100%', maxHeight: '250px', objectFit: 'cover', objectPosition: 'top center', display: 'block' }}
                             />
                           </div>
                         </div>
