@@ -4,20 +4,192 @@ import { useTranslation } from "react-i18next";
 import { Container, Row, Col, Badge, Nav, Navbar, Form } from "react-bootstrap";
 import { useAuth } from "../auth/AuthProvider.jsx";
 import api from "../lib/api.js";
+import { Sparkles } from "lucide-react";
+
+function LandingCustomPlanBuilder({ isEs, onSelectPlan }) {
+  const [selectedModules, setSelectedModules] = useState({
+    agenda: true,
+    clients: true,
+    services: true,
+    finances: false,
+    inventory: false,
+    workflows: false,
+    ai_marketing: false,
+    sheets_sync: false,
+  });
+  const [billingCycle, setBillingCycle] = useState("month");
+
+  const moduleCatalog = [
+    {
+      id: "agenda",
+      name: isEs ? "Módulo Agenda & Citas (Plan Base)" : "Schedule & Appointments (Base Plan)",
+      description: isEs ? "Calendario, agendamiento de turnos, ficha de clientes y métricas de citas." : "Calendar, booking system, client records & appointment metrics.",
+      price: 15,
+      required: true,
+      icon: "📅"
+    },
+    {
+      id: "finances",
+      name: isEs ? "Módulo de Finanzas Completo" : "Full Finance Module",
+      description: isEs ? "Gastos operativos, nóminas de equipo, cierre de caja y conciliación bancaria." : "Operating expenses, team payroll, cash closing & bank reconciliation.",
+      price: 15,
+      required: false,
+      icon: "💳"
+    },
+    {
+      id: "inventory",
+      name: isEs ? "Módulo de Inventario & Stock" : "Inventory & Stock Module",
+      description: isEs ? "Control de insumos, gestión de lotes, órdenes de compra y proveedores." : "Supply control, batch management, purchase orders & supplier management.",
+      price: 15,
+      required: false,
+      icon: "📦"
+    },
+    {
+      id: "workflows",
+      name: isEs ? "Módulo de Workflows & Automatizaciones" : "Workflows & Automations Module",
+      description: isEs ? "Diseñador visual de automatizaciones para correos, recordatorios y alertas." : "Visual automation builder for emails, reminders & status alerts.",
+      price: 15,
+      required: false,
+      icon: "⚡"
+    },
+    {
+      id: "ai_marketing",
+      name: isEs ? "Módulo de IA & Generador de Marketing" : "AI & Marketing Generator Module",
+      description: isEs ? "Asistente inteligente con sugerencias y creador de contenidos para Instagram." : "AI smart assistant & Instagram content generator for your business.",
+      price: 15,
+      required: false,
+      icon: "🪄"
+    },
+    {
+      id: "sheets_sync",
+      name: isEs ? "Sincronización en vivo Google Sheets" : "Live Google Sheets Sync",
+      description: isEs ? "Exportación y sincronización en tiempo real de tus datos en hojas de cálculo." : "Real-time sync & auto-export of all operational data into spreadsheets.",
+      price: 10,
+      required: false,
+      icon: "📊"
+    }
+  ];
+
+  const monthlyTotal = moduleCatalog.reduce((sum, mod) => {
+    return sum + (selectedModules[mod.id] ? mod.price : 0);
+  }, 0);
+
+  const annualTotal = Math.round(monthlyTotal * 12 * 0.8);
+  const finalPrice = billingCycle === "month" ? monthlyTotal : annualTotal;
+
+  const toggleModule = (id) => {
+    if (id === "agenda") return;
+    setSelectedModules(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  return (
+    <div className="card border-0 shadow-lg rounded-5 p-4 mb-5 text-start" style={{ background: "#ffffff", border: "1px solid rgba(124, 58, 237, 0.15)" }}>
+      <div className="card-body">
+        <div className="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+          <div>
+            <span className="badge px-3 py-2 rounded-pill fw-bold mb-2" style={{ backgroundColor: "#f3e8ff", color: "#7e22ce", fontSize: "11px" }}>
+              ✨ {isEs ? "ARMA TU PLAN A LA MEDIDA" : "BUILD YOUR CUSTOM PLAN"}
+            </span>
+            <h3 className="h3 fw-black text-dark mb-1">
+              {isEs ? "Selecciona solo los módulos que necesita tu empresa" : "Select only the modules your business needs"}
+            </h3>
+            <p className="text-muted small mb-0">
+              {isEs ? "Personaliza las funcionalidades de tu suscripción y calcula el precio final en tiempo real." : "Customize your features & see your calculated price in real time."}
+            </p>
+          </div>
+
+          <div className="d-flex flex-column align-items-end gap-2">
+            <div className="d-inline-flex align-items-center bg-light p-1.5 rounded-pill border">
+              <button
+                type="button"
+                onClick={() => setBillingCycle("month")}
+                className={`btn px-3 py-1 rounded-pill fw-bold ${billingCycle === "month" ? "text-white shadow-sm" : "text-muted bg-transparent border-0"}`}
+                style={billingCycle === "month" ? { backgroundColor: "#7c3aed", border: 0, fontSize: "12px" } : { fontSize: "12px" }}
+              >
+                {isEs ? "Mensual" : "Monthly"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setBillingCycle("year")}
+                className={`btn px-3 py-1 rounded-pill fw-bold ${billingCycle === "year" ? "text-white shadow-sm" : "text-muted bg-transparent border-0"}`}
+                style={billingCycle === "year" ? { backgroundColor: "#7c3aed", border: 0, fontSize: "12px" } : { fontSize: "12px" }}
+              >
+                {isEs ? "Anual (-20%)" : "Annual (-20%)"}
+              </button>
+            </div>
+
+            <div className="bg-light p-3 rounded-4 text-center border" style={{ minWidth: "200px" }}>
+              <span className="text-muted smaller d-block fw-bold text-uppercase" style={{ fontSize: "10px" }}>
+                {isEs ? "Precio Calculado" : "Calculated Price"}
+              </span>
+              <div className="d-flex align-items-baseline justify-content-center my-1">
+                <span className="h2 fw-black text-dark mb-0">${finalPrice}</span>
+                <span className="text-muted ms-1 small">/ {billingCycle === "month" ? (isEs ? "mes" : "mo") : (isEs ? "año" : "yr")}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <Row className="g-3 mb-4">
+          {moduleCatalog.map((mod) => {
+            const isChecked = selectedModules[mod.id];
+            return (
+              <Col key={mod.id} md={6}>
+                <div
+                  onClick={() => toggleModule(mod.id)}
+                  className="p-3.5 rounded-4 border transition-all d-flex align-items-start gap-3"
+                  style={{
+                    borderColor: isChecked ? "#c4b5fd" : "#f1f5f9",
+                    backgroundColor: isChecked ? "#f5f3ff" : "#fff",
+                    cursor: mod.required ? "default" : "pointer"
+                  }}
+                >
+                  <Form.Check
+                    type="checkbox"
+                    id={`landing-mod-${mod.id}`}
+                    checked={isChecked}
+                    disabled={mod.required}
+                    onChange={() => {}}
+                    className="mt-1"
+                  />
+                  <div className="flex-grow-1">
+                    <div className="d-flex justify-content-between align-items-center mb-1">
+                      <span className="fw-bold text-dark small d-flex align-items-center gap-1.5">
+                        <span>{mod.icon}</span> {mod.name}
+                      </span>
+                      <span className="badge bg-white border rounded-pill small fw-bold px-2 py-1" style={{ color: "#7e22ce", borderColor: "#e9d5ff" }}>
+                        +${mod.price}/mes
+                      </span>
+                    </div>
+                    <p className="text-muted smaller mb-0" style={{ fontSize: "11.5px", lineHeight: "1.4" }}>
+                      {mod.description}
+                    </p>
+                  </div>
+                </div>
+              </Col>
+            );
+          })}
+        </Row>
+
+        <div className="d-flex justify-content-between align-items-center flex-wrap gap-3 pt-3 border-top">
+          <span className="text-muted smaller">
+            🔒 {isEs ? "Prueba gratuita de 14 días. Sin tarjeta de crédito requerida." : "14-day free trial. No credit card required."}
+          </span>
+          <button 
+            type="button"
+            onClick={() => onSelectPlan("custom")} 
+            className="btn-premium py-3 px-4 fw-bold text-white bg-purple-600 border-0" 
+            style={{ borderRadius: '12px', background: 'var(--lp-accent)' }}
+          >
+            {isEs ? `Comenzar Gratis con Mi Plan ($${finalPrice})` : `Start Free with My Custom Plan ($${finalPrice})`}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 import {
-  Users,
-  Calendar,
-  Zap,
-  CheckCircle,
-  ArrowRight,
-  BarChart3,
-  Globe,
-  Lock,
-  Book,
-  Database,
-  Sparkles,
-  Play,
-  ShieldCheck,
   Plus,
   ArrowDownRight,
   Clock,
@@ -991,6 +1163,18 @@ export default function LandingPage() {
               <h2 className="fw-black display-5 text-dark mb-3" style={{ letterSpacing: '-0.02em' }}>{t("pricing.title")}</h2>
               <p className="text-muted">{t("pricing.subtitle")}</p>
             </div>
+
+            {/* Custom Plan Builder on Landing Page */}
+            <LandingCustomPlanBuilder 
+              isEs={isEs} 
+              onSelectPlan={(planCode) => navigate(`/app/pricing?plan=${planCode}&provider=stripe`)} 
+            />
+
+            <div className="text-center my-5">
+              <h3 className="h4 fw-bold text-dark mb-1">{isEs ? "O elige un paquete predefinido" : "Or choose a preset package"}</h3>
+              <p className="text-muted small mb-0">{isEs ? "Planes estándar listos para usar" : "Ready-to-use standard plans"}</p>
+            </div>
+
             <Row className="g-4 justify-content-center">
               {/* Plan 1 */}
               <Col lg={4} md={6}>
