@@ -273,9 +273,19 @@ export default function PricingView({ blocked = false, subscriptionStatus = "" }
   const [checkoutConfig, setCheckoutConfig] = useState(() => {
     try {
       const stored = sessionStorage.getItem("pending_custom_plan") || localStorage.getItem("pending_custom_plan");
-      return stored ? JSON.parse(stored) : null;
+      return stored ? JSON.parse(stored) : {
+        planCode: "custom",
+        enabledModules: ["agenda", "clients", "services"],
+        price: 15,
+        billingCycle: "month"
+      };
     } catch {
-      return null;
+      return {
+        planCode: "custom",
+        enabledModules: ["agenda", "clients", "services"],
+        price: 15,
+        billingCycle: "month"
+      };
     }
   });
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
@@ -330,16 +340,22 @@ export default function PricingView({ blocked = false, subscriptionStatus = "" }
   };
 
   const handleConfirmCheckoutAndProceedToOnboarding = async () => {
-    if (!checkoutConfig) return;
     setProcessingCheckout(true);
     setError("");
 
     try {
+      const configToUse = checkoutConfig || {
+        planCode: "custom",
+        enabledModules: ["agenda", "clients", "services"],
+        price: 15,
+        billingCycle: "month"
+      };
+
       const res = await api.post("/billing/checkout", {
         planCode: "custom",
-        interval: checkoutConfig.billingCycle || billingCycle,
-        enabledModules: checkoutConfig.enabledModules || ["agenda", "clients", "services"],
-        price: checkoutConfig.price || 15,
+        interval: configToUse.billingCycle || billingCycle || "month",
+        enabledModules: configToUse.enabledModules || ["agenda", "clients", "services"],
+        price: configToUse.price || 15,
         provider: "manual"
       });
 
@@ -367,7 +383,7 @@ export default function PricingView({ blocked = false, subscriptionStatus = "" }
     const planParam = searchParams.get("plan");
     const checkoutParam = searchParams.get("checkout") === "true";
 
-    if (checkoutParam || checkoutConfig) {
+    if (planParam === "custom" || checkoutParam) {
       setShowCheckoutModal(true);
     } else if (planParam && ["starter", "pro", "business"].includes(planParam)) {
       const nextParams = new URLSearchParams(searchParams);
