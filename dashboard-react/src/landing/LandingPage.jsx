@@ -204,11 +204,22 @@ function LandingCustomPlanBuilder({ isEs, onSelectPlan }) {
           </span>
           <button 
             type="button"
-            onClick={() => onSelectPlan("custom")} 
-            className="btn-premium py-3 px-4 fw-bold text-white bg-purple-600 border-0" 
+            onClick={() => {
+              const activeModuleKeys = Object.keys(selectedModules).filter(k => selectedModules[k]);
+              const config = {
+                planCode: "custom",
+                enabledModules: activeModuleKeys,
+                price: finalPrice,
+                billingCycle
+              };
+              sessionStorage.setItem("pending_custom_plan", JSON.stringify(config));
+              localStorage.setItem("pending_custom_plan", JSON.stringify(config));
+              onSelectPlan("custom", config);
+            }} 
+            className="btn-premium py-3 px-4 fw-bold text-white bg-purple-600 border-0 shadow-sm" 
             style={{ borderRadius: '12px', background: 'var(--lp-accent)' }}
           >
-            {isEs ? `Comenzar Gratis con Mi Plan ($${finalPrice})` : `Start Free with My Custom Plan ($${finalPrice})`}
+            {isEs ? `Ir a la Página de Cobro y Activar Plan ($${finalPrice})` : `Go to Checkout & Activate Plan ($${finalPrice})`}
           </button>
         </div>
       </div>

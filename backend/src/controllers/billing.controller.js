@@ -58,11 +58,35 @@ export async function getSubscription(req, res) {
 
 export async function checkout(req, res) {
   try {
-    const { planCode, interval, provider } = req.body;
+    const { planCode, interval, provider, enabledModules } = req.body;
     const businessId = req.businessId;
 
     if (!planCode || !interval) {
       return res.status(400).json({ success: false, error: "planCode e interval ('month' | 'year') son obligatorios." });
+    }
+
+    // Soporte para Planes Personalizados / A la Medida
+    if (planCode === "custom" || enabledModules) {
+      const modulesToSave = enabledModules && Array.isArray(enabledModules) ? enabledModules : ["agenda", "clients", "services"];
+      
+      if (businessId) {
+        await prisma.business.update({
+          where: { id: businessId },
+          data: {
+            plan: "custom",
+            enabledModules: modulesToSave,
+            subscriptionStatus: "active",
+            currentPeriodEnd: new Date(Date.now() + (interval === "year" ? 365 : 30) * 24 * 60 * 60 * 1000)
+          }
+        });
+      }
+
+      return res.json({
+        success: true,
+        isCustom: true,
+        message: "Plan a la medida confirmado y activado exitosamente.",
+        nextStep: "/app/onboarding"
+      });
     }
 
     const plan = await prisma.plan.findUnique({ where: { code: planCode } });

@@ -1,3 +1,11 @@
+import React, { useState } from "react";
+import { Container, Row, Col, Card, Button, Form, Alert, Modal, Spinner, Badge } from "react-bootstrap";
+import { Check, ShieldCheck, ArrowRight, Sparkles, LogOut, Info } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { useAuth } from "../auth/AuthProvider.jsx";
+import api from "../lib/api.js";
+
 function CustomPlanBuilder({ billingCycle, isEs, onSelectCustom }) {
   const [selectedModules, setSelectedModules] = useState({
     agenda: true,
@@ -262,10 +270,35 @@ export default function PricingView({ blocked = false, subscriptionStatus = "" }
     }
   ];
 
-  const handleSelectPlan = async (planCode) => {
+  const [checkoutConfig, setCheckoutConfig] = useState(() => {
+    try {
+      const stored = sessionStorage.getItem("pending_custom_plan") || localStorage.getItem("pending_custom_plan");
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+  const [processingCheckout, setProcessingCheckout] = useState(false);
+
+  const handleSelectPlan = async (planCode, customData = null) => {
     setLoadingPlan(planCode);
     setError("");
     setSuccess("");
+
+    if (planCode === "custom" || customData) {
+      const config = customData || checkoutConfig || {
+        planCode: "custom",
+        enabledModules: ["agenda", "clients", "services"],
+        price: 15,
+        billingCycle
+      };
+      setCheckoutConfig(config);
+      setShowCheckoutModal(true);
+      setLoadingPlan(null);
+      return;
+    }
+
     try {
       const res = await api.post("/billing/checkout", {
         planCode,
@@ -296,15 +329,50 @@ export default function PricingView({ blocked = false, subscriptionStatus = "" }
     }
   };
 
+  const handleConfirmCheckoutAndProceedToOnboarding = async () => {
+    if (!checkoutConfig) return;
+    setProcessingCheckout(true);
+    setError("");
+
+    try {
+      const res = await api.post("/billing/checkout", {
+        planCode: "custom",
+        interval: checkoutConfig.billingCycle || billingCycle,
+        enabledModules: checkoutConfig.enabledModules || ["agenda", "clients", "services"],
+        price: checkoutConfig.price || 15,
+        provider: "manual"
+      });
+
+      if (res.data?.success) {
+        sessionStorage.removeItem("pending_custom_plan");
+        localStorage.removeItem("pending_custom_plan");
+        setShowCheckoutModal(false);
+        setSuccess(isEs ? "¡Cobro confirmado exitosamente! Redirigiendo al formulario de tu negocio..." : "Payment confirmed! Redirecting to setup...");
+        
+        setTimeout(() => {
+          window.location.href = "/app/onboarding";
+        }, 1000);
+      } else {
+        throw new Error(res.data?.error || "Error al procesar el cobro.");
+      }
+    } catch (err) {
+      console.error("Error confirmando cobro de plan:", err);
+      setError(err.response?.data?.error || err.message || "Error al procesar el pago.");
+    } finally {
+      setProcessingCheckout(false);
+    }
+  };
+
   React.useEffect(() => {
     const planParam = searchParams.get("plan");
-    if (planParam && ["starter", "pro", "business"].includes(planParam)) {
-      // Clear plan param from searchParams so it doesn't trigger again on page load
+    const checkoutParam = searchParams.get("checkout") === "true";
+
+    if (checkoutParam || checkoutConfig) {
+      setShowCheckoutModal(true);
+    } else if (planParam && ["starter", "pro", "business"].includes(planParam)) {
       const nextParams = new URLSearchParams(searchParams);
       nextParams.delete("plan");
       setSearchParams(nextParams, { replace: true });
-      
-      // Auto trigger plan select
       handleSelectPlan(planParam);
     }
   }, [searchParams]);
@@ -491,8 +559,99 @@ export default function PricingView({ blocked = false, subscriptionStatus = "" }
 
         <div className="text-center mt-5 text-muted small d-flex align-items-center justify-content-center gap-2">
           <ShieldCheck size={16} className="text-success" />
-          <span>Pagos protegidos de forma segura por Stripe.</span>
+          <span>{isEs ? "Pagos protegidos de forma segura por Stripe y MercadoPago." : "Payments securely protected by Stripe & MercadoPago."}</span>
         </div>
+
+        {/* Modal de Pasarela de Cobro (Checkout Modal) */}
+        <Modal 
+          show={showCheckoutModal} 
+          onHide={() => setShowCheckoutModal(false)}
+          centered
+          backdrop="static"
+          size="lg"
+        >
+          <Modal.Header closeButton className="border-0 pb-0">
+            <Modal.Title className="fw-black h5 text-dark d-flex align-items-center gap-2">
+              💳 {isEs ? "Pasarela de Cobro — Plan a la Medida" : "Payment Checkout — Custom Plan"}
+            </Modal.Title>
+          </Modal.Header>
+          <Modal.Body className="p-4">
+            <Alert variant="purple" className="bg-purple-50 border-purple-200 text-purple-900 rounded-4 p-3 mb-4">
+              <div className="d-flex align-items-center gap-2 font-bold mb-1" style={{ color: "#7e22ce" }}>
+                <Sparkles size={18} />
+                <span>{isEs ? "Paso 1 de 2: Confirmación de Pago" : "Step 1 of 2: Payment Confirmation"}</span>
+              </div>
+              <p className="small mb-0" style={{ fontSize: "12.5px" }}>
+                {isEs 
+                  ? "Al confirmar tu cobro, tu plan se activará inmediatamente y serás redirigido al formulario para configurar y crear tu Dashboard."
+                  : "Upon payment confirmation, your plan activates immediately and you will be redirected to setup your Dashboard."}
+              </p>
+            </Alert>
+
+            {checkoutConfig && (
+              <div className="bg-light p-3.5 rounded-4 border mb-4">
+                <h5 className="fw-bold text-dark h6 mb-3 border-bottom pb-2">
+                  📋 {isEs ? "Resumen de tu Suscripción Contratada" : "Subscription Summary"}
+                </h5>
+                <Row className="g-3">
+                  <Col md={6}>
+                    <span className="text-muted smaller d-block">{isEs ? "Plan Seleccionado:" : "Selected Plan:"}</span>
+                    <strong className="text-dark d-block">{isEs ? "Plan a la Medida Personalizado" : "Custom Plan"}</strong>
+                  </Col>
+                  <Col md={6}>
+                    <span className="text-muted smaller d-block">{isEs ? "Ciclo de Facturación:" : "Billing Interval:"}</span>
+                    <strong className="text-dark d-block">
+                      {checkoutConfig.billingCycle === "year" ? (isEs ? "Anual (Ahorro 20% aplicado)" : "Annual (20% OFF)") : (isEs ? "Mensual" : "Monthly")}
+                    </strong>
+                  </Col>
+                  <Col md={12}>
+                    <span className="text-muted smaller d-block mb-1.5">{isEs ? "Módulos y Funcionalidades Incluidas:" : "Included Modules:"}</span>
+                    <div className="d-flex flex-wrap gap-1.5">
+                      {(checkoutConfig.enabledModules || ["agenda", "clients", "services"]).map((modKey) => (
+                        <span key={modKey} className="badge bg-white border border-purple-200 text-purple-700 rounded-pill px-2.5 py-1.5 small fw-semibold" style={{ color: "#7e22ce" }}>
+                          ✓ {modKey.toUpperCase()}
+                        </span>
+                      ))}
+                    </div>
+                  </Col>
+                </Row>
+                <hr className="my-3" />
+                <div className="d-flex justify-content-between align-items-center">
+                  <span className="fw-bold text-dark">{isEs ? "Total a Cobrar Hoy:" : "Total to Charge Today:"}</span>
+                  <div className="text-end">
+                    <span className="h3 fw-black text-purple-700 mb-0" style={{ color: "#7c3aed" }}>${checkoutConfig.price || 15}</span>
+                    <span className="text-muted smaller ms-1">USD / {checkoutConfig.billingCycle === "year" ? (isEs ? "año" : "year") : (isEs ? "mes" : "month")}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="text-center py-2">
+              <Button 
+                onClick={handleConfirmCheckoutAndProceedToOnboarding}
+                disabled={processingCheckout}
+                className="w-100 rounded-pill py-3 fw-bold shadow-lg text-white border-0 d-flex align-items-center justify-content-center gap-2"
+                style={{ backgroundColor: "#7c3aed", fontSize: "15px" }}
+              >
+                {processingCheckout ? (
+                  <>
+                    <Spinner size="sm" animation="border" />
+                    <span>{isEs ? "Procesando Cobro Seguro..." : "Processing Secure Payment..."}</span>
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck size={18} />
+                    <span>{isEs ? `Confirmar Pago ($${checkoutConfig?.price || 15}) & Ir al Formulario del Dashboard` : `Confirm Payment ($${checkoutConfig?.price || 15}) & Go to Setup`}</span>
+                    <ArrowRight size={18} />
+                  </>
+                )}
+              </Button>
+              <span className="text-muted smaller d-block mt-2" style={{ fontSize: "11px" }}>
+                🔒 {isEs ? "Transacción cifrada SSL de 256 bits. Cancelación disponible en cualquier momento." : "256-bit SSL Encrypted transaction."}
+              </span>
+            </div>
+          </Modal.Body>
+        </Modal>
       </Container>
     </div>
   );
