@@ -82,7 +82,7 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Webhook raw body parser for Stripe signature verification
+// Webhook raw body parser for Stripe and WhatsApp signature verification
 app.use("/api/billing/webhook", (req, res, next) => {
   if (req.headers["stripe-signature"]) {
     express.raw({ type: "application/json" })(req, res, next);
@@ -90,6 +90,8 @@ app.use("/api/billing/webhook", (req, res, next) => {
     express.json({ limit: "15mb" })(req, res, next);
   }
 });
+
+app.use("/api/webhooks/whatsapp", express.raw({ type: "application/json" }));
 
 app.use(express.json({ limit: "15mb" }));
 app.use("/uploads", express.static(resolve(process.cwd(), "uploads")));
