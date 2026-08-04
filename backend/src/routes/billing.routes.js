@@ -5,9 +5,12 @@ import { checkTenant } from "../middleware/tenant.middleware.js";
 
 const router = Router();
 
-// PUBLIC WEBHOOK & QUICK APPROVE: Excluded from requireAuth and checkTenant
+// PUBLIC WEBHOOK: Excluded from requireAuth and checkTenant
 router.post("/webhook", webhook);
-router.get("/quick-approve", quickApprove);
+
+// QUICK APPROVE: Requires super-admin session
+router.post("/quick-approve", requireAuth, quickApprove);
+router.get("/quick-approve", requireAuth, quickApprove);
 
 // AUTH & TENANT REQUIRED FOR WORKSPACE ACTIONS
 router.get("/plans", requireAuth, checkTenant, getPlans);

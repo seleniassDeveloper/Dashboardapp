@@ -118,11 +118,11 @@ app.use("/api/consents", requireAuth, checkTenant, consentRoutes);
 app.use("/api/workers", requireAuth, checkTenant, workersRoutes);
 app.use("/api/staff", requireAuth, checkTenant, staffRoutes);
 app.use("/api/services", requireAuth, checkTenant, servicesRoutes);
-app.use("/api/form-schemas", requireAuth, formSchemasRoutes);
-app.use("/api/business-models", requireAuth, businessModelsRoutes);
+app.use("/api/form-schemas", requireAuth, checkTenant, formSchemasRoutes);
+app.use("/api/business-models", requireAuth, checkTenant, businessModelsRoutes);
 app.use("/api/workflows", requireAuth, checkTenant, workflowsRoutes);
 app.use("/api/ai", requireAuth, checkTenant, aiRoutes);
-app.use(`\/api\/dashboard`, requireAuth, dashboardRoutes);
+app.use("/api/dashboard", requireAuth, checkTenant, dashboardRoutes);
 app.use("/api/google", requireAuth, checkTenant, googleRoutes);
 app.use("/api/crm", requireAuth, checkTenant, crmRoutes);
 app.use("/api/finances", requireAuth, checkTenant, financesRoutes);
@@ -144,9 +144,9 @@ app.use("/api/permission-matrix", requireAuth, checkTenant, (req, res, next) => 
   req.url = "/permission-matrix";
   rolesRoutes(req, res, next);
 });
-app.use("/api/me", requireAuth, meRoutes);
+app.use("/api/me", requireAuth, checkTenant, meRoutes);
 app.use("/api/audit-logs", requireAuth, checkTenant, auditRoutes);
-app.use("/api/mobile-scans", mobileScansRoutes);
+app.use("/api/mobile-scans", requireAuth, checkTenant, mobileScansRoutes);
 app.use("/api/webhooks/whatsapp", whatsappRoutes);
 
 app.use(notFoundHandler);

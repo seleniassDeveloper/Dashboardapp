@@ -294,9 +294,10 @@ export async function updateSlaConfig(req, res) {
 
     let existing = null;
     if (id) {
-      existing = await prisma.serviceSlaConfig.findUnique({ where: { id } });
+      existing = await prisma.serviceSlaConfig.findFirst({ where: { id, businessId } });
     } else {
-      existing = await prisma.serviceSlaConfig.findFirst({ where: { businessId, serviceId: serviceId || null }
+      existing = await prisma.serviceSlaConfig.findFirst({
+        where: { businessId, serviceId: serviceId || null }
       });
     }
 

@@ -40,7 +40,8 @@ export function assertProductionEnv() {
   }
 
   if (process.env.AUTH_DISABLED === "true") {
-    console.warn("[env] AUTH_DISABLED=true en producción — desactivá esto para usuarios reales.");
+    console.error("[env] CRITICAL SECURITY FATAL: AUTH_DISABLED cannot be 'true' in production.");
+    throw new Error("CRITICAL SECURITY ERROR: AUTH_DISABLED=true in production environment is forbidden.");
   }
 
   const hasFirebase =

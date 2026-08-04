@@ -2,15 +2,17 @@ import { getFirebaseAuth } from "../services/firebaseAdmin.js";
 import prisma from "../prisma.js";
 
 export default async function requireAuth(req, res, next) {
+  const isProd = process.env.NODE_ENV === "production";
+  const isAuthDisabled = process.env.AUTH_DISABLED === "true" && !isProd;
+
   let firebaseUser = null;
   const header = req.headers.authorization;
   const token = header?.startsWith("Bearer ") ? header.slice(7) : null;
 
-  // 1. Validar tokens de autenticación local para desarrollo / testing
-  // 1. Verificar si el token es local (solo para desarrollo)
+  // 1. Validar tokens de autenticación local (SOLO si NO es producción y AUTH_DISABLED está activo)
   if (token && token.startsWith("local-token-")) {
-    if (process.env.NODE_ENV === "production") {
-      return res.status(401).json({ error: "Sesión local no permitida en producción." });
+    if (isProd || !isAuthDisabled) {
+      return res.status(401).json({ error: "Sesión local no permitida en este entorno." });
     }
     const userId = token.replace("local-token-", "");
     try {
@@ -31,11 +33,11 @@ export default async function requireAuth(req, res, next) {
 
   // 2. Si no es un token local, aplicar flujos estándar
   if (!firebaseUser) {
-    if (process.env.AUTH_DISABLED === "true" && !token) {
+    if (isAuthDisabled && !token) {
       // Compatibilidad para desarrollo rápido local sin token
       firebaseUser = { uid: "dev-user", email: "selenisdeveloper@gmail.com", admin: true };
     } else {
-      const bypassToken = process.env.QUICK_BOOKING_TOKEN || (process.env.NODE_ENV === "production" ? null : "aura-admin-token");
+      const bypassToken = process.env.QUICK_BOOKING_TOKEN || null;
 
       if (token && bypassToken && token === bypassToken) {
         firebaseUser = { uid: "quick-booking-user", email: "quick@booking.com", admin: true };
@@ -53,7 +55,7 @@ export default async function requireAuth(req, res, next) {
           console.error("verifyIdToken failed:", e);
           const msg = String(e?.message || e);
           if (
-            process.env.NODE_ENV !== "production" && (
+            !isProd && isAuthDisabled && (
               msg.includes("credenciales") ||
               msg.includes("FIREBASE_SERVICE_ACCOUNT") ||
               msg.includes("no hay credenciales") ||

@@ -475,14 +475,13 @@ export async function createSalaryPayment(req, res) {
     }
 
     const businessId = req.businessId;
-    let worker = null;
-    if (businessId) {
-      worker = await prisma.worker.findFirst({ where: { id: workerId, businessId } });
-      if (!worker) {
-        return res.status(400).json({ error: "El colaborador seleccionado no pertenece a tu negocio." });
-      }
-    } else {
-      worker = await prisma.worker.findUnique({ where: { id: workerId } });
+    if (!businessId) {
+      return res.status(400).json({ error: "No se identificó el negocio en la petición." });
+    }
+
+    const worker = await prisma.worker.findFirst({ where: { id: workerId, businessId } });
+    if (!worker) {
+      return res.status(404).json({ error: "El colaborador seleccionado no pertenece a tu negocio." });
     }
 
     const netPaid = Number(baseSalary) + Number(commissionPaid) + Number(bonuses || 0) 
@@ -733,12 +732,15 @@ export async function updateBranch(req, res) {
       return res.status(400).json({ error: "El ID de la sucursal es obligatorio." });
     }
 
-    const target = await prisma.branch.findUnique({ where: { id } });
+    const businessId = req.businessId;
+    if (!businessId) {
+      return res.status(400).json({ error: "No se identificó el negocio en la petición." });
+    }
+
+    const target = await prisma.branch.findFirst({ where: { id, businessId } });
     if (!target) {
       return res.status(404).json({ error: "Sucursal no encontrada." });
     }
-
-    const businessId = req.businessId || target.businessId;
 
     // Si es principal, desmarcar las otras primero
     if (isMain) {
@@ -787,7 +789,12 @@ export async function deleteBranch(req, res) {
       return res.status(400).json({ error: "El ID de la sucursal es obligatorio." });
     }
 
-    const target = await prisma.branch.findUnique({ where: { id } });
+    const businessId = req.businessId;
+    if (!businessId) {
+      return res.status(400).json({ error: "No se identificó el negocio en la petición." });
+    }
+
+    const target = await prisma.branch.findFirst({ where: { id, businessId } });
     if (!target) {
       return res.status(404).json({ error: "Sucursal no encontrada." });
     }
@@ -821,7 +828,12 @@ export async function deleteExpense(req, res) {
       return res.status(400).json({ error: "El ID del egreso es obligatorio." });
     }
 
-    const target = await prisma.expense.findUnique({ where: { id } });
+    const businessId = req.businessId;
+    if (!businessId) {
+      return res.status(400).json({ error: "No se identificó el negocio en la petición." });
+    }
+
+    const target = await prisma.expense.findFirst({ where: { id, businessId } });
     if (!target) {
       return res.status(404).json({ error: "Gasto no encontrado." });
     }

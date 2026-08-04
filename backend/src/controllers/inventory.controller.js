@@ -1,4 +1,32 @@
 import prisma from "../prisma.js";
+import { z } from "zod";
+
+const updateProductSchema = z.object({
+  name: z.string().optional(),
+  category: z.string().optional(),
+  costPrice: z.union([z.number(), z.string()]).optional(),
+  salePrice: z.union([z.number(), z.string(), z.null()]).optional(),
+  stock: z.union([z.number(), z.string()]).optional(),
+  minStock: z.union([z.number(), z.string()]).optional(),
+  maxStock: z.union([z.number(), z.string()]).optional(),
+  unit: z.string().optional(),
+  barcode: z.string().optional().nullable(),
+  location: z.string().optional().nullable(),
+  providerId: z.string().optional().nullable(),
+  color: z.string().optional().nullable(),
+  icon: z.string().optional().nullable(),
+  label: z.string().optional().nullable(),
+  sku: z.string().optional().nullable(),
+  description: z.string().optional().nullable(),
+  weight: z.union([z.number(), z.string(), z.null()]).optional(),
+  volume: z.union([z.number(), z.string(), z.null()]).optional(),
+  dimensions: z.string().optional().nullable(),
+  taxRate: z.union([z.number(), z.string(), z.null()]).optional(),
+  leadTimeDays: z.union([z.number(), z.string(), z.null()]).optional(),
+  supplierSku: z.string().optional().nullable(),
+  requireExpiration: z.boolean().optional(),
+  requireBatch: z.boolean().optional(),
+});
 
 // Helper to seed initial products & suppliers if catalog is empty
 async function seedInventoryIfNeeded() {
@@ -370,12 +398,22 @@ export async function createProduct(req, res) {
 export async function updateProduct(req, res) {
   try {
     const { id } = req.params;
+    const parseResult = updateProductSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      return res.status(400).json({ error: "Datos de producto inválidos.", details: parseResult.error.issues });
+    }
+
     const {
       name, category, costPrice, salePrice, stock, minStock, maxStock, unit, barcode, location, providerId, color, icon, label,
       sku, description, weight, volume, dimensions, taxRate, leadTimeDays, supplierSku, requireExpiration, requireBatch
-    } = req.body;
+    } = parseResult.data;
 
-    const current = await prisma.product.findUnique({ where: { id } });
+    const businessId = req.businessId;
+    if (!businessId) {
+      return res.status(400).json({ error: "No se especificó el negocio." });
+    }
+
+    const current = await prisma.product.findFirst({ where: { id, businessId } });
     if (!current) return res.status(404).json({ error: "Producto no encontrado." });
 
     const prevStock = current.stock;

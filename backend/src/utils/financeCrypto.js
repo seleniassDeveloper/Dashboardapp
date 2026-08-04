@@ -1,8 +1,8 @@
 import crypto from "crypto";
 
-const SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === "production" ? null : "finance-bypass-secret-studio-aura-32-chars-long");
-if (process.env.NODE_ENV === "production" && !SECRET) {
-  throw new Error("CRITICAL SECURITY ERROR: JWT_SECRET is not configured in production.");
+const SECRET = process.env.JWT_SECRET;
+if (!SECRET) {
+  throw new Error("CRITICAL SECURITY ERROR: JWT_SECRET environment variable is not configured.");
 }
 
 /**
@@ -25,6 +25,7 @@ export function generateBypassToken(userId, businessId) {
 
 /**
  * Verifica la firma y expiración del token de bypass financiero.
+ * Utiliza crypto.timingSafeEqual para prevenir ataques de sincronización.
  * @param {string} token - Token completo (payloadBase64.firma)
  * @returns {object|null} - El payload decodificado si es válido, null en caso contrario
  */
@@ -35,15 +36,25 @@ export function verifyBypassToken(token) {
   
   try {
     const [payloadBase64, signature] = token.split(".");
+    if (!payloadBase64 || !signature) {
+      return null;
+    }
+
     const payloadStr = Buffer.from(payloadBase64, "base64").toString("utf8");
     
-    // Validar firma
+    // Validar firma usando timingSafeEqual
     const expectedSignature = crypto
       .createHmac("sha256", SECRET)
       .update(payloadStr)
       .digest("hex");
-      
-    if (signature !== expectedSignature) {
+
+    const sigBuffer = Buffer.from(signature, "hex");
+    const expectedBuffer = Buffer.from(expectedSignature, "hex");
+
+    if (
+      sigBuffer.length !== expectedBuffer.length ||
+      !crypto.timingSafeEqual(sigBuffer, expectedBuffer)
+    ) {
       return null;
     }
     

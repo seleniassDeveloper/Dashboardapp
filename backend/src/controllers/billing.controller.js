@@ -395,12 +395,16 @@ export async function webhook(req, res) {
 
 export async function quickApprove(req, res) {
   try {
-    const { token } = req.query;
-    if (!token) return res.status(400).send("<h1>Token no proporcionado</h1>");
+    if (!req.user || (!req.user.admin && req.user.role !== "owner" && req.user.email !== "seleniadeveloper@gmail.com")) {
+      return res.status(403).json({ error: "Acceso denegado. Se requieren permisos de super-administrador." });
+    }
 
-    const request = await prisma.planRequest.findUnique({ where: { approvalToken: token } });
-    if (!request) return res.status(404).send("<h1>Solicitud no encontrada o enlace inválido</h1>");
-    if (request.status !== "PENDING") return res.status(400).send(`<h1>La solicitud ya ha sido procesada (${request.status}).</h1>`);
+    const token = req.body?.token || req.query?.token;
+    if (!token) return res.status(400).json({ error: "Token de aprobación no proporcionado." });
+
+    const request = await prisma.planRequest.findUnique({ where: { approvalToken: String(token) } });
+    if (!request) return res.status(404).json({ error: "Solicitud no encontrada o enlace inválido." });
+    if (request.status !== "PENDING") return res.status(400).json({ error: `La solicitud ya ha sido procesada (${request.status}).` });
 
     await prisma.$transaction(async (tx) => {
       await tx.planRequest.update({
@@ -427,19 +431,27 @@ export async function quickApprove(req, res) {
     const interval = sub?.interval || "month";
     sendSubscriptionActivationEmail(request.businessId, request.requestedPlan, interval).catch(err => console.error("[billing] sendSubscriptionActivationEmailError:", err?.message || err));
 
-    return res.status(200).send(`
-      <div style="font-family: sans-serif; text-align: center; margin-top: 50px;">
-        <h1 style="color: #10b981;">✅ Acceso Aprobado Exitosamente</h1>
-        <p>El plan <b>${request.requestedPlan.toUpperCase()}</b> se ha otorgado al negocio ID: ${request.businessId}.</p>
-        <p>El usuario ya puede acceder a los módulos de su nuevo plan.</p>
-        <br/><br/>
-        <a href="https://dashboard-api-r6j9.onrender.com" style="text-decoration: none; color: #7c3aed; font-weight: bold;">Cerrar esta ventana</a>
-      </div>
-    `);
+    const safePlan = String(request.requestedPlan || "").replace(/[^\w-]/g, "").toUpperCase();
+    const safeBusinessId = String(request.businessId || "").replace(/[^\w-]/g, "");
+
+    if (req.accepts("html") && req.method === "GET") {
+      return res.status(200).send(`
+        <div style="font-family: sans-serif; text-align: center; margin-top: 50px;">
+          <h1 style="color: #10b981;">✅ Acceso Aprobado Exitosamente</h1>
+          <p>El plan <b>${safePlan}</b> se ha otorgado al negocio ID: ${safeBusinessId}.</p>
+          <p>El usuario ya puede acceder a los módulos de su nuevo plan.</p>
+        </div>
+      `);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Plan ${safePlan} aprobado exitosamente para el negocio ${safeBusinessId}.`
+    });
 
   } catch (error) {
     console.error("[billing] quickApprove:", error?.message || error);
-    return res.status(500).send("<h1>Error Interno del Servidor</h1>");
+    return res.status(500).json({ error: "Error interno procesando la aprobación." });
   }
 }
 
