@@ -95,12 +95,64 @@ export async function triggerWorkflows(businessId, triggerType, context, limitWo
       const servicePrice = appt?.service?.price || 0;
       const workerName = appt?.worker ? `${appt.worker.firstName} ${appt.worker.lastName}` : "Profesional";
 
-      // Execute flow steps/nodes
-      // In AuraDash, steps is a list of nodes. Transitions define dependencies.
-      // We can run the nodes sequentially or follow transitions. For simple actions, we execute action nodes.
-      const actionNodes = Array.isArray(workflow.steps) 
-        ? workflow.steps.filter(n => n.type === "action")
-        : [];
+      // Helper function for condition evaluation
+      const evaluateConditionNode = (node) => {
+        const field = node.config?.field || "price";
+        const operator = node.config?.operator || ">=";
+        const targetVal = Number(node.config?.value || node.config?.amount || 0);
+
+        let currentVal = 0;
+        if (field === "price" || field === "monto") currentVal = Number(appt?.finalPrice || servicePrice);
+        else if (field === "duration") currentVal = Number(appt?.service?.duration || 0);
+
+        if (operator === ">=") return currentVal >= targetVal;
+        if (operator === ">") return currentVal > targetVal;
+        if (operator === "<=") return currentVal <= targetVal;
+        if (operator === "<") return currentVal < targetVal;
+        if (operator === "==" || operator === "===") return currentVal === targetVal;
+        if (operator === "!=") return currentVal !== targetVal;
+        return true;
+      };
+
+      // Determine nodes to execute via DAG traversal or linear action list
+      let actionNodes = [];
+      const steps = Array.isArray(workflow.steps) ? workflow.steps : [];
+      const transitions = Array.isArray(workflow.transitions) ? workflow.transitions : [];
+
+      if (transitions.length > 0) {
+        const triggerNode = steps.find(n => n.type === "trigger") || steps[0];
+        let currentNode = triggerNode;
+        const visited = new Set();
+
+        while (currentNode && !visited.has(currentNode.id)) {
+          visited.add(currentNode.id);
+
+          if (currentNode.type === "action") {
+            actionNodes.push(currentNode);
+          }
+
+          const outgoing = transitions.filter(t => t.source === currentNode.id);
+          if (outgoing.length === 0) break;
+
+          if (currentNode.type === "condition") {
+            const condResult = evaluateConditionNode(currentNode);
+            const targetBranch = condResult ? "yes" : "no";
+            const matchedTrans = outgoing.find(t => t.condition === targetBranch) || outgoing[0];
+            currentNode = steps.find(n => n.id === matchedTrans.target);
+
+            stepLogs.push({
+              nodeName: currentNode?.name || "Evaluador de Condición",
+              nodeType: "condition",
+              status: "SUCCESS",
+              result: `Condición evaluada como ${condResult ? 'VERDADERA (rama SÍ)' : 'FALSA (rama NO)'}.`
+            });
+          } else {
+            currentNode = steps.find(n => n.id === outgoing[0].target);
+          }
+        }
+      } else {
+        actionNodes = steps.filter(n => n.type === "action");
+      }
 
       for (const node of actionNodes) {
         const subtype = String(node.subtype || node.type).toLowerCase();
@@ -423,6 +475,52 @@ export async function triggerWorkflows(businessId, triggerType, context, limitWo
             }
 
             stepResult = `Mensaje de WhatsApp enviado a ${cleanPhone} exitosamente.`;
+          }
+
+          else if (subtype === "aplicar-descuento" || subtype === "apply_discount") {
+            if (!appt) throw new Error("Cita no disponible en el contexto.");
+            const discountPercent = Number(node.config?.discountPercent || node.config?.value || 10);
+            const currentPrice = appt.finalPrice || servicePrice;
+            const newPrice = Math.max(0, Math.round(currentPrice * (1 - discountPercent / 100)));
+
+            await prisma.appointment.update({
+              where: { id: appt.id },
+              data: { finalPrice: newPrice }
+            });
+
+            stepResult = `Descuento del ${discountPercent}% aplicado a la cita ${appt.id}. Nuevo precio: $${newPrice}.`;
+          }
+
+          else if (subtype === "notificar-admin" || subtype === "notify_admin") {
+            const adminMsg = node.config?.message || `Notificación automática de workflow para el negocio.`;
+            await prisma.auditLog.create({
+              data: {
+                action: "workflow_admin_notification",
+                metadata: {
+                  actor: "Workflow Automation",
+                  details: processTemplateVars(adminMsg, { cliente: clientName, servicio: serviceName, profesional: workerName })
+                },
+                businessId
+              }
+            });
+
+            stepResult = `Notificación a administradores registrada exitosamente.`;
+          }
+
+          else if (subtype === "crear-tarea" || subtype === "create_task") {
+            const taskTitle = node.config?.title || `Tarea automática para cita de ${clientName}`;
+            await prisma.auditLog.create({
+              data: {
+                action: "workflow_task_created",
+                metadata: {
+                  actor: "Workflow Automation",
+                  details: `Tarea generada: ${taskTitle}. Asignada a: ${node.config?.assignee || "Equipo"}.`
+                },
+                businessId
+              }
+            });
+
+            stepResult = `Tarea de CRM "${taskTitle}" generada con éxito.`;
           }
 
           else {

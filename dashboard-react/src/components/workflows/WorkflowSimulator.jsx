@@ -182,24 +182,10 @@ export default function WorkflowSimulator({
       }
     }
 
-    // 3. Persist Execution Log to backend Neon PostgreSQL
-    try {
-      await api.post("/workflows/executions", {
-        workflowId: workflow.id,
-        status: "SUCCESS",
-        triggerType: simulatedTrigger,
-        runTimeMs: Math.round(1500 + Math.random() * 800),
-        logs: executionLogs
-      });
-      addLog(isEs ? "💾 Log de simulación guardado en Neon Cloud DB con éxito." : "💾 Simulation log saved to Neon Cloud DB successfully.", "success");
-      setSuccess(true);
-    } catch (dbErr) {
-      console.error(dbErr);
-      addLog(isEs ? "⚠️ Advertencia: No se pudo guardar la ejecución en base de datos cloud." : "⚠️ Warning: Could not save simulation log to cloud database.", "warning");
-      setSuccess(true);
-    } finally {
-      setSimulating(false);
-    }
+    // 3. Complete Simulation without contaminating real execution history
+    addLog(isEs ? "🎉 Simulación completada con éxito." : "🎉 Simulation completed successfully.", "success");
+    setSuccess(true);
+    setSimulating(false);
   };
 
   const addLog = (text, type = "info") => {
