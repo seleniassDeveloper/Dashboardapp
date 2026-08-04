@@ -230,18 +230,18 @@ function LandingCustomPlanBuilder({ isEs, onSelectPlan }) {
 import LanguageSwitcher from "../components/language/LanguageSwitcher.jsx";
 import "./styles/landing.css";
 
-import logoCircular from "../assets/logo-circular.png";
-import logoHorizontal from "../assets/logo-horizontal.png";
+import logoCircular from "../assets/logo-circular.webp";
+import logoHorizontal from "../assets/logo-horizontal.webp";
 
-import dashHome from "../assets/tour_panel.png";
-import dashCalendar from "../assets/tour_agenda.png";
-import dashClients from "../assets/c3.png";
-import dashTeam from "../assets/tour_equipo.png";
-import dashFinance from "../assets/tour_finanzas.png";
-import dashFlows from "../assets/tour_workflows.png";
-import dashIntegrations from "../assets/tour_integraciones.png";
-import dashSettings from "../assets/tour_config.png";
-import dashInventory from "../assets/seccion3.png";
+import dashHome from "../assets/tour_panel.webp";
+import dashCalendar from "../assets/tour_agenda.webp";
+import dashClients from "../assets/c3.webp";
+import dashTeam from "../assets/tour_equipo.webp";
+import dashFinance from "../assets/tour_finanzas.webp";
+import dashFlows from "../assets/tour_workflows.webp";
+import dashIntegrations from "../assets/tour_integraciones.webp";
+import dashSettings from "../assets/tour_config.webp";
+import dashInventory from "../assets/seccion3.webp";
 
 // Reutilizamos el sistema de revelación al hacer scroll
 function useScrollReveal() {

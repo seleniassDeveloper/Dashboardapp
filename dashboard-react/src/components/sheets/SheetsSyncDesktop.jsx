@@ -7,7 +7,6 @@ import {
 } from "lucide-react";
 import { useTranslation, Trans } from "react-i18next";
 import api from "../../lib/api.js";
-import * as XLSX from "xlsx";
 
 import { INITIAL_ENTITY_FIELDS, SAMPLE_SALON_DATA } from "../../hooks/useSheetsSync";
 
@@ -631,7 +630,8 @@ export default function SheetsSyncDesktop({ sync }) {
                             variant="outline-danger" 
                             size="sm" 
                             className="rounded-pill px-3 py-1 text-decoration-none d-flex align-items-center gap-1"
-                            onClick={() => {
+                            onClick={async () => {
+                              const XLSX = await import("xlsx");
                               const data = [["Fila Original", "Motivo del Error"], ...summary.skippedDetails.map(d => [d.row, d.motive])];
                               const ws = XLSX.utils.aoa_to_sheet(data);
                               const wb = XLSX.utils.book_new();
@@ -1033,7 +1033,8 @@ export default function SheetsSyncDesktop({ sync }) {
                       variant="outline-danger" 
                       size="sm" 
                       className="rounded-pill px-3 py-1 d-flex align-items-center gap-1"
-                      onClick={() => {
+                      onClick={async () => {
+                        const XLSX = await import("xlsx");
                         const skips = (selectedHistory.details.summary?.skippedDetails) || selectedHistory.details.skippedDetails;
                         const data = [["Fila Original", "Motivo del Error"], ...skips.map(d => [d.row, d.motive])];
                         const ws = XLSX.utils.aoa_to_sheet(data);

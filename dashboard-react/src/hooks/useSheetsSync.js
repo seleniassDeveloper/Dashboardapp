@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import api from "../lib/api.js";
-import * as XLSX from "xlsx";
 
 export const INITIAL_ENTITY_FIELDS = {
   clients: [
@@ -477,7 +476,7 @@ export function useSheetsSync() {
     }
   };
 
-  const downloadTemplate = (entityType) => {
+  const downloadTemplate = async (entityType) => {
     const fields = INITIAL_ENTITY_FIELDS[entityType];
     const headers = fields.map(f => f.label);
     
@@ -501,6 +500,7 @@ export function useSheetsSync() {
     };
 
     const data = [headers, ...exampleRows[entityType]];
+    const XLSX = await import("xlsx");
     const ws = XLSX.utils.aoa_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Plantilla");
@@ -615,8 +615,9 @@ export function useSheetsSync() {
       };
       reader.readAsText(file);
     } else if (extension === "xlsx" || extension === "xls") {
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         try {
+          const XLSX = await import("xlsx");
           const data = new Uint8Array(e.target.result);
           const workbook = XLSX.read(data, { type: "array" });
           
