@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import admin from "firebase-admin";
+import { ensureFirebaseAdmin } from "./firebaseAdmin.js";
 
 /**
  * Uploads a base64 encoded image to either Firebase Storage or local filesystem fallback.
@@ -34,8 +35,9 @@ export async function uploadBase64Image(base64Data, filenamePrefix, clientId) {
 
   // Check if Firebase Storage is configured
   const bucketName = process.env.FIREBASE_STORAGE_BUCKET;
-  if (bucketName && admin.apps.length > 0) {
+  if (bucketName) {
     try {
+      ensureFirebaseAdmin();
       const bucket = admin.storage().bucket(bucketName);
       const file = bucket.file(`appointments/${filename}`);
       
@@ -44,11 +46,15 @@ export async function uploadBase64Image(base64Data, filenamePrefix, clientId) {
         public: true,
       });
 
-      // Public URL on google cloud storage
-      return `https://storage.googleapis.com/${bucketName}/appointments/${filename}`;
+      // Public URL on Google Cloud Storage
+      const publicUrl = `https://storage.googleapis.com/${bucketName}/appointments/${filename}`;
+      console.log(`[Storage Service] Imagen subida exitosamente a Firebase Storage: ${publicUrl}`);
+      return publicUrl;
     } catch (err) {
-      console.error("[Storage Service] Error uploading to Firebase Storage, falling back to local storage:", err);
+      console.error("[Storage Service] Error al subir a Firebase Storage, recurriendo a disco local:", err?.message || err);
     }
+  } else {
+    console.warn("[Storage Service] FIREBASE_STORAGE_BUCKET no configurado. Usando disco local efímero.");
   }
 
   // Fallback to local folder
