@@ -1,60 +1,81 @@
 import prisma from "../prisma.js";
 
-// Obtener todos los widgets del usuario
+// Obtener todos los widgets del usuario para el negocio activo
 export async function getWidgets(req, res) {
   try {
     const userId = req.user.uid;
-    let widgets = await prisma.dashboardWidget.findMany({ where: { businessId: req.businessId,  userId },
-      orderBy: { createdAt: "asc" },
+    const businessId = req.businessId;
+
+    if (!businessId) {
+      return res.status(400).json({ error: "No se especificó el negocio." });
+    }
+
+    let widgets = await prisma.dashboardWidget.findMany({
+      where: { userId, businessId },
+      orderBy: [{ position: "asc" }, { createdAt: "asc" }],
     });
 
-    // Si el usuario no tiene widgets, inicializar con los widgets sugeridos por defecto
+    // Si el usuario no tiene widgets para este negocio, inicializar defaults
     if (widgets.length === 0) {
       const defaults = [
         {
           userId,
+          businessId,
+          position: 0,
           title: "Próximas Citas (SLA)",
           type: "upcoming_appointments",
           config: { color: "#3b82f6", range: "TODAY" },
-          layout: { w: 4, h: 5 },
+          layout: { x: 0, y: 0, w: 4, h: 5 },
         },
         {
           userId,
+          businessId,
+          position: 1,
           title: "Requiere Atención",
           type: "attention",
           config: { color: "#ef4444", range: "ALL" },
-          layout: { w: 4, h: 5 },
+          layout: { x: 4, y: 0, w: 4, h: 5 },
         },
         {
           userId,
+          businessId,
+          position: 2,
           title: "Agenda de Citas",
           type: "calendar",
           config: { color: "#10b981", range: "ALL" },
-          layout: { w: 4, h: 5 },
+          layout: { x: 8, y: 0, w: 4, h: 5 },
         },
         {
           userId,
+          businessId,
+          position: 3,
           title: "Horas Pico de Reserva",
           type: "chart",
           config: { metric: "peak_hours", entity: "appointments", chartType: "bar", range: "THIS_MONTH", color: "#3b82f6" },
-          layout: { w: 6, h: 4 },
+          layout: { x: 0, y: 5, w: 6, h: 4 },
         },
         {
           userId,
+          businessId,
+          position: 4,
           title: "Ventas por Servicio (Mix de Salón)",
           type: "chart",
           config: { metric: "services_sales", entity: "services", chartType: "pie", range: "THIS_MONTH", color: "#ec4899" },
-          layout: { w: 6, h: 4 },
+          layout: { x: 6, y: 5, w: 6, h: 4 },
         },
         {
           userId,
+          businessId,
+          position: 5,
           title: "Carga de Trabajo (Citas por Estilista)",
           type: "chart",
           config: { metric: "workers_load", entity: "workers", chartType: "bar", range: "THIS_MONTH", color: "#d97706" },
-          layout: { w: 6, h: 4 },
+          layout: { x: 0, y: 9, w: 6, h: 4 },
         },
         {
           userId,
+          businessId,
+          position: 6,
           title: "AI Copilot Insights",
           type: "ai_insight",
           config: {
@@ -65,16 +86,17 @@ export async function getWidgets(req, res) {
               "Se detecta saturación horaria los sábados por la tarde, considera habilitar agendas extras.",
             ],
           },
-          layout: { w: 6, h: 4 },
+          layout: { x: 6, y: 9, w: 6, h: 4 },
         },
       ];
 
       // Insertar en base de datos
       await prisma.dashboardWidget.createMany({ data: defaults });
       
-      // Consultar de nuevo para tener los IDs creados por la base de datos
-      widgets = await prisma.dashboardWidget.findMany({ where: { businessId: req.businessId,  userId },
-        orderBy: { createdAt: "asc" },
+      // Consultar de nuevo con los IDs asignados
+      widgets = await prisma.dashboardWidget.findMany({
+        where: { userId, businessId },
+        orderBy: [{ position: "asc" }, { createdAt: "asc" }],
       });
     }
 
@@ -89,19 +111,24 @@ export async function getWidgets(req, res) {
 export async function createWidget(req, res) {
   try {
     const userId = req.user.uid;
-    const { title, type, config, layout } = req.body;
+    const businessId = req.businessId;
+    const { title, type, config, layout, position } = req.body;
 
     if (!title || !type) {
       return res.status(400).json({ error: "El título y tipo de widget son obligatorios." });
     }
 
+    const count = await prisma.dashboardWidget.count({ where: { userId, businessId } });
+
     const widget = await prisma.dashboardWidget.create({
       data: {
         userId,
+        businessId,
         title,
         type,
         config: config || {},
         layout: layout || { x: 0, y: 100, w: 6, h: 4 },
+        position: position !== undefined ? Number(position) : count,
       },
     });
 
@@ -112,19 +139,28 @@ export async function createWidget(req, res) {
   }
 }
 
-// Actualizar un widget (configuración o título)
+// Actualizar un widget (configuración, título o posición)
 export async function updateWidget(req, res) {
   try {
     const userId = req.user.uid;
+    const businessId = req.businessId;
     const { id } = req.params;
-    const { title, config, layout } = req.body;
+    const { title, config, layout, position } = req.body;
+
+    const existing = await prisma.dashboardWidget.findFirst({
+      where: { id, userId, businessId }
+    });
+    if (!existing) {
+      return res.status(404).json({ error: "Widget no encontrado o no pertenece a este negocio." });
+    }
 
     const widget = await prisma.dashboardWidget.update({
-      where: { id, userId },
+      where: { id },
       data: {
         ...(title !== undefined && { title }),
         ...(config !== undefined && { config }),
         ...(layout !== undefined && { layout }),
+        ...(position !== undefined && { position: Number(position) }),
       },
     });
 
@@ -135,26 +171,30 @@ export async function updateWidget(req, res) {
   }
 }
 
-// Actualizar múltiples layouts en lote (Drag & Drop)
+// Actualizar múltiples layouts y posiciones en lote (Drag & Drop)
 export async function updateLayouts(req, res) {
   try {
     const userId = req.user.uid;
-    const { layouts } = req.body; // Array de { id, layout: { x, y, w, h } }
+    const businessId = req.businessId;
+    const { layouts } = req.body; // Array de { id, position, layout: { x, y, w, h } }
 
     if (!Array.isArray(layouts)) {
       return res.status(400).json({ error: "Formato de layouts incorrecto. Debe ser un arreglo." });
     }
 
-    const updates = layouts.map((item) =>
-      prisma.dashboardWidget.update({
-        where: { id: item.id, userId },
-        data: { layout: item.layout },
+    const updates = layouts.map((item, index) =>
+      prisma.dashboardWidget.updateMany({
+        where: { id: item.id, userId, businessId },
+        data: {
+          layout: item.layout,
+          position: item.position !== undefined ? Number(item.position) : index,
+        },
       })
     );
 
     await prisma.$transaction(updates);
 
-    return res.json({ ok: true, message: "Layouts actualizados." });
+    return res.json({ ok: true, message: "Layouts y posiciones actualizados." });
   } catch (error) {
     console.error("[dashboard] updateLayouts:", error?.message || error);
     return res.status(500).json({ error: "Error interno al guardar distribución." });
@@ -165,9 +205,12 @@ export async function updateLayouts(req, res) {
 export async function deleteWidget(req, res) {
   try {
     const userId = req.user.uid;
+    const businessId = req.businessId;
     const { id } = req.params;
 
-    const existing = await prisma.dashboardWidget.findFirst({ where: { businessId: req.businessId,  id, userId } });
+    const existing = await prisma.dashboardWidget.findFirst({
+      where: { id, userId, businessId }
+    });
     if (!existing) {
       return res.status(404).json({ error: "Widget no encontrado o sin permisos." });
     }
@@ -185,8 +228,9 @@ export async function deleteWidget(req, res) {
 export async function restoreDefaults(req, res) {
   try {
     const userId = req.user.uid;
+    const businessId = req.businessId;
     await prisma.dashboardWidget.deleteMany({
-      where: { userId }
+      where: { userId, businessId }
     });
     return res.json({ success: true, message: "Widgets restaurados a sus valores por defecto." });
   } catch (error) {

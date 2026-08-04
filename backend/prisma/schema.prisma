@@ -241,16 +241,20 @@ enum AppointmentStatus {
 }
 
 model DashboardWidget {
-  id        String   @id @default(cuid())
-  userId    String
-  title     String
-  type      String   // "kpi" | "chart" | "calendar" | "activity" | "workflows" | "table" | "ai_insight"
-  config    Json     // Parámetros: { metric, entity, filters, range, grouping, chartType, color }
-  layout    Json     // Posición y dimensiones: { x, y, w, h }
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String    @id @default(cuid())
+  userId     String
+  businessId String?
+  business   Business? @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  title      String
+  type       String    // "kpi" | "chart" | "calendar" | "activity" | "workflows" | "table" | "ai_insight"
+  config     Json      // Parámetros: { metric, entity, filters, range, grouping, chartType, color }
+  layout     Json      // Posición y dimensiones: { x, y, w, h }
+  position   Int       @default(0)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   @@index([userId])
+  @@index([userId, businessId])
 }
 
 model Business {
@@ -298,6 +302,7 @@ model Business {
   statusHistories            AppointmentStatusHistory[]
   slaConfigs                 ServiceSlaConfig[]
   slas                       ServiceSla[]
+  widgets                    DashboardWidget[]
   marketingPosts             MarketingPost[]
   plan                       String                     @default("starter") // starter | pro | business | custom
   enabledModules             Json?                      @default("[\"agenda\",\"clients\",\"services\"]")

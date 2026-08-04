@@ -464,9 +464,10 @@ export default function DashboardView() {
     setWidgets(reorderedWidgets);
     if (!saveToBackend) return;
     try {
-      const layoutsPayload = reorderedWidgets.map((w) => ({
+      const layoutsPayload = reorderedWidgets.map((w, index) => ({
         id: w.id,
         layout: w.layout,
+        position: index,
       }));
       await api.put("/dashboard/widgets/layout", { layouts: layoutsPayload });
     } catch (e) {
