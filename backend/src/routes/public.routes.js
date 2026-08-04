@@ -15,9 +15,17 @@ import {
   signConsent,
   getConsentRecordById
 } from "../controllers/consent.controller.js";
-import { resolveComponentFields } from "../services/formSchemaService.js";
+import rateLimit from "express-rate-limit";
 
 const router = Router();
+
+const confirmLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 10, // Límite estricto de 10 confirmaciones por IP para evitar enumeraciones
+  message: "Demasiados intentos de confirmación desde esta dirección IP. Inténtalo más tarde.",
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 router.get("/business/:slug", getPublicBusiness);
 router.get("/business/:slug/services", getPublicServices);
@@ -25,7 +33,7 @@ router.get("/business/:slug/professionals", getPublicProfessionals);
 router.get("/business/:slug/availability", getPublicAvailability);
 router.get("/business/:slug/slots", getPublicAvailability);
 router.post("/business/:slug/bookings", createPublicBooking);
-router.get("/appointments/confirm/:id", confirmPublicAppointment);
+router.get("/appointments/confirm/:id", confirmLimiter, confirmPublicAppointment);
 // Redirect ESTÁTICO (sin :slug). El negocio se identifica por `state` (businessId).
 // Se conserva la variante con :slug por compatibilidad con conexiones antiguas.
 router.get("/google/oauth-callback", googleOAuthCallback);

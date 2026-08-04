@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import prisma from "../prisma.js";
 import { sendReminderEmail } from "../services/mailer.js";
 import { triggerWorkflows } from "../services/workflowEngine.js";
@@ -832,13 +833,50 @@ export async function triggerPublicWorkflowWebhook(req, res) {
   }
 }
 
+// Helper para generar token seguro HMAC de confirmación de cita
+export function generateAppointmentConfirmToken(appointmentId) {
+  const secret = process.env.JWT_SECRET || "aura_appointment_confirmation_secret";
+  return crypto.createHmac("sha256", secret).update(`confirm-appt-${appointmentId}`).digest("hex").slice(0, 32);
+}
+
 // Endpoint para confirmación de cita via enlace web público (link en email / WhatsApp)
 export async function confirmPublicAppointment(req, res) {
   try {
     const { id } = req.params;
+    const { token } = req.query;
 
     if (!id) {
       return res.status(400).send("<h1>ID de cita no proporcionado</h1>");
+    }
+
+    const expectedToken = generateAppointmentConfirmToken(id);
+
+    // Validación segura de token sin fugas IDOR
+    if (!token || typeof token !== "string") {
+      return res.status(403).send(`
+        <div style="font-family: 'Inter', sans-serif; text-align: center; margin-top: 60px; padding: 20px;">
+          <div style="max-width: 500px; margin: 0 auto; border: 1px solid #fee2e2; border-radius: 16px; padding: 40px; background: #fff5f5;">
+            <div style="font-size: 48px; margin-bottom: 15px;">⚠️</div>
+            <h1 style="color: #ef4444; font-size: 22px; font-weight: 700; margin-bottom: 10px;">Token de Confirmación Requerido</h1>
+            <p style="color: #6b7280; font-size: 14px;">El enlace de confirmación no contiene un token de seguridad válido.</p>
+          </div>
+        </div>
+      `);
+    }
+
+    const isValidToken = token.length === expectedToken.length && 
+      crypto.timingSafeEqual(Buffer.from(token), Buffer.from(expectedToken));
+
+    if (!isValidToken) {
+      return res.status(403).send(`
+        <div style="font-family: 'Inter', sans-serif; text-align: center; margin-top: 60px; padding: 20px;">
+          <div style="max-width: 500px; margin: 0 auto; border: 1px solid #fee2e2; border-radius: 16px; padding: 40px; background: #fff5f5;">
+            <div style="font-size: 48px; margin-bottom: 15px;">⚠️</div>
+            <h1 style="color: #ef4444; font-size: 22px; font-weight: 700; margin-bottom: 10px;">Enlace Inválido o Caducado</h1>
+            <p style="color: #6b7280; font-size: 14px;">El token de confirmación proporcionado no es válido para esta cita.</p>
+          </div>
+        </div>
+      `);
     }
 
     const appointment = await prisma.appointment.findUnique({
@@ -864,7 +902,7 @@ export async function confirmPublicAppointment(req, res) {
           action: "public_appointment_confirmed",
           metadata: {
             actor: "Cliente (Enlace Web)",
-            details: `Cita ${appointment.id} confirmada públicamente mediante enlace web.`
+            details: `Cita ${appointment.id} confirmada públicamente con token validado.`
           },
           businessId: appointment.businessId
         }
