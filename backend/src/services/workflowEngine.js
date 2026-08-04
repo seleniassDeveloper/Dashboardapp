@@ -95,22 +95,40 @@ export async function triggerWorkflows(businessId, triggerType, context, limitWo
       const servicePrice = appt?.service?.price || 0;
       const workerName = appt?.worker ? `${appt.worker.firstName} ${appt.worker.lastName}` : "Profesional";
 
-      // Helper function for condition evaluation
+      // Helper functions for transition field normalization
+      const getTransitionSource = (t) => t.from || t.source;
+      const getTransitionTarget = (t) => t.to || t.target;
+      const getTransitionBranch = (t) => t.conditionBranch || t.condition;
+
+      // Helper function for condition evaluation (reads property / field)
       const evaluateConditionNode = (node) => {
-        const field = node.config?.field || "price";
+        const prop = String(node.config?.property || node.config?.field || "monto").toLowerCase();
         const operator = node.config?.operator || ">=";
-        const targetVal = Number(node.config?.value || node.config?.amount || 0);
+        const targetVal = node.config?.value !== undefined ? node.config.value : (node.config?.amount || 0);
+
+        if (prop.includes("vip") || prop === "clienttype" || prop === "cliente.vip") {
+          const isVip = appt?.client?.tags?.includes("VIP") || context?.clientType === "vip";
+          return operator === "!=" ? !isVip : isVip;
+        }
 
         let currentVal = 0;
-        if (field === "price" || field === "monto") currentVal = Number(appt?.finalPrice || servicePrice);
-        else if (field === "duration") currentVal = Number(appt?.service?.duration || 0);
+        if (prop === "price" || prop === "monto" || prop === "precio") {
+          currentVal = Number(appt?.finalPrice || servicePrice);
+        } else if (prop === "duration" || prop === "duracion") {
+          currentVal = Number(appt?.service?.duration || 0);
+        } else if (prop === "stock") {
+          currentVal = Number(context?.stock || 0);
+        } else {
+          currentVal = Number(context?.[prop] || appt?.[prop] || 0);
+        }
 
-        if (operator === ">=") return currentVal >= targetVal;
-        if (operator === ">") return currentVal > targetVal;
-        if (operator === "<=") return currentVal <= targetVal;
-        if (operator === "<") return currentVal < targetVal;
-        if (operator === "==" || operator === "===") return currentVal === targetVal;
-        if (operator === "!=") return currentVal !== targetVal;
+        const numTarget = Number(targetVal);
+        if (operator === ">=") return currentVal >= numTarget;
+        if (operator === ">") return currentVal > numTarget;
+        if (operator === "<=") return currentVal <= numTarget;
+        if (operator === "<") return currentVal < numTarget;
+        if (operator === "==" || operator === "===") return String(currentVal) === String(targetVal);
+        if (operator === "!=") return String(currentVal) !== String(targetVal);
         return true;
       };
 
@@ -129,25 +147,37 @@ export async function triggerWorkflows(businessId, triggerType, context, limitWo
 
           if (currentNode.type === "action") {
             actionNodes.push(currentNode);
+          } else if (currentNode.type === "delay") {
+            const timeVal = currentNode.config?.timeValue || 1;
+            const timeUnit = currentNode.config?.timeUnit || "minutos";
+            stepLogs.push({
+              nodeName: currentNode.name || "Retardo de Tiempo",
+              nodeType: "delay",
+              status: "SUCCESS",
+              result: `Retardo de ${timeVal} ${timeUnit} registrado en el flujo.`
+            });
           }
 
-          const outgoing = transitions.filter(t => t.source === currentNode.id);
+          const outgoing = transitions.filter(t => getTransitionSource(t) === currentNode.id);
           if (outgoing.length === 0) break;
 
           if (currentNode.type === "condition") {
             const condResult = evaluateConditionNode(currentNode);
             const targetBranch = condResult ? "yes" : "no";
-            const matchedTrans = outgoing.find(t => t.condition === targetBranch) || outgoing[0];
-            currentNode = steps.find(n => n.id === matchedTrans.target);
+            const matchedTrans = outgoing.find(t => getTransitionBranch(t) === targetBranch) || outgoing[0];
+            const targetId = matchedTrans ? getTransitionTarget(matchedTrans) : null;
 
             stepLogs.push({
               nodeName: currentNode?.name || "Evaluador de Condición",
               nodeType: "condition",
               status: "SUCCESS",
-              result: `Condición evaluada como ${condResult ? 'VERDADERA (rama SÍ)' : 'FALSA (rama NO)'}.`
+              result: `Condición (${currentNode.config?.property || 'propiedad'}) evaluada como ${condResult ? 'VERDADERA (rama SÍ)' : 'FALSA (rama NO)'}.`
             });
+
+            currentNode = targetId ? steps.find(n => n.id === targetId) : null;
           } else {
-            currentNode = steps.find(n => n.id === outgoing[0].target);
+            const targetId = getTransitionTarget(outgoing[0]);
+            currentNode = targetId ? steps.find(n => n.id === targetId) : null;
           }
         }
       } else {
@@ -678,10 +708,6 @@ export async function triggerWorkflowByInboundWebhook(workflowId, payload, secre
   const stepLogs = [];
   let executionStatus = "SUCCESS";
 
-  const actionNodes = Array.isArray(workflow.steps) 
-    ? workflow.steps.filter(n => n.type === "action")
-    : [];
-
   // Parse variables from payload
   const clientName = payload.cliente || payload.name || "Cliente";
   const clientEmail = payload.email || payload.correo;
@@ -689,6 +715,64 @@ export async function triggerWorkflowByInboundWebhook(workflowId, payload, secre
   const serviceName = payload.servicio || "Servicio";
   const servicePrice = payload.monto || payload.price || 0;
   const workerName = payload.profesional || "Profesional";
+
+  const getTransitionSource = (t) => t.from || t.source;
+  const getTransitionTarget = (t) => t.to || t.target;
+  const getTransitionBranch = (t) => t.conditionBranch || t.condition;
+
+  let actionNodes = [];
+  const steps = Array.isArray(workflow.steps) ? workflow.steps : [];
+  const transitions = Array.isArray(workflow.transitions) ? workflow.transitions : [];
+
+  if (transitions.length > 0) {
+    const triggerNode = steps.find(n => n.type === "trigger") || steps[0];
+    let currentNode = triggerNode;
+    const visited = new Set();
+
+    while (currentNode && !visited.has(currentNode.id)) {
+      visited.add(currentNode.id);
+
+      if (currentNode.type === "action") {
+        actionNodes.push(currentNode);
+      }
+
+      const outgoing = transitions.filter(t => getTransitionSource(t) === currentNode.id);
+      if (outgoing.length === 0) break;
+
+      if (currentNode.type === "condition") {
+        const prop = String(currentNode.config?.property || currentNode.config?.field || "monto").toLowerCase();
+        const operator = currentNode.config?.operator || ">=";
+        const targetVal = currentNode.config?.value !== undefined ? currentNode.config.value : (currentNode.config?.amount || 0);
+
+        let currentVal = Number(payload[prop] || servicePrice);
+        const numTarget = Number(targetVal);
+        let condResult = currentVal >= numTarget;
+        if (operator === ">") condResult = currentVal > numTarget;
+        else if (operator === "<=") condResult = currentVal <= numTarget;
+        else if (operator === "<") condResult = currentVal < numTarget;
+        else if (operator === "==" || operator === "===") condResult = String(currentVal) === String(targetVal);
+        else if (operator === "!=") condResult = String(currentVal) !== String(targetVal);
+
+        const targetBranch = condResult ? "yes" : "no";
+        const matchedTrans = outgoing.find(t => getTransitionBranch(t) === targetBranch) || outgoing[0];
+        const targetId = matchedTrans ? getTransitionTarget(matchedTrans) : null;
+
+        stepLogs.push({
+          nodeName: currentNode?.name || "Evaluador de Condición",
+          nodeType: "condition",
+          status: "SUCCESS",
+          result: `Condición evaluada como ${condResult ? 'VERDADERA (rama SÍ)' : 'FALSA (rama NO)'}.`
+        });
+
+        currentNode = targetId ? steps.find(n => n.id === targetId) : null;
+      } else {
+        const targetId = getTransitionTarget(outgoing[0]);
+        currentNode = targetId ? steps.find(n => n.id === targetId) : null;
+      }
+    }
+  } else {
+    actionNodes = steps.filter(n => n.type === "action");
+  }
 
   const contextVars = {
     cliente: clientName,
