@@ -8,6 +8,7 @@ import {
   googleOAuthCallback,
   reportPublicError,
   triggerPublicWorkflowWebhook,
+  confirmPublicAppointment,
 } from "../controllers/public.controller.js";
 import {
   getPublicConsentDetails,
@@ -24,6 +25,7 @@ router.get("/business/:slug/professionals", getPublicProfessionals);
 router.get("/business/:slug/availability", getPublicAvailability);
 router.get("/business/:slug/slots", getPublicAvailability);
 router.post("/business/:slug/bookings", createPublicBooking);
+router.get("/appointments/confirm/:id", confirmPublicAppointment);
 // Redirect ESTÁTICO (sin :slug). El negocio se identifica por `state` (businessId).
 // Se conserva la variante con :slug por compatibilidad con conexiones antiguas.
 router.get("/google/oauth-callback", googleOAuthCallback);

@@ -832,5 +832,61 @@ export async function triggerPublicWorkflowWebhook(req, res) {
   }
 }
 
+// Endpoint para confirmación de cita via enlace web público (link en email / WhatsApp)
+export async function confirmPublicAppointment(req, res) {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).send("<h1>ID de cita no proporcionado</h1>");
+    }
+
+    const appointment = await prisma.appointment.findUnique({
+      where: { id },
+      include: { client: true, service: true, worker: true, business: true }
+    });
+
+    if (!appointment) {
+      return res.status(404).send("<h1>No se encontró la cita especificada</h1>");
+    }
+
+    if (appointment.status !== "CONFIRMED") {
+      await prisma.appointment.update({
+        where: { id },
+        data: { status: "CONFIRMED" }
+      });
+
+      // Disparar motor de automatizaciones (workflow "confirmed" / "cita-confirmada")
+      await triggerWorkflows(appointment.businessId, "confirmed", appointment);
+
+      await prisma.auditLog.create({
+        data: {
+          action: "public_appointment_confirmed",
+          metadata: {
+            actor: "Cliente (Enlace Web)",
+            details: `Cita ${appointment.id} confirmada públicamente mediante enlace web.`
+          },
+          businessId: appointment.businessId
+        }
+      });
+    }
+
+    const safeBusinessName = String(appointment.business?.name || "el salón").replace(/[^\w\s-]/g, "");
+
+    return res.status(200).send(`
+      <div style="font-family: 'Inter', sans-serif; text-align: center; margin-top: 60px; padding: 20px;">
+        <div style="max-width: 500px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 16px; padding: 40px; background: #ffffff; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05);">
+          <div style="font-size: 48px; margin-bottom: 15px;">🎉</div>
+          <h1 style="color: #10b981; font-size: 24px; font-weight: 700; margin-bottom: 10px;">¡Cita Confirmada con Éxito!</h1>
+          <p style="color: #4b5563; font-size: 15px; line-height: 1.5;">Tu cita en <b>${safeBusinessName}</b> ha sido confirmada. Te esperamos a la hora programada.</p>
+        </div>
+      </div>
+    `);
+  } catch (error) {
+    console.error("[public] confirmPublicAppointment:", error?.message || error);
+    return res.status(500).send("<h1>Error interno procesando la confirmación</h1>");
+  }
+}
+
 
 
