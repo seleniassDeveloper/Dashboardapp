@@ -1281,7 +1281,7 @@ export async function getSlaTodayAppointments(req, res) {
         service: true,
         worker: true,
         sla: true,
-        statusHistory: {
+        statusHistories: {
           orderBy: { transitionedAt: "asc" }
         }
       }
@@ -1323,16 +1323,22 @@ export async function getSlaTodayAppointments(req, res) {
           }
         }
 
-        const history = a.statusHistory || [];
+        const history = a.statusHistories || a.statusHistory || [];
         const arrivedHist = history.find((h) =>
-          ["EN_ATENCION", "LLEGO", startStatusKey].includes(h.statusTo)
+          ["EN_ATENCION", "IN_PROGRESS", "IN_PROCESS", "LLEGO", startStatusKey].includes(h.statusTo)
         );
-        const arrivedAt = arrivedHist ? arrivedHist.transitionedAt : null;
+        let arrivedAt = arrivedHist ? arrivedHist.transitionedAt : null;
+        if (!arrivedAt && ["EN_ATENCION", "IN_PROGRESS", "IN_PROCESS"].includes(a.status)) {
+          arrivedAt = a.updatedAt || a.startsAt || now;
+        }
 
         const endedHist = history.find((h) =>
           ["DONE", endStatusKey].includes(h.statusTo)
         );
-        const endedAt = endedHist ? endedHist.transitionedAt : null;
+        let endedAt = endedHist ? endedHist.transitionedAt : null;
+        if (!endedAt && a.status === "DONE") {
+          endedAt = a.updatedAt || now;
+        }
 
         let elapsedSec = 0;
         if (arrivedAt) {

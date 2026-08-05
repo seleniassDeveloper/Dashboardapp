@@ -133,22 +133,24 @@ export default function UpcomingAppointmentsWidget({
       return { text: isEs ? "Esperando Confirmación" : "Awaiting Confirmation", color: "warning" };
     }
 
-    if (!slaBackend || !slaBackend.arrivedAt) {
+    const isArrived = slaBackend?.arrivedAt || a.status === "EN_ATENCION" || a.status === "IN_PROGRESS" || a.status === "IN_PROCESS";
+
+    if (!isArrived) {
       return { text: isEs ? "Esperando llegada" : "Awaiting Arrival", color: "secondary" };
     }
 
     // Cálculo dinámico si llegó la clienta (desde arrivedAt)
-    const arrivedTime = new Date(slaBackend.arrivedAt).getTime();
+    const arrivedTime = slaBackend?.arrivedAt ? new Date(slaBackend.arrivedAt).getTime() : now.getTime();
     const elapsedSec = Math.max(0, Math.floor((now.getTime() - arrivedTime) / 1000));
     const elapsedMins = Math.floor(elapsedSec / 60);
-    const estimatedDurationSec = slaBackend.estimatedDurationSec || 1800;
+    const estimatedDurationSec = slaBackend?.estimatedDurationSec || (a.service?.duration || 30) * 60;
     const estMins = Math.floor(estimatedDurationSec / 60);
 
-    if (a.status === "DONE" || slaBackend.slaState === "done") {
+    if (a.status === "DONE" || slaBackend?.slaState === "done") {
       return { text: isEs ? "Finalizada" : "Finished", color: "info" };
     }
 
-    if (elapsedSec > estimatedDurationSec + 300 || slaBackend.slaState === "overdue") {
+    if (elapsedSec > estimatedDurationSec + 300 || slaBackend?.slaState === "overdue") {
       const overdueMins = Math.max(1, Math.floor((elapsedSec - estimatedDurationSec) / 60));
       return {
         text: isEs ? `Excedido (${overdueMins}m extra)` : `Exceeded (${overdueMins}m extra)`,
@@ -156,7 +158,7 @@ export default function UpcomingAppointmentsWidget({
       };
     }
 
-    if (elapsedSec >= estimatedDurationSec * 0.85 || slaBackend.slaState === "at_risk") {
+    if (elapsedSec >= estimatedDurationSec * 0.85 || slaBackend?.slaState === "at_risk") {
       return { text: isEs ? "Por vencer" : "At risk", color: "warning" };
     }
 
@@ -304,6 +306,7 @@ export default function UpcomingAppointmentsWidget({
             const sla = getSLAInfo(a);
             const slaBackend = slaTodayList.find((s) => s.id === a.id) || a;
             const isExpanded = expandedId === a.id;
+            const isArrived = slaBackend?.arrivedAt || a.status === "EN_ATENCION" || a.status === "IN_PROGRESS" || a.status === "IN_PROCESS";
 
             return (
               <div key={a.id} className="p-3 border rounded-3 bg-white shadow-xs d-flex flex-column gap-2 hover-shadow-sm transition-all">
@@ -351,7 +354,7 @@ export default function UpcomingAppointmentsWidget({
                       </Button>
                     )}
 
-                    {(!slaBackend.arrivedAt && a.status !== "DONE" && a.status !== "CANCELLED") && (
+                    {!isArrived && a.status !== "DONE" && a.status !== "CANCELLED" && (
                       <Button
                         variant="primary"
                         size="sm"
@@ -365,7 +368,7 @@ export default function UpcomingAppointmentsWidget({
                       </Button>
                     )}
 
-                    {(slaBackend.arrivedAt && a.status !== "DONE") && (
+                    {isArrived && a.status !== "DONE" && (
                       <Button
                         variant="success"
                         size="sm"

@@ -29,6 +29,9 @@ export default function SlaTimelineDetail({
     stages = []
   } = appointment;
 
+  const isArrived = arrivedAt || appointment.status === "EN_ATENCION" || appointment.status === "IN_PROGRESS" || appointment.status === "IN_PROCESS";
+  const effectiveSlaState = (!isArrived) ? "waiting_arrival" : (slaState === "waiting_arrival" ? "on_time" : slaState);
+
   const remainingSec = Math.max(0, estimatedDurationSec - elapsedSec);
 
   const statusConfig = {
@@ -39,7 +42,7 @@ export default function SlaTimelineDetail({
     done: { barColor: "#8b5cf6", label: isEs ? "Finalizado" : "Finished" }
   };
 
-  const cfg = statusConfig[slaState] || statusConfig.waiting_arrival;
+  const cfg = statusConfig[effectiveSlaState] || statusConfig.waiting_arrival;
 
   return (
     <div className="mt-3 pt-3 border-top bg-light bg-opacity-40 rounded-3 p-3">
@@ -47,19 +50,19 @@ export default function SlaTimelineDetail({
       <div className="mb-3">
         <div className="d-flex justify-content-between align-items-center mb-1 text-muted smaller">
           <span className="fw-semibold">
-            {slaState === "waiting_arrival"
+            {effectiveSlaState === "waiting_arrival"
               ? (isEs ? "Duración estimada: " : "Estimated: ") + formatSecToMinStr(estimatedDurationSec)
-              : slaState === "done"
+              : effectiveSlaState === "done"
               ? (isEs ? "Duración total real: " : "Real total: ") + formatSecToMinStr(elapsedSec)
               : (isEs ? "Transcurrido: " : "Elapsed: ") + formatSecToMinStr(elapsedSec)}
           </span>
 
           <span className="fw-bold">
-            {slaState === "waiting_arrival" ? (
+            {effectiveSlaState === "waiting_arrival" ? (
               "0%"
-            ) : slaState === "overdue" ? (
+            ) : effectiveSlaState === "overdue" ? (
               <span className="text-danger fw-bold">+{formatSecToMinStr(overdueSec)} {isEs ? "de retraso" : "late"}</span>
-            ) : slaState === "done" ? (
+            ) : effectiveSlaState === "done" ? (
               "100%"
             ) : (
               <span>~{formatSecToMinStr(remainingSec)} {isEs ? "restante" : "remaining"}</span>
@@ -80,7 +83,7 @@ export default function SlaTimelineDetail({
       </div>
 
       {/* Acción si no ha llegado */}
-      {slaState === "waiting_arrival" && (
+      {!isArrived && (
         <div className="p-2.5 bg-white border rounded-3 d-flex align-items-center justify-content-between mb-3">
           <span className="small text-muted fw-semibold">
             {isEs ? " Clienta aún no ha llegado" : " Client has not arrived"}
