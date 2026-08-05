@@ -8,6 +8,8 @@ import {
   Alert,
   ButtonGroup,
   Form,
+  Row,
+  Col,
 } from "react-bootstrap";
 
 import FullCalendar from "@fullcalendar/react";
@@ -631,75 +633,78 @@ export default function AppointmentsCalendar() {
         </Card.Body>
       </Card>
 
-      <Modal show={showDetail} onHide={() => setShowDetail(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Detalle de cita</Modal.Title>
+      <Modal show={showDetail} onHide={() => setShowDetail(false)} centered size="lg">
+        <Modal.Header closeButton className="border-bottom pb-3">
+          <Modal.Title className="fw-bold text-dark fs-5">Detalle de cita</Modal.Title>
         </Modal.Header>
 
         <Modal.Body className="p-4">
           {!selected ? (
-            <div className="text-muted">Sin selección</div>
+            <div className="text-muted text-center py-4">Sin selección</div>
           ) : (
-            <div className="d-grid gap-3">
-              <div>
-                <span className="text-muted smaller uppercase d-block mb-1">Nombre del Cliente</span>
-                <div className="p-2 border bg-light bg-opacity-40 rounded-3 text-dark small" style={{ minHeight: "38px" }}>
-                  {selected.client?.firstName || ""}
+            <Row className="g-3">
+              {/* Información del Cliente */}
+              <Col md={6}>
+                <span className="text-muted smaller uppercase d-block mb-1 font-monospace fw-semibold" style={{ fontSize: "11px", letterSpacing: "0.05em" }}>Nombre del Cliente</span>
+                <div className="p-2.5 border bg-light bg-opacity-40 rounded-3 text-dark small fw-medium d-flex align-items-center" style={{ minHeight: "40px" }}>
+                  {selected.client?.firstName || "-"}
                 </div>
-              </div>
+              </Col>
 
-              <div>
-                <span className="text-muted smaller uppercase d-block mb-1">Apellido del Cliente</span>
-                <div className="p-2 border bg-light bg-opacity-40 rounded-3 text-dark small" style={{ minHeight: "38px" }}>
-                  {selected.client?.lastName || ""}
+              <Col md={6}>
+                <span className="text-muted smaller uppercase d-block mb-1 font-monospace fw-semibold" style={{ fontSize: "11px", letterSpacing: "0.05em" }}>Apellido del Cliente</span>
+                <div className="p-2.5 border bg-light bg-opacity-40 rounded-3 text-dark small fw-medium d-flex align-items-center" style={{ minHeight: "40px" }}>
+                  {selected.client?.lastName || "-"}
                 </div>
-              </div>
+              </Col>
 
-              <div>
-                <span className="text-muted smaller uppercase d-block mb-1">Teléfono / WhatsApp</span>
-                <div className="p-2 border bg-light bg-opacity-40 rounded-3 text-dark small" style={{ minHeight: "38px" }}>
-                  {selected.client?.phone || ""}
+              <Col md={6}>
+                <span className="text-muted smaller uppercase d-block mb-1 font-monospace fw-semibold" style={{ fontSize: "11px", letterSpacing: "0.05em" }}>Teléfono / WhatsApp</span>
+                <div className="p-2.5 border bg-light bg-opacity-40 rounded-3 text-dark small d-flex align-items-center" style={{ minHeight: "40px" }}>
+                  {selected.client?.phone || "-"}
                 </div>
-              </div>
+              </Col>
 
-              <div>
-                <span className="text-muted smaller uppercase d-block mb-1">Correo Electrónico</span>
-                <div className="p-2 border bg-light bg-opacity-40 rounded-3 text-dark small" style={{ minHeight: "38px" }}>
-                  {selected.client?.email || ""}
+              <Col md={6}>
+                <span className="text-muted smaller uppercase d-block mb-1 font-monospace fw-semibold" style={{ fontSize: "11px", letterSpacing: "0.05em" }}>Correo Electrónico</span>
+                <div className="p-2.5 border bg-light bg-opacity-40 rounded-3 text-dark small d-flex align-items-center" style={{ minHeight: "40px" }}>
+                  {selected.client?.email || "-"}
                 </div>
-              </div>
+              </Col>
 
-              <div>
-                <span className="text-muted smaller uppercase d-block mb-1">Servicio</span>
-                <div className="p-2 border bg-light bg-opacity-40 rounded-3 text-dark small" style={{ minHeight: "38px" }}>
-                  {selected.service?.name || ""}
+              {/* Información del Servicio */}
+              <Col md={4}>
+                <span className="text-muted smaller uppercase d-block mb-1 font-monospace fw-semibold" style={{ fontSize: "11px", letterSpacing: "0.05em" }}>Servicio</span>
+                <div className="p-2.5 border bg-light bg-opacity-40 rounded-3 text-dark small fw-semibold d-flex align-items-center" style={{ minHeight: "40px" }}>
+                  {selected.service?.name || "-"}
                 </div>
-              </div>
+              </Col>
 
-              <div>
-                <span className="text-muted smaller uppercase d-block mb-1">Duración</span>
-                <div className="p-2 border bg-light bg-opacity-40 rounded-3 text-dark small" style={{ minHeight: "38px" }}>
-                  {selected.service?.duration ? `${selected.service.duration} minutos` : ""}
+              <Col md={4}>
+                <span className="text-muted smaller uppercase d-block mb-1 font-monospace fw-semibold" style={{ fontSize: "11px", letterSpacing: "0.05em" }}>Duración</span>
+                <div className="p-2.5 border bg-light bg-opacity-40 rounded-3 text-dark small d-flex align-items-center" style={{ minHeight: "40px" }}>
+                  {selected.service?.duration ? `${selected.service.duration} minutos` : "-"}
                 </div>
-              </div>
+              </Col>
 
-              <div>
-                <span className="text-muted smaller uppercase d-block mb-1">Precio</span>
-                <div className="p-2 border bg-light bg-opacity-40 rounded-3 text-dark small" style={{ minHeight: "38px" }}>
-                  {selected.service?.price ? currency(selected.service.price) : ""}
+              <Col md={4}>
+                <span className="text-muted smaller uppercase d-block mb-1 font-monospace fw-semibold" style={{ fontSize: "11px", letterSpacing: "0.05em" }}>Precio</span>
+                <div className="p-2.5 border bg-light bg-opacity-40 rounded-3 text-emerald-600 fw-bold small d-flex align-items-center" style={{ minHeight: "40px" }}>
+                  {selected.service?.price ? currency(selected.service.price) : "-"}
                 </div>
-              </div>
+              </Col>
 
-              <div>
-                <span className="text-muted smaller uppercase d-block mb-1">Colaborador / Profesional</span>
-                <div className="p-2 border bg-light bg-opacity-40 rounded-3 text-dark small" style={{ minHeight: "38px" }}>
-                  {selected.worker ? `${selected.worker.firstName} ${selected.worker.lastName || ""}`.trim() : ""}
+              {/* Profesional y Fecha */}
+              <Col md={6}>
+                <span className="text-muted smaller uppercase d-block mb-1 font-monospace fw-semibold" style={{ fontSize: "11px", letterSpacing: "0.05em" }}>Colaborador / Profesional</span>
+                <div className="p-2.5 border bg-light bg-opacity-40 rounded-3 text-dark small fw-medium d-flex align-items-center" style={{ minHeight: "40px" }}>
+                  {selected.worker ? `${selected.worker.firstName} ${selected.worker.lastName || ""}`.trim() : "-"}
                 </div>
-              </div>
+              </Col>
 
-              <div>
-                <span className="text-muted smaller uppercase d-block mb-1">Fecha y Horario</span>
-                <div className="p-2 border bg-light bg-opacity-40 rounded-3 text-dark small" style={{ minHeight: "38px" }}>
+              <Col md={6}>
+                <span className="text-muted smaller uppercase d-block mb-1 font-monospace fw-semibold" style={{ fontSize: "11px", letterSpacing: "0.05em" }}>Fecha y Horario</span>
+                <div className="p-2.5 border bg-light bg-opacity-40 rounded-3 text-dark small d-flex align-items-center" style={{ minHeight: "40px" }}>
                   {selected.startsAt ? (
                     new Date(selected.startsAt).toLocaleDateString("es-AR", {
                       weekday: "long",
@@ -711,23 +716,26 @@ export default function AppointmentsCalendar() {
                       hour: "2-digit",
                       minute: "2-digit"
                     }) + " hs"
-                  ) : ""}
+                  ) : "-"}
                 </div>
-              </div>
+              </Col>
 
-              <div>
-                <span className="text-muted smaller uppercase d-block mb-1">Notas del Turno</span>
-                <div className="p-2 border bg-light bg-opacity-40 rounded-3 text-muted small" style={{ minHeight: "38px" }}>
-                  {selected.notes || ""}
+              {/* Notas del Turno */}
+              <Col md={12}>
+                <span className="text-muted smaller uppercase d-block mb-1 font-monospace fw-semibold" style={{ fontSize: "11px", letterSpacing: "0.05em" }}>Notas del Turno</span>
+                <div className="p-2.5 border bg-light bg-opacity-40 rounded-3 text-muted small d-flex align-items-center" style={{ minHeight: "40px" }}>
+                  {selected.notes || "Sin notas adicionales."}
                 </div>
-              </div>
+              </Col>
 
-              <div>
-                <span className="text-muted smaller uppercase d-block mb-2">Cambiar Estado</span>
+              {/* Estado y Notificación */}
+              <Col md={6}>
+                <span className="text-muted smaller uppercase d-block mb-1 font-monospace fw-semibold" style={{ fontSize: "11px", letterSpacing: "0.05em" }}>Cambiar Estado</span>
                 <Form.Select
                   value={selected.status || "PENDING"}
                   onChange={(e) => handleStatusChange(e.target.value)}
                   className="modern-input"
+                  style={{ height: "40px" }}
                 >
                   {appointmentStatuses.map((s) => (
                     <option key={s.key} value={s.key}>
@@ -735,13 +743,11 @@ export default function AppointmentsCalendar() {
                     </option>
                   ))}
                 </Form.Select>
-              </div>
+              </Col>
 
-              {selected.client?.email && (
-                <div className="mt-3 p-3 border rounded-3 bg-light bg-opacity-30">
-                  <div className="fw-bold small text-muted mb-2 uppercase d-flex align-items-center gap-2">
-                    <span>✉️ Notificación Manual</span>
-                  </div>
+              {selected.client?.email ? (
+                <Col md={6}>
+                  <span className="text-muted smaller uppercase d-block mb-1 font-monospace fw-semibold" style={{ fontSize: "11px", letterSpacing: "0.05em" }}>Notificación Manual</span>
                   <Button
                     variant="outline-primary"
                     size="sm"
@@ -752,6 +758,7 @@ export default function AppointmentsCalendar() {
                       borderColor: "#7c3aed",
                       color: "#7c3aed",
                       backgroundColor: "transparent",
+                      height: "40px",
                     }}
                   >
                     {sendingEmail ? (
@@ -760,14 +767,14 @@ export default function AppointmentsCalendar() {
                         <span>Enviando...</span>
                       </>
                     ) : (
-                      <span>Enviar Confirmación por Correo</span>
+                      <span>✉️ Enviar Confirmación por Correo</span>
                     )}
                   </Button>
-                  {emailSuccess && <small className="text-success d-block mt-2 fw-semibold text-center">{emailSuccess}</small>}
-                  {emailError && <small className="text-danger d-block mt-2 fw-semibold text-center">{emailError}</small>}
-                </div>
-              )}
-            </div>
+                  {emailSuccess && <small className="text-success d-block mt-1 fw-semibold text-center">{emailSuccess}</small>}
+                  {emailError && <small className="text-danger d-block mt-1 fw-semibold text-center">{emailError}</small>}
+                </Col>
+              ) : null}
+            </Row>
           )}
         </Modal.Body>
 
