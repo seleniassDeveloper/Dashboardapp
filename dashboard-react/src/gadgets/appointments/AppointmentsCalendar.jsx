@@ -193,9 +193,13 @@ export default function AppointmentsCalendar() {
 
   const appointmentsByWorker = useMemo(() => {
     const map = {};
-    workers.forEach(w => { map[w.id] = []; });
-    (appointments || []).forEach(appt => {
-      if (map[appt.workerId]) {
+    const safeWorkers = Array.isArray(workers) ? workers : [];
+    const safeAppts = Array.isArray(appointments) ? appointments : [];
+
+    safeWorkers.forEach(w => { map[w.id] = []; });
+    safeAppts.forEach(appt => {
+      if (appt && appt.workerId) {
+        if (!map[appt.workerId]) map[appt.workerId] = [];
         map[appt.workerId].push(appt);
       }
     });

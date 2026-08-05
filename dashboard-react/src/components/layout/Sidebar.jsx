@@ -255,7 +255,7 @@ export default function Sidebar({
                   <motion.div 
                     layoutId="active-pill"
                     className="sidebar__item-indicator"
-                    style={{ backgroundColor: brand.accentColor || "var(--accent-primary)" }}
+                    style={{ backgroundColor: brand?.accentColor || "var(--accent-primary)" }}
                   />
                 )}
               </Link>
@@ -287,7 +287,7 @@ export default function Sidebar({
                           style={{ 
                             width: "5px", 
                             height: "5px", 
-                            backgroundColor: isSubActive ? (brand.accentColor || "#7c3aed") : "rgba(100, 116, 139, 0.4)" 
+                            backgroundColor: isSubActive ? (brand?.accentColor || "#7c3aed") : "rgba(100, 116, 139, 0.4)" 
                           }}
                         />
                         <span>{getSubMenuLabel(sub.id, terms, t)}</span>
