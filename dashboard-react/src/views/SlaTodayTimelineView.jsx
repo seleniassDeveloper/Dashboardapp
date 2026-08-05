@@ -3,6 +3,7 @@ import { Container, Row, Col, Spinner, Alert, Button, Card } from "react-bootstr
 import { Clock, RefreshCw, Calendar, Sparkles } from "lucide-react";
 import { useSlaTimeline } from "../hooks/useSlaTimeline";
 import SlaTimelineCard from "../components/appointments/SlaTimelineCard";
+import AgendaSubNav from "../components/appointments/AgendaSubNav";
 
 export default function SlaTodayTimelineView() {
   const {
@@ -24,6 +25,7 @@ export default function SlaTodayTimelineView() {
 
   return (
     <Container fluid className="py-4 px-md-4">
+      <AgendaSubNav />
       {/* Header de la Vista */}
       <div className="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
         <div>

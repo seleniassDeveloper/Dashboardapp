@@ -14,6 +14,8 @@ import api from "../lib/api.js";
 import { useIsMobile } from "../hooks/useIsMobile";
 import AppointmentsSLA from "../components/appointments/mobile/AppointmentsSLA";
 
+import AgendaSubNav from "../components/appointments/AgendaSubNav";
+
 export default function CalendarView() {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
@@ -69,23 +71,24 @@ export default function CalendarView() {
   // Modal de Agendamiento rápido
   const [showAddModal, setShowAddModal] = useState(false);
   const [initialAddData, setInitialAddData] = useState(null);
+  const [selectedSlot, setSelectedSlot] = useState(null);
 
   // --- MAIN VIEW STATE ---
-  const [mainView, setMainView] = useState("calendar"); // "calendar" | "history"
+  const [mainView, setMainView] = useState("calendar"); // "calendar" | "waitlist" | "history"
 
   // --- MOTOR DE RECOMENDACIONES DE AURA AI (Punto 6) ---
   // Detector de huecos libres (Mock determinista e interactivo en tiempo real)
   const gaps = useMemo(() => {
+    if (!workers.length) return [];
+    const now = new Date();
+    const todayStr = now.toISOString().split("T")[0];
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split("T")[0];
+
     const list = [];
-    const today = new Date();
-    const pad = (n) => String(n).padStart(2, "0");
-    const todayStr = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
-
-    const w1 = workers[0] || { id: "w1", firstName: "María", lastName: "Gómez" };
-    const w2 = workers[1] || { id: "w2", firstName: "Ana", lastName: "Rodríguez" };
-
-    list.push({
-      id: "gap-1",
+    const w1 = workers[0];
+    if (w1) list.push({
       dateStr: todayStr,
       timeStr: "11:00",
       workerId: w1.id,
@@ -93,10 +96,8 @@ export default function CalendarView() {
       label: "Hoy, 11:00 hs"
     });
 
-    const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
-    const tomorrowStr = `${tomorrow.getFullYear()}-${pad(tomorrow.getMonth() + 1)}-${pad(tomorrow.getDate())}`;
-    list.push({
-      id: "gap-2",
+    const w2 = workers[1] || w1;
+    if (w2) list.push({
       dateStr: tomorrowStr,
       timeStr: "15:30",
       workerId: w2.id,
@@ -231,6 +232,7 @@ export default function CalendarView() {
 
   return (
     <Container fluid className="p-0 pb-4">
+      <AgendaSubNav />
       <header className="mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
         <div>
           <h1 className="fw-bold h3">{t("calendar.title")}</h1>

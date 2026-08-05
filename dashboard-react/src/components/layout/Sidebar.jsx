@@ -55,7 +55,6 @@ const getSubMenuLabel = (subId, terms, t) => {
 const MENU_ITEMS = [
   { id: "dashboard", icon: LayoutDashboard, path: "/app" },
   { id: "appointments", icon: CalendarCheck, path: "/app/calendar" },
-  { id: "sla_today", icon: Clock, path: "/app/sla-today" },
   { id: "clients", icon: Users, path: "/app/clients" },
   { id: "services", icon: Scissors, path: "/app/services" },
   { id: "team", icon: Briefcase, path: "/app/team" },
@@ -68,6 +67,11 @@ const MENU_ITEMS = [
   { id: "automations", icon: Zap, path: "/app/automations", isAutomation: true },
   
   { id: "config", icon: Settings, path: "/app/settings" },
+];
+
+const APPOINTMENTS_SUB_ITEMS = [
+  { id: "calendar", path: "/app/calendar" },
+  { id: "sla_today", path: "/app/sla-today" }
 ];
 
 const FINANCE_SUB_ITEMS = [
@@ -190,7 +194,11 @@ export default function Sidebar({
           const isPlanLocked = !import.meta.env.DEV && PLAN_RESTRICTIONS[activePlan]?.includes(item.id);
           const linkPath = isPlanLocked ? "/app/pricing" : item.path;
           
-          const isActive = !isPlanLocked && (location.pathname === item.path || (item.path !== "/app" && location.pathname.startsWith(item.path)));
+          const isActive = !isPlanLocked && (
+            item.id === "appointments"
+              ? (location.pathname === "/app/calendar" || location.pathname === "/app/sla-today")
+              : (location.pathname === item.path || (item.path !== "/app" && location.pathname.startsWith(item.path)))
+          );
           
           const handleClick = () => {
             onClose();
@@ -251,6 +259,43 @@ export default function Sidebar({
                   />
                 )}
               </Link>
+
+              {/* RENDER APPOINTMENTS SUBMENU IF ACTIVE & EXPANDED */}
+              {item.id === "appointments" && isActive && !isCollapsed && (
+                <div className="sidebar__submenu ms-4 d-flex flex-column gap-1 my-1">
+                  {APPOINTMENTS_SUB_ITEMS.map((sub) => {
+                    const isSubActive = location.pathname === sub.path;
+                    
+                    return (
+                      <Link
+                        key={sub.id}
+                        to={sub.path}
+                        className={`sidebar__submenu-item d-flex align-items-center gap-2 px-3 py-1.5 rounded-xl text-decoration-none transition-all ${
+                          isSubActive
+                            ? "sidebar__submenu-item--active"
+                            : "sidebar__submenu-item--inactive"
+                        }`}
+                        style={{ fontSize: "12.5px" }}
+                        onClick={onClose}
+                      >
+                        <div 
+                          className="rounded-circle" 
+                          style={{ 
+                            width: "5px", 
+                            height: "5px", 
+                            backgroundColor: isSubActive ? (brand.accentColor || "#7c3aed") : "rgba(100, 116, 139, 0.4)" 
+                          }} 
+                        />
+                        <span>
+                          {sub.id === "calendar"
+                            ? (t("nav:menu.appointments", { defaultValue: "Calendario" }))
+                            : (t("nav:menu.sla_today", { defaultValue: "SLA Citas Hoy" }))}
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
 
               {/* RENDER FINANCES SUBMENU IF ACTIVE & EXPANDED */}
               {item.id === "finances" && isActive && !isCollapsed && (
