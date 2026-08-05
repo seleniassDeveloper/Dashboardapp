@@ -695,11 +695,12 @@ export default function AppointmentsCalendar() {
               )}
               <div style={{ 
                 display: view !== "timeGridDay" ? "block" : "none", 
-                height: 560,
+                minHeight: 650,
+                height: "auto",
                 overflowX: "auto",
                 width: "100%"
               }}>
-                <div style={{ minWidth: isMobile && view !== "timeGridDay" ? "750px" : "100%", height: "100%" }}>
+                <div style={{ minWidth: isMobile && view !== "timeGridDay" ? "750px" : "100%", minHeight: 650 }}>
                   <FullCalendar
                     ref={calRef}
                     key={`cal-${accent}`}

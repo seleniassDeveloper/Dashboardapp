@@ -54,19 +54,16 @@ export default function AgendaSummary({
       }
     });
 
-    if (safeWorkers.length === 0) {
-      freeWorker = { name: "N/A", percentFree: 100 };
-    }
+    const isMock = !Array.isArray(appointments) || appointments.length === 0;
 
-    const confirmedCount = confirmedList.length > 0 ? confirmedList.length : 12;
-    const pendingCount = pendingList.length > 0 ? pendingList.length : 3;
-    const noShowCount = 3;
-    const totalCount = totalList.length > 0 ? totalList.length : (confirmedCount + pendingCount + noShowCount);
+    const confirmedCount = isMock ? 12 : confirmedList.length;
+    const pendingCount = isMock ? 3 : pendingList.length;
+    const noShowCount = isMock ? 3 : totalList.filter(a => a.status === "CANCELLED" || a.status === "NO_SHOW").length;
+    const totalCount = isMock ? 18 : Math.max(totalList.length, confirmedCount + pendingCount + noShowCount, 1);
 
-    const baseTotal = Math.max(totalCount, confirmedCount + pendingCount + noShowCount, 1);
-    const confirmedPct = Math.min(((confirmedCount / baseTotal) * 100), 100).toFixed(1);
-    const pendingPct = Math.min(((pendingCount / baseTotal) * 100), 100).toFixed(1);
-    const noShowPct = Math.min(((noShowCount / baseTotal) * 100), 100).toFixed(1);
+    const confirmedPct = Math.min((confirmedCount / totalCount) * 100, 100).toFixed(1);
+    const pendingPct = Math.min((pendingCount / totalCount) * 100, 100).toFixed(1);
+    const noShowPct = Math.min((noShowCount / totalCount) * 100, 100).toFixed(1);
 
     return {
       total: totalList.length,
