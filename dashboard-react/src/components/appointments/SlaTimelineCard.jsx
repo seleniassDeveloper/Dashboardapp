@@ -57,7 +57,8 @@ export default function SlaTimelineCard({ appointment, now, onArrive, onComplete
   const remainingSec = Math.max(0, estimatedDurationSec - elapsedSec);
   const overdueSec = Math.max(0, elapsedSec - estimatedDurationSec);
 
-  const handleArriveClick = async () => {
+  const handleArriveClick = async (e) => {
+    e.stopPropagation();
     try {
       setActionLoading(true);
       await onArrive(id);
@@ -68,7 +69,8 @@ export default function SlaTimelineCard({ appointment, now, onArrive, onComplete
     }
   };
 
-  const handleCompleteClick = async () => {
+  const handleCompleteClick = async (e) => {
+    e.stopPropagation();
     try {
       setActionLoading(true);
       await onComplete(id);
@@ -116,7 +118,11 @@ export default function SlaTimelineCard({ appointment, now, onArrive, onComplete
   const cfg = statusConfig[slaState] || statusConfig.waiting_arrival;
 
   return (
-    <Card className="border-0 shadow-sm rounded-4 overflow-hidden mb-3 bg-white">
+    <Card
+      className="border-0 shadow-sm rounded-4 overflow-hidden mb-3 bg-white hover-shadow-sm transition-all"
+      style={{ cursor: "pointer" }}
+      onClick={() => setExpanded(!expanded)}
+    >
       <Card.Body className="p-3.5">
         {/* Cabecera de la Cita */}
         <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2.5">
@@ -191,14 +197,17 @@ export default function SlaTimelineCard({ appointment, now, onArrive, onComplete
           <Button
             variant="link"
             size="sm"
-            className="p-0 text-muted text-decoration-none d-flex align-items-center gap-1 smaller fw-semibold"
-            onClick={() => setExpanded(!expanded)}
+            className="p-0 text-purple-700 text-decoration-none d-flex align-items-center gap-1.5 smaller fw-bold"
+            onClick={(e) => {
+              e.stopPropagation();
+              setExpanded(!expanded);
+            }}
           >
-            <span>Ver Etapas</span>
+            <span>{expanded ? "Ocultar Etapas" : "Tocar para desplegar etapas y tiempos"}</span>
             {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </Button>
 
-          <div className="d-flex align-items-center gap-2">
+          <div className="d-flex align-items-center gap-2" onClick={(e) => e.stopPropagation()}>
             {slaState === "waiting_arrival" && (
               <Button
                 variant="primary"

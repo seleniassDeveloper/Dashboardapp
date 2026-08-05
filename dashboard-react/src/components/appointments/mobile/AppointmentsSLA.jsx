@@ -94,6 +94,23 @@ export default function AppointmentsSLA() {
         setSlaDetail(res.data);
       } catch (err) {
         console.error("Error fetching SLA detail:", err);
+        const estimatedSec = (selectedAppt.service?.duration || 30) * 60;
+        const elapsedSec = selectedAppt.elapsedSec || 0;
+        setSlaDetail({
+          status: selectedAppt.status || "CONFIRMED",
+          isActive: selectedAppt.status === "EN_ATENCION",
+          estimatedSec,
+          actualSec: elapsedSec,
+          histories: selectedAppt.statusHistory || [
+            {
+              id: "h1",
+              statusFrom: "PENDING",
+              statusTo: selectedAppt.status || "CONFIRMED",
+              transitionedAt: selectedAppt.startsAt || new Date().toISOString(),
+              durationSeconds: elapsedSec
+            }
+          ]
+        });
       } finally {
         setLoadingDetail(false);
       }
