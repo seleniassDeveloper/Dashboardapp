@@ -108,11 +108,13 @@ export default function CalendarView() {
   }, [workers]);
 
   const auraSuggestion = useMemo(() => {
-    const waitingClient = waitlist.find(c => c.status === "Esperando");
+    const safeWaitlist = Array.isArray(waitlist) ? waitlist : [];
+    const safeServices = Array.isArray(services) ? services : [];
+    const waitingClient = safeWaitlist.find(c => c.status === "Esperando");
     const activeGap = gaps[0];
 
     if (waitingClient && activeGap) {
-      const svc = services.find(s => s.id === waitingClient.serviceId) || { name: waitingClient.service || "Estética" };
+      const svc = safeServices.find(s => s.id === waitingClient.serviceId) || { name: waitingClient.service || "Estética" };
       return {
         client: waitingClient,
         gap: activeGap,

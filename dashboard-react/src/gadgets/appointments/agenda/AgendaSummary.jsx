@@ -20,31 +20,30 @@ export default function AgendaSummary({
   
   // Calcular métricas operativas
   const stats = useMemo(() => {
-    const totalList = appointments;
-    const confirmedList = appointments.filter(a => a.status === "CONFIRMED");
-    const pendingList = appointments.filter(a => a.status === "PENDING");
+    const totalList = Array.isArray(appointments) ? appointments : [];
+    const confirmedList = totalList.filter(a => a.status === "CONFIRMED");
+    const pendingList = totalList.filter(a => a.status === "PENDING");
     
-    const noSenaList = appointments.filter(a => {
+    const noSenaList = totalList.filter(a => {
       const sena = a.senaStatus || (a.notes?.toLowerCase().includes("seña") ? "PAGADA" : "SIN_SENA");
       return sena === "SIN_SENA";
     });
 
-    const activeAppts = appointments.filter(a => a.status !== "CANCELLED");
+    const activeAppts = totalList.filter(a => a.status !== "CANCELLED");
     const estimatedRev = activeAppts.reduce((sum, a) => sum + Number(a.service?.price || 0), 0);
 
-    // Calcular carga por profesional
+    const safeWorkers = Array.isArray(workers) ? workers : [];
+    const safeApptsByWorker = appointmentsByWorker || {};
+
     let busiestWorker = { name: "Ninguno", count: 0 };
     let freeWorker = { name: "Ninguno", count: 99, percentFree: 100 };
 
-    workers.forEach(w => {
-      const apptsCount = (appointmentsByWorker[w.id] || []).length;
-      
-      // Mayor carga
+    safeWorkers.forEach(w => {
+      const apptsCount = (safeApptsByWorker[w.id] || []).length;
       if (apptsCount > busiestWorker.count) {
         busiestWorker = { name: `${w.firstName} ${w.lastName}`, count: apptsCount };
       }
 
-      // Menor carga (ocupación máxima = 8 turnos de 1 hora)
       const maxSlots = 8;
       const occupied = apptsCount;
       const freeSlots = Math.max(maxSlots - occupied, 0);
@@ -55,13 +54,13 @@ export default function AgendaSummary({
       }
     });
 
-    if (workers.length === 0) {
+    if (safeWorkers.length === 0) {
       freeWorker = { name: "N/A", percentFree: 100 };
     }
 
-    const totalCount = stats.total || 18;
-    const confirmedCount = stats.confirmed || 12;
-    const pendingCount = stats.pending || 3;
+    const totalCount = totalList.length || 18;
+    const confirmedCount = confirmedList.length || 12;
+    const pendingCount = pendingList.length || 3;
     const noShowCount = 3;
 
     const confirmedPct = ((confirmedCount / totalCount) * 100).toFixed(1);
@@ -69,7 +68,20 @@ export default function AgendaSummary({
     const noShowPct = ((noShowCount / totalCount) * 100).toFixed(1);
 
     return {
-      ...stats,
+      total: totalList.length,
+      totalList,
+      confirmed: confirmedList.length,
+      confirmedList,
+      pending: pendingList.length,
+      pendingList,
+      noSena: noSenaList.length,
+      noSenaList,
+      estimatedRev,
+      estimatedRevList: activeAppts,
+      busiestName: busiestWorker.name,
+      busiestCount: busiestWorker.count,
+      recommendedName: freeWorker.name,
+      recommendedFreePercent: freeWorker.percentFree,
       totalCount,
       confirmedCount,
       pendingCount,
