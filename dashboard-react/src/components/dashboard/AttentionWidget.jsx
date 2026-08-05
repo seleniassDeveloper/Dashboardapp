@@ -256,53 +256,69 @@ export default function AttentionWidget({
         </div>
       </div>
 
-      <div className="d-flex flex-column gap-2.5 overflow-auto flex-grow-1" style={{ minHeight: "220px" }}>
+      <div className="d-flex flex-column gap-3 overflow-auto flex-grow-1" style={{ minHeight: "220px" }}>
         {alerts.map((item) => {
           const IconComp = item.icon;
           return (
             <div
               key={item.id}
-              className="p-3 border rounded-3 bg-light d-flex align-items-center justify-content-between hover-scale transition-all"
-              style={{ background: "#f9fafb" }}
+              className="p-3 border rounded-3 bg-white shadow-xs transition-all hover-shadow-sm d-flex flex-column justify-content-between"
+              style={{ borderColor: "#eaecf0", borderRadius: "12px" }}
             >
-              <div className="d-flex gap-3 align-items-start">
-                <div className="p-2 rounded-circle bg-white text-muted border shadow-sm mt-0.5 d-flex align-items-center justify-content-center" style={{ width: "32px", height: "32px" }}>
-                  <IconComp size={15} />
-                </div>
-                <div>
-                  <div className="d-flex align-items-center gap-2 mb-1 flex-wrap">
-                    <span className="fw-bold text-dark small">{item.title}</span>
-                    <Badge bg={item.badgeBg} className="opacity-75" style={{ fontSize: "10px" }}>
-                      {item.badgeText}
-                    </Badge>
+              {/* Header: Ícono + Título + Badge */}
+              <div className="d-flex align-items-start justify-content-between gap-2 mb-2">
+                <div className="d-flex align-items-center gap-2.5 flex-grow-1">
+                  <div
+                    className="p-2 rounded-circle bg-light text-purple-700 border d-flex align-items-center justify-content-center flex-shrink-0"
+                    style={{ width: "34px", height: "34px", backgroundColor: "#f3e8ff", borderColor: "#e9d5ff" }}
+                  >
+                    <IconComp size={16} />
                   </div>
-                  <div className="text-muted small" style={{ fontSize: "11px" }}>{item.subtitle}</div>
+                  <div className="fw-bold text-dark" style={{ fontSize: "14px", lineHeight: "1.3" }}>
+                    {item.title}
+                  </div>
                 </div>
+                <Badge
+                  bg={item.badgeBg}
+                  className="rounded-pill px-2.5 py-1 fw-bold flex-shrink-0"
+                  style={{ fontSize: "11px" }}
+                >
+                  {item.badgeText}
+                </Badge>
               </div>
 
-              <div className="d-flex flex-column gap-1 flex-shrink-0 align-items-end">
-                <Button
-                  variant="outline-dark"
-                  size="sm"
-                  onClick={item.onClick}
-                  className="rounded-pill px-3 py-1 font-semibold small d-flex align-items-center justify-content-center gap-1"
-                  style={{ fontSize: "11px", borderColor: "#e5e7eb" }}
-                >
-                  <span>{item.actionText}</span>
-                  <ArrowRight size={12} />
-                </Button>
+              {/* Subtítulo / Detalles de la cita */}
+              <div className="text-muted mb-3 ps-1" style={{ fontSize: "12px", lineHeight: "1.4" }}>
+                {item.subtitle}
+              </div>
+
+              {/* Acciones del Botón */}
+              <div className="d-flex align-items-center justify-content-end gap-2 flex-wrap pt-2 border-top" style={{ borderColor: "#f2f4f7" }}>
                 {item.secondaryActionText && (
                   <Button
-                    variant="outline-primary"
+                    variant="outline-secondary"
                     size="sm"
                     onClick={item.secondaryOnClick}
-                    className="rounded-pill px-3 py-1 font-semibold small d-flex align-items-center justify-content-center gap-1 text-purple-600 border-purple-200 hover-bg-purple-50"
+                    className="rounded-pill px-3 py-1 font-semibold small"
                     style={{ fontSize: "11px" }}
                   >
-                    <span>{item.secondaryActionText}</span>
-                    <ArrowRight size={12} />
+                    {item.secondaryActionText}
                   </Button>
                 )}
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={item.onClick}
+                  className="rounded-pill px-3 py-1.5 font-bold small d-flex align-items-center gap-1.5 ms-auto shadow-xs"
+                  style={{
+                    fontSize: "12px",
+                    backgroundColor: "#7c3aed",
+                    borderColor: "#7c3aed"
+                  }}
+                >
+                  <span>{item.actionText}</span>
+                  <ArrowRight size={13} />
+                </Button>
               </div>
             </div>
           );
