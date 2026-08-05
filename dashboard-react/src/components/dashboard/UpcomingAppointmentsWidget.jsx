@@ -190,6 +190,19 @@ export default function UpcomingAppointmentsWidget({
             const slaBackend = slaTodayList.find((s) => s.id === a.id) || a;
             const isExpanded = expandedId === a.id;
 
+            const isArrived = slaBackend?.arrivedAt || a.status === "EN_ATENCION" || a.status === "IN_PROGRESS" || a.status === "IN_PROCESS";
+            const effectiveArrivedAt = slaBackend?.arrivedAt || (isArrived ? (a.updatedAt || a.startsAt) : null);
+            const computedElapsedSec = slaBackend?.elapsedSec || (effectiveArrivedAt ? Math.max(0, Math.floor((now.getTime() - new Date(effectiveArrivedAt).getTime()) / 1000)) : 0);
+
+            const slaDetailAppt = {
+              ...a,
+              ...slaBackend,
+              scheduledAt: slaBackend?.scheduledAt || a.startsAt,
+              startsAt: a.startsAt,
+              arrivedAt: effectiveArrivedAt,
+              elapsedSec: computedElapsedSec
+            };
+
             return (
               <div
                 key={a.id}
@@ -250,7 +263,7 @@ export default function UpcomingAppointmentsWidget({
                 <Collapse in={isExpanded}>
                   <div id={`sla-detail-${a.id}`}>
                     <SlaTimelineDetail
-                      appointment={slaBackend}
+                      appointment={slaDetailAppt}
                       onArrive={handleArrive}
                       onComplete={handleComplete}
                       actionLoading={actionLoadingId === a.id}
@@ -307,6 +320,17 @@ export default function UpcomingAppointmentsWidget({
             const slaBackend = slaTodayList.find((s) => s.id === a.id) || a;
             const isExpanded = expandedId === a.id;
             const isArrived = slaBackend?.arrivedAt || a.status === "EN_ATENCION" || a.status === "IN_PROGRESS" || a.status === "IN_PROCESS";
+            const effectiveArrivedAt = slaBackend?.arrivedAt || (isArrived ? (a.updatedAt || a.startsAt) : null);
+            const computedElapsedSec = slaBackend?.elapsedSec || (effectiveArrivedAt ? Math.max(0, Math.floor((now.getTime() - new Date(effectiveArrivedAt).getTime()) / 1000)) : 0);
+
+            const slaDetailAppt = {
+              ...a,
+              ...slaBackend,
+              scheduledAt: slaBackend?.scheduledAt || a.startsAt,
+              startsAt: a.startsAt,
+              arrivedAt: effectiveArrivedAt,
+              elapsedSec: computedElapsedSec
+            };
 
             return (
               <div key={a.id} className="p-3 border rounded-3 bg-white shadow-xs d-flex flex-column gap-2 hover-shadow-sm transition-all">
@@ -387,7 +411,7 @@ export default function UpcomingAppointmentsWidget({
                 <Collapse in={isExpanded}>
                   <div id={`sla-detail-full-${a.id}`}>
                     <SlaTimelineDetail
-                      appointment={slaBackend}
+                      appointment={slaDetailAppt}
                       onArrive={handleArrive}
                       onComplete={handleComplete}
                       actionLoading={actionLoadingId === a.id}
