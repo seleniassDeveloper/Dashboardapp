@@ -463,17 +463,88 @@ export default function AppointmentsCalendar() {
     setShowAddModal(true);
   }, []);
 
-  // ✅ helpers para controlar FullCalendar desde el header
-  const api = () => calRef.current?.getApi();
+  const updateDate = (newDate) => {
+    setSelectedDate(newDate);
+    if (calRef.current?.getApi()) {
+      calRef.current.getApi().gotoDate(newDate);
+    }
+  };
 
-  const goPrev = () => api()?.prev();
-  const goNext = () => api()?.next();
-  const goToday = () => api()?.today();
+  const goPrev = () => {
+    const d = new Date(selectedDate);
+    if (view === "timeGridDay") {
+      d.setDate(d.getDate() - 1);
+    } else if (view === "timeGridWeek") {
+      d.setDate(d.getDate() - 7);
+    } else {
+      d.setMonth(d.getMonth() - 1);
+    }
+    updateDate(d);
+  };
+
+  const goNext = () => {
+    const d = new Date(selectedDate);
+    if (view === "timeGridDay") {
+      d.setDate(d.getDate() + 1);
+    } else if (view === "timeGridWeek") {
+      d.setDate(d.getDate() + 7);
+    } else {
+      d.setMonth(d.getMonth() + 1);
+    }
+    updateDate(d);
+  };
+
+  const goToday = () => {
+    updateDate(new Date());
+  };
 
   const changeView = (nextView) => {
     setView(nextView);
-    api()?.changeView(nextView);
+    if (calRef.current?.getApi()) {
+      calRef.current.getApi().changeView(nextView);
+    }
   };
+
+  const displayTitle = useMemo(() => {
+    const months = [
+      "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+      "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+    ];
+    const weekdays = [
+      "Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"
+    ];
+
+    if (view === "timeGridDay") {
+      const dayName = weekdays[selectedDate.getDay()];
+      const dayNum = selectedDate.getDate();
+      const monthName = months[selectedDate.getMonth()];
+      const year = selectedDate.getFullYear();
+      return `${dayName}, ${dayNum} de ${monthName} de ${year}`;
+    } else if (view === "timeGridWeek") {
+      const startOfWeek = new Date(selectedDate);
+      const dayOfWeek = startOfWeek.getDay();
+      const diffToMon = (dayOfWeek === 0 ? -6 : 1) - dayOfWeek;
+      startOfWeek.setDate(startOfWeek.getDate() + diffToMon);
+
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(endOfWeek.getDate() + 6);
+
+      const startDay = startOfWeek.getDate();
+      const endDay = endOfWeek.getDate();
+      const startMonth = months[startOfWeek.getMonth()];
+      const endMonth = months[endOfWeek.getMonth()];
+      const year = startOfWeek.getFullYear();
+
+      if (startMonth === endMonth) {
+        return `Semana del ${startDay} al ${endDay} de ${startMonth} de ${year}`;
+      }
+      return `Semana del ${startDay} de ${startMonth} al ${endDay} de ${endMonth} de ${year}`;
+    } else {
+      const monthName = months[selectedDate.getMonth()];
+      const year = selectedDate.getFullYear();
+      return `${monthName} de ${year}`;
+    }
+  }, [view, selectedDate]);
 
   return (
     <>
@@ -505,8 +576,8 @@ export default function AppointmentsCalendar() {
                   <ChevronLeft size={18} />
                 </Button>
 
-                <span className="fw-extrabold text-dark px-3" style={{ fontSize: "15px", whiteSpace: "nowrap", letterSpacing: "-0.01em" }}>
-                  {title}
+                <span className="fw-extrabold text-dark px-3" style={{ fontSize: "14px", whiteSpace: "nowrap", letterSpacing: "-0.01em" }}>
+                  {displayTitle}
                 </span>
 
                 <Button
@@ -564,7 +635,7 @@ export default function AppointmentsCalendar() {
               <Form.Select
                 size="sm"
                 className="rounded-pill bg-white border px-3 py-1 text-dark fw-semibold shadow-xs"
-                style={{ fontSize: "12.5px", width: "auto", minWidth: "180px", cursor: "pointer" }}
+                style={{ fontSize: "12.5px", width: "auto", maxWidth: "210px", cursor: "pointer", textOverflow: "ellipsis" }}
               >
                 <option value="">👥 Todos los profesionales</option>
                 {workers.map((w) => (
@@ -586,6 +657,7 @@ export default function AppointmentsCalendar() {
               </Button>
             </div>
           </div>
+
 
 
           {/* KPIs Header Permanente */}

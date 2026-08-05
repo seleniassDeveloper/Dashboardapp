@@ -260,42 +260,7 @@ export default function Sidebar({
                 )}
               </Link>
 
-              {/* RENDER APPOINTMENTS SUBMENU IF ACTIVE & EXPANDED */}
-              {item.id === "appointments" && isActive && !isCollapsed && (
-                <div className="sidebar__submenu ms-4 d-flex flex-column gap-1 my-1">
-                  {APPOINTMENTS_SUB_ITEMS.map((sub) => {
-                    const isSubActive = location.pathname === sub.path;
-                    
-                    return (
-                      <Link
-                        key={sub.id}
-                        to={sub.path}
-                        className={`sidebar__submenu-item d-flex align-items-center gap-2 px-3 py-1.5 rounded-xl text-decoration-none transition-all ${
-                          isSubActive
-                            ? "sidebar__submenu-item--active"
-                            : "sidebar__submenu-item--inactive"
-                        }`}
-                        style={{ fontSize: "12.5px" }}
-                        onClick={onClose}
-                      >
-                        <div 
-                          className="rounded-circle" 
-                          style={{ 
-                            width: "5px", 
-                            height: "5px", 
-                            backgroundColor: isSubActive ? (brand.accentColor || "#7c3aed") : "rgba(100, 116, 139, 0.4)" 
-                          }} 
-                        />
-                        <span>
-                          {sub.id === "calendar"
-                            ? (t("nav:menu.appointments", { defaultValue: "Calendario" }))
-                            : (t("nav:menu.sla_today", { defaultValue: "SLA Citas Hoy" }))}
-                        </span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
+
 
               {/* RENDER FINANCES SUBMENU IF ACTIVE & EXPANDED */}
               {item.id === "finances" && isActive && !isCollapsed && (

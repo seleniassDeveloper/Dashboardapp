@@ -58,14 +58,15 @@ export default function AgendaSummary({
       freeWorker = { name: "N/A", percentFree: 100 };
     }
 
-    const totalCount = totalList.length || 18;
-    const confirmedCount = confirmedList.length || 12;
-    const pendingCount = pendingList.length || 3;
+    const confirmedCount = confirmedList.length > 0 ? confirmedList.length : 12;
+    const pendingCount = pendingList.length > 0 ? pendingList.length : 3;
     const noShowCount = 3;
+    const totalCount = totalList.length > 0 ? totalList.length : (confirmedCount + pendingCount + noShowCount);
 
-    const confirmedPct = ((confirmedCount / totalCount) * 100).toFixed(1);
-    const pendingPct = ((pendingCount / totalCount) * 100).toFixed(1);
-    const noShowPct = ((noShowCount / totalCount) * 100).toFixed(1);
+    const baseTotal = Math.max(totalCount, confirmedCount + pendingCount + noShowCount, 1);
+    const confirmedPct = Math.min(((confirmedCount / baseTotal) * 100), 100).toFixed(1);
+    const pendingPct = Math.min(((pendingCount / baseTotal) * 100), 100).toFixed(1);
+    const noShowPct = Math.min(((noShowCount / baseTotal) * 100), 100).toFixed(1);
 
     return {
       total: totalList.length,
