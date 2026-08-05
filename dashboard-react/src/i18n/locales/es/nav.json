@@ -2,6 +2,7 @@
   "menu": {
     "dashboard": "Panel",
     "appointments": "Agenda",
+    "sla_today": "SLA Citas Hoy",
     "clients": "Clientes",
     "services": "Servicios",
     "team": "Equipo",

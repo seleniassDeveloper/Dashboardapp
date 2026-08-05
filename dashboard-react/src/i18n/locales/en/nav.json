@@ -2,6 +2,7 @@
   "menu": {
     "dashboard": "Dashboard",
     "appointments": "Appointments",
+    "sla_today": "Today's SLA",
     "clients": "Clients",
     "services": "Services",
     "team": "Team",

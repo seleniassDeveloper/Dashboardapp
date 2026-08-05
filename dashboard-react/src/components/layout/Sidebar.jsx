@@ -30,7 +30,8 @@ import { useBusinessModel } from "../../hooks/useBusinessModel";
 import "./Sidebar.css";
 
 const getMenuLabel = (itemId, terms, t) => {
-  if (!terms?.nav) return t(`menu.${itemId}`);
+  if (itemId === "sla_today") return t("nav:menu.sla_today", { defaultValue: "SLA Citas Hoy" });
+  if (!terms?.nav) return t(`nav:menu.${itemId}`, { defaultValue: itemId });
   const mapping = {
     dashboard: "panel",
     appointments: "agenda",
@@ -42,7 +43,7 @@ const getMenuLabel = (itemId, terms, t) => {
     config: "settings"
   };
   const key = mapping[itemId];
-  return terms.nav[key] || t(`menu.${itemId}`);
+  return terms.nav[key] || t(`nav:menu.${itemId}`, { defaultValue: itemId });
 };
 
 const getSubMenuLabel = (subId, terms, t) => {
