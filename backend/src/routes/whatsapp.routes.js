@@ -130,97 +130,17 @@ router.post("/", async (req, res) => {
       const textBodyUpper = textContent.toUpperCase();
       console.log(`[WhatsApp Webhook] [Negocio: ${targetBusiness.name}] Mensaje de ${fromPhone}: "${textContent}"`);
 
-      // Cargar servicio de envío de WhatsApp
-      const { sendText } = await import("../services/whatsapp.service.js");
+      // Delegar procesamiento del mensaje a la máquina de estados del bot (Híbrido Menú + IA)
+      const { processBotMessage } = await import("../services/whatsappBot.service.js");
 
-      // CASO A: Confirmación de cita existente ("SÍ", "CONFIRMO", "OK")
-      const isConfirmation = ["SI", "SÍ", "CONFIRMO", "CONFIRMAR", "1", "OK", "CONFIRMADO"].includes(textBodyUpper);
-      if (isConfirmation && fromPhone.length >= 8) {
-        const clientsInBiz = await prisma.client.findMany({
-          where: { businessId },
-          select: { id: true, phone: true }
-        });
-
-        const matchedClients = clientsInBiz.filter(c => {
-          if (!c.phone) return false;
-          const clean = c.phone.replace(/\D/g, "");
-          return clean === fromPhone || (clean.length >= 8 && fromPhone.endsWith(clean.slice(-9)));
-        });
-
-        if (matchedClients.length > 0) {
-          const clientIds = matchedClients.map(c => c.id);
-
-          const upcomingAppts = await prisma.appointment.findMany({
-            where: {
-              businessId,
-              clientId: { in: clientIds },
-              status: { in: ["PENDING", "UNCONFIRMED"] },
-              startsAt: { gte: new Date(Date.now() - 1000 * 60 * 60 * 2) }
-            },
-            orderBy: { startsAt: "asc" },
-            include: { client: true, service: true, worker: true }
-          });
-
-          if (upcomingAppts.length === 1) {
-            const appt = upcomingAppts[0];
-            const updatedAppt = await prisma.appointment.update({
-              where: { id: appt.id },
-              data: { status: "CONFIRMED" }
-            });
-
-            console.log(`[WhatsApp Webhook] ✅ Cita ${appt.id} en ${targetBusiness.name} confirmada via WhatsApp.`);
-
-            await triggerWorkflows(businessId, "confirmed", {
-              ...updatedAppt,
-              client: appt.client,
-              service: appt.service,
-              worker: appt.worker
-            });
-
-            await sendText(targetBusiness.integrations.whatsapp, fromPhone, `¡Gracias ${appt.client.firstName}! 🌟 Tu turno para *${appt.service?.name}* ha sido confirmado exitosamente. Te esperamos.`);
-            return;
-          }
-        }
-      }
-
-      // CASO B: Solicitud de Agendado via comando o payload estructurado
-      // Ejemplo: "AGENDAR|serviceId|date|time|professionalId|nombre"
-      if (textContent.startsWith("AGENDAR|")) {
-        const parts = textContent.split("|");
-        const [_, serviceId, date, time, professionalId, clientName] = parts;
-
-        const { createBookingCore } = await import("../services/booking.service.js");
-
-        try {
-          const bookingResult = await createBookingCore({
-            businessId: targetBusiness.id,
-            slug: targetBusiness.slug,
-            firstName: clientName || "Cliente WhatsApp",
-            phone: fromPhone,
-            serviceId: serviceId,
-            professionalId: professionalId || "any",
-            date: date,
-            time: time,
-            source: "whatsapp"
-          });
-
-          const { firstAppointment, service, worker } = bookingResult;
-
-          const confirmationMsg = `¡Tu turno ha sido agendado y registrado con éxito! 🎉\n\n` +
-            `📌 *Servicio:* ${service?.name || "Servicio"}\n` +
-            `📅 *Fecha:* ${date}\n` +
-            `⏰ *Hora:* ${time} hs\n` +
-            `👤 *Profesional:* ${worker?.firstName || "Asignado"}\n` +
-            `🔢 *Nº de turno:* #${firstAppointment.id.slice(-6).toUpperCase()}\n\n` +
-            `¡Te esperamos en *${targetBusiness.name}*!`;
-
-          await sendText(targetBusiness.integrations.whatsapp, fromPhone, confirmationMsg);
-          console.log(`[WhatsApp Webhook] ✅ Reserva creada via WhatsApp y registrada en dashboard para ${targetBusiness.name}`);
-        } catch (bookingErr) {
-          console.error(`[WhatsApp Webhook] Error agendando via WhatsApp:`, bookingErr?.message);
-          await sendText(targetBusiness.integrations.whatsapp, fromPhone, `Disculpa, no pudimos completar la reserva: ${bookingErr?.message || "Horario no disponible"}. Por favor intenta con otro horario.`);
-        }
-      }
+      await processBotMessage({
+        business: targetBusiness,
+        fromPhone,
+        textContent,
+        messageId
+      }).catch(err => {
+        console.error(`[WhatsApp Webhook] Error procesando mensaje de bot:`, err?.message || err);
+      });
     }
   } catch (error) {
     console.error("[WhatsApp Webhook] Error interno:", error?.message || error);
