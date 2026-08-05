@@ -13,8 +13,8 @@ import CalendarHistoryView from "./booking/CalendarHistoryView";
 import api from "../lib/api.js";
 import { useIsMobile } from "../hooks/useIsMobile";
 import AppointmentsSLA from "../components/appointments/mobile/AppointmentsSLA";
-
 import AgendaSubNav from "../components/appointments/AgendaSubNav";
+import AgendaSlaSidePanel from "../components/appointments/AgendaSlaSidePanel";
 
 export default function CalendarView() {
   const isMobile = useIsMobile();
@@ -76,8 +76,7 @@ export default function CalendarView() {
   // --- MAIN VIEW STATE ---
   const [mainView, setMainView] = useState("calendar"); // "calendar" | "waitlist" | "history"
 
-  // --- MOTOR DE RECOMENDACIONES DE AURA AI (Punto 6) ---
-  // Detector de huecos libres (Mock determinista e interactivo en tiempo real)
+  // --- MOTOR DE RECOMENDACIONES DE AURA AI ---
   const gaps = useMemo(() => {
     if (!workers.length) return [];
     const now = new Date();
@@ -108,7 +107,6 @@ export default function CalendarView() {
     return list;
   }, [workers]);
 
-  // Coincidencias de Aura AI
   const auraSuggestion = useMemo(() => {
     const waitingClient = waitlist.find(c => c.status === "Esperando");
     const activeGap = gaps[0];
@@ -125,7 +123,6 @@ export default function CalendarView() {
     return null;
   }, [waitlist, gaps, services]);
 
-  // Manejadores Lista
   const handleAddToWaitlist = (e) => {
     e.preventDefault();
     if (!newWait.firstName || !newWait.lastName) return;
@@ -159,12 +156,10 @@ export default function CalendarView() {
     setWaitlist(prev => prev.filter(c => c.id !== id));
   };
 
-  // Reservar turno desde la lista
   const handleBookWaitlist = (client, dateStr, timeStr, workerId) => {
     const targetDate = dateStr || client.preferenceDate || new Date().toISOString().slice(0, 10);
     const targetTime = timeStr || client.preferenceTime || "11:00";
     const targetWorker = workerId || client.workerId || (workers[0]?.id || "");
-
     const startsAt = `${targetDate}T${targetTime}`;
 
     setInitialAddData({
@@ -181,8 +176,6 @@ export default function CalendarView() {
   const handleModalSaved = () => {
     setShowAddModal(false);
     fetchAppointments();
-    
-    // Si había una sugerencia, marcar ese cliente como Reagendado o asignado
     if (auraSuggestion) {
       setWaitlist(prev => 
         prev.map(c => c.id === auraSuggestion.client.id ? { ...c, status: "Reagendado" } : c)
@@ -190,7 +183,6 @@ export default function CalendarView() {
     }
   };
 
-  // Enviar mensaje de WhatsApp
   const handleSendWhatsAppNotification = (client, gap) => {
     const svc = services.find(s => s.id === client.serviceId) || { name: client.service || "Estética" };
     const dateStr = gap 
@@ -208,77 +200,63 @@ export default function CalendarView() {
     );
   };
 
-  // Enviar correo de notificación
-  const handleSendEmailNotification = (client, gap) => {
-    alert(`Notificación enviada por correo electrónico a ${client.firstName} ${client.lastName}.`);
-    setWaitlist(prev => 
-      prev.map(c => c.id === client.id ? { ...c, status: "Contactado" } : c)
-    );
-  };
-
-  // Clases y colores
-  const getPriorityColor = (priority) => {
-    if (priority === "Alta") return "danger";
-    if (priority === "Media") return "warning";
-    return "primary";
-  };
-
-  const getStatusBadge = (status) => {
-    if (status === "Esperando") return "warning-soft text-warning border-warning";
-    if (status === "Contactado") return "success-soft text-success border-success";
-    if (status === "Reagendado") return "primary-soft text-primary border-primary";
-    return "secondary-soft text-muted border-secondary";
-  };
-
   return (
     <Container fluid className="p-0 pb-4">
-      <AgendaSubNav />
+      {/* Header Unificado de Agenda */}
       <header className="mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
         <div>
-          <h1 className="fw-bold h3">{t("calendar.title")}</h1>
-          <p className="text-muted mb-0">{t("calendar.subtitle")}</p>
+          <h1 className="fw-black h3 text-dark mb-1" style={{ letterSpacing: "-0.02em" }}>Agenda</h1>
+          <p className="text-muted mb-0 small">Gestiona tus citas, horarios y optimiza el tiempo de tu equipo.</p>
         </div>
 
-        <div className="d-flex bg-light p-1 rounded-3 shadow-sm border">
+        {/* Tabs Principales de Navegación de la Agenda */}
+        <div className="d-flex bg-light p-1 rounded-pill border shadow-xs">
           <Button
             size="sm"
-            variant={mainView === "calendar" ? "white" : "link"}
-            className={`rounded-2 px-4 py-2 ${mainView === "calendar" ? "shadow-sm border fw-bold text-dark bg-white" : "text-muted border-0 text-decoration-none"}`}
+            variant="link"
+            className={`rounded-pill px-4 py-1.5 fw-bold text-decoration-none transition-all ${
+              mainView === "calendar" ? "bg-white text-purple-700 shadow-xs border" : "text-muted"
+            }`}
+            style={{
+              color: mainView === "calendar" ? "#7c3aed" : "#6b7280",
+              borderColor: mainView === "calendar" ? "#e9d5ff" : "transparent"
+            }}
             onClick={() => setMainView("calendar")}
           >
-            <CalendarIcon size={14} className="me-2 d-inline-block" style={{marginTop:"-2px"}}/>
+            <CalendarIcon size={14} className="me-1.5 d-inline-block" style={{ marginTop: "-2px" }} />
             Calendario
           </Button>
           <Button
             size="sm"
-            variant={mainView === "history" ? "primary" : "link"}
-            className={`rounded-2 px-4 py-2 transition-all ${mainView === "history" ? "shadow-premium fw-bold text-white border-0" : "fw-bold text-decoration-none border-0"}`}
-            style={
-              mainView === "history" 
-                ? { background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)" } 
-                : { color: "#4f46e5", backgroundColor: "rgba(99, 102, 241, 0.05)" }
-            }
+            variant="link"
+            className={`rounded-pill px-4 py-1.5 fw-bold text-decoration-none transition-all ${
+              mainView === "history" ? "bg-white text-purple-700 shadow-xs border" : "text-muted"
+            }`}
+            style={{
+              color: mainView === "history" ? "#7c3aed" : "#6b7280",
+              borderColor: mainView === "history" ? "#e9d5ff" : "transparent"
+            }}
             onClick={() => setMainView("history")}
           >
-            <Clipboard size={14} className="me-2 d-inline-block" style={{marginTop:"-2px"}}/>
+            <Clipboard size={14} className="me-1.5 d-inline-block" style={{ marginTop: "-2px" }} />
             Historial Avanzado
           </Button>
           <Button
             size="sm"
             variant="link"
-            className="rounded-2 px-3 py-2 text-decoration-none fw-bold ms-1"
-            style={{ color: "#7c3aed", backgroundColor: "rgba(124, 58, 237, 0.08)" }}
+            className="rounded-pill px-4 py-1.5 text-decoration-none fw-bold text-muted transition-all"
             onClick={() => navigate("/app/sla-today")}
           >
-            <Clock size={14} className="me-1 d-inline-block" style={{marginTop:"-2px"}}/>
+            <Clock size={14} className="me-1.5 d-inline-block" style={{ marginTop: "-2px" }} />
             Timeline SLA
           </Button>
         </div>
 
-        <div className="d-flex align-items-center gap-3">
+        <div className="d-flex align-items-center gap-2">
           <Button
-            variant="dark"
-            className="rounded-pill px-4 py-2 d-flex align-items-center gap-2 fw-semibold btn-premium shadow-sm"
+            variant="primary"
+            className="rounded-pill px-4 py-2 d-flex align-items-center gap-2 fw-semibold shadow-sm border-0"
+            style={{ backgroundColor: "#7c3aed" }}
             onClick={() => {
               setInitialAddData(null);
               setShowAddModal(true);
@@ -287,347 +265,58 @@ export default function CalendarView() {
             <Plus size={16} />
             <span>{t("calendar.newAppointment") || "Nueva Cita"}</span>
           </Button>
-
-          {business?.googleCalendarId && business?.googleRefreshToken && (
-            <div className="d-flex bg-light p-1 rounded-3">
-              <Button
-                size="sm"
-                variant={!showEmbeddedGoogle ? "white" : "link"}
-                className={`rounded-2 px-3 py-1.5 text-dark small ${!showEmbeddedGoogle ? "shadow-sm border fw-bold bg-white" : "text-muted border-0"}`}
-                onClick={() => setShowEmbeddedGoogle(false)}
-                style={{ fontSize: "12px" }}
-              >
-                Calendario Local (Sincronizado)
-              </Button>
-              <Button
-                size="sm"
-                variant={showEmbeddedGoogle ? "white" : "link"}
-                className={`rounded-2 px-3 py-1.5 text-dark small ${showEmbeddedGoogle ? "shadow-sm border fw-bold bg-white" : "text-muted border-0"}`}
-                onClick={() => setShowEmbeddedGoogle(true)}
-                style={{ fontSize: "12px" }}
-              >
-                Google Calendar (Embebido)
-              </Button>
-            </div>
-          )}
         </div>
       </header>
 
       {mainView === "calendar" ? (
-      <Row className="g-4">
-        {/* Calendario central */}
-        <Col lg={8}>
-          <div className="card-premium p-0 overflow-hidden shadow-sm" style={{ minHeight: "calc(100vh - 200px)" }}>
-            {showEmbeddedGoogle && business?.googleCalendarId ? (
-              <div className="w-100 h-100" style={{ minHeight: "calc(100vh - 200px)" }}>
-                <iframe 
-                  src={`https://calendar.google.com/calendar/embed?src=${encodeURIComponent(business.googleCalendarId)}&ctz=America%2FArgentina%2FBuenos_Aires`}
-                  style={{ border: 0, width: "100%", height: "calc(100vh - 200px)", minHeight: "560px" }}
-                  frameBorder="0" 
-                  scrolling="no"
-                  title="Google Calendar Embebido"
-                />
-              </div>
-            ) : (
-              <AppointmentsCalendar />
-            )}
-          </div>
-        </Col>
-
-        {/* Panel lateral Operativo y de Lista de Espera */}
-        <Col lg={4}>
-          <div className="d-grid gap-4">
-            
-            {/* AURA AI SUGGESTER BLOCK */}
-            {auraSuggestion && (
-              <Card 
-                className="border-0 shadow-premium overflow-hidden animate-fade-in"
-                style={{
-                  background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-                  borderRadius: "20px"
-                }}
-              >
-                <Card.Body className="p-4 text-white">
-                  <div className="d-flex align-items-center gap-2 mb-2">
-                    <Sparkles size={20} className="animate-pulse" />
-                    <strong className="h6 fw-black m-0" style={{ letterSpacing: "-0.01em" }}>Aura Copilot AI</strong>
-                  </div>
-                  <p className="small mb-3" style={{ opacity: 0.95, lineHeight: "1.4" }}>
-                    {auraSuggestion.message}
-                  </p>
-                  <div className="d-flex gap-2">
-                    <Button 
-                      size="sm" 
-                      variant="light" 
-                      className="rounded-pill px-3 py-1.5 fw-bold text-success"
-                      onClick={() => handleBookWaitlist(auraSuggestion.client, auraSuggestion.gap.dateStr, auraSuggestion.gap.timeStr, auraSuggestion.gap.workerId)}
-                    >
-                      Asignar Turno
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline-light" 
-                      className="rounded-pill px-3 py-1.5 fw-bold border-white"
-                      onClick={() => handleSendWhatsAppNotification(auraSuggestion.client, auraSuggestion.gap)}
-                    >
-                      Notificar WhatsApp
-                    </Button>
-                  </div>
-                </Card.Body>
-              </Card>
-            )}
-
-            {/* LISTA DE ESPERA PRINCIPAL */}
-            <Card className="card-premium border-0 shadow-sm rounded-4 bg-white">
-              <Card.Body className="p-4">
-                <h3 className="h6 fw-black text-dark mb-3 d-flex align-items-center gap-2">
-                  <Users size={18} className="text-primary" />
-                  <span>Lista de Espera Inteligente</span>
-                </h3>
-
-                {/* Formulario registro */}
-                <Form onSubmit={handleAddToWaitlist} className="d-grid gap-2 mb-4 bg-light p-3 rounded-4 border">
-                  <div className="smaller text-muted fw-bold mb-1">Registrar Cliente en Espera</div>
-                  <Row className="g-2">
-                    <Col xs={6}>
-                      <Form.Control
-                        placeholder="Nombre *"
-                        value={newWait.firstName}
-                        onChange={(e) => setNewWait(prev => ({ ...prev, firstName: e.target.value }))}
-                        className="modern-input px-2 py-1.5"
-                        style={{ fontSize: "12px" }}
-                        required
-                      />
-                    </Col>
-                    <Col xs={6}>
-                      <Form.Control
-                        placeholder="Apellido *"
-                        value={newWait.lastName}
-                        onChange={(e) => setNewWait(prev => ({ ...prev, lastName: e.target.value }))}
-                        className="modern-input px-2 py-1.5"
-                        style={{ fontSize: "12px" }}
-                        required
-                      />
-                    </Col>
-                  </Row>
-                  
-                  <Row className="g-2">
-                    <Col xs={12}>
-                      <Form.Control
-                        placeholder="WhatsApp (Cels) *"
-                        value={newWait.phone}
-                        onChange={(e) => setNewWait(prev => ({ ...prev, phone: e.target.value }))}
-                        className="modern-input px-2 py-1.5"
-                        style={{ fontSize: "12px" }}
-                        required
-                      />
-                    </Col>
-                  </Row>
-
-                  <Row className="g-2">
-                    <Col xs={6}>
-                      <Form.Select
-                        value={newWait.serviceId}
-                        onChange={(e) => setNewWait(prev => ({ ...prev, serviceId: e.target.value }))}
-                        className="modern-input px-2 py-1.5"
-                        style={{ fontSize: "12px" }}
-                      >
-                        <option value="">Servicio...</option>
-                        {(() => {
-                          const groups = {};
-                          services.forEach(s => {
-                            const cat = s.category || "General";
-                            if (!groups[cat]) groups[cat] = [];
-                            groups[cat].push(s);
-                          });
-                          return Object.entries(groups).map(([category, list]) => (
-                            <optgroup key={category} label={category}>
-                              {list.map(s => (
-                                <option key={s.id} value={s.id}>{s.name}</option>
-                              ))}
-                            </optgroup>
-                          ));
-                        })()}
-                      </Form.Select>
-                    </Col>
-                    <Col xs={6}>
-                      <Form.Select
-                        value={newWait.workerId}
-                        onChange={(e) => setNewWait(prev => ({ ...prev, workerId: e.target.value }))}
-                        className="modern-input px-2 py-1.5"
-                        style={{ fontSize: "12px" }}
-                      >
-                        <option value="">Estilista...</option>
-                        {workers.map(w => (
-                          <option key={w.id} value={w.id}>{w.firstName}</option>
-                        ))}
-                      </Form.Select>
-                    </Col>
-                  </Row>
-
-                  <Row className="g-2">
-                    <Col xs={6}>
-                      <Form.Control
-                        type="date"
-                        value={newWait.preferenceDate}
-                        onChange={(e) => setNewWait(prev => ({ ...prev, preferenceDate: e.target.value }))}
-                        className="modern-input px-2 py-1.5"
-                        style={{ fontSize: "12px" }}
-                      />
-                    </Col>
-                    <Col xs={6}>
-                      <Form.Control
-                        type="time"
-                        value={newWait.preferenceTime}
-                        onChange={(e) => setNewWait(prev => ({ ...prev, preferenceTime: e.target.value }))}
-                        className="modern-input px-2 py-1.5"
-                        style={{ fontSize: "12px" }}
-                      />
-                    </Col>
-                  </Row>
-
-                  <Row className="g-2">
-                    <Col xs={12}>
-                      <Form.Select
-                        value={newWait.priority}
-                        onChange={(e) => setNewWait(prev => ({ ...prev, priority: e.target.value }))}
-                        className="modern-input px-2 py-1.5"
-                        style={{ fontSize: "12px" }}
-                      >
-                        <option value="Alta">Prioridad Alta</option>
-                        <option value="Media">Prioridad Media</option>
-                        <option value="Baja">Prioridad Baja</option>
-                      </Form.Select>
-                    </Col>
-                  </Row>
-
-                  <Button type="submit" variant="dark" size="sm" className="w-100 rounded-pill btn-premium justify-content-center py-2 mt-1 small bg-dark">
-                    <Plus size={14} />
-                    <span>Agregar a la Lista</span>
-                  </Button>
-                </Form>
-
-                {/* Listado tarjetas */}
-                <div className="d-grid gap-3 overflow-auto" style={{ maxHeight: "380px", paddingRight: "4px" }}>
-                  {waitlist.length === 0 ? (
-                    <div className="text-center py-4 text-muted small">
-                      <AlertCircle size={24} className="mb-2 text-muted" />
-                      <div>Lista de espera vacía.</div>
-                    </div>
-                  ) : (
-                    waitlist.map(w => {
-                      const svc = services.find(s => s.id === w.serviceId);
-                      const stylist = workers.find(work => work.id === w.workerId);
-
-                      return (
-                        <div 
-                          key={w.id} 
-                          className="p-3 border rounded-4 bg-white shadow-premium-hover animate-fade-in position-relative"
-                          style={{
-                            borderLeft: `5px solid var(--bs-${getPriorityColor(w.priority)})`
-                          }}
-                        >
-                          <div className="d-flex justify-content-between align-items-start mb-2">
-                            <div>
-                              <strong className="text-dark small d-block" style={{ fontSize: "13.5px" }}>
-                                {w.firstName} {w.lastName}
-                              </strong>
-                              <span className="text-muted smaller d-flex align-items-center gap-1 mt-0.5" style={{ fontSize: "11px" }}>
-                                <Phone size={10} /> {w.phone || "Sin celular"}
-                              </span>
-                            </div>
-                            <div className="d-flex gap-1.5 align-items-center">
-                              <Badge bg={getPriorityColor(w.priority)} className="rounded-pill smaller" style={{ fontSize: "9px" }}>
-                                {w.priority}
-                              </Badge>
-                              <Button 
-                                size="sm" 
-                                variant="outline-danger" 
-                                onClick={() => handleRemoveFromWaitlist(w.id)}
-                                className="p-1 rounded-circle border-0 text-danger hover-bg-danger"
-                              >
-                                <Trash2 size={12} />
-                              </Button>
-                            </div>
-                          </div>
-
-                          <div className="d-grid gap-1 mb-3 text-dark small" style={{ fontSize: "11.5px" }}>
-                            <div>
-                              <strong>Servicio:</strong> <span className="badge bg-light text-dark border">{svc?.name || w.service || "Cualquiera"}</span>
-                            </div>
-                            <div>
-                              <strong>Preferencia:</strong> {stylist?.firstName || "Cualquier profesional"}
-                              {(w.preferenceDate || w.preferenceTime) && (
-                                <span className="text-muted"> (el {w.preferenceDate ? new Date(`${w.preferenceDate}T12:00:00`).toLocaleDateString("es-AR") : ""} {w.preferenceTime})</span>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="d-flex justify-content-between align-items-center border-top pt-2 flex-wrap gap-2">
-                            <div>
-                              <span className={`badge border ${getStatusBadge(w.status)}`} style={{ fontSize: "9.5px" }}>
-                                {w.status}
-                              </span>
-                            </div>
-                            
-                            <div className="d-flex gap-1.5">
-                              {w.status === "Esperando" && (
-                                <>
-                                  <Button 
-                                    size="sm" 
-                                    variant="outline-success" 
-                                    onClick={() => handleSendWhatsAppNotification(w)}
-                                    title="Notificar por WhatsApp"
-                                    className="p-1.5 rounded-circle border"
-                                  >
-                                    <MessageCircle size={12} className="text-success" />
-                                  </Button>
-                                  <Button 
-                                    size="sm" 
-                                    variant="success" 
-                                    onClick={() => handleBookWaitlist(w)}
-                                    title="Agendar Turno Rápido"
-                                    className="p-1.5 rounded-circle bg-success text-white border-0"
-                                  >
-                                    <Plus size={12} />
-                                  </Button>
-                                </>
-                              )}
-                              {w.status !== "Contactado" && w.status !== "Reagendado" && (
-                                <Button 
-                                  size="sm" 
-                                  variant="outline-secondary" 
-                                  onClick={() => handleMarkContacted(w.id)}
-                                  title="Marcar Contactado"
-                                  className="p-1.5 rounded-circle border"
-                                >
-                                  <Check size={12} />
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
+        <Row className="g-4">
+          {/* Grilla central de Agenda */}
+          <Col lg={8}>
+            <div className="bg-white rounded-4 border p-0 overflow-hidden shadow-sm" style={{ minHeight: "calc(100vh - 200px)" }}>
+              {showEmbeddedGoogle && business?.googleCalendarId ? (
+                <div className="w-100 h-100" style={{ minHeight: "calc(100vh - 200px)" }}>
+                  <iframe 
+                    src={`https://calendar.google.com/calendar/embed?src=${encodeURIComponent(business.googleCalendarId)}&ctz=America%2FArgentina%2FBuenos_Aires`}
+                    style={{ border: 0, width: "100%", height: "calc(100vh - 200px)", minHeight: "560px" }}
+                    frameBorder="0" 
+                    scrolling="no"
+                    title="Google Calendar Embebido"
+                  />
                 </div>
-              </Card.Body>
-            </Card>
+              ) : (
+                <AppointmentsCalendar />
+              )}
+            </div>
+          </Col>
 
-          </div>
-        </Col>
-      </Row>
+          {/* Panel Lateral Unificado de SLA y Operativa */}
+          <Col lg={4}>
+            <AgendaSlaSidePanel 
+              onOpenAlerts={() => navigate("/app/sla-today")}
+              onOpenSuggestions={() => {
+                if (auraSuggestion) {
+                  handleBookWaitlist(auraSuggestion.client, auraSuggestion.gap.dateStr, auraSuggestion.gap.timeStr, auraSuggestion.gap.workerId);
+                } else {
+                  alert("Buscando los mejores huecos libres...");
+                }
+              }}
+            />
+          </Col>
+        </Row>
       ) : (
         <CalendarHistoryView />
       )}
 
-      {/* AppointmentModal para agendar rápido */}
-      <AppointmentModal
-        show={showAddModal}
-        onHide={() => setShowAddModal(false)}
-        initialData={initialAddData}
-        onSaved={handleModalSaved}
-      />
+      {/* Modal para agregar/editar citas */}
+      {showAddModal && (
+        <AppointmentModal
+          show={showAddModal}
+          onHide={() => setShowAddModal(false)}
+          initialData={initialAddData}
+          onSaved={handleModalSaved}
+        />
+      )}
     </Container>
   );
 }
+

@@ -25,7 +25,7 @@ import AgendaSummary from "./agenda/AgendaSummary";
 import AgendaSummaryDetailModal from "./agenda/AgendaSummaryDetailModal";
 import FinalizeServiceModal from "../../components/clients/FinalizeServiceModal.jsx";
 import axiosApi from "../../lib/api.js";
-import { User, Calendar, Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import { User, Calendar, Plus, ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-react";
 import { useIsMobile } from "../../hooks/useIsMobile";
 
 import "./styles/fullcalendar-fix.css";
@@ -130,7 +130,7 @@ export default function AppointmentsCalendar() {
   const isMobile = useIsMobile();
 
   // ✅ controla vista + título arriba (sin depender del toolbar de FullCalendar)
-  const [view, setView] = useState(() => (typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches) ? "timeGridDay" : "dayGridMonth"); // "dayGridMonth" | "timeGridWeek" | "timeGridDay"
+  const [view, setView] = useState("timeGridDay"); // "timeGridDay" | "timeGridWeek" | "dayGridMonth"
   const [title, setTitle] = useState("");
   const [selectedDate, setSelectedDate] = useState(() => new Date());
 
@@ -522,19 +522,19 @@ export default function AppointmentsCalendar() {
               </div>
             </div>
 
-            {/* Derecha: Selector de Vista (Mes | Semana | Día) */}
-            <div className="d-flex align-items-center gap-2">
+            {/* Derecha: Selector de Vista (Día | Semana | Mes) + Filtro de Profesionales + Botón Filtro */}
+            <div className="d-flex align-items-center gap-2 flex-wrap">
               <div className="bg-white p-1 rounded-pill border shadow-xs d-flex align-items-center gap-1">
                 <Button
                   size="sm"
-                  variant={view === "dayGridMonth" ? "primary" : "link"}
+                  variant={view === "timeGridDay" ? "primary" : "link"}
                   className={`rounded-pill px-3.5 py-1 fw-bold text-decoration-none ${
-                    view === "dayGridMonth" ? "shadow-xs text-white" : "text-muted"
+                    view === "timeGridDay" ? "shadow-xs text-white" : "text-muted"
                   }`}
-                  style={view === "dayGridMonth" ? { backgroundColor: "#7c3aed", borderColor: "#7c3aed" } : { fontSize: "12.5px" }}
-                  onClick={() => changeView("dayGridMonth")}
+                  style={view === "timeGridDay" ? { backgroundColor: "#7c3aed", borderColor: "#7c3aed" } : { fontSize: "12.5px" }}
+                  onClick={() => changeView("timeGridDay")}
                 >
-                  Mes
+                  Día
                 </Button>
                 <Button
                   size="sm"
@@ -549,18 +549,44 @@ export default function AppointmentsCalendar() {
                 </Button>
                 <Button
                   size="sm"
-                  variant={view === "timeGridDay" ? "primary" : "link"}
+                  variant={view === "dayGridMonth" ? "primary" : "link"}
                   className={`rounded-pill px-3.5 py-1 fw-bold text-decoration-none ${
-                    view === "timeGridDay" ? "shadow-xs text-white" : "text-muted"
+                    view === "dayGridMonth" ? "shadow-xs text-white" : "text-muted"
                   }`}
-                  style={view === "timeGridDay" ? { backgroundColor: "#7c3aed", borderColor: "#7c3aed" } : { fontSize: "12.5px" }}
-                  onClick={() => changeView("timeGridDay")}
+                  style={view === "dayGridMonth" ? { backgroundColor: "#7c3aed", borderColor: "#7c3aed" } : { fontSize: "12.5px" }}
+                  onClick={() => changeView("dayGridMonth")}
                 >
-                  Día
+                  Mes
                 </Button>
               </div>
+
+              {/* Selector de Profesionales */}
+              <Form.Select
+                size="sm"
+                className="rounded-pill bg-white border px-3 py-1 text-dark fw-semibold shadow-xs"
+                style={{ fontSize: "12.5px", width: "auto", minWidth: "180px", cursor: "pointer" }}
+              >
+                <option value="">👥 Todos los profesionales</option>
+                {workers.map((w) => (
+                  <option key={w.id} value={w.id}>
+                    {w.firstName} {w.lastName}
+                  </option>
+                ))}
+              </Form.Select>
+
+              {/* Botón de Filtros */}
+              <Button
+                variant="light"
+                size="sm"
+                className="rounded-circle p-1.5 border bg-white shadow-xs d-flex align-items-center justify-content-center"
+                style={{ width: "32px", height: "32px" }}
+                title="Filtros"
+              >
+                <SlidersHorizontal size={15} className="text-muted" />
+              </Button>
             </div>
           </div>
+
 
           {/* KPIs Header Permanente */}
           <div className="mb-4">
