@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import RGL from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
@@ -35,18 +35,47 @@ export default function DashboardGrid({
 
   const debounceTimerRef = useRef(null);
 
-  // Mapear widgets a ítems de react-grid-layout
-  const layoutItems = widgets.map((w, idx) => ({
-    i: String(w.id),
-    x: typeof w.layout?.x === "number" ? w.layout.x : (idx % 3) * 4,
-    y: typeof w.layout?.y === "number" ? w.layout.y : Math.floor(idx / 3) * 3,
-    w: w.layout?.w || 4,
-    h: w.layout?.h || 2,
-    minW: 2,
-    maxW: 12,
-    minH: 1,
-    maxH: 12,
-  }));
+  // Mapear widgets a ítems de react-grid-layout garantizando coordenadas x, y sin colisiones
+  const layoutItems = useMemo(() => {
+    let currentX = 0;
+    let currentY = 0;
+    let rowMaxH = 0;
+
+    return widgets.map((w) => {
+      const wVal = Math.min(12, Math.max(2, Number(w.layout?.w || 4)));
+      const hVal = Math.min(12, Math.max(2, Number(w.layout?.h || 3)));
+
+      let xVal, yVal;
+
+      if (typeof w.layout?.x === "number" && typeof w.layout?.y === "number") {
+        xVal = w.layout.x;
+        yVal = w.layout.y;
+      } else {
+        if (currentX + wVal > 12) {
+          currentX = 0;
+          currentY += rowMaxH || 3;
+          rowMaxH = 0;
+        }
+        xVal = currentX;
+        yVal = currentY;
+
+        currentX += wVal;
+        if (hVal > rowMaxH) rowMaxH = hVal;
+      }
+
+      return {
+        i: String(w.id),
+        x: xVal,
+        y: yVal,
+        w: wVal,
+        h: hVal,
+        minW: 2,
+        maxW: 12,
+        minH: 2,
+        maxH: 12,
+      };
+    });
+  }, [widgets]);
 
   const handleLayoutChange = useCallback(
     (newLayout) => {
@@ -102,7 +131,7 @@ export default function DashboardGrid({
     }
 
     let newH = (widget.layout?.h || 2) + deltaH;
-    if (newH < 1) newH = 1;
+    if (newH < 2) newH = 2;
     if (newH > 12) newH = 12;
 
     const updatedWidget = {
@@ -162,8 +191,20 @@ export default function DashboardGrid({
   }
 
   return (
-    <div className="dashboard-grid-container pb-5">
+    <div className="dashboard-grid-container pb-5" style={{ width: "100%", overflowX: "hidden" }}>
       <style>{`
+        .react-grid-layout {
+          position: relative;
+          width: 100% !important;
+        }
+        .react-grid-item {
+          transition: all 200ms ease;
+          transition-property: left, top;
+          box-sizing: border-box;
+        }
+        .react-grid-item.cssTransforms {
+          transition-property: transform;
+        }
         .react-grid-item.react-grid-placeholder {
           background: rgba(124, 58, 237, 0.15) !important;
           border: 2px dashed #7c3aed !important;
@@ -201,8 +242,9 @@ export default function DashboardGrid({
         containerPadding={[0, 0]}
         isDraggable={!searchQuery}
         isResizable={!searchQuery}
-        compactType={null}
-        preventCollision={true}
+        compactType="vertical"
+        preventCollision={false}
+        measureBeforeMount={true}
         draggableHandle=".cursor-grab"
         onLayoutChange={handleLayoutChange}
       >
