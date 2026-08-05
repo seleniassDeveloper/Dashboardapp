@@ -4,5 +4,17 @@
   "installCommand": "npm ci --prefix dashboard-react",
   "buildCommand": "npm run build --prefix dashboard-react",
   "outputDirectory": "dashboard-react/dist",
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    }
+  ],
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }
+
