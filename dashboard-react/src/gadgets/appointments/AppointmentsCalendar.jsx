@@ -505,7 +505,11 @@ export default function AppointmentsCalendar() {
   const changeView = (nextView) => {
     setView(nextView);
     if (calRef.current?.getApi()) {
-      calRef.current.getApi().changeView(nextView);
+      const api = calRef.current.getApi();
+      api.changeView(nextView);
+      setTimeout(() => {
+        api.updateSize();
+      }, 50);
     }
   };
 
@@ -699,12 +703,11 @@ export default function AppointmentsCalendar() {
               )}
               <div style={{ 
                 display: view !== "timeGridDay" ? "block" : "none", 
-                minHeight: 650,
-                height: "auto",
+                height: 650,
                 overflowX: "auto",
                 width: "100%"
               }}>
-                <div style={{ minWidth: isMobile && view !== "timeGridDay" ? "750px" : "100%", minHeight: 650 }}>
+                <div style={{ minWidth: isMobile && view !== "timeGridDay" ? "750px" : "100%", height: 650 }}>
                   <FullCalendar
                     ref={calRef}
                     key={`cal-${accent}`}
@@ -716,7 +719,7 @@ export default function AppointmentsCalendar() {
                     slotMinTime="07:00:00"
                     slotMaxTime="22:00:00"
                     expandRows
-                    height="100%"
+                    height={650}
                     events={events}
                     eventClick={onEventClick}
                     dateClick={onDateClick}
