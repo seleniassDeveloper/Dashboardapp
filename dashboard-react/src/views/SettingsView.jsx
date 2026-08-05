@@ -12,6 +12,7 @@ import ConsentSettings from "../components/configurable-fields/ConsentSettings.j
 import AppointmentStatesSettings from "../components/configurable-fields/AppointmentStatesSettings.jsx";
 import { usePermissions } from "../auth/PermissionProvider.jsx";
 import SubscriptionSettingsView from "../components/configurable-fields/SubscriptionSettingsView.jsx";
+import WhatsAppSettings from "../components/configurable-fields/WhatsAppSettings.jsx";
 
 export default function SettingsView() {
   const { t, i18n } = useTranslation("views");
@@ -77,6 +78,11 @@ export default function SettingsView() {
                 </Nav.Link>
               </Nav.Item>
               <Nav.Item>
+                <Nav.Link eventKey="whatsapp" className="rounded-pill px-4">
+                  WhatsApp
+                </Nav.Link>
+              </Nav.Item>
+              <Nav.Item>
                 <Nav.Link eventKey="sucursales" className="rounded-pill px-4">
                   {t("settings.tabs.branches")}
                 </Nav.Link>
@@ -123,6 +129,9 @@ export default function SettingsView() {
               </Tab.Pane>
               <Tab.Pane eventKey="booking">
                 <BookingSettings onNavigateToGoogleSync={() => setTab("google-sync")} />
+              </Tab.Pane>
+              <Tab.Pane eventKey="whatsapp">
+                <WhatsAppSettings />
               </Tab.Pane>
               <Tab.Pane eventKey="sucursales">
                 <BranchSettings />

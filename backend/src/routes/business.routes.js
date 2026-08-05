@@ -300,10 +300,44 @@ router.patch("/:id", requirePermission("business.edit"), async (req, res) => {
   }
 });
 
+// GET /api/businesses/me/integrations/whatsapp
+router.get("/me/integrations/whatsapp", async (req, res) => {
+  try {
+    const id = req.businessId;
+    if (!id) return res.status(403).json({ success: false, error: "No business context." });
+
+    const biz = await prisma.business.findUnique({ where: { id } });
+    if (!biz) return res.status(404).json({ success: false, error: "Negocio no encontrado." });
+
+    const whatsapp = biz.integrations?.whatsapp || {};
+    const rawToken = whatsapp.token || "";
+    
+    // Mask token for privacy
+    const maskedToken = rawToken
+      ? (rawToken.length > 8 ? `${rawToken.slice(0, 4)}••••••••${rawToken.slice(-4)}` : "••••••••")
+      : "";
+
+    res.json({
+      success: true,
+      whatsapp: {
+        phoneId: whatsapp.phoneId || "",
+        businessId: whatsapp.businessId || "",
+        staffPhone: whatsapp.staffPhone || "",
+        token: maskedToken,
+        hasToken: Boolean(rawToken),
+        slug: biz.slug
+      }
+    });
+  } catch (error) {
+    console.error("Error al obtener integración WhatsApp:", error);
+    res.status(500).json({ success: false, error: "Error al obtener configuración de WhatsApp." });
+  }
+});
+
 // PUT /api/businesses/me/integrations/whatsapp
 router.put("/me/integrations/whatsapp", requirePermission("business.edit"), async (req, res) => {
   try {
-    const { phoneId, businessId: wpBusinessId, token } = req.body;
+    const { phoneId, businessId: wpBusinessId, token, staffPhone } = req.body;
     const id = req.businessId;
 
     if (!id) {
@@ -314,9 +348,19 @@ router.put("/me/integrations/whatsapp", requirePermission("business.edit"), asyn
     if (!biz) return res.status(404).json({ success: false, error: "Negocio no encontrado." });
 
     const currentIntegrations = biz.integrations || {};
+    const currentWp = currentIntegrations.whatsapp || {};
+
+    // If token sent is masked (contains bullet dots) or empty, preserve existing token in DB
+    const finalToken = (token && !token.includes("••••")) ? token : (currentWp.token || "");
+
     const updatedIntegrations = {
       ...currentIntegrations,
-      whatsapp: { phoneId, businessId: wpBusinessId, token }
+      whatsapp: {
+        phoneId: phoneId !== undefined ? phoneId : currentWp.phoneId,
+        businessId: wpBusinessId !== undefined ? wpBusinessId : currentWp.businessId,
+        token: finalToken,
+        staffPhone: staffPhone !== undefined ? staffPhone : currentWp.staffPhone
+      }
     };
 
     await prisma.business.update({
@@ -328,6 +372,35 @@ router.put("/me/integrations/whatsapp", requirePermission("business.edit"), asyn
   } catch (error) {
     console.error("Error al actualizar integración de WhatsApp:", error);
     res.status(500).json({ success: false, error: "No se pudo guardar la configuración de WhatsApp." });
+  }
+});
+
+// POST /api/businesses/me/integrations/whatsapp/test-message
+router.post("/me/integrations/whatsapp/test-message", requirePermission("business.edit"), async (req, res) => {
+  try {
+    const id = req.businessId;
+    const { targetPhone } = req.body;
+
+    if (!id) return res.status(403).json({ success: false, error: "No business context." });
+
+    const biz = await prisma.business.findUnique({ where: { id } });
+    if (!biz) return res.status(404).json({ success: false, error: "Negocio no encontrado." });
+
+    const { sendText } = await import("../services/whatsapp.service.js");
+    const destPhone = targetPhone || biz.integrations?.whatsapp?.staffPhone;
+
+    if (!destPhone) {
+      return res.status(400).json({ success: false, error: "Ingresa un número de teléfono para enviar el mensaje de prueba." });
+    }
+
+    const messageText = `¡Hola! 👋 Este es un mensaje de prueba enviado desde tu cuenta de ${biz.name} en AuraDash. La integración de WhatsApp está funcionando correctamente. 🎉`;
+
+    await sendText(biz.integrations?.whatsapp, destPhone, messageText);
+
+    res.json({ success: true, message: `Mensaje de prueba enviado con éxito a ${destPhone}.` });
+  } catch (error) {
+    console.error("Error en mensaje de prueba de WhatsApp:", error);
+    res.status(400).json({ success: false, error: error.message || "No se pudo enviar el mensaje de prueba." });
   }
 });
 

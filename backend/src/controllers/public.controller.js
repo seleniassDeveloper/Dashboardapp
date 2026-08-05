@@ -384,233 +384,26 @@ export async function createPublicBooking(req, res) {
       downpaymentTransactionId,
     } = req.body;
 
-    if (!firstName || !lastName || !serviceId || !date || !time) {
-      return res.status(400).json({ error: "Faltan campos obligatorios para completar la reserva." });
-    }
+    const { createBookingCore } = await import("../services/booking.service.js");
 
-    // 1. Validar negocio
-    const biz = await prisma.business.findUnique({ where: { slug } });
-    if (!biz || !biz.bookingEnabled) {
-      return res.status(403).json({ error: "Las reservas no están permitidas en este momento." });
-    }
-
-    // Validar servicios
-    const serviceIds = serviceId.split(",");
-    const services = await prisma.service.findMany({
-      where: { id: { in: serviceIds }, businessId: biz.id, isActive: true, availableOnline: true }
+    const result = await createBookingCore({
+      slug,
+      firstName,
+      lastName,
+      phone,
+      email,
+      notes,
+      serviceId,
+      professionalId,
+      date,
+      time,
+      source: "online_booking",
+      downpaymentPaid,
+      downpaymentStatus,
+      downpaymentTransactionId
     });
 
-    if (services.length !== serviceIds.length) {
-      return res.status(400).json({ error: "Uno o más servicios seleccionados no están disponibles para este negocio." });
-    }
-
-    const orderedServices = serviceIds.map(id => services.find(s => s.id === id));
-    const totalDuration = orderedServices.reduce((sum, s) => sum + (s.duration || 30), 0);
-    const totalPrice = orderedServices.reduce((sum, s) => sum + s.price, 0);
-
-    // 2. Determinar profesional asignado o validar el seleccionado
-    let workerIdToAssign = professionalId;
-
-    if (!professionalId || professionalId === "any" || professionalId === "null" || professionalId === "undefined") {
-      // "Cualquiera" - buscar todos los profesionales del negocio que realizan TODOS los servicios y están online
-      const allWorkers = await prisma.worker.findMany({
-        where: { businessId: biz.id, availableOnline: true },
-        include: { services: true }
-      });
-      const eligibleWorkers = allWorkers.filter(w => {
-        const workerServiceIds = w.services.map(ws => ws.serviceId);
-        return serviceIds.every(id => workerServiceIds.includes(id));
-      });
-
-      // Encontrar uno que esté libre en la fecha y hora seleccionada para el bloque completo
-      let foundWorker = null;
-      for (const w of eligibleWorkers) {
-        const check = await checkWorkerAvailability(w.id, date, time, totalDuration, biz);
-        if (check.available) {
-          foundWorker = w;
-          break;
-        }
-      }
-
-      if (!foundWorker) {
-        return res.status(400).json({ error: "No hay profesionales disponibles para el horario seleccionado." });
-      }
-
-      workerIdToAssign = foundWorker.id;
-    } else {
-      // Validar profesional seleccionado
-      const worker = await prisma.worker.findFirst({
-        where: { id: professionalId, businessId: biz.id, availableOnline: true },
-        include: { services: true }
-      });
-      if (!worker) {
-        return res.status(400).json({ error: "El profesional seleccionado no está disponible para este negocio." });
-      }
-
-      // Validar si realiza todos los servicios
-      const workerServiceIds = worker.services.map(ws => ws.serviceId);
-      const canDoAll = serviceIds.every(id => workerServiceIds.includes(id));
-      if (!canDoAll) {
-        return res.status(400).json({ error: "El profesional seleccionado no realiza todos los servicios elegidos." });
-      }
-
-      // Validar disponibilidad real del profesional seleccionado
-      const check = await checkWorkerAvailability(worker.id, date, time, totalDuration, biz);
-      if (!check.available) {
-        // Buscar profesionales alternativos que sí estén libres a esa hora
-        const allWorkers = await prisma.worker.findMany({
-          where: { businessId: biz.id, availableOnline: true },
-          include: { services: true }
-        });
-        const eligibleWorkers = allWorkers.filter(w => {
-          if (w.id === worker.id) return false;
-          const wsIds = w.services.map(ws => ws.serviceId);
-          return serviceIds.every(id => wsIds.includes(id));
-        });
-
-        const alternativeWorkers = [];
-        for (const w of eligibleWorkers) {
-          const checkAlt = await checkWorkerAvailability(w.id, date, time, totalDuration, biz);
-          if (checkAlt.available) {
-            alternativeWorkers.push(w);
-          }
-        }
-
-        if (alternativeWorkers.length > 0) {
-          const namesList = alternativeWorkers.map(w => `${w.firstName} ${w.lastName}`).join(", ");
-          return res.status(400).json({
-            error: `El profesional seleccionado no está disponible en este horario. Podrías reservar con: ${namesList}.`,
-            alternativeWorkers: alternativeWorkers.map(w => ({ id: w.id, name: `${w.firstName} ${w.lastName}` }))
-          });
-        } else {
-          return res.status(400).json({ error: "El profesional seleccionado no está disponible en este horario y no hay otros profesionales libres." });
-        }
-      }
-
-      workerIdToAssign = worker.id;
-    }
-
-    // 3. Buscar o crear cliente en el contexto del negocio
-    let client = null;
-    const inputFirst = firstName.trim();
-    const inputLast = lastName.trim();
-
-    // Buscar coincidencia de primer nombre y email/teléfono
-    if (email?.trim()) {
-      client = await prisma.client.findFirst({
-        where: {
-          email: email.trim(),
-          firstName: { equals: inputFirst, mode: 'insensitive' },
-          businessId: biz.id
-        },
-      });
-    }
-    if (!client && phone?.trim()) {
-      client = await prisma.client.findFirst({
-        where: {
-          phone: phone.trim(),
-          firstName: { equals: inputFirst, mode: 'insensitive' },
-          businessId: biz.id
-        },
-      });
-    }
-
-    if (client) {
-      // Si el apellido o el email ingresado difiere, lo actualizamos para completarlo o corregirlo,
-      // pero como ya confirmamos que es el mismo primer nombre, es seguro hacerlo.
-      if (client.lastName !== inputLast || (email?.trim() && client.email !== email.trim())) {
-        client = await prisma.client.update({
-          where: { id: client.id },
-          data: {
-            lastName: inputLast || client.lastName,
-            email: email?.trim() || client.email
-          }
-        });
-      }
-    } else {
-      // Si no existe ningún cliente con este contacto y mismo primer nombre, creamos uno nuevo
-      client = await prisma.client.create({
-        data: {
-          firstName: inputFirst,
-          lastName: inputLast,
-          phone: phone?.trim() || null,
-          email: email?.trim() || null,
-          businessId: biz.id,
-          notes: "Registrado automáticamente desde reserva pública online.",
-        },
-      });
-    }
-
-    // 4. Calcular fecha/hora de inicio en la zona horaria del negocio
-    // Usamos getDayRangeInTz con la hora deseada
-    const { start: dayStartInUTC } = getDayRangeInTz(date, biz.timezone);
-    // Convertimos la hora (HH:MM) a milisegundos y se la sumamos al inicio del día UTC
-    const [startH, startM] = time.split(":").map(Number);
-    const startsAt = new Date(dayStartInUTC.getTime() + (startH * 60 + startM) * 60 * 1000);
-
-    // 5. Crear las citas (Appointments) secuencialmente y con revalidación atómica
-    const createdAppointments = await prisma.$transaction(async (tx) => {
-      // Re-validar solapamiento justo antes de crear para prevenir colisiones
-      const { start: txDayStart, end: txDayEnd } = getDayRangeInTz(date, biz.timezone);
-      const sameDayAppts = await tx.appointment.findMany({
-        where: {
-          workerId: workerIdToAssign,
-          startsAt: { gte: txDayStart, lte: txDayEnd },
-          status: { not: "CANCELLED" }
-        },
-        include: { service: true }
-      });
-      
-      const newTotalEnd = addMinutes(startsAt, totalDuration);
-      for (const appt of sameDayAppts) {
-        const apptEnd = addMinutes(new Date(appt.startsAt), appt.service?.duration || 30);
-        if (overlaps(new Date(appt.startsAt), apptEnd, startsAt, newTotalEnd)) {
-          throw new Error("El horario seleccionado acaba de ser reservado. Por favor, elige otro.");
-        }
-      }
-
-      let currentStartsAt = startsAt;
-      const created = [];
-
-      for (let i = 0; i < orderedServices.length; i++) {
-        const svc = orderedServices[i];
-        
-        let apptDpPaid = null;
-        if (downpaymentPaid) {
-          if (i === orderedServices.length - 1) {
-            apptDpPaid = Number(downpaymentPaid) - created.reduce((sum, a) => sum + (a.downpaymentPaid || 0), 0);
-          } else {
-            apptDpPaid = Math.round(Number(downpaymentPaid) * (svc.price / totalPrice));
-          }
-        }
-
-        const appointment = await tx.appointment.create({
-          data: {
-            clientId: client.id,
-            serviceId: svc.id,
-            workerId: workerIdToAssign,
-            startsAt: currentStartsAt,
-            notes: notes ? `${notes} (${i + 1}/${orderedServices.length})` : `Reserva múltiple (${i + 1}/${orderedServices.length})`,
-            status: "PENDING",
-            source: "online_booking",
-            businessId: biz.id,
-            downpaymentPaid: apptDpPaid,
-            downpaymentStatus: downpaymentStatus || null,
-            downpaymentTransactionId: downpaymentTransactionId || null,
-          },
-          include: {
-            client: true,
-            service: true,
-            worker: true,
-          },
-        });
-
-        created.push(appointment);
-        currentStartsAt = addMinutes(currentStartsAt, svc.duration || 30);
-      }
-      
-      return created;
-    }, { maxWait: 15000, timeout: 30000 });
+    const { business: biz, client, appointments: createdAppointments } = result;
 
     // Sincronizar con Google Calendar en segundo plano
     for (const appt of createdAppointments) {
@@ -676,7 +469,7 @@ export async function createPublicBooking(req, res) {
               <div style="padding: 15px; background-color: #e6f4ea; border-radius: 8px; margin-bottom: 20px; border: 1px solid #c2e7cd;">
                 <p style="margin: 0; color: #137333; font-size: 13px; line-height: 1.5;">
                   <strong>Seña Total Abonada:</strong> $${downpaymentPaid} (Código: ${downpaymentTransactionId})<br/>
-                  <strong>Saldo restante en salón:</strong> $${totalPrice - downpaymentPaid}
+                  <strong>Saldo restante en salón:</strong> $${createdAppointments.reduce((sum, a) => sum + (a.service?.price || 0), 0) - downpaymentPaid}
                 </p>
               </div>
             ` : ""}
@@ -711,16 +504,16 @@ export async function createPublicBooking(req, res) {
 
     return res.status(201).json({
       success: true,
-      message: biz.bookingConfirmationMessage,
-      booking: createdAppointments[0], // Retrocompatibilidad
-      bookings: createdAppointments,
+      message: biz.bookingConfirmationMessage || "¡Tu reserva ha sido confirmada con éxito!",
+      appointments: createdAppointments,
+      client,
     });
   } catch (error) {
     console.error("[public] createPublicBooking:", error?.message || error);
     if (error.message && error.message.includes("acaba de ser reservado")) {
       return res.status(409).json({ error: error.message });
     }
-    return res.status(500).json({ error: "Error interno al guardar tu reserva." });
+    return res.status(400).json({ error: error.message || "Error al procesar la reserva pública." });
   }
 }
 
