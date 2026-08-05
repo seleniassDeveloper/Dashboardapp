@@ -13,6 +13,9 @@ import {
   uploadAppointmentPhoto,
   deleteAppointmentPhoto,
   updateAppointmentPhotoMetadata,
+  arriveAppointment,
+  completeAppointment,
+  getSlaTodayAppointments,
 } from "../controllers/appointments.controller.js";
 import {
   getServiceSlaStats,
@@ -31,6 +34,7 @@ router.get("/availability", requirePermission("agenda.view"), checkAppointmentAv
 router.get("/business", requirePermission("agenda.view"), getBusinessConfig);
 router.put("/business", requirePermission("settings.edit"), updateBusinessConfig);
 router.get("/sla/stats", requirePermission("agenda.view"), getSlaStats);
+router.get("/sla-today", requirePermission("agenda.view"), getSlaTodayAppointments);
 
 // SLA de Ejecución de Servicio
 router.get("/sla-service/stats", requirePermission("agenda.view"), getServiceSlaStats);
@@ -44,6 +48,8 @@ router.get("/", requirePermission("agenda.view"), getAppointments);
 router.post("/", requirePermission("agenda.create"), createAppointment);
 router.put("/:id", requirePermission("agenda.edit"), updateAppointment);
 router.delete("/:id", requirePermission("agenda.cancel"), deleteAppointment);
+router.post("/:id/arrive", requirePermission("agenda.edit"), arriveAppointment);
+router.post("/:id/complete", requirePermission("agenda.edit"), completeAppointment);
 router.post("/:id/confirm-email", requirePermission("agenda.edit"), sendManualConfirmationEmail);
 router.post("/:id/finalize", requirePermission("agenda.edit"), finalizeAppointment);
 

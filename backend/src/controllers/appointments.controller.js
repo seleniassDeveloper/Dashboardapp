@@ -1167,6 +1167,270 @@ export async function updateAppointmentPhotoMetadata(req, res) {
   }
 }
 
+/**
+ * Marcar llegada de cliente (POST /api/appointments/:id/arrive)
+ * Pasa la cita a estado EN_ATENCION y arranca el reloj de SLA.
+ */
+export async function arriveAppointment(req, res) {
+  try {
+    const { id } = req.params;
+    const businessId = req.businessId;
+
+    if (!id || !businessId) {
+      return res.status(400).json({ error: "ID de cita y negocio requeridos." });
+    }
+
+    const appointment = await prisma.appointment.findFirst({
+      where: { id, businessId }
+    });
+
+    if (!appointment) {
+      return res.status(404).json({ error: "Cita no encontrada en tu negocio." });
+    }
+
+    const oldStatus = appointment.status;
+    const targetStatus = "EN_ATENCION";
+
+    const updated = await prisma.appointment.update({
+      where: { id },
+      data: { status: targetStatus },
+      include: { client: true, service: true, worker: true, sla: true }
+    });
+
+    await recordStatusTransition(businessId, id, oldStatus, targetStatus);
+    triggerWorkflows(businessId, "status_changed", updated).catch(console.error);
+    triggerWorkflows(businessId, targetStatus, updated).catch(console.error);
+
+    return res.json(updated);
+  } catch (error) {
+    console.error("[appointments] arriveAppointment:", error?.message || error);
+    return res.status(500).json({ error: "Error al marcar la llegada de la clienta." });
+  }
+}
+
+/**
+ * Marcar finalización de servicio (POST /api/appointments/:id/complete)
+ * Pasa la cita a estado DONE y detiene el reloj de SLA.
+ */
+export async function completeAppointment(req, res) {
+  try {
+    const { id } = req.params;
+    const businessId = req.businessId;
+
+    if (!id || !businessId) {
+      return res.status(400).json({ error: "ID de cita y negocio requeridos." });
+    }
+
+    const appointment = await prisma.appointment.findFirst({
+      where: { id, businessId }
+    });
+
+    if (!appointment) {
+      return res.status(404).json({ error: "Cita no encontrada en tu negocio." });
+    }
+
+    const oldStatus = appointment.status;
+    const targetStatus = "DONE";
+
+    const updated = await prisma.appointment.update({
+      where: { id },
+      data: { status: targetStatus },
+      include: { client: true, service: true, worker: true, sla: true }
+    });
+
+    await recordStatusTransition(businessId, id, oldStatus, targetStatus);
+    triggerWorkflows(businessId, "status_changed", updated).catch(console.error);
+    triggerWorkflows(businessId, targetStatus, updated).catch(console.error);
+
+    return res.json(updated);
+  } catch (error) {
+    console.error("[appointments] completeAppointment:", error?.message || error);
+    return res.status(500).json({ error: "Error al finalizar el servicio de la cita." });
+  }
+}
+
+/**
+ * Obtener timeline de SLA para las citas del día (GET /api/appointments/sla-today)
+ */
+export async function getSlaTodayAppointments(req, res) {
+  try {
+    const businessId = req.businessId;
+    if (!businessId) {
+      return res.status(400).json({ error: "No se identificó el negocio." });
+    }
+
+    const biz = await prisma.business.findUnique({
+      where: { id: businessId },
+      select: { timezone: true }
+    });
+    const tz = biz?.timezone || "America/Argentina/Buenos_Aires";
+
+    const now = new Date();
+    const todayYMD = now.toLocaleDateString("sv-SE", { timeZone: tz });
+    const { startOfDay, endOfDay } = getDayRangeInTz(todayYMD, tz);
+
+    const appointments = await prisma.appointment.findMany({
+      where: {
+        businessId,
+        startsAt: { gte: startOfDay, lt: endOfDay },
+        status: { not: "CANCELLED" }
+      },
+      orderBy: { startsAt: "asc" },
+      include: {
+        client: true,
+        service: true,
+        worker: true,
+        sla: true,
+        statusHistory: {
+          orderBy: { transitionedAt: "asc" }
+        }
+      }
+    });
+
+    const slaConfig = await prisma.serviceSlaConfig.findFirst({
+      where: { businessId, serviceId: null }
+    });
+
+    const startStatusKey = slaConfig?.startStatusKey || "EN_ATENCION";
+    const endStatusKey = slaConfig?.endStatusKey || "DONE";
+    const toleranceType = slaConfig?.toleranceType || "percent";
+    const toleranceValue = slaConfig?.toleranceValue ?? 15.0;
+    const hardLimitSec = slaConfig?.hardLimitSec || null;
+
+    const DEFAULT_STAGE_WEIGHTS = [
+      { key: "recepcion", label: "Recepción", weight: 0.10 },
+      { key: "servicio", label: "En servicio", weight: 0.75 },
+      { key: "cierre", label: "Cierre y pago", weight: 0.15 }
+    ];
+
+    const result = await Promise.all(
+      appointments.map(async (a) => {
+        let estimatedDurationSec = (a.service?.duration || 30) * 60;
+
+        if (a.serviceId && a.workerId) {
+          const override = await prisma.serviceProfessionalEstimate.findUnique({
+            where: {
+              serviceId_workerId: {
+                serviceId: a.serviceId,
+                workerId: a.workerId
+              }
+            }
+          });
+          if (override) {
+            estimatedDurationSec = override.estimatedDurationSec;
+          } else if (a.service?.estimatedDurationSec) {
+            estimatedDurationSec = a.service.estimatedDurationSec;
+          }
+        }
+
+        const history = a.statusHistory || [];
+        const arrivedHist = history.find((h) =>
+          ["EN_ATENCION", "LLEGO", startStatusKey].includes(h.statusTo)
+        );
+        const arrivedAt = arrivedHist ? arrivedHist.transitionedAt : null;
+
+        const endedHist = history.find((h) =>
+          ["DONE", endStatusKey].includes(h.statusTo)
+        );
+        const endedAt = endedHist ? endedHist.transitionedAt : null;
+
+        let elapsedSec = 0;
+        if (arrivedAt) {
+          const endPoint = endedAt ? new Date(endedAt) : now;
+          elapsedSec = Math.max(0, Math.round((endPoint.getTime() - new Date(arrivedAt).getTime()) / 1000));
+        }
+
+        let progressPct = 0;
+        if (arrivedAt && estimatedDurationSec > 0) {
+          progressPct = Math.min(100, Math.round((elapsedSec / estimatedDurationSec) * 1000) / 10);
+        }
+
+        let tolSec = 0;
+        if (toleranceType === "percent") {
+          tolSec = Math.round(estimatedDurationSec * (toleranceValue / 100));
+        } else {
+          tolSec = Math.round(toleranceValue * 60);
+        }
+
+        let slaState = "waiting_arrival";
+        if (!arrivedAt) {
+          slaState = "waiting_arrival";
+        } else if (endedAt) {
+          slaState = "done";
+        } else {
+          const limit = hardLimitSec || (estimatedDurationSec + tolSec);
+          const atRiskThreshold = estimatedDurationSec - tolSec;
+
+          if (elapsedSec > limit) {
+            slaState = "overdue";
+          } else if (elapsedSec >= atRiskThreshold) {
+            slaState = "at_risk";
+          } else {
+            slaState = "on_time";
+          }
+        }
+
+        const overdueSec = Math.max(0, elapsedSec - estimatedDurationSec);
+
+        let runningEstimatedSec = 0;
+        const stages = DEFAULT_STAGE_WEIGHTS.map((stage) => {
+          const stageEstSec = Math.round(stage.weight * estimatedDurationSec);
+          const stageStartSec = runningEstimatedSec;
+          const stageEndSec = runningEstimatedSec + stageEstSec;
+          runningEstimatedSec = stageEndSec;
+
+          let stageState = "pending";
+          let stageActualSec = 0;
+
+          if (!arrivedAt) {
+            stageState = "pending";
+          } else if (endedAt || elapsedSec >= stageEndSec) {
+            stageState = "done";
+            stageActualSec = stageEstSec;
+          } else if (elapsedSec >= stageStartSec && elapsedSec < stageEndSec) {
+            stageState = "current";
+            stageActualSec = elapsedSec - stageStartSec;
+          } else {
+            stageState = "pending";
+          }
+
+          return {
+            key: stage.key,
+            label: stage.label,
+            state: stageState,
+            estimatedSec: stageEstSec,
+            actualSec: stageActualSec,
+            startedAt: arrivedAt ? new Date(new Date(arrivedAt).getTime() + stageStartSec * 1000) : null
+          };
+        });
+
+        return {
+          id: a.id,
+          status: a.status,
+          clientName: a.client ? `${a.client.firstName} ${a.client.lastName || ""}`.trim() : "Cliente sin nombre",
+          clientPhone: a.client?.phone || null,
+          serviceName: a.service?.name || "Servicio General",
+          workerName: a.worker ? `${a.worker.firstName} ${a.worker.lastName || ""}`.trim() : "Profesional sin asignar",
+          scheduledAt: a.startsAt,
+          estimatedDurationSec,
+          arrivedAt,
+          endedAt,
+          slaState,
+          elapsedSec,
+          progressPct,
+          overdueSec,
+          stages
+        };
+      })
+    );
+
+    return res.json(result);
+  } catch (error) {
+    console.error("[appointments] getSlaTodayAppointments:", error?.message || error);
+    return res.status(500).json({ error: "Error al obtener timeline SLA del día." });
+  }
+}
+
 
 
 

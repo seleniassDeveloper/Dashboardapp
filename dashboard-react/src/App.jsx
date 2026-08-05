@@ -24,6 +24,7 @@ const RolesPermissionsPage = lazy(() => import("./views/RolesPermissionsPage"));
 const PricingView = lazy(() => import("./views/PricingView"));
 const SuperAdminBillingView = lazy(() => import("./views/SuperAdminBillingView"));
 const AppointmentsSLA = lazy(() => import("./components/appointments/mobile/AppointmentsSLA"));
+const SlaTodayTimelineView = lazy(() => import("./views/SlaTodayTimelineView"));
 
 const PLAN_RESTRICTIONS = {
   starter: ["finances"],
@@ -71,6 +72,15 @@ export default function App() {
             element={
               <Can permission="agenda.view" fallback={<UnauthorizedView />}>
                 <CalendarView />
+              </Can>
+            } 
+          />
+
+          <Route 
+            path="/sla-today" 
+            element={
+              <Can permission="agenda.view" fallback={<UnauthorizedView />}>
+                <SlaTodayTimelineView />
               </Can>
             } 
           />

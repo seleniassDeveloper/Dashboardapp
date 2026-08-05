@@ -7,8 +7,9 @@ import {
   BarChart3, Menu, Users 
 } from "lucide-react";
 import { Modal, Spinner } from "react-bootstrap";
-import api from "../../../lib/api.js";
 import { useSlaProgress } from "../../../hooks/useSlaProgress";
+import { useSlaTimeline } from "../../../hooks/useSlaTimeline";
+import SlaTimelineCard from "../SlaTimelineCard";
 import ApptCard from "./ApptCard";
 import "./AppointmentsSLA.css";
 
@@ -25,6 +26,13 @@ export default function AppointmentsSLA() {
     chargeDeposit, 
     openWhatsApp 
   } = useSlaProgress();
+
+  const {
+    appointments: timelineAppts,
+    now: timelineNow,
+    markArrived,
+    markCompleted
+  } = useSlaTimeline();
 
   const [selectedAppt, setSelectedAppt] = useState(null);
   const [slaDetail, setSlaDetail] = useState(null);
@@ -222,7 +230,34 @@ export default function AppointmentsSLA() {
         </div>
       </section>
 
-      {/* SECCIÓN 4 — Grupos de citas */}
+      {/* SECCIÓN 4 — Timeline SLA por Cita del Día (Avance en vivo) */}
+      {timelineAppts.length > 0 && (
+        <section className="px-3 mb-4">
+          <div className="d-flex align-items-center justify-content-between mb-2.5">
+            <div className="d-flex align-items-center gap-2">
+              <Clock size={18} className="text-purple-600" />
+              <span className="fw-bold text-dark fs-6">Timeline Intra-Cita (Hoy)</span>
+            </div>
+            <span className="badge bg-purple-100 text-purple-700 rounded-pill px-2.5 py-1 smaller fw-bold">
+              {timelineAppts.length} citas
+            </span>
+          </div>
+
+          <div className="d-flex flex-column gap-2">
+            {timelineAppts.map((appt) => (
+              <SlaTimelineCard
+                key={appt.id}
+                appointment={appt}
+                now={timelineNow}
+                onArrive={markArrived}
+                onComplete={markCompleted}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* SECCIÓN 5 — Grupos de citas */}
 
       {/* 4.1 Prioridad Alta (Sin seña) */}
       {noDeposit.length > 0 && (
