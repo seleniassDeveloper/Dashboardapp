@@ -198,31 +198,38 @@ export default function CalendarWidget({
           </Button>
         </div>
 
-        <div className="d-flex gap-1 bg-light p-1 rounded-3">
+        {/* Selector de vista con Pills moradas */}
+        <div className="bg-light p-1 rounded-pill border shadow-xs d-flex align-items-center gap-1">
           <Button
             size="sm"
-            variant={view === "day" ? "white" : "link"}
-            className={`rounded-2 px-3 py-1 text-dark small ${view === "day" ? "shadow-sm border fw-bold" : "text-muted"}`}
+            variant={view === "day" ? "primary" : "link"}
+            className={`rounded-pill px-3 py-1 fw-bold text-decoration-none border-0 ${
+              view === "day" ? "shadow-xs text-white" : "text-muted"
+            }`}
+            style={view === "day" ? { backgroundColor: "#7c3aed", fontSize: "11.5px" } : { fontSize: "11.5px" }}
             onClick={() => setView("day")}
-            style={{ fontSize: "11px" }}
           >
             {isEs ? "Hoy" : "Today"}
           </Button>
           <Button
             size="sm"
-            variant={view === "week" ? "white" : "link"}
-            className={`rounded-2 px-3 py-1 text-dark small ${view === "week" ? "shadow-sm border fw-bold" : "text-muted"}`}
+            variant={view === "week" ? "primary" : "link"}
+            className={`rounded-pill px-3 py-1 fw-bold text-decoration-none border-0 ${
+              view === "week" ? "shadow-xs text-white" : "text-muted"
+            }`}
+            style={view === "week" ? { backgroundColor: "#7c3aed", fontSize: "11.5px" } : { fontSize: "11.5px" }}
             onClick={() => setView("week")}
-            style={{ fontSize: "11px" }}
           >
             {isEs ? "Semana" : "Week"}
           </Button>
           <Button
             size="sm"
-            variant={view === "month" ? "white" : "link"}
-            className={`rounded-2 px-3 py-1 text-dark small ${view === "month" ? "shadow-sm border fw-bold" : "text-muted"}`}
+            variant={view === "month" ? "primary" : "link"}
+            className={`rounded-pill px-3 py-1 fw-bold text-decoration-none border-0 ${
+              view === "month" ? "shadow-xs text-white" : "text-muted"
+            }`}
+            style={view === "month" ? { backgroundColor: "#7c3aed", fontSize: "11.5px" } : { fontSize: "11.5px" }}
             onClick={() => setView("month")}
-            style={{ fontSize: "11px" }}
           >
             {isEs ? "Mes" : "Month"}
           </Button>

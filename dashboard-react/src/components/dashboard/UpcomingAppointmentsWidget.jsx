@@ -86,15 +86,22 @@ export default function UpcomingAppointmentsWidget({
     }
   }, [appointments, dateRange, now]);
 
-  const formatTime = (dateStr) => {
-    try {
-      return new Date(dateStr).toLocaleTimeString(isEs ? "es-AR" : "en-US", {
-        hour: "2-digit",
-        minute: "2-digit"
-      });
-    } catch (e) {
-      return "";
-    }
+  const formatCleanTime = (dateStr) => {
+    if (!dateStr) return "";
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return "";
+    const hours = String(d.getHours()).padStart(2, "0");
+    const minutes = String(d.getMinutes()).padStart(2, "0");
+    return `${hours}:${minutes} hs`;
+  };
+
+  const formatCleanDate = (dateStr) => {
+    if (!dateStr) return "";
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return "";
+    const days = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+    const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+    return `${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]}`;
   };
 
   // Acciones de SLA en backend
@@ -220,10 +227,10 @@ export default function UpcomingAppointmentsWidget({
                       style={{ minWidth: "52px", height: "40px", border: "1px solid #efecf8" }}
                     >
                       <span className="fw-bold text-dark" style={{ fontSize: "11px", lineHeight: 1.1 }}>
-                        {formatTime(a.startsAt)}
+                        {formatCleanTime(a.startsAt)}
                       </span>
                       <span className="text-muted" style={{ fontSize: "8px", textTransform: "uppercase", fontWeight: "600" }}>
-                        {new Date(a.startsAt).toLocaleDateString(isEs ? "es-AR" : "en-US", { weekday: 'short' }).replace('.', '')}
+                        {formatCleanDate(a.startsAt).split(" ")[0]}
                       </span>
                     </div>
 
@@ -283,28 +290,42 @@ export default function UpcomingAppointmentsWidget({
     <div className="d-flex flex-column h-100">
       <div className="d-flex justify-content-between align-items-center mb-3">
         <span className="small text-muted fw-bold">{isEs ? "SLA de Próximas Citas:" : "Upcoming SLA:"}</span>
-        <div className="btn-group" role="group" style={{ transform: "scale(0.85)", transformOrigin: "right" }}>
-          <button
-            type="button"
-            className={`btn btn-sm ${dateRange === "TODAY" ? "btn-dark" : "btn-outline-dark"}`}
+        
+        {/* Selector de Rango con Pills Modernas */}
+        <div className="bg-light p-1 rounded-pill border shadow-xs d-flex align-items-center gap-1">
+          <Button
+            size="sm"
+            variant={dateRange === "TODAY" ? "primary" : "link"}
+            className={`rounded-pill px-3 py-1 fw-bold text-decoration-none border-0 ${
+              dateRange === "TODAY" ? "shadow-xs text-white" : "text-muted"
+            }`}
+            style={dateRange === "TODAY" ? { backgroundColor: "#7c3aed", fontSize: "11.5px" } : { fontSize: "11.5px" }}
             onClick={() => setDateRange("TODAY")}
           >
             {isEs ? "Hoy" : "Today"}
-          </button>
-          <button
-            type="button"
-            className={`btn btn-sm ${dateRange === "THIS_WEEK" ? "btn-dark" : "btn-outline-dark"}`}
+          </Button>
+          <Button
+            size="sm"
+            variant={dateRange === "THIS_WEEK" ? "primary" : "link"}
+            className={`rounded-pill px-3 py-1 fw-bold text-decoration-none border-0 ${
+              dateRange === "THIS_WEEK" ? "shadow-xs text-white" : "text-muted"
+            }`}
+            style={dateRange === "THIS_WEEK" ? { backgroundColor: "#7c3aed", fontSize: "11.5px" } : { fontSize: "11.5px" }}
             onClick={() => setDateRange("THIS_WEEK")}
           >
             {isEs ? "Semana" : "Week"}
-          </button>
-          <button
-            type="button"
-            className={`btn btn-sm ${dateRange === "ALL" ? "btn-dark" : "btn-outline-dark"}`}
+          </Button>
+          <Button
+            size="sm"
+            variant={dateRange === "ALL" ? "primary" : "link"}
+            className={`rounded-pill px-3 py-1 fw-bold text-decoration-none border-0 ${
+              dateRange === "ALL" ? "shadow-xs text-white" : "text-muted"
+            }`}
+            style={dateRange === "ALL" ? { backgroundColor: "#7c3aed", fontSize: "11.5px" } : { fontSize: "11.5px" }}
             onClick={() => setDateRange("ALL")}
           >
             {isEs ? "Todas" : "All"}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -348,8 +369,8 @@ export default function UpcomingAppointmentsWidget({
                   </div>
 
                   <div className="text-end flex-shrink-0">
-                    <span className="fw-bold d-block text-dark font-monospace" style={{ fontSize: "13px" }}>
-                      {new Date(a.startsAt).toLocaleDateString(isEs ? "es-AR" : "en-US", { weekday: 'short', day: 'numeric' })} {formatTime(a.startsAt)} hs
+                    <span className="fw-bold d-block text-dark" style={{ fontSize: "12.5px" }}>
+                      {formatCleanDate(a.startsAt)} · {formatCleanTime(a.startsAt)}
                     </span>
                     <Badge bg={sla.color} className="mt-1 px-2.5 py-1 rounded-pill" style={{ fontSize: "10px" }}>
                       {sla.text}
@@ -363,32 +384,37 @@ export default function UpcomingAppointmentsWidget({
                     variant="link"
                     size="sm"
                     className="p-0 text-purple-700 text-decoration-none d-flex align-items-center gap-1 smaller fw-bold"
+                    style={{ color: "#7c3aed" }}
                     onClick={() => toggleExpand(a.id)}
                     aria-expanded={isExpanded}
                     aria-controls={`sla-detail-full-${a.id}`}
                   >
                     <span>{isExpanded ? (isEs ? "Ocultar etapas" : "Hide stages") : (isEs ? "Ver etapas SLA" : "View SLA stages")}</span>
-                    {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                   </Button>
 
                   <div className="d-flex gap-2">
                     {a.status === "PENDING" && (
-                      <Button variant="warning" size="sm" className="d-flex align-items-center gap-1 rounded-pill fw-semibold" onClick={() => onConfirmAppointment?.(a.id)}>
+                      <Button 
+                        size="sm" 
+                        className="d-flex align-items-center gap-1 rounded-pill fw-bold border-0 px-3 py-1.5 text-white" 
+                        style={{ backgroundColor: "#eab308", color: "#1e1b4b" }}
+                        onClick={() => onConfirmAppointment?.(a.id)}
+                      >
                         <CheckCircle2 size={14} /> {isEs ? "Confirmar" : "Confirm"}
                       </Button>
                     )}
 
                     {!isArrived && a.status !== "DONE" && a.status !== "CANCELLED" && (
                       <Button
-                        variant="primary"
                         size="sm"
                         disabled={actionLoadingId === a.id}
-                        className="d-flex align-items-center gap-1 rounded-pill fw-bold"
-                        style={{ backgroundColor: "#7c3aed", borderColor: "#7c3aed" }}
+                        className="d-flex align-items-center gap-1 rounded-pill fw-bold border-0 px-3 py-1.5 text-white"
+                        style={{ backgroundColor: "#7c3aed" }}
                         onClick={() => handleArrive(a.id)}
                       >
                         {actionLoadingId === a.id ? <Spinner size="sm" animation="border" /> : <Play size={14} />}
-                        {isEs ? "Marcar llegada" : "Mark Arrival"}
+                        <span>{isEs ? "Marcar llegada" : "Mark arrived"}</span>
                       </Button>
                     )}
 

@@ -56,15 +56,22 @@ export default function AttentionWidget({
     return dDate.getTime() < todayDate.getTime();
   };
 
-  const formatTime = (dateStr) => {
-    try {
-      return new Date(dateStr).toLocaleTimeString(isEs ? "es-AR" : "en-US", {
-        hour: "2-digit",
-        minute: "2-digit"
-      });
-    } catch (e) {
-      return "";
-    }
+  const formatCleanTime = (dateStr) => {
+    if (!dateStr) return "";
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return "";
+    const hours = String(d.getHours()).padStart(2, "0");
+    const minutes = String(d.getMinutes()).padStart(2, "0");
+    return `${hours}:${minutes} hs`;
+  };
+
+  const formatCleanDate = (dateStr) => {
+    if (!dateStr) return "";
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return "";
+    const days = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+    const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+    return `${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]}`;
   };
 
   const alerts = [];
@@ -76,8 +83,8 @@ export default function AttentionWidget({
       type: "pending_appt",
       title: isEs ? `Cita pendiente de ${a.client?.firstName} ${a.client?.lastName || ""}` : `Pending appointment for ${a.client?.firstName} ${a.client?.lastName || ""}`,
       subtitle: isEs 
-        ? `${a.service?.name} · ${new Date(a.startsAt).toLocaleDateString()} a las ${formatTime(a.startsAt)} hs`
-        : `${a.service?.name} · ${new Date(a.startsAt).toLocaleDateString()} at ${formatTime(a.startsAt)}`,
+        ? `${a.service?.name} · ${formatCleanDate(a.startsAt)} a las ${formatCleanTime(a.startsAt)}`
+        : `${a.service?.name} · ${formatCleanDate(a.startsAt)} at ${formatCleanTime(a.startsAt)}`,
       icon: Clock,
       badgeText: isEs ? "Pendiente" : "Pending",
       badgeBg: "warning",
@@ -114,76 +121,34 @@ export default function AttentionWidget({
     const startsToday = isToday(a.startsAt);
     const startsInPast = isPastDay(a.startsAt);
 
-    if (a.status === "CONFIRMED") {
-      if (startsInPast || (startsToday && isOverdue)) {
-        alerts.push({
-          id: `overdue-confirmed-${a.id}`,
-          type: "overdue_confirmed",
-          title: isEs 
-            ? `Turno sin iniciar (vencido): ${a.client?.firstName} ${a.client?.lastName || ""}` 
-            : `Overdue confirmed: ${a.client?.firstName} ${a.client?.lastName || ""}`,
-          subtitle: isEs
-            ? `${a.service?.name || "Servicio"} con ${a.worker?.firstName || ""} · Horario: ${formatTime(a.startsAt)} hs`
-            : `${a.service?.name || "Service"} with ${a.worker?.firstName || ""} · Scheduled: ${formatTime(a.startsAt)}`,
-          icon: Clock,
-          badgeText: isEs ? "Vencido" : "Overdue",
-          badgeBg: "danger",
-          actionText: isEs ? "Iniciar Servicio" : "Start Service",
-          onClick: () => onUpdateAppointmentStatus?.(a.id, "IN_PROGRESS"),
-          secondaryActionText: isEs ? "Cobrar y Cerrar" : "Checkout",
-          secondaryOnClick: () => onFinalizeAppointment?.(a),
-        });
-      } else if (startsToday && isNearStart) {
-        alerts.push({
-          id: `start-service-${a.id}`,
-          type: "start_service",
-          title: isEs 
-            ? `Iniciar servicio de ${a.client?.firstName} ${a.client?.lastName || ""}` 
-            : `Start service for ${a.client?.firstName} ${a.client?.lastName || ""}`,
-          subtitle: isEs
-            ? `${a.service?.name || "Servicio"} con ${a.worker?.firstName || ""} a las ${formatTime(a.startsAt)} hs`
-            : `${a.service?.name || "Service"} with ${a.worker?.firstName || ""} at ${formatTime(a.startsAt)}`,
-          icon: UserCheck,
-          badgeText: isEs ? "Por Iniciar" : "Starts Soon",
-          badgeBg: "success",
-          actionText: isEs ? "Iniciar Servicio" : "Start Service",
-          onClick: () => onUpdateAppointmentStatus?.(a.id, "IN_PROGRESS"),
-        });
-      }
-    } else if (a.status === "IN_PROGRESS") {
-      if (startsInPast || isOverdue) {
-        alerts.push({
-          id: `finalize-service-${a.id}`,
-          type: "finalize_service",
-          title: isEs 
-            ? `¿Terminó el servicio de ${a.client?.firstName}?` 
-            : `Has ${a.client?.firstName}'s service finished?`,
-          subtitle: isEs
-            ? `${a.service?.name || "Servicio"} con ${a.worker?.firstName || ""} finalizó a las ${formatTime(end)} hs`
-            : `${a.service?.name || "Service"} with ${a.worker?.firstName || ""} ended at ${formatTime(end)}`,
-          icon: Sparkles,
-          badgeText: isEs ? "Terminar" : "End Service",
-          badgeBg: "primary",
-          actionText: isEs ? "Cobrar y Cerrar" : "Checkout",
-          onClick: () => onFinalizeAppointment?.(a),
-        });
-      } else {
-        alerts.push({
-          id: `in-progress-${a.id}`,
-          type: "in_progress",
-          title: isEs 
-            ? `Servicio en curso: ${a.client?.firstName} ${a.client?.lastName || ""}` 
-            : `Service in progress: ${a.client?.firstName} ${a.client?.lastName || ""}`,
-          subtitle: isEs
-            ? `${a.service?.name || "Servicio"} · Finaliza a las ${formatTime(end)} hs`
-            : `${a.service?.name || "Service"} · Ends at ${formatTime(end)}`,
-          icon: Clock,
-          badgeText: isEs ? "En Curso" : "In Progress",
-          badgeBg: "info",
-          actionText: isEs ? "Cobrar y Cerrar" : "Checkout",
-          onClick: () => onFinalizeAppointment?.(a),
-        });
-      }
+    if (a.status === "CONFIRMED" && (isNearStart || isOverdue || startsInPast)) {
+      alerts.push({
+        id: `confirm-arrived-${a.id}`,
+        type: "confirm_arrived",
+        title: isEs ? `Marcar llegada: ${a.client?.firstName} ${a.client?.lastName || ""}` : `Mark arrived: ${a.client?.firstName} ${a.client?.lastName || ""}`,
+        subtitle: isEs 
+          ? `${a.service?.name} con ${a.worker?.firstName || "Personal"} · ${formatCleanTime(a.startsAt)}` 
+          : `${a.service?.name} with ${a.worker?.firstName || "Staff"} · ${formatCleanTime(a.startsAt)}`,
+        icon: UserCheck,
+        badgeText: isEs ? "Esperando cliente" : "Waiting client",
+        badgeBg: "info",
+        actionText: isEs ? "Marcar Llegada" : "Mark Arrived",
+        onClick: () => onUpdateAppointmentStatus?.(a.id, "EN_ATENCION", true),
+      });
+    } else if (a.status === "EN_ATENCION" || a.status === "IN_PROGRESS" || a.status === "IN_PROCESS") {
+      alerts.push({
+        id: `in-progress-${a.id}`,
+        type: "in_progress",
+        title: isEs ? `En atención: ${a.client?.firstName} ${a.client?.lastName || ""}` : `In service: ${a.client?.firstName} ${a.client?.lastName || ""}`,
+        subtitle: isEs 
+          ? `${a.service?.name} · Atiende ${a.worker?.firstName || "Personal"}` 
+          : `${a.service?.name} · Served by ${a.worker?.firstName || "Staff"}`,
+        icon: Clock,
+        badgeText: isEs ? "En atención" : "In Progress",
+        badgeBg: "primary",
+        actionText: isEs ? "Cobrar y Cerrar" : "Checkout",
+        onClick: () => onFinalizeAppointment?.(a),
+      });
     } else if (a.status === "PENDING_PAYMENT") {
       alerts.push({
         id: `pending-payment-${a.id}`,
@@ -224,35 +189,53 @@ export default function AttentionWidget({
     <div className="d-flex flex-column h-100">
       <div className="d-flex justify-content-between align-items-center mb-3">
         <span className="small text-muted fw-bold">{isEs ? "Próximas Citas:" : "Upcoming:"}</span>
-        <div className="btn-group" role="group" style={{ transform: "scale(0.85)", transformOrigin: "right" }}>
-          <button 
-            type="button" 
-            className={`btn btn-sm ${dateRange === "TODAY" ? "btn-dark" : "btn-outline-dark"}`}
+        
+        {/* Selector de Rango con Pills Modernas */}
+        <div className="bg-light p-1 rounded-pill border shadow-xs d-flex align-items-center gap-1">
+          <Button
+            size="sm"
+            variant={dateRange === "TODAY" ? "primary" : "link"}
+            className={`rounded-pill px-2.5 py-1 fw-bold text-decoration-none border-0 ${
+              dateRange === "TODAY" ? "shadow-xs text-white" : "text-muted"
+            }`}
+            style={dateRange === "TODAY" ? { backgroundColor: "#7c3aed", fontSize: "11px" } : { fontSize: "11px" }}
             onClick={() => setDateRange("TODAY")}
           >
             {isEs ? "Hoy" : "Today"}
-          </button>
-          <button 
-            type="button" 
-            className={`btn btn-sm ${dateRange === "THIS_WEEK" ? "btn-dark" : "btn-outline-dark"}`}
+          </Button>
+          <Button
+            size="sm"
+            variant={dateRange === "THIS_WEEK" ? "primary" : "link"}
+            className={`rounded-pill px-2.5 py-1 fw-bold text-decoration-none border-0 ${
+              dateRange === "THIS_WEEK" ? "shadow-xs text-white" : "text-muted"
+            }`}
+            style={dateRange === "THIS_WEEK" ? { backgroundColor: "#7c3aed", fontSize: "11px" } : { fontSize: "11px" }}
             onClick={() => setDateRange("THIS_WEEK")}
           >
             {isEs ? "Semana" : "Week"}
-          </button>
-          <button 
-            type="button" 
-            className={`btn btn-sm ${dateRange === "THIS_MONTH" ? "btn-dark" : "btn-outline-dark"}`}
+          </Button>
+          <Button
+            size="sm"
+            variant={dateRange === "THIS_MONTH" ? "primary" : "link"}
+            className={`rounded-pill px-2.5 py-1 fw-bold text-decoration-none border-0 ${
+              dateRange === "THIS_MONTH" ? "shadow-xs text-white" : "text-muted"
+            }`}
+            style={dateRange === "THIS_MONTH" ? { backgroundColor: "#7c3aed", fontSize: "11px" } : { fontSize: "11px" }}
             onClick={() => setDateRange("THIS_MONTH")}
           >
             {isEs ? "Mes" : "Month"}
-          </button>
-          <button 
-            type="button" 
-            className={`btn btn-sm ${dateRange === "ALL" ? "btn-dark" : "btn-outline-dark"}`}
+          </Button>
+          <Button
+            size="sm"
+            variant={dateRange === "ALL" ? "primary" : "link"}
+            className={`rounded-pill px-2.5 py-1 fw-bold text-decoration-none border-0 ${
+              dateRange === "ALL" ? "shadow-xs text-white" : "text-muted"
+            }`}
+            style={dateRange === "ALL" ? { backgroundColor: "#7c3aed", fontSize: "11px" } : { fontSize: "11px" }}
             onClick={() => setDateRange("ALL")}
           >
             {isEs ? "Todas" : "All"}
-          </button>
+          </Button>
         </div>
       </div>
 
