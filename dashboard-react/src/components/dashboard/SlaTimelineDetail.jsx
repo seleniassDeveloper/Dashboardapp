@@ -15,6 +15,7 @@ export default function SlaTimelineDetail({
   onArrive,
   onComplete,
   actionLoading,
+  showArriveButton = false,
   isEs = true
 }) {
   const {
@@ -158,7 +159,7 @@ export default function SlaTimelineDetail({
         </div>
       </div>
 
-      {/* Caja de Acción si no ha llegado la clienta */}
+      {/* Caja Informativa si no ha llegado la clienta */}
       {!isArrived && (
         <div className="p-2.5 bg-white border rounded-3 d-flex align-items-center justify-content-between mb-3 shadow-xs">
           <div className="d-flex align-items-center gap-2">
@@ -167,17 +168,19 @@ export default function SlaTimelineDetail({
               {isEs ? "Clienta aún no ha llegado" : "Client has not arrived"}
             </span>
           </div>
-          <Button
-            variant="primary"
-            size="sm"
-            disabled={actionLoading}
-            onClick={() => onArrive?.(id)}
-            className="rounded-pill px-3 py-1 fw-bold smaller d-flex align-items-center gap-1.5"
-            style={{ backgroundColor: "#7c3aed", borderColor: "#7c3aed" }}
-          >
-            {actionLoading ? <Spinner size="sm" animation="border" /> : <Play size={13} />}
-            <span>{isEs ? "Marcar llegada" : "Mark arrival"}</span>
-          </Button>
+          {showArriveButton && (
+            <Button
+              variant="primary"
+              size="sm"
+              disabled={actionLoading}
+              onClick={() => onArrive?.(id)}
+              className="rounded-pill px-3 py-1 fw-bold smaller d-flex align-items-center gap-1.5"
+              style={{ backgroundColor: "#7c3aed", borderColor: "#7c3aed" }}
+            >
+              {actionLoading ? <Spinner size="sm" animation="border" /> : <Play size={13} />}
+              <span>{isEs ? "Marcar llegada" : "Mark arrival"}</span>
+            </Button>
+          )}
         </div>
       )}
 

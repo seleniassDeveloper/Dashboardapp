@@ -274,6 +274,7 @@ export default function UpcomingAppointmentsWidget({
                       onArrive={handleArrive}
                       onComplete={handleComplete}
                       actionLoading={actionLoadingId === a.id}
+                      showArriveButton={true}
                       isEs={isEs}
                     />
                   </div>
@@ -440,6 +441,7 @@ export default function UpcomingAppointmentsWidget({
                       onArrive={handleArrive}
                       onComplete={handleComplete}
                       actionLoading={actionLoadingId === a.id}
+                      showArriveButton={false}
                       isEs={isEs}
                     />
                   </div>

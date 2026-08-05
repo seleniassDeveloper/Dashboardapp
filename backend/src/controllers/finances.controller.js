@@ -833,7 +833,8 @@ export async function deleteExpense(req, res) {
       return res.status(400).json({ error: "No se identificó el negocio en la petición." });
     }
 
-    const target = await prisma.expense.findFirst({ where: { id, businessId } });
+    // Expense no tiene businessId directo: se aísla por la sucursal (branch.businessId).
+    const target = await prisma.expense.findFirst({ where: { id, branch: { businessId } } });
     if (!target) {
       return res.status(404).json({ error: "Gasto no encontrado." });
     }
