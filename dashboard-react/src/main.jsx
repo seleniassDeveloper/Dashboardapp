@@ -7,6 +7,7 @@ import "./i18n";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { AuthProvider } from "./auth/AuthProvider.jsx";
 
+// AuraDash v2.5.0-agenda-sla - Dynamic Cache Invalidation
 if (import.meta.env.PROD) {
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.getRegistrations().then((registrations) => {
