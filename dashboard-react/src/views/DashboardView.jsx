@@ -667,74 +667,85 @@ export default function DashboardView() {
 
       {error && <Alert variant="danger" className="mb-4">{error}</Alert>}
 
-      {/* TARJETA DE ENLACE DE RESERVAS */}
+      {/* TARJETA DE ENLACE DE RESERVAS (Ultra compacta) */}
       {business?.slug && (
-        <div className="mb-4">
+        <div className="mb-3">
           {!isBookingLinkExpanded ? (
             <div 
-              className="bg-white rounded-4 p-3 border shadow-sm d-flex justify-content-between align-items-center cursor-pointer transition-all hover-scale" 
+              className="bg-white rounded-pill px-3 py-1.5 border shadow-sm d-flex justify-content-between align-items-center cursor-pointer transition-all hover-scale" 
               onClick={() => setIsBookingLinkExpanded(true)} 
-              style={{ borderColor: "#e2e8f0", cursor: "pointer", maxWidth: "800px" }}
+              style={{ borderColor: "#e2e8f0", cursor: "pointer", width: "fit-content", maxWidth: "100%" }}
             >
-              <div className="d-flex align-items-center gap-3">
-                <div className="p-2 bg-primary bg-opacity-10 rounded-circle text-primary d-flex align-items-center justify-content-center">
-                  <Sparkles size={18} />
+              <div className="d-flex align-items-center gap-2 overflow-hidden">
+                <div 
+                  className="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                  style={{ 
+                    backgroundColor: `${brand.accentColor || "#10b981"}15`, 
+                    color: brand.accentColor || "#10b981", 
+                    width: "24px", 
+                    height: "24px" 
+                  }}
+                >
+                  <Sparkles size={13} />
                 </div>
-                <div>
-                  <span className="fw-bold text-dark d-block">Tu enlace de reservas online</span>
-                  <span className="text-muted" style={{ fontSize: "12px" }}>Haz clic para ver y compartir tu link o código QR</span>
+                <div className="d-flex align-items-center gap-1.5 text-nowrap overflow-hidden text-truncate">
+                  <span className="fw-bold text-dark" style={{ fontSize: "12px" }}>Tu enlace de reservas online</span>
+                  <span className="text-muted d-none d-sm-inline" style={{ fontSize: "11px" }}>• Haz clic para ver y compartir</span>
                 </div>
               </div>
-              <Button variant="light" size="sm" className="rounded-circle p-2 d-flex align-items-center justify-content-center border" onClick={(e) => { e.stopPropagation(); setIsBookingLinkExpanded(true); }}>
-                <ChevronDown size={18} className="text-secondary" />
-              </Button>
+              <div 
+                className="rounded-circle ms-3 flex-shrink-0 d-flex align-items-center justify-content-center border bg-light text-secondary"
+                style={{ width: "24px", height: "24px" }}
+              >
+                <ChevronDown size={13} />
+              </div>
             </div>
           ) : (
             <div 
-              className="bg-white rounded-4 p-4 border shadow-sm position-relative animate-fade-in" 
+              className="bg-white rounded-4 p-3 border shadow-sm position-relative animate-fade-in" 
               style={{ 
                 borderColor: "#e2e8f0", 
-                maxWidth: "800px", 
+                maxWidth: "720px", 
                 background: "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)" 
               }}
             >
               <Button 
                 variant="white" 
                 size="sm" 
-                className="position-absolute top-0 end-0 m-3 rounded-circle p-2 d-flex align-items-center justify-content-center border bg-light hover-bg-gray-200"
+                className="position-absolute top-0 end-0 m-2 rounded-circle p-1 d-flex align-items-center justify-content-center border bg-light hover-bg-gray-200"
                 onClick={() => setIsBookingLinkExpanded(false)}
                 title="Ocultar"
-                style={{ width: "32px", height: "32px" }}
+                style={{ width: "26px", height: "26px" }}
               >
-                <ChevronUp size={16} className="text-secondary" />
+                <ChevronUp size={14} className="text-secondary" />
               </Button>
               
-              <div className="row g-4 align-items-center">
+              <div className="row g-3 align-items-center">
                 <div className="col-12 col-md-8">
-                  <div className="d-flex align-items-start gap-3">
+                  <div className="d-flex align-items-start gap-2.5">
                     <div 
-                      className="p-3 rounded-4 d-flex align-items-center justify-content-center flex-shrink-0"
+                      className="p-2 rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
                       style={{ 
                         backgroundColor: `${brand.accentColor || "#10b981"}15`, 
                         color: brand.accentColor || "#10b981", 
-                        width: "54px", 
-                        height: "54px" 
+                        width: "38px", 
+                        height: "38px" 
                       }}
                     >
-                      <Sparkles size={24} />
+                      <Sparkles size={18} />
                     </div>
                     <div>
-                      <h3 className="h6 fw-bold text-dark mb-1" style={{ fontSize: "16px" }}>Tu enlace de reservas</h3>
-                      <p className="text-muted mb-3" style={{ fontSize: "12.5px", lineHeight: "1.4" }}>
+                      <h3 className="h6 fw-bold text-dark mb-0.5" style={{ fontSize: "14px" }}>Tu enlace de reservas</h3>
+                      <p className="text-muted mb-2" style={{ fontSize: "11.5px", lineHeight: "1.3" }}>
                         Comparte este enlace con tus clientes para que reserven online (gratis).
                       </p>
                       <div className="d-flex flex-wrap align-items-center gap-2">
-                        <InputGroup style={{ maxWidth: "320px" }} className="shadow-sm">
+                        <InputGroup style={{ maxWidth: "300px" }} className="shadow-sm">
                           <Form.Control
                             readOnly
                             value={bookingUrl}
-                            className="bg-light border-gray-200 fw-medium font-monospace text-primary"
-                            style={{ fontSize: "12px" }}
+                            className="bg-light border-gray-200 fw-medium font-monospace text-primary py-1"
+                            style={{ fontSize: "11.5px" }}
                           />
                           <Button 
                             variant="primary" 
@@ -743,8 +754,8 @@ export default function DashboardView() {
                               setCopiedLink(true);
                               setTimeout(() => setCopiedLink(false), 2000);
                             }}
-                            className="d-flex align-items-center gap-2 px-3 fw-bold border-0"
-                            style={{ background: brand.accentColor || "#10b981" }}
+                            className="d-flex align-items-center gap-1.5 px-2.5 py-1 fw-bold border-0"
+                            style={{ background: brand.accentColor || "#10b981", fontSize: "11.5px" }}
                           >
                             {copiedLink ? "¡Copiado!" : "Copiar"}
                           </Button>
@@ -752,8 +763,8 @@ export default function DashboardView() {
                         <Button 
                           variant="outline-secondary" 
                           onClick={() => window.open(bookingUrl, '_blank')}
-                          className="d-flex align-items-center gap-2 px-3 fw-bold bg-white border"
-                          style={{ fontSize: "12.5px" }}
+                          className="d-flex align-items-center gap-1.5 px-2.5 py-1 fw-bold bg-white border"
+                          style={{ fontSize: "11.5px" }}
                         >
                           Abrir Página
                         </Button>
@@ -763,11 +774,11 @@ export default function DashboardView() {
                 </div>
                 
                 <div className="col-12 col-md-4 d-flex justify-content-center justify-content-md-end">
-                  <div className="text-center d-flex flex-column align-items-center bg-white p-2.5 border rounded-4 shadow-sm" style={{ width: "130px" }}>
-                    <div className="p-1 mb-1.5">
-                      <QRCodeSVG value={bookingUrl} size={90} level="M" />
+                  <div className="text-center d-flex flex-column align-items-center bg-white p-2 border rounded-3 shadow-sm" style={{ width: "115px" }}>
+                    <div className="p-1 mb-1">
+                      <QRCodeSVG value={bookingUrl} size={75} level="M" />
                     </div>
-                    <span className="text-muted" style={{ fontSize: "10px", fontWeight: "700", letterSpacing: "0.05em" }}>CÓDIGO QR</span>
+                    <span className="text-muted" style={{ fontSize: "9px", fontWeight: "700", letterSpacing: "0.05em" }}>CÓDIGO QR</span>
                   </div>
                 </div>
               </div>
