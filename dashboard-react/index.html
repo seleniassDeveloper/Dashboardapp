@@ -26,27 +26,22 @@
         var isScriptError = e.target && e.target.tagName === 'SCRIPT';
         var isModuleError = e.message && (/Failed to fetch/i.test(e.message) || /módulo/i.test(e.message) || /module/i.test(e.message) || /ServiceWorker/i.test(e.message) || /carga/i.test(e.message));
         if (isScriptError || isModuleError) {
-          if (!sessionStorage.getItem('pwa_cleared_reload')) {
-            sessionStorage.setItem('pwa_cleared_reload', 'true');
-            if ('serviceWorker' in navigator) {
-              navigator.serviceWorker.getRegistrations().then(function(regs) {
-                for (var i = 0; i < regs.length; i++) {
-                  regs[i].unregister();
-                }
-                if (typeof caches !== 'undefined') {
-                  caches.keys().then(function(keys) {
-                    for (var j = 0; j < keys.length; j++) {
-                      caches.delete(keys[j]);
-                    }
-                    window.location.reload(true);
-                  });
-                } else {
-                  window.location.reload(true);
-                }
-              });
-            } else {
-              window.location.reload(true);
-            }
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(regs) {
+              for (var i = 0; i < regs.length; i++) {
+                regs[i].unregister();
+              }
+              if (typeof caches !== 'undefined') {
+                caches.keys().then(function(keys) {
+                  for (var j = 0; j < keys.length; j++) {
+                    caches.delete(keys[j]);
+                  }
+                });
+              }
+            });
+          }
+          if (!window.location.search.includes('v=')) {
+            window.location.href = window.location.pathname + '?v=' + Date.now();
           }
         }
       }, true);
