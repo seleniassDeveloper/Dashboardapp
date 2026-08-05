@@ -289,18 +289,17 @@ export default function AttentionWidget({
                   </Button>
                 )}
                 <Button
-                  variant="primary"
                   size="sm"
                   onClick={item.onClick}
-                  className="rounded-pill px-3 py-1.5 font-bold small d-flex align-items-center gap-1.5 ms-auto shadow-xs"
+                  className="rounded-pill px-2.5 py-1 font-bold d-flex align-items-center gap-1 ms-auto shadow-xs border-0 text-white"
                   style={{
-                    fontSize: "12px",
+                    fontSize: "11px",
                     backgroundColor: "#7c3aed",
-                    borderColor: "#7c3aed"
+                    whiteSpace: "nowrap"
                   }}
                 >
                   <span>{item.actionText}</span>
-                  <ArrowRight size={13} />
+                  <ArrowRight size={12} />
                 </Button>
               </div>
             </div>

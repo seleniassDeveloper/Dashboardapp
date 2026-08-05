@@ -393,15 +393,15 @@ export default function UpcomingAppointmentsWidget({
                     {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                   </Button>
 
-                  <div className="d-flex gap-2">
+                  <div className="d-flex gap-1.5 align-items-center">
                     {a.status === "PENDING" && (
                       <Button 
                         size="sm" 
-                        className="d-flex align-items-center gap-1 rounded-pill fw-bold border-0 px-3 py-1.5 text-white" 
-                        style={{ backgroundColor: "#eab308", color: "#1e1b4b" }}
+                        className="d-flex align-items-center gap-1 rounded-pill fw-bold border-0 px-2.5 py-1 text-white shadow-xs" 
+                        style={{ backgroundColor: "#f59e0b", color: "#ffffff", fontSize: "11px", whiteSpace: "nowrap" }}
                         onClick={() => onConfirmAppointment?.(a.id)}
                       >
-                        <CheckCircle2 size={14} /> {isEs ? "Confirmar" : "Confirm"}
+                        <CheckCircle2 size={12} /> {isEs ? "Confirmar" : "Confirm"}
                       </Button>
                     )}
 
@@ -409,26 +409,25 @@ export default function UpcomingAppointmentsWidget({
                       <Button
                         size="sm"
                         disabled={actionLoadingId === a.id}
-                        className="d-flex align-items-center gap-1 rounded-pill fw-bold border-0 px-3 py-1.5 text-white"
-                        style={{ backgroundColor: "#7c3aed" }}
+                        className="d-flex align-items-center gap-1 rounded-pill fw-bold border-0 px-2.5 py-1 text-white shadow-xs"
+                        style={{ backgroundColor: "#7c3aed", fontSize: "11px", whiteSpace: "nowrap" }}
                         onClick={() => handleArrive(a.id)}
                       >
-                        {actionLoadingId === a.id ? <Spinner size="sm" animation="border" /> : <Play size={14} />}
+                        {actionLoadingId === a.id ? <Spinner size="sm" animation="border" style={{ width: "12px", height: "12px" }} /> : <Play size={12} />}
                         <span>{isEs ? "Marcar llegada" : "Mark arrived"}</span>
                       </Button>
                     )}
 
                     {isArrived && a.status !== "DONE" && (
                       <Button
-                        variant="success"
                         size="sm"
                         disabled={actionLoadingId === a.id}
-                        className="d-flex align-items-center gap-1 rounded-pill fw-bold"
-                        style={{ backgroundColor: "#10b981", borderColor: "#10b981" }}
+                        className="d-flex align-items-center gap-1 rounded-pill fw-bold border-0 px-2.5 py-1 text-white shadow-xs"
+                        style={{ backgroundColor: "#10b981", fontSize: "11px", whiteSpace: "nowrap" }}
                         onClick={() => handleComplete(a.id)}
                       >
-                        {actionLoadingId === a.id ? <Spinner size="sm" animation="border" /> : <CheckCircle2 size={14} />}
-                        {isEs ? "Finalizar (Checkout)" : "Finish (Checkout)"}
+                        {actionLoadingId === a.id ? <Spinner size="sm" animation="border" style={{ width: "12px", height: "12px" }} /> : <CheckCircle2 size={12} />}
+                        <span>{isEs ? "Finalizar (Checkout)" : "Finish (Checkout)"}</span>
                       </Button>
                     )}
                   </div>
