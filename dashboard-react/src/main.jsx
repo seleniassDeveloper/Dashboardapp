@@ -15,6 +15,20 @@ if (import.meta.env.PROD) {
     }
   });
 
+  // Auto-recover from stale Service Worker cache on new deployments
+  window.addEventListener("error", (e) => {
+    if (
+      e?.message?.includes("Failed to fetch dynamically imported module") ||
+      e?.message?.includes("Importing a module script failed") ||
+      e?.message?.includes("ServiceWorker")
+    ) {
+      if (!sessionStorage.getItem("sw_reloaded")) {
+        sessionStorage.setItem("sw_reloaded", "true");
+        window.location.reload();
+      }
+    }
+  });
+
   const noop = () => {};
   console.log = noop;
   console.info = noop;
