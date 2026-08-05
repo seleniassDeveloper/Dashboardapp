@@ -920,12 +920,6 @@ export default function AppointmentModal({ show, onHide, onSaved, initialData = 
                     </div>
                   </div>
                 </div>
-                <div className="text-center d-flex flex-column align-items-center" style={{ minWidth: "120px" }}>
-                  <div className="bg-white p-2 border rounded-3 shadow-sm mb-2" style={{ width: "fit-content", borderRadius: "12px" }}>
-                    <QRCodeSVG value={bookingUrl} size={90} level="M" />
-                  </div>
-                  <span className="text-muted" style={{ fontSize: "11px", fontWeight: "600" }}>CÓDIGO QR</span>
-                </div>
               </div>
             )}
           </div>
