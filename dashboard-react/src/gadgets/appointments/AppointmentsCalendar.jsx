@@ -25,7 +25,7 @@ import AgendaSummary from "./agenda/AgendaSummary";
 import AgendaSummaryDetailModal from "./agenda/AgendaSummaryDetailModal";
 import FinalizeServiceModal from "../../components/clients/FinalizeServiceModal.jsx";
 import axiosApi from "../../lib/api.js";
-import { User, Calendar, Plus } from "lucide-react";
+import { User, Calendar, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { useIsMobile } from "../../hooks/useIsMobile";
 
 import "./styles/fullcalendar-fix.css";
@@ -479,52 +479,86 @@ export default function AppointmentsCalendar() {
     <>
       <Card className="shadow-sm brand-card">
         <Card.Body>
-          {/* ✅ HEADER PRO (Bootstrap) */}
-          <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
-            <div className="d-flex align-items-center gap-3">
-              <div className="brand-title">Calendario</div>
+          {/* ✅ HEADER PRO CON NAVEGACIÓN DE FECHA INTEGRADA */}
+          <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3.5 p-2.5 bg-light bg-opacity-60 rounded-4 border">
+            {/* Izquierda: Botón "Hoy" + Navegador de Fecha (‹  Semana/Día/Mes  ›) */}
+            <div className="d-flex align-items-center gap-2.5 flex-wrap">
+              <Button
+                variant="outline-secondary"
+                size="sm"
+                className="rounded-pill px-3 py-1.5 fw-bold bg-white text-dark border-gray-300 shadow-xs"
+                onClick={goToday}
+                style={{ fontSize: "13px" }}
+              >
+                Hoy
+              </Button>
 
-              <div className="d-flex align-items-center gap-2">
-                <Button variant="outline-secondary" size="sm" onClick={goPrev}>
-                  ‹
+              <div className="d-flex align-items-center bg-white rounded-pill border p-1 shadow-xs">
+                <Button
+                  variant="link"
+                  size="sm"
+                  className="p-1 text-dark text-decoration-none rounded-circle d-flex align-items-center justify-content-center"
+                  onClick={goPrev}
+                  title="Anterior"
+                  style={{ width: "28px", height: "28px" }}
+                >
+                  <ChevronLeft size={18} />
                 </Button>
-                <Button variant="outline-secondary" size="sm" onClick={goNext}>
-                  ›
-                </Button>
-                <Button variant="outline-secondary" size="sm" onClick={goToday}>
-                  Hoy
+
+                <span className="fw-extrabold text-dark px-3" style={{ fontSize: "15px", whiteSpace: "nowrap", letterSpacing: "-0.01em" }}>
+                  {title}
+                </span>
+
+                <Button
+                  variant="link"
+                  size="sm"
+                  className="p-1 text-dark text-decoration-none rounded-circle d-flex align-items-center justify-content-center"
+                  onClick={goNext}
+                  title="Siguiente"
+                  style={{ width: "28px", height: "28px" }}
+                >
+                  <ChevronRight size={18} />
                 </Button>
               </div>
             </div>
 
-            <div className="d-flex align-items-center gap-3">
-              <div className="fw-semibold" style={{ fontSize: 18 }}>
-                {title}
-              </div>
-
-              <ButtonGroup>
+            {/* Derecha: Selector de Vista (Mes | Semana | Día) */}
+            <div className="d-flex align-items-center gap-2">
+              <div className="bg-white p-1 rounded-pill border shadow-xs d-flex align-items-center gap-1">
                 <Button
                   size="sm"
-                  variant={view === "dayGridMonth" ? "dark" : "outline-dark"}
+                  variant={view === "dayGridMonth" ? "primary" : "link"}
+                  className={`rounded-pill px-3.5 py-1 fw-bold text-decoration-none ${
+                    view === "dayGridMonth" ? "shadow-xs text-white" : "text-muted"
+                  }`}
+                  style={view === "dayGridMonth" ? { backgroundColor: "#7c3aed", borderColor: "#7c3aed" } : { fontSize: "12.5px" }}
                   onClick={() => changeView("dayGridMonth")}
                 >
                   Mes
                 </Button>
                 <Button
                   size="sm"
-                  variant={view === "timeGridWeek" ? "dark" : "outline-dark"}
+                  variant={view === "timeGridWeek" ? "primary" : "link"}
+                  className={`rounded-pill px-3.5 py-1 fw-bold text-decoration-none ${
+                    view === "timeGridWeek" ? "shadow-xs text-white" : "text-muted"
+                  }`}
+                  style={view === "timeGridWeek" ? { backgroundColor: "#7c3aed", borderColor: "#7c3aed" } : { fontSize: "12.5px" }}
                   onClick={() => changeView("timeGridWeek")}
                 >
                   Semana
                 </Button>
                 <Button
                   size="sm"
-                  variant={view === "timeGridDay" ? "dark" : "outline-dark"}
+                  variant={view === "timeGridDay" ? "primary" : "link"}
+                  className={`rounded-pill px-3.5 py-1 fw-bold text-decoration-none ${
+                    view === "timeGridDay" ? "shadow-xs text-white" : "text-muted"
+                  }`}
+                  style={view === "timeGridDay" ? { backgroundColor: "#7c3aed", borderColor: "#7c3aed" } : { fontSize: "12.5px" }}
                   onClick={() => changeView("timeGridDay")}
                 >
                   Día
                 </Button>
-              </ButtonGroup>
+              </div>
             </div>
           </div>
 
