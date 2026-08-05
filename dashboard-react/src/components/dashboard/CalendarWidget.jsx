@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Badge, Button, Table, Row, Col, Card, Form, Dropdown, Offcanvas } from "react-bootstrap";
+import { Badge, Button, Table, Row, Col, Card, Form, Dropdown, Offcanvas, Spinner } from "react-bootstrap";
 import { Calendar, Clock, User, ChevronLeft, ChevronRight, Check, X, ShieldAlert, Edit3 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAppointmentsStore } from "../../gadgets/appointments/AppointmentsProvider.jsx";
 import AppointmentModal from "../../gadgets/appointments/AppointmentModal.jsx";
+import api from "../../lib/api.js";
 
 // Helper de moneda
 function currency(n, isEs) {
@@ -97,16 +98,30 @@ export default function CalendarWidget({
     }).sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
   }, [appointments, startOfCurrentDay, endOfCurrentDay]);
 
-  // Navegar días
-  const handlePrevDay = () => {
+  // Navegar según la vista activa: día (±1 día), semana (±7 días), mes (±1 mes)
+  const handlePrev = () => {
     const d = new Date(currentDate);
-    d.setDate(d.getDate() - 1);
+    if (view === "month") {
+      d.setDate(1); // evita saltos de mes por overflow (ej. 31 → mes con 28 días)
+      d.setMonth(d.getMonth() - 1);
+    } else if (view === "week") {
+      d.setDate(d.getDate() - 7);
+    } else {
+      d.setDate(d.getDate() - 1);
+    }
     setCurrentDate(d);
   };
 
-  const handleNextDay = () => {
+  const handleNext = () => {
     const d = new Date(currentDate);
-    d.setDate(d.getDate() + 1);
+    if (view === "month") {
+      d.setDate(1);
+      d.setMonth(d.getMonth() + 1);
+    } else if (view === "week") {
+      d.setDate(d.getDate() + 7);
+    } else {
+      d.setDate(d.getDate() + 1);
+    }
     setCurrentDate(d);
   };
 
@@ -168,13 +183,17 @@ export default function CalendarWidget({
       {/* Controles superiores del calendario */}
       <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2 pb-2 border-bottom">
         <div className="d-flex align-items-center gap-2">
-          <Button variant="light" size="sm" onClick={handlePrevDay} className="rounded-circle p-1 d-flex align-items-center justify-content-center" style={{ width: "28px", height: "28px" }}>
+          <Button variant="light" size="sm" onClick={handlePrev} className="rounded-circle p-1 d-flex align-items-center justify-content-center" style={{ width: "28px", height: "28px" }}>
             <ChevronLeft size={16} />
           </Button>
           <span className="fw-bold text-dark small text-capitalize" style={{ minWidth: "130px", textAlign: "center" }}>
-            {currentDate.toLocaleDateString(isEs ? "es-AR" : "en-US", { weekday: "short", day: "numeric", month: "long" })}
+            {view === "month"
+              ? currentDate.toLocaleDateString(isEs ? "es-AR" : "en-US", { month: "long", year: "numeric" })
+              : view === "week"
+              ? `${weekDays[0].toLocaleDateString(isEs ? "es-AR" : "en-US", { day: "numeric", month: "short" })} - ${weekDays[6].toLocaleDateString(isEs ? "es-AR" : "en-US", { day: "numeric", month: "short" })}`
+              : currentDate.toLocaleDateString(isEs ? "es-AR" : "en-US", { weekday: "short", day: "numeric", month: "long" })}
           </span>
-          <Button variant="light" size="sm" onClick={handleNextDay} className="rounded-circle p-1 d-flex align-items-center justify-content-center" style={{ width: "28px", height: "28px" }}>
+          <Button variant="light" size="sm" onClick={handleNext} className="rounded-circle p-1 d-flex align-items-center justify-content-center" style={{ width: "28px", height: "28px" }}>
             <ChevronRight size={16} />
           </Button>
         </div>
