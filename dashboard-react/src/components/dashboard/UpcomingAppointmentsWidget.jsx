@@ -103,7 +103,7 @@ export default function UpcomingAppointmentsWidget({
       setActionLoadingId(appointmentId);
       await api.post(`/appointments/${appointmentId}/arrive`);
       await fetchSlaToday();
-      onUpdateAppointmentStatus?.(appointmentId, "EN_ATENCION");
+      onUpdateAppointmentStatus?.(appointmentId, "EN_ATENCION", true);
     } catch (err) {
       console.error("Error marking arrival:", err);
     } finally {

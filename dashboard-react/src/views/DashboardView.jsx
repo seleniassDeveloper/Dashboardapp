@@ -504,7 +504,7 @@ export default function DashboardView() {
   };
 
   // --- Lógica del Estado de Citas ---
-  const handleUpdateAppointmentStatus = async (apptId, newStatus) => {
+  const handleUpdateAppointmentStatus = async (apptId, newStatus, skipApi = false) => {
     try {
       const appt = appointments.find((a) => a.id === apptId);
       if (!appt) return;
@@ -514,14 +514,16 @@ export default function DashboardView() {
         return;
       }
 
-      await api.put(`/appointments/${apptId}`, {
-        clientId: appt.clientId,
-        serviceId: appt.serviceId,
-        workerId: appt.workerId,
-        startsAt: appt.startsAt,
-        notes: appt.notes,
-        status: newStatus,
-      });
+      if (!skipApi) {
+        await api.put(`/appointments/${apptId}`, {
+          clientId: appt.clientId,
+          serviceId: appt.serviceId,
+          workerId: appt.workerId,
+          startsAt: appt.startsAt,
+          notes: appt.notes,
+          status: newStatus,
+        });
+      }
 
       setAppointments((prev) =>
         prev.map((a) => (a.id === apptId ? { ...a, status: newStatus } : a))

@@ -307,26 +307,29 @@ export async function updateAppointment(req, res) {
       return res.status(400).json({ error: "Cliente inválido." });
     }
 
-    const biz = await prisma.business.findUnique({
-      where: { id: req.businessId },
-      select: { timezone: true }
-    });
+    const isTimeOrServiceChanged = (
+      new Date(startsAt).getTime() !== new Date(existing.startsAt).getTime() ||
+      String(workerId) !== String(existing.workerId) ||
+      String(serviceId) !== String(existing.serviceId)
+    );
 
-    const slot = await validateAppointmentSlot({
-      workerId,
-      serviceId,
-      startsAt,
-      excludeAppointmentId: id,
-      timezone: biz?.timezone || "America/Argentina/Buenos_Aires"
-    });
-
-    if (!slot.available) {
-      return res.status(slotErrorStatus(slot.code)).json({
-        error: slot.reason || "El profesional no está disponible en ese horario.",
-        code: slot.code || null,
-        conflict: slot.conflict || null,
-        availableWorkers: slot.availableWorkers || [],
+    if (isTimeOrServiceChanged) {
+      const slot = await validateAppointmentSlot({
+        workerId,
+        serviceId,
+        startsAt,
+        excludeAppointmentId: id,
+        timezone: biz?.timezone || "America/Argentina/Buenos_Aires"
       });
+
+      if (!slot.available) {
+        return res.status(slotErrorStatus(slot.code)).json({
+          error: slot.reason || "El profesional no está disponible en ese horario.",
+          code: slot.code || null,
+          conflict: slot.conflict || null,
+          availableWorkers: slot.availableWorkers || [],
+        });
+      }
     }
 
     const oldStatus = existing.status;
