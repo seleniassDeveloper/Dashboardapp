@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Container, Row, Col, Card, Button, Form, Badge, ListGroup, Alert } from "react-bootstrap";
 import { 
   MessageCircle, Clock, Users, Plus, Check, Clipboard, Trash2, 
@@ -15,6 +16,7 @@ import AppointmentsSLA from "../components/appointments/mobile/AppointmentsSLA";
 
 export default function CalendarView() {
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   
   if (isMobile) {
     return <AppointmentsSLA />;
@@ -258,6 +260,16 @@ export default function CalendarView() {
           >
             <Clipboard size={14} className="me-2 d-inline-block" style={{marginTop:"-2px"}}/>
             Historial Avanzado
+          </Button>
+          <Button
+            size="sm"
+            variant="link"
+            className="rounded-2 px-3 py-2 text-decoration-none fw-bold ms-1"
+            style={{ color: "#7c3aed", backgroundColor: "rgba(124, 58, 237, 0.08)" }}
+            onClick={() => navigate("/app/sla-today")}
+          >
+            <Clock size={14} className="me-1 d-inline-block" style={{marginTop:"-2px"}}/>
+            Timeline SLA
           </Button>
         </div>
 

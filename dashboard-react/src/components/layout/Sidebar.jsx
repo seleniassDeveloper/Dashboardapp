@@ -54,6 +54,7 @@ const getSubMenuLabel = (subId, terms, t) => {
 const MENU_ITEMS = [
   { id: "dashboard", icon: LayoutDashboard, path: "/app" },
   { id: "appointments", icon: CalendarCheck, path: "/app/calendar" },
+  { id: "sla_today", icon: Clock, path: "/app/sla-today" },
   { id: "clients", icon: Users, path: "/app/clients" },
   { id: "services", icon: Scissors, path: "/app/services" },
   { id: "team", icon: Briefcase, path: "/app/team" },
