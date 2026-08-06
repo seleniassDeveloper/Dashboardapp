@@ -15,6 +15,10 @@ import {
   Bell,
   ChevronDown,
   ChevronUp,
+  Save,
+  Edit3,
+  Check,
+  RotateCcw,
 } from "lucide-react";
 import api from "../lib/api.js";
 import { useBrand } from "../header/name/BrandProvider";
@@ -67,11 +71,40 @@ export default function DashboardView() {
   const [expenses, setExpenses] = useState([]);
   const [products, setProducts] = useState([]);
 
-  // Estados de carga y modal
+  // Estados de carga y modo edición de diseño
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [selectedWidget, setSelectedWidget] = useState(null);
+
+  // Modo Edición de Distribución
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [originalWidgets, setOriginalWidgets] = useState([]);
+  const [saveNotice, setSaveNotice] = useState("");
+
+  const handleStartEditMode = () => {
+    setOriginalWidgets(JSON.parse(JSON.stringify(widgets)));
+    setIsEditMode(true);
+  };
+
+  const handleSaveLayoutAndExit = async () => {
+    try {
+      await handleUpdateLayouts(widgets, true);
+      setIsEditMode(false);
+      setSaveNotice(isEs ? "✅ ¡Diseño del Dashboard guardado exitosamente!" : "✅ Dashboard layout saved successfully!");
+      setTimeout(() => setSaveNotice(""), 3500);
+    } catch (err) {
+      console.error("Error guardando diseño:", err);
+      alert(isEs ? "Ocurrió un error al guardar el diseño." : "An error occurred while saving layout.");
+    }
+  };
+
+  const handleCancelEdit = () => {
+    if (originalWidgets.length > 0) {
+      setWidgets(originalWidgets);
+    }
+    setIsEditMode(false);
+  };
 
   // Búsqueda global
   const [searchQuery, setSearchQuery] = useState("");
@@ -618,6 +651,39 @@ export default function DashboardView() {
 
           {/* Acciones Rápidas */}
           <div className="d-flex align-items-center gap-2">
+            {!isEditMode ? (
+              <Button
+                variant="outline-primary"
+                onClick={handleStartEditMode}
+                className="rounded-pill px-3 py-2 small fw-bold d-flex align-items-center gap-1.5 hover-scale border"
+                style={{ fontSize: "12px" }}
+              >
+                <Edit3 size={14} />
+                <span>{isEs ? "Editar Diseño" : "Edit Layout"}</span>
+              </Button>
+            ) : (
+              <>
+                <Button
+                  variant="success"
+                  onClick={handleSaveLayoutAndExit}
+                  className="rounded-pill px-3 py-2 small fw-bold d-flex align-items-center gap-1.5 hover-scale text-white shadow-sm"
+                  style={{ fontSize: "12px" }}
+                >
+                  <Save size={14} />
+                  <span>{isEs ? "Guardar Diseño" : "Save Layout"}</span>
+                </Button>
+
+                <Button
+                  variant="outline-secondary"
+                  onClick={handleCancelEdit}
+                  className="rounded-pill px-3 py-2 small fw-bold d-flex align-items-center gap-1.5"
+                  style={{ fontSize: "12px" }}
+                >
+                  <span>{isEs ? "Cancelar" : "Cancel"}</span>
+                </Button>
+              </>
+            )}
+
             <Button
               variant="outline-dark"
               onClick={() => setShowClientModal(true)}
@@ -662,6 +728,13 @@ export default function DashboardView() {
           </div>
         </div>
       </header>
+
+      {saveNotice && (
+        <Alert variant="success" className="mb-4 rounded-4 shadow-sm border-0 d-flex align-items-center gap-2">
+          <Check size={18} />
+          <span className="fw-bold" style={{ fontSize: "13px" }}>{saveNotice}</span>
+        </Alert>
+      )}
 
       {error && <Alert variant="danger" className="mb-4">{error}</Alert>}
 
@@ -799,6 +872,10 @@ export default function DashboardView() {
         <DashboardGrid
           widgets={filteredWidgets}
           searchQuery={searchQuery}
+          isEditMode={isEditMode}
+          onSaveLayout={handleSaveLayoutAndExit}
+          onCancelEdit={handleCancelEdit}
+          onStartEdit={handleStartEditMode}
           onClearSearch={() => setSearchQuery("")}
           appointments={filteredAppointments}
           clients={filteredClients}

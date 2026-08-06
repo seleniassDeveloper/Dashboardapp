@@ -1,7 +1,22 @@
 import React, { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Card, Button, Dropdown } from "react-bootstrap";
-import { GripVertical, Trash2, Settings, Plus, LayoutGrid, Search, ArrowLeft, ArrowRight } from "lucide-react";
+import { motion } from "framer-motion";
+import { Card, Button, Dropdown, Alert, Badge } from "react-bootstrap";
+import {
+  GripVertical,
+  Trash2,
+  Settings,
+  Plus,
+  LayoutGrid,
+  Search,
+  ArrowLeft,
+  ArrowRight,
+  Edit3,
+  Save,
+  Check,
+  Move,
+  Maximize2,
+  Minimize2,
+} from "lucide-react";
 import WidgetRenderer from "./WidgetRenderer";
 import { useTranslation } from "react-i18next";
 
@@ -14,6 +29,10 @@ export default function DashboardGrid({
   expenses = [],
   products = [],
   searchQuery = "",
+  isEditMode = false,
+  onSaveLayout,
+  onCancelEdit,
+  onStartEdit,
   onClearSearch,
   onUpdateLayouts,
   onEditWidget,
@@ -29,8 +48,9 @@ export default function DashboardGrid({
   const isEs = i18n ? i18n.language === "es" : true;
   const [draggedIdx, setDraggedIdx] = useState(null);
 
-  // --- Manejo del Drag & Drop nativo ---
+  // --- Manejo del Drag & Drop ---
   const handleDragStart = (e, index) => {
+    if (!isEditMode) return;
     setDraggedIdx(index);
     e.dataTransfer.effectAllowed = "move";
     e.currentTarget.style.opacity = "0.5";
@@ -39,12 +59,12 @@ export default function DashboardGrid({
   const handleDragEnd = (e) => {
     e.currentTarget.style.opacity = "1";
     setDraggedIdx(null);
-    onUpdateLayouts(widgets, true);
+    onUpdateLayouts(widgets, false);
   };
 
   const handleDragOver = (e, index) => {
     e.preventDefault();
-    if (draggedIdx === null || draggedIdx === index) return;
+    if (!isEditMode || draggedIdx === null || draggedIdx === index) return;
 
     const reordered = [...widgets];
     const [draggedItem] = reordered.splice(draggedIdx, 1);
@@ -63,10 +83,21 @@ export default function DashboardGrid({
     const [movedItem] = reordered.splice(index, 1);
     reordered.splice(targetIdx, 0, movedItem);
 
-    onUpdateLayouts(reordered, true);
+    onUpdateLayouts(reordered, false);
   };
 
-  // --- Cambiar tamaño de un widget directamente ---
+  // --- Cambiar ancho/alto exacto ---
+  const handleSetWidth = (widget, newW) => {
+    const updatedWidget = {
+      ...widget,
+      layout: {
+        ...widget.layout,
+        w: newW,
+      },
+    };
+    onEditWidget(updatedWidget);
+  };
+
   const handleResize = (widget, deltaW, deltaH) => {
     const wOptions = [3, 4, 6, 8, 12];
     const currentWIdx = wOptions.indexOf(widget.layout?.w || 4);
@@ -139,144 +170,270 @@ export default function DashboardGrid({
   }
 
   return (
-    <div className="dashboard-widgets-grid">
-      <style>{`
-        .dashboard-widgets-grid {
-          display: grid;
-          grid-template-columns: repeat(12, 1fr);
-          grid-auto-rows: 110px;
-          gap: 20px;
-          grid-auto-flow: row dense;
-          padding-bottom: 40px;
-          width: 100%;
-        }
-        @media (max-width: 992px) {
-          .dashboard-widgets-grid {
-            grid-template-columns: repeat(6, 1fr) !important;
-          }
-        }
-        @media (max-width: 768px) {
-          .dashboard-widgets-grid {
-            grid-template-columns: 1fr !important;
-          }
-          .dashboard-widgets-grid > div {
-            grid-column: span 1 !important;
-            grid-row: span 4 !important;
-          }
-        }
-      `}</style>
-
-      {widgets.map((w, idx) => {
-        const colSpan = Math.min(12, Math.max(3, w.layout?.w || 4));
-        const rowSpan = Math.min(8, Math.max(2, w.layout?.h || 4));
-
-        return (
-          <motion.div
-            key={w.id}
-            layoutId={w.id}
-            layout
-            transition={{ type: "spring", stiffness: 320, damping: 30 }}
-            style={{
-              gridColumn: `span ${colSpan}`,
-              gridRow: `span ${rowSpan}`,
-            }}
-            onDragOver={(e) => handleDragOver(e, idx)}
-            className="position-relative"
-          >
-            <Card
-              className="card-premium h-100 border-0 shadow-premium overflow-hidden hover-shadow bg-white d-flex flex-column"
+    <div className="dashboard-grid-container position-relative">
+      {/* Banner Informativo de Modo Edición */}
+      {isEditMode && (
+        <Alert
+          variant="primary"
+          className="d-flex align-items-center justify-content-between mb-4 rounded-4 shadow-sm border-0 bg-primary bg-opacity-10 text-primary-emphasis"
+        >
+          <div className="d-flex align-items-center gap-3">
+            <div className="p-2 bg-primary text-white rounded-circle d-flex align-items-center justify-content-center">
+              <Edit3 size={18} />
+            </div>
+            <div>
+              <span className="fw-bold d-block" style={{ fontSize: "13.5px" }}>
+                {isEs ? "Modo Edición de Diseño Activo" : "Layout Edit Mode Active"}
+              </span>
+              <span className="text-muted" style={{ fontSize: "11.5px" }}>
+                {isEs
+                  ? "Arrastra los gadgets desde su cabecera, ajusta el ancho/alto con los botones rápida y haz clic en 'Guardar Diseño'."
+                  : "Drag gadgets by header, adjust width/height with quick buttons and click 'Save Layout'."}
+              </span>
+            </div>
+          </div>
+          <div className="d-flex align-items-center gap-2">
+            <Button
+              variant="success"
+              size="sm"
+              onClick={onSaveLayout}
+              className="rounded-pill px-3 py-1.5 fw-bold d-flex align-items-center gap-1.5 shadow-sm text-white border-0"
+              style={{ fontSize: "12px" }}
             >
-              {/* Cabecera / Drag Handle */}
-              <div
-                className={`px-3.5 py-2.5 bg-light d-flex align-items-center justify-content-between border-bottom ${
-                  searchQuery ? "" : "cursor-grab"
+              <Save size={14} />
+              <span>{isEs ? "Guardar Diseño" : "Save Layout"}</span>
+            </Button>
+            <Button
+              variant="outline-secondary"
+              size="sm"
+              onClick={onCancelEdit}
+              className="rounded-pill px-3 py-1.5 fw-bold bg-white"
+              style={{ fontSize: "12px" }}
+            >
+              <span>{isEs ? "Cancelar" : "Cancel"}</span>
+            </Button>
+          </div>
+        </Alert>
+      )}
+
+      <div className="dashboard-widgets-grid">
+        <style>{`
+          .dashboard-widgets-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            grid-auto-rows: 110px;
+            gap: 20px;
+            grid-auto-flow: row dense;
+            padding-bottom: 40px;
+            width: 100%;
+          }
+          @media (max-width: 992px) {
+            .dashboard-widgets-grid {
+              grid-template-columns: repeat(6, 1fr) !important;
+            }
+          }
+          @media (max-width: 768px) {
+            .dashboard-widgets-grid {
+              grid-template-columns: 1fr !important;
+            }
+            .dashboard-widgets-grid > div {
+              grid-column: span 1 !important;
+              grid-row: span 4 !important;
+            }
+          }
+        `}</style>
+
+        {widgets.map((w, idx) => {
+          const colSpan = Math.min(12, Math.max(3, w.layout?.w || 4));
+          const rowSpan = Math.min(8, Math.max(2, w.layout?.h || 4));
+
+          return (
+            <motion.div
+              key={w.id}
+              layoutId={w.id}
+              layout
+              transition={{ type: "spring", stiffness: 320, damping: 30 }}
+              style={{
+                gridColumn: `span ${colSpan}`,
+                gridRow: `span ${rowSpan}`,
+              }}
+              onDragOver={(e) => handleDragOver(e, idx)}
+              className="position-relative"
+            >
+              <Card
+                className={`card-premium h-100 shadow-premium overflow-hidden hover-shadow bg-white d-flex flex-column transition-all ${
+                  isEditMode ? "border-2 border-dashed border-primary" : "border-0"
                 }`}
-                draggable={!searchQuery}
-                onDragStart={(e) => handleDragStart(e, idx)}
-                onDragEnd={handleDragEnd}
-                style={{ userSelect: "none", cursor: searchQuery ? "default" : "grab" }}
               >
-                <div className="d-flex align-items-center gap-2">
-                  {!searchQuery && (
-                    <GripVertical size={13} className="text-muted opacity-65 cursor-grab" />
-                  )}
-                  <span className="small text-dark fw-bold" style={{ fontSize: "12.5px" }}>
-                    {w.title}
-                  </span>
+                {/* Cabecera / Drag Handle */}
+                <div
+                  className={`px-3.5 py-2.5 d-flex align-items-center justify-content-between border-bottom ${
+                    isEditMode ? "bg-primary bg-opacity-10 cursor-grab" : "bg-light"
+                  }`}
+                  draggable={isEditMode && !searchQuery}
+                  onDragStart={(e) => handleDragStart(e, idx)}
+                  onDragEnd={handleDragEnd}
+                  style={{
+                    userSelect: "none",
+                    cursor: isEditMode && !searchQuery ? "grab" : "default",
+                  }}
+                >
+                  <div className="d-flex align-items-center gap-2">
+                    {isEditMode && (
+                      <div className="d-flex align-items-center gap-1 text-primary">
+                        <GripVertical size={14} className="cursor-grab" />
+                        <Badge bg="primary" className="rounded-pill px-2 py-0.5" style={{ fontSize: "10px" }}>
+                          #{idx + 1}
+                        </Badge>
+                      </div>
+                    )}
+                    <span className="small text-dark fw-bold" style={{ fontSize: "12.5px" }}>
+                      {w.title}
+                    </span>
+                  </div>
+
+                  <div className="d-flex align-items-center gap-1">
+                    {/* Botones de control rápido en Modo Edición */}
+                    {isEditMode ? (
+                      <div className="d-flex align-items-center gap-1 bg-white p-1 rounded-pill border shadow-sm">
+                        {/* Selector de Ancho */}
+                        <div className="btn-group btn-group-sm" role="group">
+                          <button
+                            type="button"
+                            className={`btn btn-xs px-2 py-0.5 ${colSpan === 4 ? "btn-primary active fw-bold" : "btn-outline-secondary"}`}
+                            style={{ fontSize: "10px" }}
+                            onClick={() => handleSetWidth(w, 4)}
+                            title="1/3 de pantalla"
+                          >
+                            1/3
+                          </button>
+                          <button
+                            type="button"
+                            className={`btn btn-xs px-2 py-0.5 ${colSpan === 6 ? "btn-primary active fw-bold" : "btn-outline-secondary"}`}
+                            style={{ fontSize: "10px" }}
+                            onClick={() => handleSetWidth(w, 6)}
+                            title="1/2 de pantalla"
+                          >
+                            1/2
+                          </button>
+                          <button
+                            type="button"
+                            className={`btn btn-xs px-2 py-0.5 ${colSpan === 12 ? "btn-primary active fw-bold" : "btn-outline-secondary"}`}
+                            style={{ fontSize: "10px" }}
+                            onClick={() => handleSetWidth(w, 12)}
+                            title="Ancho completo"
+                          >
+                            100%
+                          </button>
+                        </div>
+
+                        {/* Mover Posición */}
+                        {idx > 0 && (
+                          <Button
+                            variant="light"
+                            size="sm"
+                            className="p-0 border rounded-circle d-flex align-items-center justify-content-center"
+                            style={{ width: "22px", height: "22px" }}
+                            onClick={() => handleMoveWidget(idx, -1)}
+                            title={isEs ? "Mover antes" : "Move before"}
+                          >
+                            <ArrowLeft size={12} />
+                          </Button>
+                        )}
+                        {idx < widgets.length - 1 && (
+                          <Button
+                            variant="light"
+                            size="sm"
+                            className="p-0 border rounded-circle d-flex align-items-center justify-content-center"
+                            style={{ width: "22px", height: "22px" }}
+                            onClick={() => handleMoveWidget(idx, 1)}
+                            title={isEs ? "Mover después" : "Move after"}
+                          >
+                            <ArrowRight size={12} />
+                          </Button>
+                        )}
+                      </div>
+                    ) : (
+                      /* Menú normal de opciones */
+                      <Dropdown align="end">
+                        <Dropdown.Toggle variant="link" className="p-0 text-muted no-caret">
+                          <Settings size={14} />
+                        </Dropdown.Toggle>
+
+                        <Dropdown.Menu className="dropdown-premium">
+                          <Dropdown.Item onClick={() => onEditWidget(w)} className="small">
+                            {isEs ? "Configurar widget" : "Configure widget"}
+                          </Dropdown.Item>
+                          <Dropdown.Divider />
+                          <Dropdown.Item onClick={() => handleResize(w, 1, 0)} className="small">
+                            {isEs ? "Aumentar Ancho (+ Ancho)" : "Increase Width"}
+                          </Dropdown.Item>
+                          <Dropdown.Item onClick={() => handleResize(w, -1, 0)} className="small">
+                            {isEs ? "Reducir Ancho (- Ancho)" : "Reduce Width"}
+                          </Dropdown.Item>
+                          <Dropdown.Item onClick={() => handleResize(w, 0, 1)} className="small">
+                            {isEs ? "Aumentar Alto (+ Alto)" : "Increase Height"}
+                          </Dropdown.Item>
+                          <Dropdown.Item onClick={() => handleResize(w, 0, -1)} className="small">
+                            {isEs ? "Reducir Alto (- Alto)" : "Reduce Height"}
+                          </Dropdown.Item>
+                          <Dropdown.Divider />
+                          {idx > 0 && (
+                            <Dropdown.Item
+                              onClick={() => handleMoveWidget(idx, -1)}
+                              className="small d-flex align-items-center gap-1.5"
+                            >
+                              <ArrowLeft size={13} /> {isEs ? "Mover antes" : "Move before"}
+                            </Dropdown.Item>
+                          )}
+                          {idx < widgets.length - 1 && (
+                            <Dropdown.Item
+                              onClick={() => handleMoveWidget(idx, 1)}
+                              className="small d-flex align-items-center gap-1.5"
+                            >
+                              <ArrowRight size={13} /> {isEs ? "Mover después" : "Move after"}
+                            </Dropdown.Item>
+                          )}
+                        </Dropdown.Menu>
+                      </Dropdown>
+                    )}
+
+                    <Button
+                      variant="link"
+                      onClick={() => onDeleteWidget(w.id)}
+                      className="p-0 text-danger ms-1"
+                      title={isEs ? "Eliminar widget" : "Delete widget"}
+                    >
+                      <Trash2 size={14} />
+                    </Button>
+                  </div>
                 </div>
 
-                <div className="d-flex align-items-center gap-1">
-                  {/* Controles de movimiento e indicación */}
-                  <Dropdown align="end">
-                    <Dropdown.Toggle variant="link" className="p-0 text-muted no-caret">
-                      <Settings size={14} />
-                    </Dropdown.Toggle>
-
-                    <Dropdown.Menu className="dropdown-premium">
-                      <Dropdown.Item onClick={() => onEditWidget(w)} className="small">
-                        {isEs ? "Configurar widget" : "Configure widget"}
-                      </Dropdown.Item>
-                      <Dropdown.Divider />
-                      <Dropdown.Item onClick={() => handleResize(w, 1, 0)} className="small">
-                        {isEs ? "Aumentar Ancho (+ Ancho)" : "Increase Width"}
-                      </Dropdown.Item>
-                      <Dropdown.Item onClick={() => handleResize(w, -1, 0)} className="small">
-                        {isEs ? "Reducir Ancho (- Ancho)" : "Reduce Width"}
-                      </Dropdown.Item>
-                      <Dropdown.Item onClick={() => handleResize(w, 0, 1)} className="small">
-                        {isEs ? "Aumentar Alto (+ Alto)" : "Increase Height"}
-                      </Dropdown.Item>
-                      <Dropdown.Item onClick={() => handleResize(w, 0, -1)} className="small">
-                        {isEs ? "Reducir Alto (- Alto)" : "Reduce Height"}
-                      </Dropdown.Item>
-                      <Dropdown.Divider />
-                      {idx > 0 && (
-                        <Dropdown.Item onClick={() => handleMoveWidget(idx, -1)} className="small d-flex align-items-center gap-1.5">
-                          <ArrowLeft size={13} /> {isEs ? "Mover antes" : "Move before"}
-                        </Dropdown.Item>
-                      )}
-                      {idx < widgets.length - 1 && (
-                        <Dropdown.Item onClick={() => handleMoveWidget(idx, 1)} className="small d-flex align-items-center gap-1.5">
-                          <ArrowRight size={13} /> {isEs ? "Mover después" : "Move after"}
-                        </Dropdown.Item>
-                      )}
-                    </Dropdown.Menu>
-                  </Dropdown>
-
-                  <Button
-                    variant="link"
-                    onClick={() => onDeleteWidget(w.id)}
-                    className="p-0 text-danger ms-1"
-                    title={isEs ? "Eliminar widget" : "Delete widget"}
-                  >
-                    <Trash2 size={14} />
-                  </Button>
-                </div>
-              </div>
-
-              {/* Contenido del Widget */}
-              <Card.Body className="p-3 flex-grow-1 overflow-auto">
-                <WidgetRenderer
-                  widget={w}
-                  appointments={w.appointmentsData || appointments}
-                  clients={w.clientsData || clients}
-                  workers={workers}
-                  services={services}
-                  expenses={expenses}
-                  products={products}
-                  onUpdateAppointmentStatus={onUpdateAppointmentStatus}
-                  onConfirmAppointment={onConfirmAppointment}
-                  onFinalizeAppointment={onFinalizeAppointment}
-                  onViewCalendar={onViewCalendar}
-                  onEditWorker={onEditWorker}
-                />
-              </Card.Body>
-            </Card>
-          </motion.div>
-        );
-      })}
+                {/* Contenido del Widget */}
+                <Card.Body className="p-3 flex-grow-1 overflow-auto">
+                  <WidgetRenderer
+                    widget={w}
+                    appointments={w.appointmentsData || appointments}
+                    clients={w.clientsData || clients}
+                    workers={workers}
+                    services={services}
+                    expenses={expenses}
+                    products={products}
+                    onUpdateAppointmentStatus={onUpdateAppointmentStatus}
+                    onConfirmAppointment={onConfirmAppointment}
+                    onFinalizeAppointment={onFinalizeAppointment}
+                    onViewCalendar={onViewCalendar}
+                    onEditWorker={onEditWorker}
+                  />
+                </Card.Body>
+              </Card>
+            </motion.div>
+          );
+        })}
+      </div>
     </div>
   );
 }
+
 
 
