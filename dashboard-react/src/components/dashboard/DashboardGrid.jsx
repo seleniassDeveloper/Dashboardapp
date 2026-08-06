@@ -1,14 +1,9 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import RGL from "react-grid-layout";
-import "react-grid-layout/css/styles.css";
-import "react-resizable/css/styles.css";
+import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Card, Button, Dropdown } from "react-bootstrap";
-import { GripVertical, Trash2, Settings, Plus, LayoutGrid, Search } from "lucide-react";
+import { GripVertical, Trash2, Settings, Plus, LayoutGrid, Search, ArrowLeft, ArrowRight } from "lucide-react";
 import WidgetRenderer from "./WidgetRenderer";
 import { useTranslation } from "react-i18next";
-
-const WidthProvider = RGL.WidthProvider || RGL.default?.WidthProvider;
-const ReactGridLayout = WidthProvider ? WidthProvider(RGL.default || RGL) : (RGL.default || RGL);
 
 export default function DashboardGrid({
   widgets = [],
@@ -31,95 +26,48 @@ export default function DashboardGrid({
   onEditWorker,
 }) {
   const { i18n } = useTranslation();
-  const isEs = i18n.language === "es";
+  const isEs = i18n ? i18n.language === "es" : true;
+  const [draggedIdx, setDraggedIdx] = useState(null);
 
-  const debounceTimerRef = useRef(null);
+  // --- Manejo del Drag & Drop nativo ---
+  const handleDragStart = (e, index) => {
+    setDraggedIdx(index);
+    e.dataTransfer.effectAllowed = "move";
+    e.currentTarget.style.opacity = "0.5";
+  };
 
-  // Mapear widgets a ítems de react-grid-layout garantizando coordenadas x, y sin colisiones
-  const layoutItems = useMemo(() => {
-    let currentX = 0;
-    let currentY = 0;
-    let rowMaxH = 0;
+  const handleDragEnd = (e) => {
+    e.currentTarget.style.opacity = "1";
+    setDraggedIdx(null);
+    onUpdateLayouts(widgets, true);
+  };
 
-    return widgets.map((w) => {
-      const wVal = Math.min(12, Math.max(2, Number(w.layout?.w || 4)));
-      const hVal = Math.min(12, Math.max(2, Number(w.layout?.h || 3)));
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    if (draggedIdx === null || draggedIdx === index) return;
 
-      let xVal, yVal;
+    const reordered = [...widgets];
+    const [draggedItem] = reordered.splice(draggedIdx, 1);
+    reordered.splice(index, 0, draggedItem);
 
-      if (typeof w.layout?.x === "number" && typeof w.layout?.y === "number") {
-        xVal = w.layout.x;
-        yVal = w.layout.y;
-      } else {
-        if (currentX + wVal > 12) {
-          currentX = 0;
-          currentY += rowMaxH || 3;
-          rowMaxH = 0;
-        }
-        xVal = currentX;
-        yVal = currentY;
+    onUpdateLayouts(reordered, false);
+    setDraggedIdx(index);
+  };
 
-        currentX += wVal;
-        if (hVal > rowMaxH) rowMaxH = hVal;
-      }
+  // --- Mover de lugar un widget ---
+  const handleMoveWidget = (index, direction) => {
+    const targetIdx = index + direction;
+    if (targetIdx < 0 || targetIdx >= widgets.length) return;
 
-      return {
-        i: String(w.id),
-        x: xVal,
-        y: yVal,
-        w: wVal,
-        h: hVal,
-        minW: 2,
-        maxW: 12,
-        minH: 2,
-        maxH: 12,
-      };
-    });
-  }, [widgets]);
+    const reordered = [...widgets];
+    const [movedItem] = reordered.splice(index, 1);
+    reordered.splice(targetIdx, 0, movedItem);
 
-  const handleLayoutChange = useCallback(
-    (newLayout) => {
-      if (searchQuery) return; // No persistir si hay búsqueda activa
+    onUpdateLayouts(reordered, true);
+  };
 
-      const updatedWidgets = widgets.map((w, index) => {
-        const item = newLayout.find((l) => l.i === String(w.id));
-        if (!item) return w;
-
-        return {
-          ...w,
-          layout: {
-            ...w.layout,
-            x: item.x,
-            y: item.y,
-            w: item.w,
-            h: item.h,
-          },
-          position: index,
-        };
-      });
-
-      // Debounce de ~500ms para guardar cambios en backend sin spamear
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-
-      debounceTimerRef.current = setTimeout(() => {
-        onUpdateLayouts(updatedWidgets, true);
-      }, 500);
-    },
-    [widgets, searchQuery, onUpdateLayouts]
-  );
-
-  useEffect(() => {
-    return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-    };
-  }, []);
-
-  // --- Cambiar tamaño de un widget desde el menú de opciones ---
-  const handleResizeDropdown = (widget, deltaW, deltaH) => {
+  // --- Cambiar tamaño de un widget directamente ---
+  const handleResize = (widget, deltaW, deltaH) => {
     const wOptions = [3, 4, 6, 8, 12];
     const currentWIdx = wOptions.indexOf(widget.layout?.w || 4);
     let newW = widget.layout?.w || 4;
@@ -130,9 +78,9 @@ export default function DashboardGrid({
       newW = wOptions[currentWIdx - 1];
     }
 
-    let newH = (widget.layout?.h || 2) + deltaH;
+    let newH = (widget.layout?.h || 4) + deltaH;
     if (newH < 2) newH = 2;
-    if (newH > 12) newH = 12;
+    if (newH > 8) newH = 8;
 
     const updatedWidget = {
       ...widget,
@@ -191,72 +139,62 @@ export default function DashboardGrid({
   }
 
   return (
-    <div className="dashboard-grid-container pb-5" style={{ width: "100%", overflowX: "hidden" }}>
+    <div className="dashboard-widgets-grid">
       <style>{`
-        .react-grid-layout {
-          position: relative;
-          width: 100% !important;
+        .dashboard-widgets-grid {
+          display: grid;
+          grid-template-columns: repeat(12, 1fr);
+          grid-auto-rows: 110px;
+          gap: 20px;
+          grid-auto-flow: row dense;
+          padding-bottom: 40px;
+          width: 100%;
         }
-        .react-grid-item {
-          transition: all 200ms ease;
-          transition-property: left, top;
-          box-sizing: border-box;
-        }
-        .react-grid-item.cssTransforms {
-          transition-property: transform;
-        }
-        .react-grid-item.react-grid-placeholder {
-          background: rgba(124, 58, 237, 0.15) !important;
-          border: 2px dashed #7c3aed !important;
-          border-radius: 16px !important;
-          opacity: 0.8 !important;
-        }
-        .react-resizable-handle {
-          opacity: 0.6;
-          transition: opacity 0.2s;
-        }
-        .react-resizable-handle:hover {
-          opacity: 1;
+        @media (max-width: 992px) {
+          .dashboard-widgets-grid {
+            grid-template-columns: repeat(6, 1fr) !important;
+          }
         }
         @media (max-width: 768px) {
-          .react-grid-layout {
-            height: auto !important;
+          .dashboard-widgets-grid {
+            grid-template-columns: 1fr !important;
           }
-          .react-grid-item {
-            position: relative !important;
-            transform: none !important;
-            width: 100% !important;
-            margin-bottom: 16px !important;
-            top: auto !important;
-            left: auto !important;
+          .dashboard-widgets-grid > div {
+            grid-column: span 1 !important;
+            grid-row: span 4 !important;
           }
         }
       `}</style>
 
-      <ReactGridLayout
-        className="layout"
-        layout={layoutItems}
-        cols={12}
-        rowHeight={110}
-        margin={[20, 20]}
-        containerPadding={[0, 0]}
-        isDraggable={!searchQuery}
-        isResizable={!searchQuery}
-        compactType="vertical"
-        preventCollision={false}
-        measureBeforeMount={true}
-        draggableHandle=".cursor-grab"
-        onLayoutChange={handleLayoutChange}
-      >
-        {widgets.map((w) => (
-          <div key={String(w.id)} className="h-100">
-            <Card className="card-premium h-100 border-0 shadow-premium overflow-hidden hover-shadow bg-white d-flex flex-column">
-              {/* Header / Drag Handle */}
+      {widgets.map((w, idx) => {
+        const colSpan = Math.min(12, Math.max(3, w.layout?.w || 4));
+        const rowSpan = Math.min(8, Math.max(2, w.layout?.h || 4));
+
+        return (
+          <motion.div
+            key={w.id}
+            layoutId={w.id}
+            layout
+            transition={{ type: "spring", stiffness: 320, damping: 30 }}
+            style={{
+              gridColumn: `span ${colSpan}`,
+              gridRow: `span ${rowSpan}`,
+            }}
+            onDragOver={(e) => handleDragOver(e, idx)}
+            className="position-relative"
+          >
+            <Card
+              className="card-premium h-100 border-0 shadow-premium overflow-hidden hover-shadow bg-white d-flex flex-column"
+            >
+              {/* Cabecera / Drag Handle */}
               <div
                 className={`px-3.5 py-2.5 bg-light d-flex align-items-center justify-content-between border-bottom ${
                   searchQuery ? "" : "cursor-grab"
                 }`}
-                style={{ userSelect: "none" }}
+                draggable={!searchQuery}
+                onDragStart={(e) => handleDragStart(e, idx)}
+                onDragEnd={handleDragEnd}
+                style={{ userSelect: "none", cursor: searchQuery ? "default" : "grab" }}
               >
                 <div className="d-flex align-items-center gap-2">
                   {!searchQuery && (
@@ -268,6 +206,7 @@ export default function DashboardGrid({
                 </div>
 
                 <div className="d-flex align-items-center gap-1">
+                  {/* Controles de movimiento e indicación */}
                   <Dropdown align="end">
                     <Dropdown.Toggle variant="link" className="p-0 text-muted no-caret">
                       <Settings size={14} />
@@ -278,18 +217,29 @@ export default function DashboardGrid({
                         {isEs ? "Configurar widget" : "Configure widget"}
                       </Dropdown.Item>
                       <Dropdown.Divider />
-                      <Dropdown.Item onClick={() => handleResizeDropdown(w, 1, 0)} className="small">
-                        {isEs ? "Aumentar Ancho" : "Increase Width"}
+                      <Dropdown.Item onClick={() => handleResize(w, 1, 0)} className="small">
+                        {isEs ? "Aumentar Ancho (+ Ancho)" : "Increase Width"}
                       </Dropdown.Item>
-                      <Dropdown.Item onClick={() => handleResizeDropdown(w, -1, 0)} className="small">
-                        {isEs ? "Reducir Ancho" : "Reduce Width"}
+                      <Dropdown.Item onClick={() => handleResize(w, -1, 0)} className="small">
+                        {isEs ? "Reducir Ancho (- Ancho)" : "Reduce Width"}
                       </Dropdown.Item>
-                      <Dropdown.Item onClick={() => handleResizeDropdown(w, 0, 1)} className="small">
-                        {isEs ? "Aumentar Alto" : "Increase Height"}
+                      <Dropdown.Item onClick={() => handleResize(w, 0, 1)} className="small">
+                        {isEs ? "Aumentar Alto (+ Alto)" : "Increase Height"}
                       </Dropdown.Item>
-                      <Dropdown.Item onClick={() => handleResizeDropdown(w, 0, -1)} className="small">
-                        {isEs ? "Reducir Alto" : "Reduce Height"}
+                      <Dropdown.Item onClick={() => handleResize(w, 0, -1)} className="small">
+                        {isEs ? "Reducir Alto (- Alto)" : "Reduce Height"}
                       </Dropdown.Item>
+                      <Dropdown.Divider />
+                      {idx > 0 && (
+                        <Dropdown.Item onClick={() => handleMoveWidget(idx, -1)} className="small d-flex align-items-center gap-1.5">
+                          <ArrowLeft size={13} /> {isEs ? "Mover antes" : "Move before"}
+                        </Dropdown.Item>
+                      )}
+                      {idx < widgets.length - 1 && (
+                        <Dropdown.Item onClick={() => handleMoveWidget(idx, 1)} className="small d-flex align-items-center gap-1.5">
+                          <ArrowRight size={13} /> {isEs ? "Mover después" : "Move after"}
+                        </Dropdown.Item>
+                      )}
                     </Dropdown.Menu>
                   </Dropdown>
 
@@ -322,10 +272,11 @@ export default function DashboardGrid({
                 />
               </Card.Body>
             </Card>
-          </div>
-        ))}
-      </ReactGridLayout>
+          </motion.div>
+        );
+      })}
     </div>
   );
 }
+
 
