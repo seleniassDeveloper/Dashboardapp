@@ -91,11 +91,6 @@ export default function DashboardView() {
 
   // --- Carga unificada de datos del negocio y widgets ---
   const fetchData = useCallback(async () => {
-    if (!business && isSuperAdmin) {
-      setLoading(false);
-      return;
-    }
-    
     try {
       setLoading(true);
       setError("");
@@ -105,25 +100,26 @@ export default function DashboardView() {
           const res = await api.get(url);
           return Array.isArray(res.data) ? res.data : [];
         } catch (err) {
+          console.warn(`[DashboardView] safeFetch fallback on ${url}:`, err?.message || err);
           return [];
         }
       };
 
       const [wRes, apptRes, clientRes, workerRes, serviceRes, expensesRes, productsRes] = await Promise.all([
-        api.get("/dashboard/widgets"),
-        api.get("/appointments"),
-        api.get("/clients"),
-        api.get("/workers"),
-        api.get("/services"),
+        safeFetch("/dashboard/widgets"),
+        safeFetch("/appointments"),
+        safeFetch("/clients"),
+        safeFetch("/workers"),
+        safeFetch("/services"),
         safeFetch("/finances/expenses"),
         safeFetch("/inventory/products")
       ]);
 
-      setWidgets(Array.isArray(wRes.data) ? wRes.data : []);
-      setAppointments(Array.isArray(apptRes.data) ? apptRes.data : []);
-      setClients(Array.isArray(clientRes.data) ? clientRes.data : []);
-      setWorkers(Array.isArray(workerRes.data) ? workerRes.data : []);
-      setServices(Array.isArray(serviceRes.data) ? serviceRes.data : []);
+      setWidgets(wRes);
+      setAppointments(apptRes);
+      setClients(clientRes);
+      setWorkers(workerRes);
+      setServices(serviceRes);
       setExpenses(expensesRes);
       setProducts(productsRes);
     } catch (e) {
@@ -132,13 +128,15 @@ export default function DashboardView() {
     } finally {
       setLoading(false);
     }
-  }, [t, business, isSuperAdmin]);
+  }, [t]);
 
   useEffect(() => {
-    if (role !== "professional" && (!isSuperAdmin || business)) {
-      fetchData();
+    if (role === "professional") {
+      setLoading(false);
+      return;
     }
-  }, [fetchData, role, isSuperAdmin, business]);
+    fetchData();
+  }, [fetchData, role, business]);
 
   // --- Saludo Dinámico y Fecha ---
   const getGreeting = () => {
