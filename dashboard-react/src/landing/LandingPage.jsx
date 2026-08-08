@@ -660,27 +660,7 @@ export default function LandingPage() {
                   </button>
                 </div>
 
-                {/* Trust Checks */}
-                <div className="hero-trust">
-                  <div className="hero-trust__item">
-                    <div className="hero-trust__check">
-                      <Check size={12} strokeWidth={3.5} />
-                    </div>
-                    <span>{t("hero.trust.noCard")}</span>
-                  </div>
-                  <div className="hero-trust__item">
-                    <div className="hero-trust__check">
-                      <Check size={12} strokeWidth={3.5} />
-                    </div>
-                    <span>{t("hero.trust.cancel")}</span>
-                  </div>
-                  <div className="hero-trust__item">
-                    <div className="hero-trust__check">
-                      <Check size={12} strokeWidth={3.5} />
-                    </div>
-                    <span>{t("hero.trust.support")}</span>
-                  </div>
-                </div>
+
               </Col>
               
               <Col lg={6}>
