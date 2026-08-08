@@ -13,17 +13,7 @@ function normalizeBaseUrl(url) {
     );
   }
 
-  let base = "http://localhost:3001/api";
-
-  // Si estamos en un dispositivo de la red local y accedemos por IP, redirigimos las peticiones del API a esa misma IP en el puerto 3001
-  if (
-    typeof window !== "undefined" &&
-    (window.location.hostname.startsWith("192.168.") ||
-      window.location.hostname.startsWith("172.") ||
-      window.location.hostname.startsWith("10."))
-  ) {
-    base = `http://${window.location.hostname}:3001/api`;
-  }
+  let base = "https://dashboard-api-r6j9.onrender.com/api";
 
   return base.replace(/\/+$/, "");
 }
