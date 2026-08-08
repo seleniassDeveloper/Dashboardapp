@@ -380,7 +380,7 @@ export function MainNavbar({ onHowItWorks, onFreeTrial }) {
             <Nav.Link onClick={() => handleLinkClick(onFreeTrial)} className="fw-semibold" style={{ cursor: 'pointer' }}>{t("nav.demo")}</Nav.Link>
             <LanguageSwitcher variant="landing" />
             <Link 
-              to="/app" 
+              to="/login" 
               onClick={() => {
                 localStorage.removeItem("auradash_demo_session");
                 handleLinkClick();

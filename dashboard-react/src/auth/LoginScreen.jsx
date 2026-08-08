@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthProvider.jsx";
 import LanguageSwitcher from "../components/language/LanguageSwitcher.jsx";
 import { Shield } from "lucide-react";
@@ -7,32 +8,54 @@ import "./LoginScreen.css";
 
 export default function LoginScreen() {
   const { t } = useTranslation(["auth", "common"]);
+  const navigate = useNavigate();
   const {
+    user,
     loginWithGoogle,
     firebaseErrorMessage,
     authError,
     clearAuthError,
     loginDemo,
+    logout,
   } = useAuth();
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [errorCode, setErrorCode] = useState("");
 
+  useEffect(() => {
+    const isDemo = localStorage.getItem("auradash_demo_session") === "true";
+    if (isDemo) {
+      logout();
+    } else if (user) {
+      navigate("/app", { replace: true });
+    }
+  }, [user, logout, navigate]);
+
   async function onGoogleClick() {
     setError("");
     setErrorCode("");
-    clearAuthError();
+    if (typeof clearAuthError === "function") clearAuthError();
     setSubmitting(true);
     try {
       await loginWithGoogle();
+      navigate("/app", { replace: true });
     } catch (err) {
       console.error("Google Auth error:", err);
       setErrorCode(err?.code || "");
-      setError(firebaseErrorMessage(err));
+      if (typeof firebaseErrorMessage === "function") {
+        setError(firebaseErrorMessage(err));
+      } else {
+        setError(err?.message || "Error al iniciar sesión con Google.");
+      }
       setSubmitting(false);
     }
   }
+
+  const handleDemoClick = () => {
+    loginDemo();
+    navigate("/app", { replace: true });
+  };
 
   return (
     <div 
@@ -127,7 +150,7 @@ export default function LoginScreen() {
         <button
           type="button"
           className="btn-demo-bypass w-100 py-3 rounded-pill d-flex align-items-center justify-content-center gap-2 border-0 shadow-sm fw-bold transition-all text-white hover-scale-subtle"
-          onClick={loginDemo}
+          onClick={handleDemoClick}
           style={{
             fontSize: "14px",
             background: "linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)",

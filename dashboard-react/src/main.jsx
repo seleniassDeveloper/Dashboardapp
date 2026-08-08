@@ -81,6 +81,7 @@ const BusinessProviderModule = lazy(() => import("./auth/BusinessContext.jsx").t
 const BrandProviderModule = lazy(() => import("./header/name/BrandProvider.jsx").then(m => ({ default: m.BrandProvider })));
 const AppointmentsProviderModule = lazy(() => import("./gadgets/appointments/AppointmentsProvider.jsx").then(m => ({ default: m.AppointmentsProvider })));
 const LoginGate = lazy(() => import("./auth/LoginGate.jsx"));
+const LoginScreen = lazy(() => import("./auth/LoginScreen.jsx"));
 const ErrorBoundary = lazy(() => import("./ErrorBoundary.jsx"));
 
 const LandingPage = lazy(() => import("./landing/LandingPage.jsx"));
@@ -133,6 +134,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
       <Suspense fallback={<FullPageLoader />}>
         <Routes>
           <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<LoginScreen />} />
           <Route path="/guide" element={<HowItWorks />} />
           <Route path="/manual" element={<ManualView />} />
           <Route path="/booking/:businessSlug" element={<BookingPage />} />
