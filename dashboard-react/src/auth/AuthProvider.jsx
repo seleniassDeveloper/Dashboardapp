@@ -25,7 +25,7 @@ import { firebaseAuth, firebaseConfigOk, firestoreDb } from "../firebase/client.
 import i18n from "../i18n";
 
 const API_HOST = API_BASE_URL.replace(/\/api\/?$/, "");
-const AUTH_DISABLED = import.meta.env.VITE_AUTH_DISABLED === "true";
+const AUTH_DISABLED = import.meta.env.PROD ? false : import.meta.env.VITE_AUTH_DISABLED === "true";
 
 const DEV_OWNER_PERMISSIONS = [
   "view_finances",
