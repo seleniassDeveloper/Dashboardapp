@@ -53,7 +53,7 @@ export default function DashboardView() {
   const isMobile = useIsMobile();
 
   const { brand } = useBrand();
-  const { role, business, isSuperAdmin } = useAuth();
+  const { role, business, isSuperAdmin, user } = useAuth();
   const { t, i18n } = useTranslation(["dashboard", "common"]);
   const isEs = i18n && i18n.language ? i18n.language === "es" : true;
 
@@ -621,7 +621,7 @@ export default function DashboardView() {
       >
         <div className="d-flex align-items-center gap-3 flex-wrap">
           <h1 className="fw-black text-dark h4 mb-0" style={{ letterSpacing: "-0.03em" }}>
-            {getGreeting()}, {brand.userName || t("header.defaultUserName")}
+            {getGreeting()}, {user?.displayName || (user?.email ? user.email.split("@")[0] : null) || brand.userName || "Selenia"}
           </h1>
           <span className="text-muted small d-none d-md-inline-block">|</span>
           <span className="text-muted small text-capitalize d-none d-md-inline-block">

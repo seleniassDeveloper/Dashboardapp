@@ -302,11 +302,11 @@ export function AuthProvider({ children }) {
           setPermissions(data.permissions || DEV_OWNER_PERMISSIONS);
           setIsUnauthorized(false);
 
-          if (isLocalBypass) {
-            setBusiness({ id: "business-default", name: "Aura Studio", slug: "aura-studio" });
-            localStorage.setItem("active_business_id", "business-default");
-          }
-          console.log("[Diagnostic] 5. Session successfully authorized in background/bypass. Role:", data.role);
+          const activeBId = localStorage.getItem("active_business_id") || "business-default";
+          setBusiness({ id: activeBId, name: "Aura Studio", slug: "aura-studio" });
+          localStorage.setItem("active_business_id", activeBId);
+
+          console.log("[Diagnostic] 5. Session successfully authorized. Role:", data.role);
         } else {
           console.warn("[Diagnostic] User exists but is set as INACTIVE in Firestore.");
           setRole(null);
