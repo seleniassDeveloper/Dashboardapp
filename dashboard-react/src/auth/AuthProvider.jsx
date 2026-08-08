@@ -298,29 +298,26 @@ export function AuthProvider({ children }) {
             });
           }
 
+          setRole(data.role || "owner");
+          setPermissions(data.permissions || DEV_OWNER_PERMISSIONS);
+          setIsUnauthorized(false);
+
           if (isLocalBypass) {
-            setRole(data.role);
-            setPermissions(data.permissions || []);
-            setIsUnauthorized(false);
             setBusiness({ id: "business-default", name: "Aura Studio", slug: "aura-studio" });
             localStorage.setItem("active_business_id", "business-default");
           }
           console.log("[Diagnostic] 5. Session successfully authorized in background/bypass. Role:", data.role);
         } else {
           console.warn("[Diagnostic] User exists but is set as INACTIVE in Firestore.");
-          if (isLocalBypass) {
-            setRole(null);
-            setPermissions([]);
-            setIsUnauthorized(true);
-          }
-        }
-      } else {
-        console.warn("[Diagnostic] Failure loading user data from Firestore.");
-        if (isLocalBypass) {
           setRole(null);
           setPermissions([]);
           setIsUnauthorized(true);
         }
+      } else {
+        console.warn("[Diagnostic] Failure loading user data from Firestore.");
+        setRole(null);
+        setPermissions([]);
+        setIsUnauthorized(true);
       }
     } catch (err) {
       console.error("[Diagnostic] Exception occurred during session sync:", err);
@@ -558,6 +555,8 @@ export function AuthProvider({ children }) {
   }, []);
 
   const loginWithGoogle = useCallback(async () => {
+    localStorage.removeItem("auradash_demo_session");
+    setIsDemoSession(false);
     if (!firebaseAuth) throw new Error(i18n.t("auth:errors.firebaseNotConfigured", { defaultValue: "Firebase is not configured." }));
     setAuthError("");
     const provider = googleProvider();

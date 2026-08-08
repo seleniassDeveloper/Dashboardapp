@@ -379,7 +379,15 @@ export function MainNavbar({ onHowItWorks, onFreeTrial }) {
             <Nav.Link href="#recursos" onClick={() => handleLinkClick()} className="fw-semibold">{t("nav.resources")}</Nav.Link>
             <Nav.Link onClick={() => handleLinkClick(onFreeTrial)} className="fw-semibold" style={{ cursor: 'pointer' }}>{t("nav.demo")}</Nav.Link>
             <LanguageSwitcher variant="landing" />
-            <Link to="/app" onClick={() => handleLinkClick()} className="fw-semibold text-dark text-decoration-none" style={{ fontSize: '0.95rem' }}>
+            <Link 
+              to="/app" 
+              onClick={() => {
+                localStorage.removeItem("auradash_demo_session");
+                handleLinkClick();
+              }} 
+              className="fw-semibold text-dark text-decoration-none" 
+              style={{ fontSize: '0.95rem' }}
+            >
               {t("nav.login")}
             </Link>
             <button onClick={() => handleLinkClick(onFreeTrial)} className="btn-premium px-4 py-2 text-decoration-none border-0 text-white bg-purple-600 hover-bg-purple-700" style={{ fontWeight: 600 }}>
