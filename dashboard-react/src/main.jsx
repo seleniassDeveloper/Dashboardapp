@@ -7,30 +7,40 @@ import "./i18n";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { AuthProvider } from "./auth/AuthProvider.jsx";
 
-// AuraDash v2.5.0-agenda-sla - Dynamic Cache Invalidation
+import * as Sentry from "@sentry/react";
+
+// Initialize Sentry for Frontend error tracking
+if (import.meta.env.PROD && import.meta.env.VITE_SENTRY_DSN) {
+  Sentry.init({
+    dsn: import.meta.env.VITE_SENTRY_DSN,
+    environment: import.meta.env.MODE,
+    tracesSampleRate: 0.1,
+    beforeSend(event) {
+      if (event.request && event.request.headers) {
+        delete event.request.headers["authorization"];
+        delete event.request.headers["Authorization"];
+      }
+      return event;
+    },
+  });
+}
+
+// Enable PWA Service Worker in Production
 if (import.meta.env.PROD) {
-  if ("caches" in window) {
-    caches.keys().then((names) => {
-      for (let name of names) {
-        caches.delete(name);
-      }
-    });
-  }
+  registerSW({
+    onNeedRefresh() {
+      console.info("[PWA] Nueva versión disponible.");
+    },
+    onOfflineReady() {
+      console.info("[PWA] Lista para trabajo offline.");
+    },
+  });
 
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.getRegistrations().then((registrations) => {
-      for (const registration of registrations) {
-        registration.unregister();
-      }
-    });
-  }
-
-  // Auto-recover from stale Service Worker cache on new deployments
+  // Auto-recover from chunk load errors on new deployments
   window.addEventListener("error", (e) => {
     if (
       e?.message?.includes("Failed to fetch dynamically imported module") ||
-      e?.message?.includes("Importing a module script failed") ||
-      e?.message?.includes("ServiceWorker")
+      e?.message?.includes("Importing a module script failed")
     ) {
       if (!sessionStorage.getItem("sw_reloaded")) {
         sessionStorage.setItem("sw_reloaded", "true");
@@ -39,12 +49,11 @@ if (import.meta.env.PROD) {
     }
   });
 
+  // Silence debug logs only; console.error and console.warn REMAIN ACTIVE in production!
   const noop = () => {};
   console.log = noop;
   console.info = noop;
   console.debug = noop;
-  console.warn = noop;
-  console.error = noop;
   console.group = noop;
   console.groupCollapsed = noop;
   console.groupEnd = noop;

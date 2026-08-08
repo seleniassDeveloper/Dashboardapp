@@ -11,18 +11,18 @@ export default function WhatsAppSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
-  
+
   const [phoneId, setPhoneId] = useState("");
   const [wpBusinessId, setWpBusinessId] = useState("");
   const [token, setToken] = useState("");
   const [staffPhone, setStaffPhone] = useState("");
   const [slug, setSlug] = useState("");
   const [hasToken, setHasToken] = useState(false);
-  
+
   const [showToken, setShowToken] = useState(false);
   const [feedback, setFeedback] = useState(null);
 
-  // Modal mensaje de prueba
+  // Modal mensaje de prueba 
   const [showTestModal, setShowTestModal] = useState(false);
   const [targetPhone, setTargetPhone] = useState("");
   const [testResult, setTestResult] = useState(null);

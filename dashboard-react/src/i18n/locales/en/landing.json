@@ -9,16 +9,40 @@
     "freeTrial": "Try for Free"
   },
   "hero": {
-    "badge": "NEW - Version 2.5 - Faster, smarter, more complete",
-    "titleLine1": "AuraDash",
-    "titleLine2": "the dashboard that adapts to your business.",
-    "subtitle": "The adaptable operating system for your business. Manage your schedule, clients, team, finances, inventory and automations in a single unified platform.",
-    "ctaPrimary": "Try Free Demo",
-    "ctaSecondary": "View Interactive Tour",
-    "ctaTertiary": "Read User Manual",
-    "trust": "Over 1,200 businesses already trust AuraDash",
-    "metricsEfficiency": "Operational Speed",
-    "metricsClients": "Connected Businesses"
+    "badge": "YOUR ENTIRE BUSINESS, IN ONE PLACE",
+    "titleMain": "The operating system that grows",
+    "titleScript": "your business.",
+    "subtitle": "Schedule, clients, finances, inventory, team and automations working together in a single platform.",
+    "ctaPrimary": "Try 14 days free",
+    "ctaSecondary": "Watch demo",
+    "trust": {
+      "noCard": "No credit card required",
+      "cancel": "Cancel anytime",
+      "support": "Support in Spanish & English"
+    },
+    "float": {
+      "waTitle": "New booking from Ana Torres",
+      "waBody": "Friday May 17 at 10:30 AM",
+      "waLink": "View conversation",
+      "aiTitle": "AuraDash AI",
+      "aiBody": "You have 3 clients who haven't returned in 45 days. Want to send them a promo?",
+      "aiLink": "View clients"
+    }
+  },
+  "logoBar": {
+    "label": "Built for high-growth business sectors"
+  },
+  "featureStrip": {
+    "f1Title": "Smart Scheduling",
+    "f1Desc": "Dynamic calendar with synced appointments and automatic reminders.",
+    "f2Title": "Complete CRM",
+    "f2Desc": "Unified client profiles with history and preferences.",
+    "f3Title": "Real-time Finances",
+    "f3Desc": "Register balance, cashflow and expense management live.",
+    "f4Title": "Inventory & Products",
+    "f4Desc": "Stock tracking, supplies and connected service catalog.",
+    "f5Title": "Automations + AI",
+    "f5Desc": "Intelligent assistant and automated time-saving workflows."
   },
   "benefits": {
     "b1Title": "Less manual tasks",

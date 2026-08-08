@@ -917,7 +917,7 @@ model Payment {
   amount         Int
   currency       String
   status         String   // approved | rejected | pending | refunded
-  providerPayId  String?
+  providerPayId  String?  @unique
   paidAt         DateTime?
   createdAt      DateTime @default(now())
 }

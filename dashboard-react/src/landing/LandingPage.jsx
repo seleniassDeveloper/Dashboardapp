@@ -7,6 +7,7 @@ import api from "../lib/api.js";
 import {
   Users,
   Calendar,
+  CalendarDays,
   Zap,
   CheckCircle,
   ArrowRight,
@@ -30,6 +31,9 @@ import {
   Home,
   ArrowUpRight,
   ChevronRight,
+  CircleDollarSign,
+  Package,
+  MessageCircle,
   X
 } from "lucide-react";
 
@@ -231,7 +235,6 @@ import LanguageSwitcher from "../components/language/LanguageSwitcher.jsx";
 import "./styles/landing.css";
 
 import logoCircular from "../assets/logo-circular.webp";
-import logoHorizontal from "../assets/logo-horizontal.webp";
 
 import dashHome from "../assets/tour_panel.webp";
 import dashCalendar from "../assets/tour_agenda.webp";
@@ -621,119 +624,154 @@ export default function LandingPage() {
 
       <main>
         {/* HERO SECTION */}
-        <section className="hero-section py-5 reveal grid-bg">
+        <section className="hero-section reveal">
           <Container>
             <Row className="align-items-center g-5">
               <Col lg={6}>
-                <div className="d-flex align-items-center gap-2 mb-4">
-                  <Badge bg="purple" className="px-2 py-1 rounded text-white" style={{ background: 'var(--lp-accent)', fontSize: '0.75rem', fontWeight: 800 }}>NUEVO</Badge>
-                  <span className="text-muted small fw-semibold" style={{ fontSize: '0.85rem' }}>{t("hero.badge")}</span>
+                {/* Badge */}
+                <div className="hero-badge">
+                  <div className="hero-badge__icon">
+                    <Zap size={15} fill="currentColor" />
+                  </div>
+                  <span className="hero-badge__text">{t("hero.badge")}</span>
                 </div>
-                <h1 className="display-4 fw-black mb-4" style={{ letterSpacing: '-0.03em', lineHeight: 1.1, fontSize: '3.5rem' }}>
-                  {t("hero.titleLine1")} <br/>
-                  <span style={{ color: 'var(--lp-accent)' }}>{t("hero.titleLine2")}</span>
+
+                {/* H1 Title */}
+                <h1 className="hero-title">
+                  <span className="hero-title__main">{t("hero.titleMain")}</span>
+                  <span className="hero-title__script">{t("hero.titleScript")}</span>
                 </h1>
-                <p className="lead text-muted mb-5 pe-lg-4" style={{ fontSize: '1.1rem', lineHeight: '1.6' }}>
+
+                {/* Paragraph */}
+                <p className="hero-lead">
                   {t("hero.subtitle")}
                 </p>
-                <div className="d-flex align-items-center gap-3 mb-5 flex-wrap">
-                  <button onClick={handleFreeTrial} className="btn-premium px-5 py-3 text-decoration-none shadow-lg border-0 text-white bg-purple-600 hover-bg-purple-700 d-flex align-items-center gap-2" style={{ fontWeight: 700, borderRadius: '12px' }}>
+
+                {/* CTA Buttons */}
+                <div className="hero-cta-row">
+                  <button onClick={handleFreeTrial} className="hero-cta--primary">
                     {t("hero.ctaPrimary")} <ArrowRight size={18} />
                   </button>
-                  <button onClick={() => window.open('/demo-interactiva.html', '_blank', 'noopener')} className="btn-outline-premium px-5 py-3 d-flex align-items-center gap-2" style={{ borderRadius: '12px', background: '#ffffff', color: '#1e293b' }}>
-                    <Play size={16} />
+                  <button onClick={() => window.open('/demo-interactiva.html', '_blank', 'noopener')} className="hero-cta--secondary">
+                    <div className="hero-play-icon">
+                      <Play size={12} fill="currentColor" />
+                    </div>
                     {t("hero.ctaSecondary")}
                   </button>
-                  <a href="/manual" className="btn-link px-3 py-3 d-flex align-items-center gap-2 text-decoration-none fw-semibold" style={{ color: '#64748b' }}>
-                    <Book size={18} />
-                    {t("hero.ctaTertiary")}
-                  </a>
                 </div>
-                
 
+                {/* Trust Checks */}
+                <div className="hero-trust">
+                  <div className="hero-trust__item">
+                    <div className="hero-trust__check">
+                      <Check size={12} strokeWidth={3.5} />
+                    </div>
+                    <span>{t("hero.trust.noCard")}</span>
+                  </div>
+                  <div className="hero-trust__item">
+                    <div className="hero-trust__check">
+                      <Check size={12} strokeWidth={3.5} />
+                    </div>
+                    <span>{t("hero.trust.cancel")}</span>
+                  </div>
+                  <div className="hero-trust__item">
+                    <div className="hero-trust__check">
+                      <Check size={12} strokeWidth={3.5} />
+                    </div>
+                    <span>{t("hero.trust.support")}</span>
+                  </div>
+                </div>
               </Col>
               
               <Col lg={6}>
-                <div className="hero-product-shot">
-                  <div className="hero-carousel-browser-frame">
-                    <div className="browser-header">
-                      <div className="browser-dots">
-                        <span className="dot red"></span>
-                        <span className="dot yellow"></span>
-                        <span className="dot green"></span>
-                      </div>
-                      <div className="browser-address-bar">
-                        https://auradash.digital/app
-                      </div>
-                    </div>
+                <div className="hero-shot">
+                  <div className="hero-shot__frame">
                     <HeroImageStack />
                   </div>
 
-                  {/* Floating Callouts */}
-                  <div className="floating-card metrics-card card-premium shadow-lg" style={{ zIndex: 12, borderRadius: '16px' }}>
-                    <div className="d-flex align-items-center gap-2 mb-2">
-                      <BarChart3 size={16} style={{ color: '#10b981' }} />
-                      <span className="fw-bold small text-success">99.8%</span>
+                  {/* Floating Cards */}
+                  <div className="hero-float hero-float--whatsapp">
+                    <div className="hero-float__title" style={{ color: "#16A34A" }}>
+                      <MessageCircle size={14} fill="#25D366" color="#ffffff" />
+                      <span>{t("hero.float.waTitle")}</span>
                     </div>
-                    <div className="text-muted smaller fw-bold">{t("hero.metricsEfficiency")}</div>
+                    <div className="hero-float__body">{t("hero.float.waBody")}</div>
+                    <a href="#demo" onClick={(e) => { e.preventDefault(); handleFreeTrial(); }} className="hero-float__link">{t("hero.float.waLink")}</a>
                   </div>
 
+                  <div className="hero-float hero-float--ai">
+                    <div className="hero-float__title" style={{ color: "var(--lp-accent)" }}>
+                      <Sparkles size={14} />
+                      <span>{t("hero.float.aiTitle")}</span>
+                    </div>
+                    <div className="hero-float__body">{t("hero.float.aiBody")}</div>
+                    <a href="#demo" onClick={(e) => { e.preventDefault(); handleFreeTrial(); }} className="hero-float__link">{t("hero.float.aiLink")}</a>
+                  </div>
                 </div>
               </Col>
             </Row>
           </Container>
         </section>
 
-        {/* BENEFITS QUICK BAR */}
-        <section className="py-4 reveal">
+        {/* LOGO BAR / SECTORES (Opción C - Sin clientes inventados) */}
+        <section className="logo-bar reveal">
           <Container>
-            <div className="benefits-bar">
-              <Row className="g-4 text-start">
-                <Col md={3} sm={6}>
-                  <div className="benefit-item">
-                    <div className="benefit-icon-wrapper">
-                      <Clock size={20} />
-                    </div>
-                    <div>
-                      <div className="fw-bold text-dark small">{t("benefits.b1Title")}</div>
-                      <div className="text-muted smaller">{t("benefits.b1Desc")}</div>
-                    </div>
-                  </div>
-                </Col>
-                <Col md={3} sm={6}>
-                  <div className="benefit-item">
-                    <div className="benefit-icon-wrapper">
-                      <Calendar size={20} />
-                    </div>
-                    <div>
-                      <div className="fw-bold text-dark small">{t("benefits.b2Title")}</div>
-                      <div className="text-muted smaller">{t("benefits.b2Desc")}</div>
-                    </div>
-                  </div>
-                </Col>
-                <Col md={3} sm={6}>
-                  <div className="benefit-item">
-                    <div className="benefit-icon-wrapper">
-                      <Sparkles size={20} />
-                    </div>
-                    <div>
-                      <div className="fw-bold text-dark small">{t("benefits.b3Title")}</div>
-                      <div className="text-muted smaller">{t("benefits.b3Desc")}</div>
-                    </div>
-                  </div>
-                </Col>
-                <Col md={3} sm={6}>
-                  <div className="benefit-item">
-                    <div className="benefit-icon-wrapper">
-                      <BarChart3 size={20} />
-                    </div>
-                    <div>
-                      <div className="fw-bold text-dark small">{t("benefits.b4Title")}</div>
-                      <div className="text-muted smaller">{t("benefits.b4Desc")}</div>
-                    </div>
-                  </div>
-                </Col>
-              </Row>
+            <div className="logo-bar__label">
+              {t("logoBar.label")}
+            </div>
+            <div className="logo-bar__row">
+              <span className="logo-bar__tag">💈 Salones & Estética</span>
+              <span className="logo-bar__tag">🩺 Clínicas & Salud</span>
+              <span className="logo-bar__tag">🏋️ Gimnasios & Fitness</span>
+              <span className="logo-bar__tag">🐾 Veterinarias</span>
+              <span className="logo-bar__tag">📦 Distribuidoras</span>
+            </div>
+          </Container>
+        </section>
+
+        {/* FRANJA DE FEATURES (5 columnas con divisores) */}
+        <section className="py-5 reveal">
+          <Container>
+            <div className="feature-strip">
+              <div className="feature-strip__item">
+                <div className="feature-strip__icon" style={{ background: "#EDE9FE", color: "#7C3AED" }}>
+                  <CalendarDays size={20} />
+                </div>
+                <div className="feature-strip__title">{t("featureStrip.f1Title")}</div>
+                <div className="feature-strip__desc">{t("featureStrip.f1Desc")}</div>
+              </div>
+
+              <div className="feature-strip__item">
+                <div className="feature-strip__icon" style={{ background: "#DBEAFE", color: "#2563EB" }}>
+                  <Users size={20} />
+                </div>
+                <div className="feature-strip__title">{t("featureStrip.f2Title")}</div>
+                <div className="feature-strip__desc">{t("featureStrip.f2Desc")}</div>
+              </div>
+
+              <div className="feature-strip__item">
+                <div className="feature-strip__icon" style={{ background: "#DCFCE7", color: "#16A34A" }}>
+                  <CircleDollarSign size={20} />
+                </div>
+                <div className="feature-strip__title">{t("featureStrip.f3Title")}</div>
+                <div className="feature-strip__desc">{t("featureStrip.f3Desc")}</div>
+              </div>
+
+              <div className="feature-strip__item">
+                <div className="feature-strip__icon" style={{ background: "#FFEDD5", color: "#EA580C" }}>
+                  <Package size={20} />
+                </div>
+                <div className="feature-strip__title">{t("featureStrip.f4Title")}</div>
+                <div className="feature-strip__desc">{t("featureStrip.f4Desc")}</div>
+              </div>
+
+              <div className="feature-strip__item">
+                <div className="feature-strip__icon" style={{ background: "#FEF3C7", color: "#D97706" }}>
+                  <Zap size={20} />
+                </div>
+                <div className="feature-strip__title">{t("featureStrip.f5Title")}</div>
+                <div className="feature-strip__desc">{t("featureStrip.f5Desc")}</div>
+              </div>
             </div>
           </Container>
         </section>
@@ -1208,7 +1246,7 @@ export default function LandingPage() {
         <section id="precios" className="pricing-section py-120 bg-white reveal">
           <Container>
             <div className="text-center mb-5 pb-4">
-              <h2 className="fw-black display-5 text-dark mb-3" style={{ letterSpacing: '-0.02em' }}>{t("pricing.title")}</h2>
+              <h2 className="section-title-handwritten text-dark mb-3">{t("pricing.title")}</h2>
               <p className="text-muted">{t("pricing.subtitle")}</p>
             </div>
 

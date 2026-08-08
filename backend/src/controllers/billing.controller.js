@@ -65,38 +65,62 @@ export async function checkout(req, res) {
       return res.status(400).json({ success: false, error: "planCode e interval ('month' | 'year') son obligatorios." });
     }
 
-    // Soporte para Planes Personalizados / A la Medida
-    if (planCode === "custom" || enabledModules) {
-      const modulesToSave = enabledModules && Array.isArray(enabledModules) ? enabledModules : ["agenda", "clients", "services"];
-      
-      if (businessId) {
-        await prisma.business.update({
-          where: { id: businessId },
-          data: {
-            plan: "custom",
-            enabledModules: modulesToSave,
-            subscriptionStatus: "active",
-            currentPeriodEnd: new Date(Date.now() + (interval === "year" ? 365 : 30) * 24 * 60 * 60 * 1000)
-          }
-        });
-      }
-
-      return res.json({
-        success: true,
-        isCustom: true,
-        message: "Plan a la medida confirmado y activado exitosamente.",
-        nextStep: "/app/onboarding"
-      });
-    }
-
-    const plan = await prisma.plan.findUnique({ where: { code: planCode } });
-    if (!plan) {
-      return res.status(404).json({ success: false, error: "El plan seleccionado no existe." });
-    }
-
     const business = await prisma.business.findUnique({ where: { id: businessId } });
     if (!business) {
       return res.status(404).json({ success: false, error: "Negocio no encontrado." });
+    }
+
+    let plan;
+    let modulesToSave = null;
+
+    if (planCode === "custom" || (enabledModules && Array.isArray(enabledModules))) {
+      // Intención de compra: calcular precio desde el catálogo de la base/servidor
+      const requestedModules = Array.isArray(enabledModules) && enabledModules.length > 0
+        ? enabledModules
+        : ["agenda", "clients", "services"];
+
+      // Asegurar agenda (módulo base obligatorio)
+      if (!requestedModules.includes("agenda")) {
+        requestedModules.push("agenda");
+      }
+      modulesToSave = requestedModules;
+
+      const MODULE_PRICES = {
+        agenda: { month: 1500, year: 14400 },
+        clients: { month: 0, year: 0 },
+        services: { month: 0, year: 0 },
+        finances: { month: 1500, year: 14400 },
+        inventory: { month: 1500, year: 14400 },
+        workflows: { month: 1500, year: 14400 },
+        ai_marketing: { month: 1500, year: 14400 },
+        sheets_sync: { month: 1000, year: 9600 },
+      };
+
+      const calculatedMonthCents = modulesToSave.reduce((sum, mod) => sum + (MODULE_PRICES[mod]?.month || 0), 0);
+      const calculatedYearCents = modulesToSave.reduce((sum, mod) => sum + (MODULE_PRICES[mod]?.year || 0), 0);
+
+      plan = {
+        code: "custom",
+        name: "Plan a la Medida",
+        priceMonth: calculatedMonthCents,
+        priceYear: calculatedYearCents,
+        currency: "USD",
+      };
+
+      // Guardar intención de compra en business sin activar jamás la suscripción
+      await prisma.business.update({
+        where: { id: businessId },
+        data: {
+          plan: "custom",
+          enabledModules: modulesToSave,
+          // NUNCA setear subscriptionStatus: "active" ni currentPeriodEnd aquí
+        },
+      });
+    } else {
+      plan = await prisma.plan.findUnique({ where: { code: planCode } });
+      if (!plan) {
+        return res.status(404).json({ success: false, error: "El plan seleccionado no existe." });
+      }
     }
 
     const email = req.user?.email || `${businessId}@auradash.com`;
@@ -113,7 +137,7 @@ export async function checkout(req, res) {
       await prisma.planRequest.create({
         data: {
           businessId,
-          requestedPlan: planCode,
+          requestedPlan: plan.code,
           status: "PENDING",
           approvalToken
         }
@@ -122,7 +146,7 @@ export async function checkout(req, res) {
       await prisma.subscription.upsert({
         where: { businessId },
         update: {
-          planCode,
+          planCode: plan.code,
           interval,
           status: "pending",
           providerSubId: `manual_${businessId}_${Date.now()}`,
@@ -131,7 +155,7 @@ export async function checkout(req, res) {
         },
         create: {
           businessId,
-          planCode,
+          planCode: plan.code,
           interval,
           status: "pending",
           providerSubId: `manual_${businessId}_${Date.now()}`,
@@ -160,7 +184,7 @@ export async function checkout(req, res) {
     await prisma.subscription.upsert({
       where: { businessId },
       update: {
-        planCode,
+        planCode: plan.code,
         interval,
         status: "pending",
         providerSubId,
@@ -169,7 +193,7 @@ export async function checkout(req, res) {
       },
       create: {
         businessId,
-        planCode,
+        planCode: plan.code,
         interval,
         status: "pending",
         providerSubId,
@@ -190,7 +214,7 @@ export async function checkout(req, res) {
     await prisma.planRequest.create({
       data: {
         businessId,
-        requestedPlan: planCode,
+        requestedPlan: plan.code,
         status: "PENDING",
         approvalToken
       }
@@ -235,6 +259,13 @@ export async function cancel(req, res) {
 export async function webhook(req, res) {
   const isStripe = !!req.headers?.["stripe-signature"];
   const provider = isStripe ? new StripeProvider() : new MercadoPagoProvider();
+
+  // Validar firma del webhook antes de procesar o interactuar con la base de datos
+  const isValidSignature = await provider.verifyWebhook(req);
+  if (!isValidSignature) {
+    console.warn("[billing] Webhook rechazado: firma inválida.");
+    return res.status(401).json({ success: false, error: "Firma de webhook inválida." });
+  }
   
   try {
     // 2. Parse details from webhook payload using PaymentProvider

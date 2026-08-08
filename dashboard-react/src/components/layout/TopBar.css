@@ -1,30 +1,36 @@
 .topbar {
-  height: var(--space-topbar);
+  height: 72px !important;
   width: 100% !important;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 24px;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  background-size: cover;
-  background-position: center;
+  display: grid !important;
+  grid-template-columns: 1fr minmax(320px, 440px) 1fr !important;
+  align-items: center !important;
+  gap: 20px !important;
+  padding: 0 22px !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 100 !important;
+  background: var(--surface) !important;
+  border-bottom: 1px solid var(--border) !important;
   transition: all 0.3s ease;
 }
 
 .topbar::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.4) 100%);
-  backdrop-filter: blur(1px);
-  z-index: 0;
+  display: none !important;
 }
 
-.topbar__left, .topbar__search, .topbar__actions {
-  position: relative;
-  z-index: 1;
+.topbar__left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.topbar__title { 
+  display: flex; 
+  align-items: center; 
+  gap: 9px; 
+  font-size: 1rem; 
+  font-weight: 600; 
+  color: var(--ink); 
 }
 
 .topbar__brand-wrap {
@@ -34,84 +40,117 @@
 }
 
 .topbar__brand-name {
-  font-size: 1.25rem;
-  font-weight: 900;
-  color: white;
-  letter-spacing: -0.03em;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.2);
-  line-height: 1.1;
+  font-size: 1.05rem !important;
+  font-weight: 700 !important;
+  color: var(--ink) !important;
+  letter-spacing: -0.02em;
+  text-shadow: none !important;
+  line-height: 1.2;
 }
 
 .topbar__brand-slogan {
   font-size: 0.75rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.8);
+  font-weight: 500;
+  color: var(--ink-muted) !important;
   margin: 0;
-  letter-spacing: 0.02em;
 }
 
 .topbar__search {
-  flex: 0 1 400px;
-  background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 10px;
-  padding: 6px 16px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: white;
-  transition: all 0.2s ease;
-  user-select: none;
-}
-
-.topbar__search:hover {
-  background: rgba(255, 255, 255, 0.18);
-  border-color: rgba(255, 255, 255, 0.3);
-}
-
-.topbar__search-kbd {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  font-size: 10px;
-  font-weight: 700;
-  background: rgba(255, 255, 255, 0.18);
-  color: rgba(255, 255, 255, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
-  padding: 1px 4px;
-  letter-spacing: 0.05em;
-  margin-left: auto;
-  flex-shrink: 0;
-}
-
-.topbar__search input {
-  background: transparent;
-  border: none;
-  color: white;
-  outline: none;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  background: var(--surface-subtle) !important;
+  border: 1px solid transparent !important;
+  border-radius: var(--r-md) !important;
+  padding: 9px 13px !important;
+  transition: border-color .15s ease, background .15s ease;
   width: 100%;
-  font-size: 0.9rem;
 }
 
-.topbar__actions {
+.topbar__search:focus-within { 
+  background: #fff !important; 
+  border-color: var(--v-500) !important; 
+}
+
+.topbar__search-icon {
+  color: var(--ink-muted);
   display: flex;
   align-items: center;
-  gap: 12px;
 }
 
-.topbar__btn {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: white;
-  width: 36px;
+.topbar__search-input {
+  background: transparent !important;
+  border: 0 !important;
+  outline: none !important;
+  color: var(--ink) !important;
+  flex: 1;
+  font-size: .875rem !important;
+}
+
+.topbar__search-input::placeholder {
+  color: var(--ink-muted) !important;
+}
+
+.topbar__search-kbd, .topbar__kbd {
+  font-family: ui-monospace, monospace !important;
+  font-size: .72rem !important;
+  color: var(--ink-muted) !important;
+  background: #fff !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 5px !important;
+  padding: 2px 6px !important;
+}
+
+.topbar__actions { 
+  display: flex !important; 
+  align-items: center !important; 
+  justify-content: flex-end !important; 
+  gap: 8px !important; 
+}
+
+.topbar__btn, .topbar__icon-btn {
+  position: relative;
+  display: grid; 
+  place-items: center;
+  width: 36px; 
   height: 36px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  border: 0 !important; 
+  background: none !important; 
+  border-radius: var(--r-sm) !important;
+  color: var(--ink-2) !important;
   cursor: pointer;
-  transition: all 0.2s ease;
 }
+
+.topbar__btn:hover, .topbar__icon-btn:hover { 
+  background: var(--surface-subtle) !important; 
+}
+
+.topbar__badge {
+  position: absolute; 
+  top: 4px; 
+  right: 4px;
+  min-width: 16px; 
+  height: 16px; 
+  padding: 0 4px;
+  display: grid; 
+  place-items: center;
+  background: var(--v-500); 
+  color: #fff;
+  font-size: .62rem; 
+  font-weight: 700;
+  border-radius: 999px; 
+  border: 2px solid #fff;
+}
+
+.topbar__user { 
+  display: flex; 
+  align-items: center; 
+  gap: 9px; 
+  padding-left: 8px; 
+}
+.topbar__user img { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; }
+.topbar__user-name { font-size: .84rem; font-weight: 600; color: var(--ink); line-height: 1.2; }
+.topbar__user-role { font-size: .72rem; color: var(--ink-muted); }
 
 .topbar__menu-btn {
   display: none;

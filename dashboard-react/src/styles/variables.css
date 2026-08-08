@@ -1,19 +1,50 @@
 :root {
+  /* Violeta de marca */
+  --v-500: #7C3AED;
+  --v-600: #6D28D9;
+  --v-700: #5B21B6;
+  --v-50:  #F4F0FF;   /* fondo item activo del sidebar */
+  --v-25:  #FAF8FF;   /* fondo de la app */
+
+  /* Superficies */
+  --surface:        #FFFFFF;
+  --surface-app:    #FBFAFE;
+  --surface-subtle: #F7F6FB;
+  --border:         #EEEBF5;
+  --border-strong:  #E2DDEE;
+
+  /* Texto */
+  --ink:        #16121F;
+  --ink-2:      #3F3A4D;
+  --ink-muted:  #6B7280;
+
+  /* Estados */
+  --danger:  #DC2626;  --danger-bg:  #FEF2F2;  --danger-border: #FECACA;
+  --success: #16A34A;  --success-bg: #F0FDF4;
+
+  /* Sombras */
+  --sh-card:  0 1px 2px rgba(22, 18, 31, .04), 0 1px 3px rgba(22, 18, 31, .03);
+  --sh-pop:   0 10px 30px -12px rgba(76, 29, 149, .22);
+  --sh-cta:   0 8px 18px -6px rgba(124, 58, 237, .40);
+
+  /* Radios */
+  --r-sm: 8px;  --r-md: 10px;  --r-lg: 14px;  --r-xl: 18px;
+
   /* --- Brand Colors (Dynamic) --- */
-  --brand-accent: #111827;
-  --brand-accent-soft: rgba(17, 24, 39, 0.04);
+  --brand-accent: var(--v-500);
+  --brand-accent-soft: rgba(124, 58, 237, 0.06);
   --brand-bg: #f9fafb;
-  --brand-menu-active: #111827;
+  --brand-menu-active: var(--v-500);
 
   /* --- Design System (Compact) --- */
-  --bg-main: #f3f4f6;
+  --bg-main: var(--surface-app);
   --bg-card: #ffffff;
-  --border-light: rgba(0, 0, 0, 0.05);
-  --border-soft: rgba(0, 0, 0, 0.08);
+  --border-light: rgba(238, 235, 245, 0.8);
+  --border-soft: rgba(238, 235, 245, 1);
   
-  --text-primary: #111827;
-  --text-secondary: #4b5563;
-  --text-muted: #9ca3af;
+  --text-primary: #16121F;
+  --text-secondary: #3F3A4D;
+  --text-muted: #6B7280;
   
   /* --- Shadows (Subtle) --- */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
@@ -21,9 +52,9 @@
   --shadow-premium: 0 10px 15px -3px rgba(0, 0, 0, 0.04), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
 
   /* --- Spacing (Reduced) --- */
-  --space-sidebar: 240px;
+  --space-sidebar: 200px;
   --space-sidebar-collapsed: 72px;
-  --space-topbar: 70px;
+  --space-topbar: 72px;
   --radius-lg: 12px;
-  --radius-xl: 16px;
+  --radius-xl: 18px;
 }

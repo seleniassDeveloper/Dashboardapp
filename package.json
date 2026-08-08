@@ -2,7 +2,7 @@
   "name": "dashboard-saas",
   "version": "1.0.0",
   "private": true,
-  "description": "Dashboard SaaS — frontend (Vercel) + API (Railway)",
+  "description": "Dashboard SaaS — frontend (Vercel) + API (Render)",
   "scripts": {
     "dev": "concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix dashboard-react\"",
     "dev:backend": "npm run dev --prefix backend",

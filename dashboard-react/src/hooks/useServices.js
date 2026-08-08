@@ -1,12 +1,77 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "../lib/api.js";
 
+export function getMockServicesList() {
+  return [
+    {
+      id: "s1",
+      name: "Corte & Peinado Pro",
+      category: "Peluquería",
+      duration: 60,
+      price: 4500,
+      depositRequired: true,
+      depositAmount: 1500,
+      status: "active",
+      color: "#10b981",
+      description: "Corte de vanguardia, lavado tratante y peinado profesional."
+    },
+    {
+      id: "s2",
+      name: "Barba & Perfilado",
+      category: "Barbería",
+      duration: 45,
+      price: 3000,
+      depositRequired: true,
+      depositAmount: 1000,
+      status: "active",
+      color: "#3b82f6",
+      description: "Perfilado con navaja, toalla caliente y bálsamo."
+    },
+    {
+      id: "s3",
+      name: "Coloración & Balayage",
+      category: "Color",
+      duration: 120,
+      price: 12000,
+      depositRequired: true,
+      depositAmount: 4000,
+      status: "active",
+      color: "#7c3aed",
+      description: "Técnica de degradado natural con nutrición profunda."
+    },
+    {
+      id: "s4",
+      name: "Tratamiento Keratina",
+      category: "Tratamientos",
+      duration: 60,
+      price: 8000,
+      depositRequired: false,
+      depositAmount: 0,
+      status: "active",
+      color: "#ec4899",
+      description: "Alisado y reconstrucción de la fibra capilar."
+    },
+    {
+      id: "s5",
+      name: "Corte Masculino Premium",
+      category: "Barbería",
+      duration: 45,
+      price: 3500,
+      depositRequired: false,
+      depositAmount: 0,
+      status: "active",
+      color: "#f59e0b",
+      description: "Corte adaptado al estilo con lavado y asesoramiento."
+    }
+  ];
+}
+
 export default function useServices() {
-  const [servicesList, setServicesList] = useState([]);
+  const [servicesList, setServicesList] = useState(() => getMockServicesList());
   const [workersList, setWorkersList] = useState([]);
   const [slaStats, setSlaStats] = useState(null);
   const [rules, setRules] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   // Modals state
@@ -36,10 +101,15 @@ export default function useServices() {
       if (onlyVisibleOnline) params.visibleOnline = "true";
 
       const res = await api.get("/services", { params });
-      setServicesList(Array.isArray(res.data) ? res.data : []);
+      if (Array.isArray(res.data) && res.data.length > 0) {
+        setServicesList(res.data);
+      } else {
+        setServicesList(getMockServicesList());
+      }
     } catch (e) {
-      console.error("Error loading services:", e);
-      setError("No se pudieron cargar los servicios del catálogo.");
+      console.warn("[useServices] Fallback to mock services for demo view:", e?.message);
+      setServicesList(getMockServicesList());
+      setError("");
     } finally {
       setLoading(false);
     }

@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Centro de Ayuda · AuraDash</title>
+  <style>
+    :root {
+      --brand:        #7C3AED;
+      --brand-dark:   #6D28D9;
+      --brand-soft:   #F5F3FF;
+      --ink:          #16121F;
+      --ink-2:        #3F3A4D;
+      --muted:        #6B7280;
+      --line:         #E9E6F0;
+      --bg:           #FFFFFF;
+      --bg-alt:       #FAF9FC;
+      --code-bg:      #F4F2F8;
+
+      --warn:         #F59E0B;
+      --warn-bg:      #FFFBEB;
+      --warn-border:  #FDE68A;
+      
+      --tip:          #7C3AED;
+      --tip-bg:       #F5F3FF;
+      --tip-border:   #DDD6FE;
+
+      --info:         #3B82F6;
+      --info-bg:      #EFF6FF;
+      --info-border:  #BFDBFE;
+
+      --ok:           #16A34A;
+      --ok-bg:        #F0FDF4;
+      --ok-border:    #BBF7D0;
+
+      --nav-w:        272px;
+      --toc-w:        210px;
+      --header-h:     60px;
+      --shadow-sm:    0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md:    0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    [data-theme="dark"] {
+      --ink:          #F3F4F6;
+      --ink-2:        #E5E7EB;
+      --muted:        #9CA3AF;
+      --line:         #2D263B;
+      --bg:           #0F0C15;
+      --bg-alt:       #171322;
+      --code-bg:      #1F1A2E;
+
+      --warn-bg:      #2A200B;
+      --warn-border:  #5C430B;
+      
+      --tip-bg:       #1E1333;
+      --tip-border:   #4C288A;
+
+      --info-bg:      #0B1B38;
+      --info-border:  #1D4ED8;
+
+      --ok-bg:        #0B2818;
+      --ok-border:    #15803D;
+
+      --shadow-sm:    0 1px 2px 0 rgba(0, 0, 0, 0.4);
+      --shadow-md:    0 4px 6px -1px rgba(0, 0, 0, 0.5);
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Inter, -apple-system, "Segoe UI", Roboto, sans-serif;
+      font-size: 16px;
+      line-height: 1.65;
+      color: var(--ink);
+      background-color: var(--bg);
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Accessibility Skip Link */
+    .skip-link {
+      position: absolute;
+      top: -100px;
+      left: 1rem;
+      background: var(--brand);
+      color: #fff;
+      padding: 0.75rem 1.25rem;
+      border-radius: 8px;
+      font-weight: 700;
+      z-index: 10000;
+      transition: top 0.2s ease;
+      text-decoration: none;
+    }
+    .skip-link:focus {
+      top: 1rem;
+    }
+
+    /* Language display switching */
+    [data-lang] { display: none; }
+    html[lang="es"] [data-lang="es"] { display: block; }
+    html[lang="en"] [data-lang="en"] { display: block; }
+
+    span[data-lang] { display: none; }
+    html[lang="es"] span[data-lang="es"] { display: inline; }
+    html[lang="en"] span[data-lang="en"] { display: inline; }
+
+    /* HEADER */
+    .site-header {
+      position: sticky;
+      top: 0;
+      height: var(--header-h);
+      background: var(--bg);
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.5rem;
+      z-index: 1000;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-decoration: none;
+      font-weight: 800;
+      font-size: 1.25rem;
+      color: var(--ink);
+      letter-spacing: -0.02em;
+    }
+
+    .brand-logo__badge {
+      background: var(--brand);
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.2rem 0.55rem;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* SEARCH BAR */
+    .search-box {
+      position: relative;
+      width: 380px;
+    }
+
+    .search-input {
+      width: 100%;
+      height: 38px;
+      padding: 0 2.5rem 0 2.25rem;
+      border-radius: 20px;
+      border: 1px solid var(--line);
+      background: var(--bg-alt);
+      color: var(--ink);
+      font-size: 0.9rem;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+
+    .search-input:focus {
+      border-color: var(--brand);
+      background: var(--bg);
+      box-shadow: 0 0 0 3px var(--brand-soft);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      pointer-events: none;
+    }
+
+    .search-shortcut {
+      position: absolute;
+      right: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      background: var(--code-bg);
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 0.75rem;
+      font-family: ui-monospace, monospace;
+      padding: 0.1rem 0.4rem;
+      border-radius: 4px;
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .control-select, .control-btn {
+      height: 36px;
+      padding: 0 0.75rem;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: var(--bg);
+      color: var(--ink);
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s ease;
+    }
+
+    .control-select:hover, .control-btn:hover {
+      background: var(--bg-alt);
+    }
+
+    .mobile-menu-btn {
+      display: none;
+      background: none;
+      border: none;
+      color: var(--ink);
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 0.25rem;
+    }
+
+    /* LAYOUT CONTAINER */
+    .app-layout {
+      display: grid;
+      grid-template-columns: var(--nav-w) minmax(0, 760px) var(--toc-w);
+      justify-content: center;
+      gap: 2rem;
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+    }
+
+    /* LEFT SIDEBAR NAVIGATION */
+    .sidebar-nav {
+      position: sticky;
+      top: calc(var(--header-h) + 2rem);
+      height: calc(100vh - var(--header-h) - 4rem);
+      overflow-y: auto;
+      padding-right: 0.5rem;
+    }
+
+    .nav-section {
+      margin-bottom: 1.5rem;
+    }
+
+    .nav-section__title {
+      font-size: 0.75rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+      padding: 0 0.5rem;
+    }
+
+    .nav-group {
+      margin-bottom: 0.25rem;
+    }
+
+    .nav-group__btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.45rem 0.5rem;
+      background: none;
+      border: none;
+      color: var(--ink-2);
+      font-size: 0.9rem;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.15s ease;
+    }
+
+    .nav-group__btn:hover {
+      background: var(--bg-alt);
+      color: var(--brand);
+    }
+
+    .nav-group__chevron {
+      transition: transform 0.2s ease;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    .nav-group__btn[aria-expanded="true"] .nav-group__chevron {
+      transform: rotate(90deg);
+    }
+
+    .nav-sublist {
+      list-style: none;
+      padding-left: 0.75rem;
+      margin-top: 0.2rem;
+      display: none;
+    }
+
+    .nav-group__btn[aria-expanded="true"] + .nav-sublist {
+      display: block;
+    }
+
+    .nav-link {
+      display: block;
+      padding: 0.35rem 0.6rem;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.875rem;
+      border-radius: 6px;
+      border-left: 2px solid transparent;
+      transition: all 0.15s ease;
+    }
+
+    .nav-link:hover {
+      color: var(--brand);
+      background: var(--brand-soft);
+    }
+
+    .nav-link.active {
+      color: var(--brand);
+      font-weight: 700;
+      background: var(--brand-soft);
+      border-left-color: var(--brand);
+    }
+
+    /* MAIN CONTENT */
+    .main-content {
+      min-width: 0;
+    }
+
+    .hero-banner {
+      margin-bottom: 2.5rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .hero-banner h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      margin-bottom: 0.5rem;
+      color: var(--ink);
+    }
+
+    .hero-banner p {
+      font-size: 1.1rem;
+      color: var(--muted);
+    }
+
+    /* TASK ARTICLE PATTERN */
+    .task {
+      margin-bottom: 3.5rem;
+      scroll-margin-top: calc(var(--header-h) + 1.5rem);
+    }
+
+    .task h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .anchor-link {
+      color: var(--muted);
+      text-decoration: none;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      font-size: 1.25rem;
+    }
+
+    .task h2:hover .anchor-link, .anchor-link:focus {
+      opacity: 1;
+    }
+
+    .task-meta {
+      background: var(--bg-alt);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .task-meta__row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 0.9rem;
+    }
+
+    .task-meta__label {
+      font-weight: 700;
+      color: var(--muted);
+      min-width: 140px;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    /* ROLE CHIPS */
+    .role-chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.15rem 0.6rem;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+    .role-chip--owner { background: #EDE9FE; color: #5B21B6; }
+    .role-chip--admin { background: #DBEAFE; color: #1E40AF; }
+    .role-chip--manager { background: #DCFCE7; color: #166534; }
+    .role-chip--recepcion { background: #FEF3C7; color: #92400E; }
+    .role-chip--profesional { background: #FCE7F3; color: #9D174D; }
+    .role-chip--finanzas { background: #E0F2FE; color: #075985; }
+    .role-chip--viewer { background: #F3F4F6; color: #374151; }
+
+    /* PERMISSION CODE & PATH SPAN */
+    code.perm {
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      font-size: 0.85rem;
+      background: var(--code-bg);
+      color: var(--brand-dark);
+      padding: 0.15rem 0.45rem;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+    }
+
+    .path {
+      background: var(--code-bg);
+      color: var(--ink);
+      font-weight: 600;
+      font-size: 0.9rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+    }
+    .path::after {
+      content: "";
+    }
+
+    /* STEPS LIST */
+    ol.steps {
+      list-style: none;
+      margin: 1.5rem 0;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    ol.steps li {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+
+    .step-n {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--brand);
+      color: #fff;
+      font-size: 0.85rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 0.1rem;
+    }
+
+    /* CALLOUTS */
+    .callout {
+      border-left: 4px solid;
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      margin: 1.5rem 0;
+    }
+    .callout strong {
+      display: block;
+      margin-bottom: 0.25rem;
+      font-size: 0.95rem;
+    }
+    .callout p {
+      font-size: 0.925rem;
+      margin: 0;
+    }
+
+    .callout--warning {
+      border-color: var(--warn);
+      background: var(--warn-bg);
+      color: #78350F;
+    }
+    [data-theme="dark"] .callout--warning { color: #FDE68A; }
+
+    .callout--tip {
+      border-color: var(--tip);
+      background: var(--tip-bg);
+      color: #4C1D95;
+    }
+    [data-theme="dark"] .callout--tip { color: #DDD6FE; }
+
+    .callout--info {
+      border-color: var(--info);
+      background: var(--info-bg);
+      color: #1E40AF;
+    }
+    [data-theme="dark"] .callout--info { color: #BFDBFE; }
+
+    /* RESULT BOX */
+    .result {
+      background: var(--ok-bg);
+      border: 1px solid var(--ok-border);
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      margin-top: 1.5rem;
+      color: #14532D;
+    }
+    [data-theme="dark"] .result { color: #BBF7D0; }
+
+    .result strong {
+      display: block;
+      font-size: 0.95rem;
+      margin-bottom: 0.25rem;
+    }
+    .result p {
+      margin: 0;
+      font-size: 0.925rem;
+    }
+
+    /* FEEDBACK HELPFUL WIDGET */
+    .feedback-box {
+      margin-top: 2rem;
+      padding-top: 1rem;
+      border-top: 1px dashed var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.875rem;
+      color: var(--muted);
+    }
+
+    .feedback-btns {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .feedback-btn {
+      background: var(--bg-alt);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 0.3rem 0.6rem;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: background 0.15s ease;
+    }
+
+    .feedback-btn:hover {
+      background: var(--brand-soft);
+    }
+
+    /* RIGHT TOC INDEX */
+    .page-toc {
+      position: sticky;
+      top: calc(var(--header-h) + 2rem);
+      height: calc(100vh - var(--header-h) - 4rem);
+      overflow-y: auto;
+    }
+
+    .page-toc__title {
+      font-size: 0.75rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+    }
+
+    .toc-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      border-left: 2px solid var(--line);
+    }
+
+    .toc-item {
+      padding-left: 0.75rem;
+    }
+
+    .toc-link {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.85rem;
+      display: block;
+      transition: color 0.15s ease;
+    }
+
+    .toc-link:hover, .toc-link.active {
+      color: var(--brand);
+      font-weight: 700;
+    }
+
+    /* NO RESULTS SEARCH MSG */
+    .search-no-results {
+      display: none;
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--muted);
+    }
+
+    /* RESPONSIVE BREAKPOINTS */
+    @media (max-width: 1279px) {
+      .app-layout {
+        grid-template-columns: var(--nav-w) minmax(0, 1fr);
+      }
+      .page-toc {
+        display: none;
+      }
+    }
+
+    @media (max-width: 1023px) {
+      .app-layout {
+        grid-template-columns: 1fr;
+        padding: 1.5rem 1rem;
+      }
+
+      .mobile-menu-btn {
+        display: block;
+      }
+
+      .sidebar-nav {
+        position: fixed;
+        top: var(--header-h);
+        left: -100%;
+        width: 280px;
+        height: calc(100vh - var(--header-h));
+        background: var(--bg);
+        border-right: 1px solid var(--line);
+        padding: 1.5rem 1rem;
+        z-index: 999;
+        transition: left 0.3s ease;
+        box-shadow: var(--shadow-md);
+      }
+
+      .sidebar-nav.open {
+        left: 0;
+      }
+    }
+
+    @media (max-width: 639px) {
+      .search-box {
+        width: 100%;
+      }
+      .site-header {
+        flex-direction: column;
+        height: auto;
+        padding: 0.75rem 1rem;
+        gap: 0.75rem;
+      }
+      .header-left, .header-controls {
+        width: 100%;
+        justify-content: space-between;
+      }
+    }
+
+    /* PRINT STYLES */
+    @media print {
+      .site-header, .sidebar-nav, .page-toc, .search-box, .feedback-box {
+        display: none !important;
+      }
+      .app-layout {
+        display: block;
+        padding: 0;
+      }
+      .nav-group__sublist {
+        display: block !important;
+      }
+      a[href^="http"]::after {
+        content: " (" attr(href) ")";
+        font-size: 0.8em;
+      }
+    }
+  </style>
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Saltar al contenido principal</a>
+
+  <!-- SITE HEADER -->
+  <header class="site-header">
+    <div class="header-left">
+      <button class="mobile-menu-btn" id="menuToggleBtn" aria-expanded="false" aria-label="Abrir navegación">
+        ☰
+      </button>
+      <a href="#" class="brand-logo">
+        AuraDash <span class="brand-logo__badge">Ayuda</span>
+      </a>
+    </div>
+
+    <!-- INSTANT SEARCH BAR -->
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" class="search-input" placeholder="Buscar en la ayuda… (Presioná '/' para enfocar)" aria-label="Buscar en la documentación" />
+      <span class="search-shortcut">/</span>
+    </div>
+
+    <div class="header-controls">
+      <!-- LANGUAGE SELECTOR -->
+      <select id="langSelect" class="control-select" aria-label="Seleccionar idioma">
+        <option value="es">ES 🇪🇸</option>
+        <option value="en">EN 🇺🇸</option>
+      </select>
+
+      <!-- THEME TOGGLE -->
+      <button id="themeToggleBtn" class="control-btn" aria-label="Alternar tema claro u oscuro">
+        <span id="themeIcon">☾</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- LAYOUT -->
+  <div class="app-layout">
+    <!-- LEFT SIDEBAR NAVIGATION -->
+    <nav class="sidebar-nav" id="sidebarNav" aria-label="Navegación del manual">
+      <div class="nav-section">
+        <div class="nav-section__title">
+          <span data-lang="es">Primeros Pasos</span>
+          <span data-lang="en">Getting Started</span>
+        </div>
+        <div class="nav-group">
+          <button class="nav-group__btn" aria-expanded="true">
+            <span data-lang="es">Guía de Inicio</span>
+            <span data-lang="en">Quickstart</span>
+            <span class="nav-group__chevron">›</span>
+          </button>
+          <ul class="nav-sublist">
+            <li><a href="#organizacion" class="nav-link">Cómo está organizado AuraDash</a></li>
+            <li><a href="#orden-configuracion" class="nav-link">El orden correcto de configuración</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-section__title">
+          <span data-lang="es">Guías por Tarea</span>
+          <span data-lang="en">Task Guides</span>
+        </div>
+        
+        <div class="nav-group">
+          <button class="nav-group__btn" aria-expanded="true">
+            <span data-lang="es">Accesos y Seguridad</span>
+            <span data-lang="en">Access & Security</span>
+            <span class="nav-group__chevron">›</span>
+          </button>
+          <ul class="nav-sublist">
+            <li><a href="#ocultar-finanzas" class="nav-link active">Ocultarle las finanzas a alguien</a></li>
+            <li><a href="#roles-sistema" class="nav-link">Los siete roles del sistema</a></li>
+          </ul>
+        </div>
+
+        <div class="nav-group">
+          <button class="nav-group__btn" aria-expanded="true">
+            <span data-lang="es">Reservas Online</span>
+            <span data-lang="en">Online Bookings</span>
+            <span class="nav-group__chevron">›</span>
+          </button>
+          <ul class="nav-sublist">
+            <li><a href="#activar-reserva-publica" class="nav-link">Activar la reserva pública</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-section__title">
+          <span data-lang="es">Referencia de Pantallas</span>
+          <span data-lang="en">Screen Reference</span>
+        </div>
+        <div class="nav-group">
+          <button class="nav-group__btn" aria-expanded="false">
+            <span data-lang="es">Módulos del Sistema</span>
+            <span data-lang="en">System Modules</span>
+            <span class="nav-group__chevron">›</span>
+          </button>
+          <ul class="nav-sublist">
+            <li><a href="#modulo-01" class="nav-link">01 · Panel de Control</a></li>
+            <li><a href="#modulo-02" class="nav-link">02 · Agenda</a></li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <!-- MAIN CONTENT AREA -->
+    <main class="main-content" id="main-content">
+      <div class="hero-banner">
+        <div data-lang="es">
+          <h1>Centro de Ayuda de AuraDash</h1>
+          <p>Documentación técnica y guías por tareas para la administración eficiente de tu negocio.</p>
+        </div>
+        <div data-lang="en">
+          <h1>AuraDash Help Center</h1>
+          <p>Technical documentation and step-by-step guides for running your business smoothly.</p>
+        </div>
+      </div>
+
+      <div id="noResultsMsg" class="search-no-results">
+        <h3>Sin resultados</h3>
+        <p>No encontramos ninguna guía que coincida con tu búsqueda.</p>
+      </div>
+
+      <!-- TASK ARTICLE 1: OCULTAR FINANZAS -->
+      <article class="task" id="ocultar-finanzas">
+        <h2 id="title-ocultar-finanzas">
+          <span data-lang="es">Ocultarle las finanzas a alguien</span>
+          <span data-lang="en">Hide finances from a team member</span>
+          <a href="#ocultar-finanzas" class="anchor-link" title="Enlace directo a este paso">#</a>
+        </h2>
+
+        <div class="task-meta">
+          <div class="task-meta__row">
+            <span class="task-meta__label" data-lang="es">Quién puede hacerlo</span>
+            <span class="task-meta__label" data-lang="en">Who can do this</span>
+            <span class="role-chip role-chip--owner">Owner</span>
+            <span class="role-chip role-chip--admin">Admin</span>
+          </div>
+          <div class="task-meta__row">
+            <span class="task-meta__label" data-lang="es">Permiso necesario</span>
+            <span class="task-meta__label" data-lang="en">Required permission</span>
+            <code class="perm">members.edit</code>
+          </div>
+          <div class="task-meta__row">
+            <span class="task-meta__label" data-lang="es">Antes de empezar</span>
+            <span class="task-meta__label" data-lang="en">Before starting</span>
+            <span data-lang="es">La persona ya debe estar invitada al sistema.</span>
+            <span data-lang="en">The person must already be invited to the system.</span>
+          </div>
+        </div>
+
+        <div data-lang="es">
+          <ol class="steps">
+            <li>
+              <span class="step-n">1</span>
+              <div>Andá a <span class="path">Configuración › Usuarios y permisos</span>.</div>
+            </li>
+            <li>
+              <span class="step-n">2</span>
+              <div>Buscá a la persona en la lista y abrí su ficha o cambia su rol.</div>
+            </li>
+            <li>
+              <span class="step-n">3</span>
+              <div>Seleccioná un rol sin acceso contable (como <strong>Recepción</strong>, <strong>Manager</strong> o <strong>Profesional</strong>).</div>
+            </li>
+          </ol>
+
+          <div class="callout callout--warning">
+            <strong>El cambio se aplica de inmediato</strong>
+            <p>Incluso si la persona está usando el sistema en ese momento. La próxima acción que intente en finanzas dará error de permisos.</p>
+          </div>
+
+          <div class="result">
+            <strong>Resultado</strong>
+            <p>La persona ve su menú lateral actualizado la próxima vez que navega por el sistema, sin accesos a reportes de caja ni rentabilidad.</p>
+          </div>
+        </div>
+
+        <div data-lang="en">
+          <ol class="steps">
+            <li>
+              <span class="step-n">1</span>
+              <div>Go to <span class="path">Settings › Users and permissions</span>.</div>
+            </li>
+            <li>
+              <span class="step-n">2</span>
+              <div>Locate the person in the list and edit their assigned role.</div>
+            </li>
+            <li>
+              <span class="step-n">3</span>
+              <div>Select a role without financial access (such as <strong>Front-desk</strong>, <strong>Manager</strong> or <strong>Staff</strong>).</div>
+            </li>
+          </ol>
+
+          <div class="callout callout--warning">
+            <strong>Changes apply immediately</strong>
+            <p>Even if the user is currently using the platform. Their access to financial records will be restricted right away.</p>
+          </div>
+
+          <div class="result">
+            <strong>Result</strong>
+            <p>The user sees an updated navigation menu next time they refresh or navigate, hiding revenue and profit reports.</p>
+          </div>
+        </div>
+
+        <div class="feedback-box">
+          <span data-lang="es">¿Te resultó útil esta guía?</span>
+          <span data-lang="en">Was this guide helpful?</span>
+          <div class="feedback-btns">
+            <button class="feedback-btn" data-vote="yes">👍 Sí</button>
+            <button class="feedback-btn" data-vote="no">👎 No</button>
+          </div>
+        </div>
+      </article>
+
+      <!-- TASK ARTICLE 2: ACTIVAR RESERVA PUBLICA -->
+      <article class="task" id="activar-reserva-publica">
+        <h2 id="title-activar-reserva-publica">
+          <span data-lang="es">Activar la reserva pública</span>
+          <span data-lang="en">Enable public online booking</span>
+          <a href="#activar-reserva-publica" class="anchor-link" title="Enlace directo a este paso">#</a>
+        </h2>
+
+        <div class="task-meta">
+          <div class="task-meta__row">
+            <span class="task-meta__label" data-lang="es">Quién puede hacerlo</span>
+            <span class="task-meta__label" data-lang="en">Who can do this</span>
+            <span class="role-chip role-chip--owner">Owner</span>
+            <span class="role-chip role-chip--admin">Admin</span>
+          </div>
+          <div class="task-meta__row">
+            <span class="task-meta__label" data-lang="es">Permiso necesario</span>
+            <span class="task-meta__label" data-lang="en">Required permission</span>
+            <code class="perm">settings.edit</code>
+          </div>
+          <div class="task-meta__row">
+            <span class="task-meta__label" data-lang="es">Antes de empezar</span>
+            <span class="task-meta__label" data-lang="en">Before starting</span>
+            <span data-lang="es">Tener servicios cargados y al menos un profesional con horarios.</span>
+            <span data-lang="en">Services configured and at least one staff member with working hours.</span>
+          </div>
+        </div>
+
+        <div data-lang="es">
+          <ol class="steps">
+            <li>
+              <span class="step-n">1</span>
+              <div>Andá a <span class="path">Configuración › Datos del Negocio</span> y activá el interruptor de <strong>Reservas Online</strong>.</div>
+            </li>
+            <li>
+              <span class="step-n">2</span>
+              <div>Verificá el <strong>slug de reserva</strong> (ejemplo: <code>/booking/tu-negocio</code>).</div>
+            </li>
+            <li>
+              <span class="step-n">3</span>
+              <div>En <span class="path">Servicios</span>, asegurate de marcar cuáles están disponibles para reserva web.</div>
+            </li>
+            <li>
+              <span class="step-n">4</span>
+              <div>Abrí <code>auradash.digital/booking/tu-slug</code> en una <strong>ventana privada</strong> y realizá un turno de prueba.</div>
+            </li>
+            <li>
+              <span class="step-n">5</span>
+              <div>Confirmá que la cita aparezca automáticamente en la agenda.</div>
+            </li>
+          </ol>
+
+          <div class="callout callout--tip">
+            <strong>Hacé siempre el paso 4 en ventana privada</strong>
+            <p>Con tu sesión de administrador abierta la página de reservas se comporta distinto. La ventana de incógnito te muestra exactamente lo que experimentará tu cliente.</p>
+          </div>
+
+          <div class="result">
+            <strong>Resultado</strong>
+            <p>Tu negocio cuenta con una dirección web oficial y limpia para compartir en Instagram, WhatsApp o Google Maps.</p>
+          </div>
+        </div>
+
+        <div data-lang="en">
+          <ol class="steps">
+            <li>
+              <span class="step-n">1</span>
+              <div>Go to <span class="path">Settings › Business Profile</span> and toggle on <strong>Online Bookings</strong>.</div>
+            </li>
+            <li>
+              <span class="step-n">2</span>
+              <div>Verify your booking <strong>slug</strong> (e.g., <code>/booking/your-business</code>).</div>
+            </li>
+            <li>
+              <span class="step-n">3</span>
+              <div>Under <span class="path">Services</span>, ensure target services have online booking enabled.</div>
+            </li>
+            <li>
+              <span class="step-n">4</span>
+              <div>Open <code>auradash.digital/booking/your-slug</code> in an <strong>incognito window</strong> and test a booking.</div>
+            </li>
+            <li>
+              <span class="step-n">5</span>
+              <div>Verify the appointment appears in real time on your schedule calendar.</div>
+            </li>
+          </ol>
+
+          <div class="callout callout--tip">
+            <strong>Always test step 4 in incognito mode</strong>
+            <p>If logged in as admin, the page behaves differently. Incognito guarantees you see the exact client experience.</p>
+          </div>
+
+          <div class="result">
+            <strong>Result</strong>
+            <p>Your business gets an official public link ready to post on Instagram, WhatsApp bio, or Google Business profile.</p>
+          </div>
+        </div>
+
+        <div class="feedback-box">
+          <span data-lang="es">¿Te resultó útil esta guía?</span>
+          <span data-lang="en">Was this guide helpful?</span>
+          <div class="feedback-btns">
+            <button class="feedback-btn" data-vote="yes">👍 Sí</button>
+            <button class="feedback-btn" data-vote="no">👎 No</button>
+          </div>
+        </div>
+      </article>
+
+    </main>
+
+    <!-- RIGHT PAGE TOC INDEX -->
+    <aside class="page-toc">
+      <div class="page-toc__title" data-lang="es">En esta página</div>
+      <div class="page-toc__title" data-lang="en">On this page</div>
+      <ul class="toc-list" id="tocList">
+        <li class="toc-item"><a href="#ocultar-finanzas" class="toc-link active">Ocultarle las finanzas a alguien</a></li>
+        <li class="toc-item"><a href="#activar-reserva-publica" class="toc-link">Activar la reserva pública</a></li>
+      </ul>
+    </aside>
+  </div>
+
+  <script>
+    // VANILLA JS INTERACTIVE CONTROLLERS
+    document.addEventListener("DOMContentLoaded", function () {
+      // 1. LANGUAGE SWITCHER
+      const langSelect = document.getElementById("langSelect");
+      const savedLang = localStorage.getItem("auradash_manual_lang") || "es";
+      langSelect.value = savedLang;
+      document.documentElement.setAttribute("lang", savedLang);
+
+      langSelect.addEventListener("change", function (e) {
+        const lang = e.target.value;
+        document.documentElement.setAttribute("lang", lang);
+        localStorage.setItem("auradash_manual_lang", lang);
+      });
+
+      // 2. DARK / LIGHT THEME TOGGLE
+      const themeToggleBtn = document.getElementById("themeToggleBtn");
+      const themeIcon = document.getElementById("themeIcon");
+      const savedTheme = localStorage.getItem("auradash_manual_theme") || 
+        (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+
+      function applyTheme(theme) {
+        document.documentElement.setAttribute("data-theme", theme);
+        themeIcon.textContent = theme === "dark" ? "☀️" : "☾";
+        localStorage.setItem("auradash_manual_theme", theme);
+      }
+      applyTheme(savedTheme);
+
+      themeToggleBtn.addEventListener("click", function () {
+        const currentTheme = document.documentElement.getAttribute("data-theme");
+        applyTheme(currentTheme === "dark" ? "light" : "dark");
+      });
+
+      // 3. COLLAPSIBLE SIDEBAR GROUPS WITH LOCALSTORAGE
+      const navButtons = document.querySelectorAll(".nav-group__btn");
+      const savedGroups = JSON.parse(localStorage.getItem("auradash_nav_groups") || "{}");
+
+      navButtons.forEach(function (btn, index) {
+        const key = "group_" + index;
+        if (savedGroups[key] !== undefined) {
+          btn.setAttribute("aria-expanded", savedGroups[key]);
+        }
+
+        btn.addEventListener("click", function () {
+          const expanded = btn.getAttribute("aria-expanded") === "true";
+          btn.setAttribute("aria-expanded", !expanded);
+          savedGroups[key] = !expanded;
+          localStorage.setItem("auradash_nav_groups", JSON.stringify(savedGroups));
+        });
+      });
+
+      // 4. MOBILE DRAWER MENU
+      const menuToggleBtn = document.getElementById("menuToggleBtn");
+      const sidebarNav = document.getElementById("sidebarNav");
+
+      menuToggleBtn.addEventListener("click", function () {
+        const isOpen = sidebarNav.classList.contains("open");
+        sidebarNav.classList.toggle("open", !isOpen);
+        menuToggleBtn.setAttribute("aria-expanded", !isOpen);
+      });
+
+      // 5. INSTANT SEARCH FILTER
+      const searchInput = document.getElementById("searchInput");
+      const articles = document.querySelectorAll(".task");
+      const noResultsMsg = document.getElementById("noResultsMsg");
+
+      searchInput.addEventListener("input", function (e) {
+        const query = e.target.value.toLowerCase().trim();
+        let matchesCount = 0;
+
+        articles.forEach(function (article) {
+          const text = article.textContent.toLowerCase();
+          if (!query || text.includes(query)) {
+            article.style.display = "block";
+            matchesCount++;
+          } else {
+            article.style.display = "none";
+          }
+        });
+
+        noResultsMsg.style.display = (query && matchesCount === 0) ? "block" : "none";
+      });
+
+      // Keyboard shortcut '/' for search
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "/" && document.activeElement !== searchInput) {
+          e.preventDefault();
+          searchInput.focus();
+        } else if (e.key === "Escape" && document.activeElement === searchInput) {
+          searchInput.blur();
+        }
+      });
+
+      // 6. SCROLLSPY TOC & INTERSECTION OBSERVER
+      const tocLinks = document.querySelectorAll(".toc-link");
+      const observer = new IntersectionObserver(
+        function (entries) {
+          entries.forEach(function (entry) {
+            if (entry.isIntersecting) {
+              const id = entry.target.id;
+              tocLinks.forEach(function (link) {
+                link.classList.toggle("active", link.getAttribute("href") === "#" + id);
+              });
+            }
+          });
+        },
+        { rootMargin: "-20% 0px -60% 0px" }
+      );
+
+      articles.forEach(function (article) {
+        observer.observe(article);
+      });
+
+      // 7. FEEDBACK BUTTONS
+      document.querySelectorAll(".feedback-btn").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          const article = btn.closest(".task");
+          const id = article.id;
+          const vote = btn.getAttribute("data-vote");
+          localStorage.setItem("auradash_feedback_" + id, vote);
+          
+          btn.parentElement.innerHTML = vote === "yes" 
+            ? "<span>✅ ¡Gracias por tu opinión!</span>" 
+            : "<span>✍️ Gracias, seguiremos mejorando esta guía.</span>";
+          
+          // TODO: Send feedback vote to analytics backend endpoint
+        });
+      });
+
+      // 8. ANCHOR COPY CLICK
+      document.querySelectorAll(".anchor-link").forEach(function (anchor) {
+        anchor.addEventListener("click", function (e) {
+          const href = anchor.getAttribute("href");
+          const url = window.location.origin + window.location.pathname + href;
+          navigator.clipboard.writeText(url);
+        });
+      });
+    });
+  </script>
+</body>
+</html>

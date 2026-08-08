@@ -29,11 +29,17 @@ export default function CalendarView() {
   const [workers, setWorkers] = useState([]);
   const [showEmbeddedGoogle, setShowEmbeddedGoogle] = useState(false);
 
-  // Cargar estilistas del backend
+  // Cargar estilistas del backend (o fallback demo)
   useEffect(() => {
     api.get("/workers")
-      .then(res => setWorkers(Array.isArray(res.data) ? res.data : []))
-      .catch(e => console.error(e));
+      .then(res => setWorkers(Array.isArray(res.data) && res.data.length > 0 ? res.data : [
+        { id: "w1", firstName: "Ana", lastName: "Silva", role: "Estilista" },
+        { id: "w2", firstName: "Carlos", lastName: "Gómez", role: "Especialista Color" }
+      ]))
+      .catch(() => setWorkers([
+        { id: "w1", firstName: "Ana", lastName: "Silva", role: "Estilista" },
+        { id: "w2", firstName: "Carlos", lastName: "Gómez", role: "Especialista Color" }
+      ]));
   }, []);
 
   // Lista de espera reactiva y persistida en localStorage

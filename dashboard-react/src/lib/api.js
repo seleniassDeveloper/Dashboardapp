@@ -1,33 +1,30 @@
 import axios from "axios";
+import * as Sentry from "@sentry/react";
 
 function normalizeBaseUrl(url) {
   if (url && url.trim()) {
     return url.trim().replace(/\/+$/, "");
   }
 
-  // Runtime smart override: force Render API when running on Vercel production
-  if (
-    typeof window !== "undefined" && 
-    !window.location.hostname.includes("localhost") && 
-    !window.location.hostname.includes("127.0.0.1") && 
-    !window.location.hostname.startsWith("192.168.") &&
-    !window.location.hostname.startsWith("172.") &&
-    !window.location.hostname.startsWith("10.")
-  ) {
-    return "https://dashboard-api-r6j9.onrender.com/api";
+  // Fail-fast in production: require explicit VITE_API_URL
+  if (import.meta.env.PROD) {
+    throw new Error(
+      "[Config Error] Falta VITE_API_URL. Configurala en las variables de entorno de Vercel."
+    );
   }
-  
+
   let base = "http://localhost:3001/api";
-  
+
   // Si estamos en un dispositivo de la red local y accedemos por IP, redirigimos las peticiones del API a esa misma IP en el puerto 3001
-  if (typeof window !== "undefined" && (
-    window.location.hostname.startsWith("192.168.") || 
-    window.location.hostname.startsWith("172.") || 
-    window.location.hostname.startsWith("10.")
-  )) {
+  if (
+    typeof window !== "undefined" &&
+    (window.location.hostname.startsWith("192.168.") ||
+      window.location.hostname.startsWith("172.") ||
+      window.location.hostname.startsWith("10."))
+  ) {
     base = `http://${window.location.hostname}:3001/api`;
   }
-  
+
   return base.replace(/\/+$/, "");
 }
 
@@ -49,14 +46,25 @@ export function setErrorListener(listener) {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Solo disparar el listener de error global para errores de red o errores de servidor (status >= 500)
-    // Se excluyen los códigos de error 4xx (400, 401, 403, 404, 409) que deben manejarse localmente
+    // Solo disparar el listener de error global y Sentry para errores de red o servidor (status >= 500)
     const status = error.response?.status;
     const method = error.config?.method?.toLowerCase() || "";
     const isAllowedMethod = ["get", "post", "put", "patch", "delete"].includes(method);
     const isSystemError = !status || status >= 500;
-    if (isSystemError && isAllowedMethod && errorListener) {
-      errorListener(error);
+
+    if (isSystemError && isAllowedMethod) {
+      if (import.meta.env.PROD) {
+        Sentry.captureException(error, {
+          extra: {
+            method: error.config?.method,
+            url: error.config?.url,
+            status,
+          },
+        });
+      }
+      if (errorListener) {
+        errorListener(error);
+      }
     }
     return Promise.reject(error);
   }

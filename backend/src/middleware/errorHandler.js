@@ -1,3 +1,5 @@
+import * as Sentry from "@sentry/node";
+
 const isProd = process.env.NODE_ENV === "production";
 
 export function notFoundHandler(req, res) {
@@ -13,6 +15,15 @@ export function errorHandler(err, req, res, _next) {
 
   if (status >= 500) {
     if (isProd) {
+      if (process.env.SENTRY_DSN) {
+        Sentry.captureException(err, {
+          extra: {
+            path: req.path,
+            method: req.method,
+            businessId: req.businessId || req.tenantId || null,
+          },
+        });
+      }
       // En producción: solo loguear método, ruta y mensaje — sin stack ni datos internos
       console.error(`[api] ${status} ${req.method} ${req.path} - ${err.message}`);
     } else {

@@ -394,6 +394,15 @@ export default function Sidebar({
         </div>
       )}
 
+      {/* Sidebar Promo Card */}
+      {!isCollapsed && (!business?.plan || business?.plan === "starter" || business?.isTrial) && (
+        <div className="sidebar__promo mx-2 mb-3">
+          <h4>Plan AuraDash Pro</h4>
+          <p>Desbloqueá finanzas avanzadas, inventario e inteligencia artificial.</p>
+          <Link to="/app/pricing">Ver planes</Link>
+        </div>
+      )}
+
       <div className="sidebar__footer">
         <a 
           href="/guia-uso.html" 

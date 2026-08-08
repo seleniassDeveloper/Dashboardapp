@@ -1,15 +1,16 @@
 .sidebar {
   width: var(--space-sidebar) !important;
-  background: white;
-  border-right: 1px solid var(--border-light);
-  display: flex;
-  flex-direction: column;
+  background: var(--surface) !important;
+  border-right: 1px solid var(--border) !important;
+  display: flex !important;
+  flex-direction: column !important;
   height: 100vh;
   position: fixed;
   left: 0;
   top: 0;
   z-index: 1000;
   overflow: visible;
+  padding: 0 12px 16px !important;
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -18,26 +19,37 @@
 }
 
 .sidebar__header {
-  height: 60px;
+  height: 72px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
-  border-bottom: 1px solid var(--border-light);
+  padding: 0 8px;
+  border-bottom: 1px solid var(--border);
   position: relative;
+}
+
+.sidebar__brand {
+  display: flex; 
+  align-items: center; 
+  gap: 10px;
+  height: 72px; 
+  padding: 0 8px;
+  font-size: 1.12rem; 
+  font-weight: 700; 
+  color: var(--ink);
 }
 
 .sidebar__logo {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   overflow: hidden;
 }
 
 .sidebar__logo-icon {
   width: 32px;
   height: 32px;
-  border-radius: 8px;
+  border-radius: var(--r-md);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -45,26 +57,27 @@
   font-weight: 800;
   font-size: 14px;
   flex-shrink: 0;
+  background-color: var(--v-500) !important;
 }
 
 .sidebar__logo-text {
-  font-weight: 800;
-  font-size: 18px;
-  letter-spacing: -0.04em;
-  color: var(--text-primary);
+  font-weight: 700;
+  font-size: 1.12rem;
+  letter-spacing: -0.02em;
+  color: var(--ink);
   white-space: nowrap;
 }
 
 .sidebar__toggle {
   background: white;
-  border: 1px solid var(--border-light);
+  border: 1px solid var(--border);
   width: 26px;
   height: 26px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-secondary);
+  color: var(--ink-muted);
   cursor: pointer;
   transition: all 0.2s ease;
   position: absolute;
@@ -74,65 +87,68 @@
 }
 
 .sidebar__toggle:hover {
-  background: var(--brand-accent-soft, #f3f4f6);
-  color: var(--brand-accent, #111827);
-  transform: scale(1.1);
+  background: var(--surface-subtle);
+  color: var(--v-500);
 }
 
 .sidebar__nav {
   flex: 1;
-  padding: 16px 12px;
+  padding: 14px 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
   overflow-y: auto;
   overflow-x: hidden;
 }
 
-/* VERY STRICT SIDEBAR ITEM LAYOUT */
 .sidebar__item {
   display: flex !important;
   flex-direction: row !important;
   flex-wrap: nowrap !important;
   align-items: center !important;
   justify-content: flex-start !important;
-  gap: 12px !important;
+  gap: 11px !important;
   padding: 10px 12px !important;
-  color: var(--text-secondary);
+  margin-bottom: 2px !important;
+  border-radius: var(--r-md) !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  color: var(--ink-2) !important;
+  transition: background .15s ease, color .15s ease !important;
   text-decoration: none !important;
-  border-radius: 12px !important;
-  font-weight: 600;
-  font-size: 14px;
-  transition: all 0.2s ease;
   border: none;
   background: transparent;
   width: 100% !important;
   box-sizing: border-box !important;
   cursor: pointer;
   position: relative;
-  min-height: 44px !important;
-  max-height: 44px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
   overflow: hidden;
 }
 
+.sidebar__item svg { 
+  width: 18px !important; 
+  height: 18px !important; 
+  stroke-width: 1.9; 
+  color: var(--ink-muted); 
+}
+
 .sidebar__item:hover {
-  background: var(--brand-accent-soft, #f3f4f6);
-  color: var(--brand-accent, #111827);
+  background: var(--surface-subtle) !important;
 }
 
+.sidebar__item.is-active,
 .sidebar__item--active {
-  background: var(--brand-accent, #111827) !important;
-  color: white !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+  background: var(--v-50) !important;
+  color: var(--v-700) !important;
+  font-weight: 600 !important;
+  box-shadow: none !important;
 }
 
-.sidebar__item-icon {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  flex-shrink: 0 !important;
-  width: 20px !important;
-  height: 20px !important;
+.sidebar__item.is-active svg,
+.sidebar__item--active svg { 
+  color: var(--v-500) !important; 
 }
 
 .sidebar__item-label {
@@ -144,17 +160,33 @@
   white-space: nowrap !important;
   flex: 1 !important;
   overflow: hidden !important;
-  line-height: 1 !important;
+  line-height: 1.2 !important;
 }
 
 .sidebar__item-indicator {
-  position: absolute;
-  left: 0;
-  width: 4px;
-  height: 24px;
-  border-radius: 0 4px 4px 0;
-  display: none;
+  display: none !important;
 }
+
+/* Card Promo Upsell */
+.sidebar__promo {
+  background: linear-gradient(155deg, var(--v-500) 0%, #9333EA 100%);
+  border-radius: var(--r-lg);
+  padding: 18px 16px;
+  color: #fff;
+  margin-top: auto;
+  margin-bottom: 12px;
+}
+.sidebar__promo h4 { font-size: .92rem; font-weight: 700; margin-bottom: 4px; color: #fff; }
+.sidebar__promo p  { font-size: .78rem; line-height: 1.4; opacity: .88; margin-bottom: 14px; color: #fff; }
+.sidebar__promo a  {
+  display: block; text-align: center;
+  background: rgba(255,255,255,.18);
+  border: 1px solid rgba(255,255,255,.26);
+  border-radius: var(--r-sm);
+  padding: 8px; font-size: .8rem; font-weight: 600; color: #fff; text-decoration: none;
+  transition: background 0.15s ease;
+}
+.sidebar__promo a:hover { background: rgba(255,255,255,.28); }
 
 /* Dropdown/Submenu */
 .sidebar__submenu {

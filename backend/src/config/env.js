@@ -31,6 +31,12 @@ export function assertProductionEnv() {
   if (!process.env.DATABASE_URL) missing.push("DATABASE_URL");
   if (!process.env.FRONTEND_URL) missing.push("FRONTEND_URL");
 
+  if (!process.env.MP_WEBHOOK_SECRET) {
+    console.warn(
+      "[env] ADVERTENCIA: MP_WEBHOOK_SECRET no está definida. La verificación HMAC del header x-signature en webhooks de MercadoPago estará inactiva."
+    );
+  }
+
   if (missing.length) {
     console.warn(
       "[env] Variables recomendadas en producción (faltan):",

@@ -9,16 +9,40 @@
     "freeTrial": "Probar Gratis"
   },
   "hero": {
-    "badge": "NUEVO - Versión 2.5 - Más rápida, más inteligente, más completa",
-    "titleLine1": "AuraDash",
-    "titleLine2": "el dashboard que se adapta a tu negocio.",
-    "subtitle": "El sistema operativo adaptable para tu negocio. Gestiona agenda, clientes, equipo, finanzas, inventario y automatizaciones en una sola plataforma unificada.",
-    "ctaPrimary": "Probar Demo Gratis",
-    "ctaSecondary": "Ver Tour Interactivo",
-    "ctaTertiary": "Leer Manual de Uso",
-    "trust": "Más de 1.200 negocios ya confían en AuraDash",
-    "metricsEfficiency": "Velocidad Operativa",
-    "metricsClients": "Negocios Conectados"
+    "badge": "TODO TU NEGOCIO, EN UN SOLO LUGAR",
+    "titleMain": "El sistema operativo que hace crecer",
+    "titleScript": "tu negocio.",
+    "subtitle": "Agenda, clientes, finanzas, inventario, equipo y automatizaciones trabajando juntos en una sola plataforma.",
+    "ctaPrimary": "Probar 14 días gratis",
+    "ctaSecondary": "Ver demo",
+    "trust": {
+      "noCard": "Sin tarjeta de crédito",
+      "cancel": "Cancelá cuando quieras",
+      "support": "Soporte en español"
+    },
+    "float": {
+      "waTitle": "Nueva reserva de Ana Torres",
+      "waBody": "Viernes 17 de mayo a las 10:30 AM",
+      "waLink": "Ver conversación",
+      "aiTitle": "AuraDash IA",
+      "aiBody": "Tienes 3 clientes que hace más de 45 días no vuelven. ¿Quieres enviarles una promo?",
+      "aiLink": "Ver clientes"
+    }
+  },
+  "logoBar": {
+    "label": "Adaptado para los sectores de mayor crecimiento"
+  },
+  "featureStrip": {
+    "f1Title": "Agenda inteligente",
+    "f1Desc": "Calendario dinámico con citas sincronizadas y recordatorios.",
+    "f2Title": "CRM completo",
+    "f2Desc": "Ficha unificada de clientes con historial de consumo.",
+    "f3Title": "Finanzas en tiempo real",
+    "f3Desc": "Cierre de caja, flujo de ingresos y control de gastos en vivo.",
+    "f4Title": "Inventario y productos",
+    "f4Desc": "Control de stock, insumos y catálogo de servicios.",
+    "f5Title": "Automatizaciones + IA",
+    "f5Desc": "Asistente inteligente y flujos automáticos que ahorran tiempo."
   },
   "benefits": {
     "b1Title": "Menos tareas manuales",

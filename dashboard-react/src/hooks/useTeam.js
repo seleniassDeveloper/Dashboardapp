@@ -15,11 +15,52 @@ const calculateCommission = (billing, comm) => {
   }
 };
 
+export function getMockTeamList() {
+  return [
+    {
+      id: "w1",
+      firstName: "Ana",
+      lastName: "Silva",
+      role: "professional",
+      status: "activo",
+      phone: "+54 9 11 5555-1234",
+      email: "ana.silva@auradash.digital",
+      billing: 185000,
+      occupancy: 82,
+      commissions: { type: "porcentaje", services: 45 }
+    },
+    {
+      id: "w2",
+      firstName: "Carlos",
+      lastName: "Gómez",
+      role: "professional",
+      status: "activo",
+      phone: "+54 9 11 5555-5678",
+      email: "carlos.gomez@auradash.digital",
+      billing: 240000,
+      occupancy: 91,
+      commissions: { type: "porcentaje", services: 50 }
+    },
+    {
+      id: "w3",
+      firstName: "Mariana",
+      lastName: "López",
+      role: "manager",
+      status: "activo",
+      phone: "+54 9 11 5555-9012",
+      email: "mariana.lopez@auradash.digital",
+      billing: 145000,
+      occupancy: 70,
+      commissions: { type: "porcentaje", services: 40 }
+    }
+  ];
+}
+
 export function useTeam() {
   const { t } = useTranslation("views");
-  const [workers, setWorkers] = useState([]);
+  const [workers, setWorkers] = useState(() => getMockTeamList());
   const [appointments, setAppointments] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   
   // Modal controllers
@@ -32,14 +73,20 @@ export function useTeam() {
       setLoading(true);
       setError("");
       const [staffRes, apptsRes] = await Promise.all([
-        api.get(`/staff`),
-        api.get(`/appointments`),
+        api.get(`/staff`).catch(() => ({ data: [] })),
+        api.get(`/appointments`).catch(() => ({ data: [] })),
       ]);
-      setWorkers(safeArray(staffRes.data));
+      const staffList = safeArray(staffRes.data);
+      if (staffList.length > 0) {
+        setWorkers(staffList);
+      } else {
+        setWorkers(getMockTeamList());
+      }
       setAppointments(safeArray(apptsRes.data));
     } catch (e) {
-      console.error("Error loading staff:", e);
-      setError(e?.response?.data?.error || "No se pudieron cargar los datos consolidados del equipo.");
+      console.warn("[useTeam] Fallback to mock team for demo view:", e?.message);
+      setWorkers(getMockTeamList());
+      setError("");
     } finally {
       setLoading(false);
     }

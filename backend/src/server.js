@@ -1,6 +1,23 @@
 import "dotenv/config";
+import * as Sentry from "@sentry/node";
+
+if (process.env.NODE_ENV === "production" && process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV,
+    tracesSampleRate: 0.1,
+    beforeSend(event) {
+      if (event.request && event.request.headers) {
+        delete event.request.headers["authorization"];
+        delete event.request.headers["Authorization"];
+        delete event.request.headers["cookie"];
+      }
+      return event;
+    },
+  });
+}
+
 import { spawn } from "node:child_process";
-// Force rebuild trigger to resolve Railway transient cache/network build failure
 import app from "./app.js";
 import prisma from "./prisma.js";
 import { assertProductionEnv } from "./config/env.js";

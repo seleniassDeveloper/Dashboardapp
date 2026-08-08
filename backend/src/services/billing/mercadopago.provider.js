@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { PaymentProvider } from "./paymentProvider.js";
 
 export class MercadoPagoProvider extends PaymentProvider {
@@ -77,10 +78,56 @@ export class MercadoPagoProvider extends PaymentProvider {
   }
 
   async verifyWebhook(req) {
-    // Signature checking for Mercado Pago is optional/complex in some versions.
-    // Instead, we verify webhook events directly by fetching the referenced resource ID from MP API
-    // using our private MP_ACCESS_TOKEN. This guarantees authenticity.
-    return true;
+    const secret = process.env.MP_WEBHOOK_SECRET;
+    if (!secret) {
+      console.warn("[MercadoPagoProvider] MP_WEBHOOK_SECRET no está definida. Omitiendo validación HMAC.");
+      return true;
+    }
+
+    const xSignature = req.headers?.["x-signature"];
+    const xRequestId = req.headers?.["x-request-id"];
+    const payload = req.body || {};
+    const dataId = payload.data?.id || payload.id || "";
+
+    if (!xSignature) {
+      console.warn("[MercadoPagoProvider] Header x-signature ausente.");
+      return false;
+    }
+
+    const parts = String(xSignature).split(",");
+    let ts = "";
+    let hashV1 = "";
+
+    for (const part of parts) {
+      const [k, v] = part.trim().split("=");
+      if (k === "ts") ts = v;
+      if (k === "v1") hashV1 = v;
+    }
+
+    if (!ts || !hashV1) {
+      console.warn("[MercadoPagoProvider] Header x-signature incompleto o malformado.");
+      return false;
+    }
+
+    const manifest = `id:${dataId};request-id:${xRequestId || ""};ts:${ts};`;
+    const computedHash = crypto
+      .createHmac("sha256", secret.trim())
+      .update(manifest)
+      .digest("hex");
+
+    try {
+      const isValid = crypto.timingSafeEqual(
+        Buffer.from(computedHash, "utf8"),
+        Buffer.from(hashV1, "utf8")
+      );
+      if (!isValid) {
+        console.warn("[MercadoPagoProvider] Firma x-signature inválida (HMAC mismatch).");
+      }
+      return isValid;
+    } catch {
+      console.warn("[MercadoPagoProvider] Error al evaluar firma HMAC.");
+      return false;
+    }
   }
 
   async parseEvent(payload, headers) {

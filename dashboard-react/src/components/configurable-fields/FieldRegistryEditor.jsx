@@ -284,20 +284,19 @@ export default function FieldRegistryEditor() {
 
   return (
     <>
-      <Card className="card-premium border-0 shadow-sm">
-      <Card.Body className="p-4">
-        <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+      <div className="panel">
+        <div className="panel__head">
           <div>
-            <h2 className="h4 fw-black text-gray-900 mb-1">Catálogo de campos</h2>
-            <p className="text-muted small mb-0">
+            <h2 className="panel__title">Catálogo de campos</h2>
+            <p className="panel__sub">
               Definí todos los campos disponibles. Luego asignalos a cada componente de la app.
             </p>
           </div>
-          <Button 
-            variant="dark" 
+          <button 
+            type="button"
             onClick={save} 
             disabled={saving} 
-            className="rounded-xl px-4 py-2.5 text-xs fw-bold d-flex align-items-center gap-2 shadow bg-purple-600 hover-bg-purple-700 text-white border-0"
+            className="btn-v"
           >
             {saving ? (
               <>
@@ -310,11 +309,20 @@ export default function FieldRegistryEditor() {
                 <span>Guardar catálogo</span>
               </>
             )}
-          </Button>
+          </button>
         </div>
 
-        {error && <Alert variant="danger" className="border-0 shadow-sm rounded-xl mb-4">{error}</Alert>}
-        {success && <Alert variant="success" className="border-0 shadow-sm rounded-xl mb-4">{success}</Alert>}
+        {error && (
+          <div className="alert-inline" role="alert">
+            <span>{error}</span>
+            <button type="button" className="alert-inline__close" onClick={() => setError("")} aria-label="Cerrar alerta">✕</button>
+          </div>
+        )}
+        {success && (
+          <div className="alert-inline" style={{ background: "var(--success-bg)", borderColor: "var(--ok-border)", color: "#14532D" }} role="status">
+            <span>{success}</span>
+          </div>
+        )}
 
         <Row className="g-3 mb-4 align-items-end">
           <Col md={4}>
@@ -336,22 +344,29 @@ export default function FieldRegistryEditor() {
             </Form.Group>
           </Col>
           <Col md={8} className="d-flex justify-content-end">
-            <Button 
-              variant="outline-purple" 
-              size="sm" 
+            <button 
+              type="button"
               onClick={handleOpenCreateModal}
-              className="py-2 px-3 rounded-xl fw-bold text-xs d-flex align-items-center gap-1.5"
+              className="btn-v-ghost"
             >
-              <Plus size={14} />
+              <Plus size={16} />
               <span>Campo nuevo</span>
-            </Button>
+            </button>
           </Col>
         </Row>
 
         <div className="d-flex flex-column gap-3.5" style={{ maxHeight: 500, overflowY: "auto", paddingRight: "4px" }}>
           {visible.length === 0 ? (
-            <div className="text-center py-5 border border-dashed rounded-2xl bg-light">
-              <p className="text-muted m-0 small">No hay campos para mostrar con este filtro.</p>
+            <div className="empty">
+              <div className="empty__icon">
+                <Plus size={28} />
+              </div>
+              <h3 className="empty__title">Sin campos en este filtro</h3>
+              <p className="empty__text">No encontramos ningún campo definido para esta entidad. ¡Creá el primero!</p>
+              <button type="button" onClick={handleOpenCreateModal} className="btn-v">
+                <Plus size={16} />
+                <span>Crear primer campo</span>
+              </button>
             </div>
           ) : (
             visible.map((field, index) => {
@@ -602,8 +617,7 @@ export default function FieldRegistryEditor() {
             })
           )}
         </div>
-      </Card.Body>
-    </Card>
+      </div>
 
     <Modal 
       show={showCreateModal} 

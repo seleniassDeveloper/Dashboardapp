@@ -1,5 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
+import * as Sentry from "@sentry/react";
 
 function ErrorFallback({ error }) {
   const { t } = useTranslation("common");
@@ -46,6 +47,9 @@ export default class ErrorBoundary extends React.Component {
   componentDidCatch(error, errorInfo) {
     // eslint-disable-next-line no-console
     console.error("UI crashed:", error, errorInfo);
+    if (import.meta.env.PROD) {
+      Sentry.captureException(error, { extra: errorInfo });
+    }
   }
 
   render() {

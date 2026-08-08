@@ -10,10 +10,11 @@
     "noAppointments": "No appointments for this period"
   },
   "clients": {
-    "title": "Clients Management",
+    "title": "Client Management",
     "subtitle": "Centralized database of your clients and patients.",
-    "newClient": "New client",
+    "newClient": "New Client",
     "search": "Search by name, email or phone…",
+    "empty": "No registered clients yet.",
     "table": {
       "fullName": "Full Name",
       "phone": "Phone",

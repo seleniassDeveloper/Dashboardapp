@@ -14,6 +14,7 @@
     "subtitle": "Base de datos centralizada de tus clientes y pacientes.",
     "newClient": "Nuevo Cliente",
     "search": "Buscar por nombre, email o teléfono…",
+    "empty": "No hay clientes registrados aún.",
     "table": {
       "fullName": "Nombre Completo",
       "phone": "Teléfono",
