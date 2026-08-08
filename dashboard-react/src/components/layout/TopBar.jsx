@@ -26,7 +26,7 @@ export default function TopBar({ onMenuClick, onEditBrand, onSearchClick }) {
     if (path.startsWith("/app/sheets-sync")) return "Sincronizador";
     if (path.startsWith("/app/finance") || path.startsWith("/app/accounting")) return "Finanzas";
     if (path.startsWith("/app/workflows")) return "Flujos";
-    return brand.companyName || business?.name || "AuraDash";
+    return (brand.companyName && brand.companyName !== "AuraDash Test" ? brand.companyName : null) || business?.name || "Aura Studio";
   };
 
   const handleLogout = async () => {
@@ -72,7 +72,7 @@ export default function TopBar({ onMenuClick, onEditBrand, onSearchClick }) {
         </button>
         <div className="topbar__brand-wrap" onClick={onEditBrand}>
           <h2 className="topbar__brand-name" translate="no">
-            {isMobile ? getMobileTitle() : (brand.companyName || business?.name || t("topbar.myBusiness"))}
+            {isMobile ? getMobileTitle() : ((brand.companyName && brand.companyName !== "AuraDash Test" ? brand.companyName : null) || business?.name || t("topbar.myBusiness"))}
           </h2>
           {!isMobile && brand.slogan && <p className="topbar__brand-slogan" translate="no">{brand.slogan}</p>}
         </div>

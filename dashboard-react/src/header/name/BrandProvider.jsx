@@ -57,6 +57,10 @@ function normalizeBrand(saved) {
   if (bg === "#111827" || bg === "#0f172a" || bg === "#0f0f10") {
     merged.dashboardBg = DEFAULT_BRAND.dashboardBg;
   }
+
+  if (merged.companyName === "AuraDash Test") {
+    merged.companyName = "";
+  }
   return merged;
 }
 

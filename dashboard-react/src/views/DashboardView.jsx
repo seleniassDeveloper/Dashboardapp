@@ -24,6 +24,7 @@ import api from "../lib/api.js";
 import { useBrand } from "../header/name/BrandProvider";
 import { useAuth } from "../auth/AuthProvider";
 import { QRCodeSVG } from "qrcode.react";
+import { getMockAppointments, normalizeAppointment } from "../gadgets/appointments/AppointmentsProvider.jsx";
 
 // Componentes
 import DashboardGrid from "../components/dashboard/DashboardGrid";
@@ -173,8 +174,12 @@ export default function DashboardView() {
         { id: "w1", name: "Selenia", role: "Esteticista Principal", active: true }
       ];
 
+      const defaultMockAppts = typeof getMockAppointments === "function"
+        ? getMockAppointments().map(normalizeAppointment)
+        : [];
+
       setWidgets(wRes || []);
-      setAppointments(apptRes || []);
+      setAppointments(apptRes || defaultMockAppts);
       setClients(clientRes || defaultMockClients);
       setWorkers(workerRes || defaultMockWorkers);
       setServices(serviceRes || []);
