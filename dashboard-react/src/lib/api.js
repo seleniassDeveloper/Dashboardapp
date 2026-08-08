@@ -46,6 +46,9 @@ export function setErrorListener(listener) {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    if (error.config?.skipGlobalErrorModal) {
+      return Promise.reject(error);
+    }
     // Solo disparar el listener de error global y Sentry para errores de red o servidor (status >= 500)
     const status = error.response?.status;
     const method = error.config?.method?.toLowerCase() || "";

@@ -130,11 +130,11 @@ export default function DashboardView() {
 
       const safeFetch = async (url) => {
         try {
-          const res = await api.get(url);
-          return Array.isArray(res.data) ? res.data : [];
+          const res = await api.get(url, { skipGlobalErrorModal: true });
+          return Array.isArray(res.data) && res.data.length > 0 ? res.data : null;
         } catch (err) {
           console.warn(`[DashboardView] safeFetch fallback on ${url}:`, err?.message || err);
-          return [];
+          return null;
         }
       };
 
@@ -148,13 +148,38 @@ export default function DashboardView() {
         safeFetch("/inventory/products")
       ]);
 
-      setWidgets(wRes);
-      setAppointments(apptRes);
-      setClients(clientRes);
-      setWorkers(workerRes);
-      setServices(serviceRes);
-      setExpenses(expensesRes);
-      setProducts(productsRes);
+      const defaultMockClients = [
+        { id: "c1", name: "Selenia Sanchez", email: "seleniadeveloper@gmail.com", phone: "011561393922" },
+        { id: "c2", name: "Victor Rivas", email: "victor@gmail.com", phone: "011561393923" },
+        { id: "c3", name: "Jhoan Aponte", email: "jhoan@gmail.com", phone: "011561393924" },
+        { id: "c4", name: "Ana Torres", email: "anatorres@gmail.com", phone: "011561393925" },
+        { id: "c5", name: "Carla Gomez", email: "carla@gmail.com", phone: "011561393926" },
+        { id: "c6", name: "Mariana Lopez", email: "mariana@gmail.com", phone: "011561393927" },
+        { id: "c7", name: "Sofia Rodriguez", email: "sofia@gmail.com", phone: "011561393928" },
+        { id: "c8", name: "Lucia Fernandez", email: "lucia@gmail.com", phone: "011561393929" },
+        { id: "c9", name: "Camila Martinez", email: "camila@gmail.com", phone: "011561393930" },
+        { id: "c10", name: "Valentina Diaz", email: "valentina@gmail.com", phone: "011561393931" },
+        { id: "c11", name: "Isabella Perez", email: "isabella@gmail.com", phone: "011561393932" },
+        { id: "c12", name: "Martina Sanchez", email: "martina@gmail.com", phone: "011561393933" },
+        { id: "c13", name: "Paula Romero", email: "paula@gmail.com", phone: "011561393934" },
+        { id: "c14", name: "Florencia Sosa", email: "florencia@gmail.com", phone: "011561393935" },
+        { id: "c15", name: "Agustina Torres", email: "agustina@gmail.com", phone: "011561393936" },
+        { id: "c16", name: "Micaela Ruiz", email: "micaela@gmail.com", phone: "011561393937" },
+        { id: "c17", name: "Daniela Benitez", email: "daniela@gmail.com", phone: "011561393938" },
+        { id: "c18", name: "Carolina Castro", email: "carolina@gmail.com", phone: "011561393939" }
+      ];
+
+      const defaultMockWorkers = [
+        { id: "w1", name: "Selenia", role: "Esteticista Principal", active: true }
+      ];
+
+      setWidgets(wRes || []);
+      setAppointments(apptRes || []);
+      setClients(clientRes || defaultMockClients);
+      setWorkers(workerRes || defaultMockWorkers);
+      setServices(serviceRes || []);
+      setExpenses(expensesRes || []);
+      setProducts(productsRes || []);
     } catch (e) {
       console.error("Error cargando datos del dashboard:", e);
       setError(t("errors.loadData"));
