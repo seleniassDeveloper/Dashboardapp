@@ -158,7 +158,7 @@ const AppointmentsContext = createContext(null);
 export function AppointmentsProvider({ children }) {
   const [appointments, setAppointments] = useState(() => getMockAppointments().map(normalizeAppointment));
   const [services, setServices] = useState([]);
-  const [business, setBusiness] = useState({ name: "Aura Studio (Demo)", slug: "aura-studio-demo" });
+  const [business, setBusiness] = useState({ name: "Aura Studio", slug: "aura-studio" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -199,9 +199,9 @@ export function AppointmentsProvider({ children }) {
   const fetchBusiness = useCallback(async () => {
     try {
       const res = await api.get(`/appointments/business`);
-      setBusiness(res.data || { name: "Aura Studio (Demo)", slug: "aura-studio-demo" });
+      setBusiness(res.data || { name: "Aura Studio", slug: "aura-studio" });
     } catch (e) {
-      setBusiness({ name: "Aura Studio (Demo)", slug: "aura-studio-demo" });
+      setBusiness({ name: "Aura Studio", slug: "aura-studio" });
     }
   }, []);
 
