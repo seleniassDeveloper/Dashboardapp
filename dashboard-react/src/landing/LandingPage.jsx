@@ -34,6 +34,10 @@ import {
   CircleDollarSign,
   Package,
   MessageCircle,
+  Stethoscope,
+  Dumbbell,
+  PawPrint,
+  GraduationCap,
   X
 } from "lucide-react";
 
@@ -552,6 +556,219 @@ export default function LandingPage() {
   const [aiPrompt, setAiPrompt] = useState(null);
   const [aiTyping, setAiTyping] = useState(false);
 
+  // Estado para el Sector Showcase interactivo (Salones, Clínicas, Gyms, Vets, Distribuidoras)
+  const [activeSectorTab, setActiveSectorTab] = useState(0);
+
+  const SECTORS_DATA = [
+    {
+      key: "salones",
+      label: "Salones & Estética",
+      iconName: "Scissors",
+      cards: [
+        {
+          iconName: "CalendarDays",
+          iconTheme: "purple",
+          title: "Agenda inteligente",
+          desc: "Citas sincronizadas, recordatorios y control de disponibilidad."
+        },
+        {
+          iconName: "Users",
+          iconTheme: "purple",
+          title: "CRM completo",
+          desc: "Historial de clientes, seguimiento y notas en un solo lugar."
+        },
+        {
+          iconName: "CircleDollarSign",
+          iconTheme: "yellow",
+          title: "Finanzas en tiempo real",
+          desc: "Control de ingresos, gastos y flujo de caja al instante."
+        },
+        {
+          iconName: "GraduationCap",
+          iconTheme: "purple",
+          title: "Inventario y productos",
+          desc: "Stock, insumos y catálogo siempre actualizados."
+        },
+        {
+          iconName: "Zap",
+          iconTheme: "yellow",
+          title: "Automatizaciones + IA",
+          desc: "Menos tareas manuales, más tiempo para hacer crecer tu negocio."
+        }
+      ]
+    },
+    {
+      key: "clinicas",
+      label: "Clínicas & Salud",
+      iconName: "Stethoscope",
+      cards: [
+        {
+          iconName: "CalendarDays",
+          iconTheme: "purple",
+          title: "Agenda médica",
+          desc: "Turnos sincronizados, confirmación por WhatsApp y recordatorios."
+        },
+        {
+          iconName: "Users",
+          iconTheme: "purple",
+          title: "Ficha de pacientes",
+          desc: "Historial clínico, diagnósticos y seguimiento unificado."
+        },
+        {
+          iconName: "CircleDollarSign",
+          iconTheme: "yellow",
+          title: "Finanzas en tiempo real",
+          desc: "Liquidación de profesionales, obras sociales y caja diaria."
+        },
+        {
+          iconName: "GraduationCap",
+          iconTheme: "purple",
+          title: "Insumos médicos",
+          desc: "Stock de medicamentos, descartables y control de farmacia."
+        },
+        {
+          iconName: "Zap",
+          iconTheme: "yellow",
+          title: "Automatizaciones + IA",
+          desc: "Recordatorios automáticos de turnos y asistente de pacientes."
+        }
+      ]
+    },
+    {
+      key: "gimnasios",
+      label: "Gimnasios & Fitness",
+      iconName: "Dumbbell",
+      cards: [
+        {
+          iconName: "CalendarDays",
+          iconTheme: "purple",
+          title: "Reserva de clases",
+          desc: "Gestión de cupos, horarios y asistencia en tiempo real."
+        },
+        {
+          iconName: "Users",
+          iconTheme: "purple",
+          title: "Control de socios",
+          desc: "Membresías, estados de cuenta y vencimiento de pases."
+        },
+        {
+          iconName: "CircleDollarSign",
+          iconTheme: "yellow",
+          title: "Finanzas en tiempo real",
+          desc: "Ingresos recurrentes, cobros automáticos y caja al instante."
+        },
+        {
+          iconName: "GraduationCap",
+          iconTheme: "purple",
+          title: "Tienda y suplementos",
+          desc: "Venta de bebidas, accesorios y suplementación en stock."
+        },
+        {
+          iconName: "Zap",
+          iconTheme: "yellow",
+          title: "Automatizaciones + IA",
+          desc: "Avisos de vencimiento de cuota y retención inteligente de socios."
+        }
+      ]
+    },
+    {
+      key: "veterinarias",
+      label: "Veterinarias",
+      iconName: "PawPrint",
+      cards: [
+        {
+          iconName: "CalendarDays",
+          iconTheme: "purple",
+          title: "Turnos veterinarios",
+          desc: "Agenda de consultas, cirugías, peluquería y vacunas."
+        },
+        {
+          iconName: "Users",
+          iconTheme: "purple",
+          title: "Expediente de mascotas",
+          desc: "Historial clínico de mascotas, dueños y tratamientos."
+        },
+        {
+          iconName: "CircleDollarSign",
+          iconTheme: "yellow",
+          title: "Finanzas en tiempo real",
+          desc: "Facturación de servicios, medicamentos y pet shop al instante."
+        },
+        {
+          iconName: "GraduationCap",
+          iconTheme: "purple",
+          title: "Farmacia & Pet Shop",
+          desc: "Inventario de fármacos, alimentos y productos veterinarios."
+        },
+        {
+          iconName: "Zap",
+          iconTheme: "yellow",
+          title: "Automatizaciones + IA",
+          desc: "Recordatorios automáticos de vacunación y desparasitación."
+        }
+      ]
+    },
+    {
+      key: "distribuidoras",
+      label: "Distribuidoras",
+      iconName: "Package",
+      cards: [
+        {
+          iconName: "CalendarDays",
+          iconTheme: "purple",
+          title: "Pedidos y despachos",
+          desc: "Planificación de rutas de entrega, logística y cronogramas."
+        },
+        {
+          iconName: "Users",
+          iconTheme: "purple",
+          title: "CRM mayorista",
+          desc: "Listas de precio personalizadas, historial y cuentas corrientes."
+        },
+        {
+          iconName: "CircleDollarSign",
+          iconTheme: "yellow",
+          title: "Finanzas en tiempo real",
+          desc: "Control de cobranzas, créditos a clientes y facturación masiva."
+        },
+        {
+          iconName: "GraduationCap",
+          iconTheme: "purple",
+          title: "Stock multi-depósito",
+          desc: "Entradas, salidas, lotes y catálogo siempre actualizados."
+        },
+        {
+          iconName: "Zap",
+          iconTheme: "yellow",
+          title: "Automatizaciones + IA",
+          desc: "Reorden inteligente y predicción de demanda de stock."
+        }
+      ]
+    }
+  ];
+
+  const renderSectorIcon = (iconName) => {
+    switch (iconName) {
+      case "Scissors": return <Scissors size={18} />;
+      case "Stethoscope": return <Stethoscope size={18} />;
+      case "Dumbbell": return <Dumbbell size={18} />;
+      case "PawPrint": return <PawPrint size={18} />;
+      case "Package": return <Package size={18} />;
+      default: return null;
+    }
+  };
+
+  const renderCardIcon = (iconName) => {
+    switch (iconName) {
+      case "CalendarDays": return <CalendarDays size={22} />;
+      case "Users": return <Users size={22} />;
+      case "CircleDollarSign": return <CircleDollarSign size={22} />;
+      case "GraduationCap": return <GraduationCap size={22} />;
+      case "Zap": return <Zap size={22} />;
+      default: return null;
+    }
+  };
+
   // Estados del Explorador de Módulos (9 Módulos)
   const [activeExplorer, setActiveExplorer] = useState("dashboard");
   const [activeMobileExplorer, setActiveMobileExplorer] = useState("dashboard");
@@ -693,65 +910,42 @@ export default function LandingPage() {
           </Container>
         </section>
 
-        {/* LOGO BAR / SECTORES (Opción C - Sin clientes inventados) */}
-        <section className="logo-bar reveal">
+        {/* SECTOR SHOWCASE SECTION (Pestañas por Sector + 5 Tarjetas) */}
+        <section className="sector-showcase-section reveal">
           <Container>
-            <div className="logo-bar__label">
-              {t("logoBar.label")}
+            {/* Pestañas de Sectores */}
+            <div className="sector-tabs-container">
+              {SECTORS_DATA.map((sector, index) => {
+                const isActive = activeSectorTab === index;
+                return (
+                  <div key={sector.key} className="sector-tab-wrapper">
+                    <button
+                      type="button"
+                      className={`sector-tab-btn ${isActive ? "active" : ""}`}
+                      onClick={() => setActiveSectorTab(index)}
+                    >
+                      <span className="sector-tab-btn__icon">
+                        {renderSectorIcon(sector.iconName)}
+                      </span>
+                      <span>{sector.label}</span>
+                    </button>
+                    {isActive && <div className="sector-tab-indicator" />}
+                  </div>
+                );
+              })}
             </div>
-            <div className="logo-bar__row">
-              <span className="logo-bar__tag">💈 Salones & Estética</span>
-              <span className="logo-bar__tag">🩺 Clínicas & Salud</span>
-              <span className="logo-bar__tag">🏋️ Gimnasios & Fitness</span>
-              <span className="logo-bar__tag">🐾 Veterinarias</span>
-              <span className="logo-bar__tag">📦 Distribuidoras</span>
-            </div>
-          </Container>
-        </section>
 
-        {/* FRANJA DE FEATURES (5 columnas con divisores) */}
-        <section className="py-5 reveal">
-          <Container>
-            <div className="feature-strip">
-              <div className="feature-strip__item">
-                <div className="feature-strip__icon" style={{ background: "#EDE9FE", color: "#7C3AED" }}>
-                  <CalendarDays size={20} />
+            {/* Grid de 5 Tarjetas de Funcionalidades */}
+            <div key={activeSectorTab} className="sector-cards-grid">
+              {SECTORS_DATA[activeSectorTab].cards.map((card, idx) => (
+                <div key={idx} className="sector-card">
+                  <div className={`sector-card__icon-box sector-card__icon-box--${card.iconTheme}`}>
+                    {renderCardIcon(card.iconName)}
+                  </div>
+                  <h3 className="sector-card__title">{card.title}</h3>
+                  <p className="sector-card__desc">{card.desc}</p>
                 </div>
-                <div className="feature-strip__title">{t("featureStrip.f1Title")}</div>
-                <div className="feature-strip__desc">{t("featureStrip.f1Desc")}</div>
-              </div>
-
-              <div className="feature-strip__item">
-                <div className="feature-strip__icon" style={{ background: "#DBEAFE", color: "#2563EB" }}>
-                  <Users size={20} />
-                </div>
-                <div className="feature-strip__title">{t("featureStrip.f2Title")}</div>
-                <div className="feature-strip__desc">{t("featureStrip.f2Desc")}</div>
-              </div>
-
-              <div className="feature-strip__item">
-                <div className="feature-strip__icon" style={{ background: "#DCFCE7", color: "#16A34A" }}>
-                  <CircleDollarSign size={20} />
-                </div>
-                <div className="feature-strip__title">{t("featureStrip.f3Title")}</div>
-                <div className="feature-strip__desc">{t("featureStrip.f3Desc")}</div>
-              </div>
-
-              <div className="feature-strip__item">
-                <div className="feature-strip__icon" style={{ background: "#FFEDD5", color: "#EA580C" }}>
-                  <Package size={20} />
-                </div>
-                <div className="feature-strip__title">{t("featureStrip.f4Title")}</div>
-                <div className="feature-strip__desc">{t("featureStrip.f4Desc")}</div>
-              </div>
-
-              <div className="feature-strip__item">
-                <div className="feature-strip__icon" style={{ background: "#FEF3C7", color: "#D97706" }}>
-                  <Zap size={20} />
-                </div>
-                <div className="feature-strip__title">{t("featureStrip.f5Title")}</div>
-                <div className="feature-strip__desc">{t("featureStrip.f5Desc")}</div>
-              </div>
+              ))}
             </div>
           </Container>
         </section>
